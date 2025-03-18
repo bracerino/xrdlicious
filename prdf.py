@@ -20,7 +20,7 @@ components.html(
 )
 
 st.title("Pair Radial Distribution Function (PRDF) and Global RDF Calculator for Crystal Structures")
-
+st.divider()
 # --- File Upload ---
 uploaded_files = st.file_uploader(
     "Upload Structure Files (CIF, POSCAR, XYZ, etc.)",
@@ -30,6 +30,13 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
+
+st.info(
+    "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and the tool will automatically calculate the "
+    "Pair Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF. "
+    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. "
+    "Below, you can change the cut-off distance (Å) and the bin size to use for PRDF calculation."
+)
 
 # --- Detect Atomic Species ---
 if uploaded_files:
@@ -41,15 +48,16 @@ if uploaded_files:
         for atom in structure:
             species_set.add(atom.symbol)
     species_list = sorted(species_set)
-    st.subheader("Detected Atomic Species")
+    st.subheader("📊 Detected Atomic Species")
     st.write(", ".join(species_list))
 else:
     species_list = []
 
 # --- PRDF Parameters ---
-st.subheader("PRDF Parameters")
-cutoff = st.number_input("Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
-bin_size = st.number_input("Bin Size (Å)", min_value=0.01, max_value=5.0, value=0.2, step=0.1, format="%.1f")
+st.divider()
+st.subheader("⚙️ PRDF Parameters")
+cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
+bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.01, max_value=5.0, value=0.2, step=0.1, format="%.1f")
 
 # --- Calculate and Plot PRDF Automatically ---
 if uploaded_files:
@@ -103,8 +111,8 @@ if uploaded_files:
     multi_structures = len(uploaded_files) > 1
 
     colors = plt.cm.tab10.colors
-
-    st.subheader("Pair Distribution Functions")
+    st.divider()
+    st.subheader("📊 OUTPUT → PRDF:")
     # Plot each pair (or element) PRDF
     for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
         valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
