@@ -57,7 +57,7 @@ else:
 st.divider()
 st.subheader("⚙️ PRDF Parameters")
 cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
-bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.01, max_value=5.0, value=0.2, step=0.1, format="%.1f")
+bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.2, step=0.05, format="%.1f")
 
 # --- Calculate and Plot PRDF Automatically ---
 if uploaded_files:
