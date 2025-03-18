@@ -1,0 +1,6 @@
+streamlit
+numpy
+matplotlib
+ase
+matminer
+pymatgen
