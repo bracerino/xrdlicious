@@ -1,4 +1,5 @@
-##PRDF Calculator Online
+**PRDF Calculator Online**
+
 An online tool for computing the Pair Radial Distribution Function (PRDF) and Global RDF for crystal structures.
 
 🔗 Try it here: [PRDF Calculator](https://rdf-calculator.streamlit.app/)
