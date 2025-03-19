@@ -1,6 +1,6 @@
 **PRDF and XRD Pattern Online Calculator**
 
-An online tool for computing the Pair Radial Distribution Function (PRDF), Global RDF, and XRD pattern for crystal structures.
+An online tool for computing the Partial Radial Distribution Function (PRDF), Global RDF, and XRD pattern for crystal structures.
 
 🔗 Try it here: [PRDF Calculator](https://rdf-calculator.streamlit.app/)
 
