@@ -40,13 +40,13 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator of Pair Radial Distribution Function (PRDF), Global RDF, and XRD Pattern for Crystal Structures (CIF, POSCAR, XYZ, ...)">
+        <meta name="description" content="Online calculator of Partial Radial Distribution Function (PRDF), Global RDF, and XRD Pattern for Crystal Structures (CIF, POSCAR, XYZ, ...)">
     </head>
     """,
     height=0,
 )
 
-st.title("Pair Radial Distribution Function (PRDF), Global RDF, and XRD Pattern Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+st.title("Partial Radial Distribution Function (PRDF), Global RDF, and XRD Pattern Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
 st.divider()
 
 # --- File Upload ---
@@ -62,7 +62,7 @@ else:
 
 st.info(
     "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
-    "Pair Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD diffraction pattern. "
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. "
     "Below, you can change the settings for PRDF or XRD calculation."
 )
