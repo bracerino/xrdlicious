@@ -2,7 +2,7 @@
 
 An online tool for computing the Partial Radial Distribution Function (PRDF), Global RDF, and XRD pattern for crystal structures.
 
-🔗 Try it here: [PRDF Calculator](https://rdf-calculator.streamlit.app/)
+🔗 Try it here: [PRDF/XRD Calculator](https://rdf-calculator.streamlit.app/)
 
 **How It Works**
 1) Upload your crystal structure (structures) file (e.g., CIF or POSCAR format). If you upload more than one file, averaging of PRDF for the corresponding combinations of elements between the structures will be performed. 
