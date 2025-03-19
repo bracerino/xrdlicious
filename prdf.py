@@ -208,20 +208,24 @@ x_axis_metric = st.selectbox(
 )
 
 # Conditional min/max inputs based on the selected metric.
+# Conditional min/max inputs based on the selected metric.
 if x_axis_metric == "2θ (°)":
-    min_val = st.number_input("⚙️ Minimum 2θ (°)", min_value=0.0, max_value=360.0, value=0.0, step=1.0)
-    max_val = st.number_input("⚙️ Maximum 2θ (°)", min_value=0.0, max_value=360.0, value=165.0, step=1.0)
+    col1, col2 = st.columns(2)
+    min_val = col1.number_input("⚙️ Minimum 2θ (°)", min_value=0.0, max_value=360.0, value=0.0, step=1.0)
+    max_val = col2.number_input("⚙️ Maximum 2θ (°)", min_value=0.0, max_value=360.0, value=165.0, step=1.0)
 elif x_axis_metric == "2θ (rad)":
-    min_val = st.number_input("⚙️ Minimum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=0.0, step=0.0174533)
-    max_val = st.number_input("⚙️ Maximum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=np.deg2rad(165),
-                              step=0.0174533)
+    col1, col2 = st.columns(2)
+    min_val = col1.number_input("⚙️ Minimum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=0.0, step=0.0174533)
+    max_val = col2.number_input("⚙️ Maximum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=np.deg2rad(165), step=0.0174533)
 elif x_axis_metric == "q (1/Å)":
     wavelength_nm = float(wavelength_dict[wavelength_choice].split()[0])
     wavelength_A = wavelength_nm * 10
     default_q_min = 0.0
     default_q_max = (4 * np.pi / wavelength_A) * np.sin(np.deg2rad(165 / 2))
-    min_val = st.number_input("⚙️ Minimum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_min, step=0.1)
-    max_val = st.number_input("⚙️ Maximum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_max, step=0.1)
+    col1, col2 = st.columns(2)
+    min_val = col1.number_input("⚙️ Minimum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_min, step=0.1)
+    max_val = col2.number_input("⚙️ Maximum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_max, step=0.1)
+
 
 sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
                         max_value=1.0, value=0.1, step=0.01)
@@ -331,5 +335,3 @@ if st.session_state.calc_xrd and uploaded_files:
                          for h in hkl_group])
                     table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str2, language="text")
-
-
