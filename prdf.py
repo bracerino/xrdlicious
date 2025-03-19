@@ -58,7 +58,7 @@ uploaded_files = st.file_uploader(
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("Please upload at least one structure file.")
+    st.warning("Please upload at least one structure file. For XRD Pattern calculation, upload only one structure.")
 
 st.info(
     "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
