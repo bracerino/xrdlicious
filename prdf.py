@@ -61,7 +61,7 @@ else:
     st.warning("Please upload at least one structure file.")
 
 st.info(
-    "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and the tool will calculate either the "
+    "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
     "Pair Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. "
     "Below, you can change the settings for PRDF or XRD calculation."
