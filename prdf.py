@@ -58,10 +58,10 @@ uploaded_files = st.file_uploader(
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("Please upload at least one structure file. For XRD Pattern calculation, upload only one structure.")
+    st.warning("Please upload at least one structure file. For XRD Pattern calculation, upload only one structure.\n\n [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
 
 st.info(
-    "Note: Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
+    "**Note:**  Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. "
     "Below, you can change the settings for PRDF or XRD calculation."
