@@ -182,9 +182,8 @@ if st.session_state.calc_rdf and uploaded_files:
         st.code(table_str, language="text")
 
 # --- XRD Settings and Calculation ---
-import numpy as np
-import streamlit as st
-import matplotlib.pyplot as plt
+st.divider()
+st.subheader("⚙️ XRD Settings")
 
 def format_index(index):
     s = str(index)
