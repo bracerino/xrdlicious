@@ -280,7 +280,7 @@ preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=
 wavelength_value = st.number_input("Wavelength (nm)",
                                    value=preset_wavelengths[preset_choice],
                                    min_value=0.001,
-                                   step=0.001)
+                                   step=0.001, format="%.3f")
 st.write(f"**Using wavelength = {wavelength_value} nm**")
 # Convert wavelength from nm to Ångströms (1 nm = 10 Å)
 wavelength_A = wavelength_value * 10
