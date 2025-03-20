@@ -387,40 +387,46 @@ conversion_info = {
 
 # --- Wavelength Selection ---
 preset_options = [
-    'CoKa1', 'CoKa2', 'CoKa', 'CoKb1',
-    'MoKa1', 'MoKa2','MoKa',  'MoKb1',
-    'CuKa1', 'CuKa2', 'CuKa',   'CuKb1',
-    'CrKa1', 'CrKa2', 'CrKa',   'CrKb1',
-    'FeKa1', 'FeKa2', 'FeKa',   'FeKb1',
-    'AgKa1', 'AgKa2','AgKa',  'AgKb1'
+    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)','CoKb1',
+    'MoKa1', 'MoKa2','Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
+    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',  'CuKb1',
+    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)',  'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
+    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)',  'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
+    'AgKa1', 'AgKa2','Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
 ]
 preset_wavelengths = {
-    'CuKa': 0.154,
+    'Cu(Ka1+Ka2)': 0.154,
     'CuKa2': 0.15444,
     'CuKa1': 0.15406,
+    'Cu(Ka1+Ka2+Kb1)': 0.153339,
     'CuKb1': 0.13922,
-    'MoKa': 0.071,
+    'Mo(Ka1+Ka2)': 0.071,
     'MoKa2': 0.0711,
     'MoKa1': 0.07093,
+    'Mo(Ka1+Ka2+Kb1)': 0.07059119,
     'MoKb1': 0.064,
-    'CrKa': 0.229,
+    'Cr(Ka1+Ka2)': 0.229,
     'CrKa2': 0.22888,
     'CrKa1': 0.22897,
+    'Cr(Ka1+Ka2+Kb1)':0.22775471,
     'CrKb1': 0.208,
-    'FeKa': 0.194,
+    'Fe(Ka1+Ka2)': 0.194,
     'FeKa2': 0.194,
     'FeKa1': 0.19360,
+    'Fe(Ka1+Ka2+Kb1)': 0.1927295,
     'FeKb1': 0.176,
-    'CoKa': 0.179,
+    'Co(Ka1+Ka2)': 0.179,
     'CoKa2': 0.17927,
     'CoKa1': 0.17889,
+    'Co(Ka1+Ka2+Kb1)': 0.1781100,
     'CoKb1': 0.163,
-    'AgKa': 0.0561,
+    'Ag(Ka1+Ka2)': 0.0561,
     'AgKa2': 0.0560,
     'AgKa1': 0.0561,
-    'AgKb1': 0.0496
+    'AgKb1': 0.0496,
+    'Ag(Ka1+Ka2+Kb1)':0.0557006
 }
-preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0)
+preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0, help=( "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
 wavelength_value = st.number_input("Wavelength (nm)",
                                    value=preset_wavelengths[preset_choice],
                                    min_value=0.001,
