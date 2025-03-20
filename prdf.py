@@ -182,156 +182,217 @@ if st.session_state.calc_rdf and uploaded_files:
         st.code(table_str, language="text")
 
 # --- XRD Settings and Calculation ---
+import numpy as np
+import streamlit as st
+import matplotlib.pyplot as plt
 
 def format_index(index):
     s = str(index)
-    # Append a space if the index is exactly two digits.
     if len(s) == 2:
         return s + " "
     return s
 
+# ----- Conversion Functions -----
+def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
+    """
+    Converts 2θ (in degrees) to the desired x-axis metric.
+    Works for both scalar and array inputs.
+    """
+    # Ensure input is a numpy array
+    twotheta_deg = np.asarray(twotheta_deg)
+    theta = np.deg2rad(twotheta_deg / 2)
+    if metric == "2θ (°)":
+        result = twotheta_deg
+    elif metric == "2θ (rad)":
+        result = np.deg2rad(twotheta_deg)
+    elif metric == "q (1/Å)":
+        result = (4 * np.pi / wavelength_A) * np.sin(theta)
+    elif metric == "q (1/nm)":
+        result = (4 * np.pi / wavelength_nm) * np.sin(theta)
+    elif metric == "d (Å)":
+        # Vectorized: for each theta, if sin(theta)==0, return np.inf
+        result = np.where(np.sin(theta)==0, np.inf, wavelength_A / (2 * np.sin(theta)))
+    elif metric == "d (nm)":
+        result = np.where(np.sin(theta)==0, np.inf, wavelength_nm / (2 * np.sin(theta)))
+    elif metric == "energy (keV)":
+        result = (24.796 * np.sin(theta)) / wavelength_A
+    elif metric == "frequency (PHz)":
+        f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
+        result = f_Hz / 1e15
+    else:
+        result = twotheta_deg
+    # If the input was a scalar, return a scalar.
+    if np.ndim(twotheta_deg) == 0:
+        return float(result)
+    return result
 
-# --- XRD Settings and Calculation ---
-st.divider()
-st.subheader("⚙️ XRD Settings")
-wavelength_options = ["CuKa", "MoKa", "CoKa"]
-wavelength_choice = st.selectbox("⚙️ Select X-ray Wavelength", wavelength_options, index=0)
-wavelength_dict = {"CuKa": "0.154 nm", "MoKa": "0.071 nm", "CoKa": "0.179 nm"}
-st.write(f"**Note:** {wavelength_choice} corresponds to approximately {wavelength_dict[wavelength_choice]}.")
+def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
+    """
+    Inverts the conversion: given an x-axis value in the desired metric,
+    returns the corresponding 2θ (in degrees). Assumes scalar input.
+    """
+    if metric == "2θ (°)":
+        return metric_value
+    elif metric == "2θ (rad)":
+        return np.rad2deg(metric_value)
+    elif metric == "q (1/Å)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "q (1/nm)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "d (Å)":
+        sin_theta = np.clip(wavelength_A / (2 * metric_value), 0, 1)
+        theta = np.arcsin(sin_theta)
+        return np.rad2deg(2 * theta)
+    elif metric == "d (nm)":
+        sin_theta = np.clip(wavelength_nm / (2 * metric_value), 0, 1)
+        theta = np.arcsin(sin_theta)
+        return np.rad2deg(2 * theta)
+    elif metric == "energy (keV)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_A / 24.796, 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "frequency (PHz)":
+        f_Hz = metric_value * 1e15
+        E_keV = f_Hz / 2.418e17
+        theta = np.arcsin(np.clip(E_keV * wavelength_A / 24.796, 0, 1))
+        return np.rad2deg(2 * theta)
+    else:
+        return metric_value
 
-# XRD x-axis metric selectbox placed above the min/max settings.
+# ----- Conversion Equations Help Information -----
+conversion_info = {
+    "2θ (°)": "Identity: 2θ in degrees.",
+    "2θ (rad)": "Conversion: radians = degrees * (π/180).",
+    "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
+    "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
+    "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
+    "d (nm)": "d = λ / (2 sin(θ)), with λ in nm.",
+    "energy (keV)": "E = (24.796 * sin(θ)) / λ, with λ in Å.",
+    "frequency (PHz)": "f = [(24.796 * sin(θ))/λ * 2.418e17] / 1e15, with λ in Å."
+}
+
+# -------------------------------
+# --- Wavelength Selection ---
+preset_options = ["CuKa", "MoKa", "CoKa"]
+preset_wavelengths = {"CuKa": 0.154, "MoKa": 0.071, "CoKa": 0.179}  # in nm
+preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0)
+wavelength_value = st.number_input("Wavelength (nm)",
+                                   value=preset_wavelengths[preset_choice],
+                                   min_value=0.001,
+                                   step=0.001)
+st.write(f"**Using wavelength = {wavelength_value} nm**")
+# Convert wavelength from nm to Ångströms (1 nm = 10 Å)
+wavelength_A = wavelength_value * 10
+wavelength_nm = wavelength_value  # For clarity
+
+# -------------------------------
+# --- X-axis Metric Selection ---
+x_axis_options = [
+    "2θ (°)", "2θ (rad)",
+    "q (1/Å)", "q (1/nm)",
+    "d (Å)", "d (nm)",
+    "energy (keV)", "frequency (PHz)"
+]
+if "x_axis_metric" not in st.session_state:
+    st.session_state.x_axis_metric = x_axis_options[0]
+
 x_axis_metric = st.selectbox(
     "⚙️ XRD x-axis Metric",
-    ["2θ (°)", "2θ (rad)", "q (1/Å)"],
-    index=0,
-    help="For q (1/Å), the equation used is: q = (4π/λ) * sin((2θ)/2)"
+    x_axis_options,
+    index=x_axis_options.index(st.session_state.x_axis_metric),
+    key="x_axis_metric",
+    help=conversion_info[st.session_state.x_axis_metric]
 )
 
-# Conditional min/max inputs based on the selected metric.
-# Conditional min/max inputs based on the selected metric.
+# -------------------------------
+# Default underlying 2θ boundaries.
+if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
+    default_twotheta_min = 1.0
+elif x_axis_metric in ["d (Å)", "d (nm)"]:
+    default_twotheta_min = 20.0
+else:
+    default_twotheta_min = 0.0
+default_twotheta_max = 165.0
+
+# Compute default values in the chosen metric.
+default_metric_min = twotheta_to_metric(default_twotheta_min, x_axis_metric, wavelength_A, wavelength_nm)
+default_metric_max = twotheta_to_metric(default_twotheta_max, x_axis_metric, wavelength_A, wavelength_nm)
+
+# Choose an appropriate step size.
 if x_axis_metric == "2θ (°)":
-    col1, col2 = st.columns(2)
-    min_val = col1.number_input("⚙️ Minimum 2θ (°)", min_value=0.0, max_value=360.0, value=0.0, step=1.0)
-    max_val = col2.number_input("⚙️ Maximum 2θ (°)", min_value=0.0, max_value=360.0, value=165.0, step=1.0)
+    step_val = 1.0
 elif x_axis_metric == "2θ (rad)":
-    col1, col2 = st.columns(2)
-    min_val = col1.number_input("⚙️ Minimum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=0.0, step=0.0174533)
-    max_val = col2.number_input("⚙️ Maximum 2θ (rad)", min_value=0.0, max_value=6.28318530718, value=np.deg2rad(165), step=0.0174533)
-elif x_axis_metric == "q (1/Å)":
-    wavelength_nm = float(wavelength_dict[wavelength_choice].split()[0])
-    wavelength_A = wavelength_nm * 10
-    default_q_min = 0.0
-    default_q_max = (4 * np.pi / wavelength_A) * np.sin(np.deg2rad(165 / 2))
-    col1, col2 = st.columns(2)
-    min_val = col1.number_input("⚙️ Minimum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_min, step=0.1)
-    max_val = col2.number_input("⚙️ Maximum q (1/Å)", min_value=0.0, max_value=100.0, value=default_q_max, step=0.1)
+    step_val = 0.0174533
+else:
+    step_val = 0.1
 
+col1, col2 = st.columns(2)
+min_val = col1.number_input(f"Minimum {x_axis_metric}", value=default_metric_min, step=step_val)
+max_val = col2.number_input(f"Maximum {x_axis_metric}", value=default_metric_max, step=step_val)
 
-sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
-                        max_value=1.0, value=0.1, step=0.01)
-num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):", min_value=0, max_value=30, value=5,
-                               step=1)
+# Convert the user-specified x-axis limits back to 2θ (in degrees)
+two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm)
+two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm)
+two_theta_range = (two_theta_min, two_theta_max)
+
+# -------------------------------
+sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
+                        min_value=0.01, max_value=1.0, value=0.1, step=0.01)
+num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
+                               min_value=0, max_value=30, value=5, step=1)
 
 if "calc_xrd" not in st.session_state:
     st.session_state.calc_xrd = False
 if st.button("Calculate XRD"):
     st.session_state.calc_xrd = True
 
+# -------------------------------
 # --- XRD Calculation ---
 if st.session_state.calc_xrd and uploaded_files:
     st.subheader("📊 OUTPUT → XRD Pattern:")
-    xrd_calc = XRDCalculator(wavelength=wavelength_choice)
+    # Initialize XRDCalculator with the wavelength in Å (float)
+    xrd_calc = XRDCalculator(wavelength=wavelength_A)
     for file in uploaded_files:
         structure = read(file.name)
         mg_structure = AseAtomsAdaptor.get_structure(structure)
-
-        # Determine the twoθ_range for diffraction calculation based on x_axis_metric.
-        if x_axis_metric == "2θ (°)":
-            two_theta_range = (min_val, max_val)
-        elif x_axis_metric == "2θ (rad)":
-            # Convert radians to degrees for get_pattern.
-            two_theta_range = (np.rad2deg(min_val), np.rad2deg(max_val))
-        elif x_axis_metric == "q (1/Å)":
-            wavelength_nm = float(wavelength_dict[wavelength_choice].split()[0])
-            wavelength_A = wavelength_nm * 10
-
-
-            # Define a safe arcsin function to clamp values between -1 and 1.
-            def safe_arcsin(x):
-                return np.arcsin(max(-1, min(1, x)))
-
-
-            two_theta_min = 0.0 if min_val == 0 else 2 * np.rad2deg(safe_arcsin((min_val * wavelength_A) / (4 * np.pi)))
-            two_theta_max = 2 * np.rad2deg(safe_arcsin((max_val * wavelength_A) / (4 * np.pi)))
-            two_theta_range = (two_theta_min, two_theta_max)
-
-        # Calculate the XRD pattern with the specified twoθ range.
         xrd_pattern = xrd_calc.get_pattern(mg_structure, two_theta_range=two_theta_range)
-
-        # Create a dense x-axis array in degrees (for internal calculation).
-        x_dense = np.linspace(two_theta_range[0], two_theta_range[1], 2000)
-
-        # Convert x_dense and peak positions according to the selected metric.
-        if x_axis_metric == "2θ (°)":
-            x_dense_plot = x_dense
-            peak_vals = np.array(xrd_pattern.x)
-            x_label = "2θ (°)"
-        elif x_axis_metric == "2θ (rad)":
-            x_dense_plot = np.deg2rad(x_dense)
-            peak_vals = np.deg2rad(np.array(xrd_pattern.x))
-            x_label = "2θ (rad)"
-        elif x_axis_metric == "q (1/Å)":
-            x_dense_plot = (4 * np.pi / wavelength_A) * np.sin(np.deg2rad(x_dense / 2))
-            peak_vals = (4 * np.pi / wavelength_A) * np.sin(np.deg2rad(np.array(xrd_pattern.x) / 2))
-            x_label = "q (1/Å)"
-
-        # Compute the intensity distribution using Gaussian broadening.
+        x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
+        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm)
+        peak_vals = twotheta_to_metric(np.array(xrd_pattern.x), x_axis_metric, wavelength_A, wavelength_nm)
         y_dense = np.zeros_like(x_dense)
         for peak, intensity in zip(xrd_pattern.x, xrd_pattern.y):
-            y_dense += intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
-
-        # Determine indices for annotation.
+            y_dense += intensity * np.exp(-((x_dense - peak)**2) / (2 * sigma**2))
         xrd_y_array = np.array(xrd_pattern.y)
         annotate_indices = set(np.argsort(xrd_y_array)[-num_annotate:])
-
         fig_xrd, ax_xrd = plt.subplots()
         ax_xrd.plot(x_dense_plot, y_dense, label=f"{file.name}")
         for i, (peak, intensity, hkl_group) in enumerate(zip(peak_vals, xrd_pattern.y, xrd_pattern.hkls)):
             if i in annotate_indices:
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                     for h in hkl_group])
-                ax_xrd.annotate(hkl_str,
-                                xy=(peak, intensity),
-                                xytext=(0, 4),  # 4 points above the peak
-                                textcoords='offset points',
-                                fontsize=8,
-                                rotation=90,
-                                ha='center',
-                                va='bottom')
-        ax_xrd.set_xlabel(x_label)
+                hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                                      for h in hkl_group])
+                ax_xrd.annotate(hkl_str, xy=(peak, intensity), xytext=(0, 4),
+                                textcoords='offset points', fontsize=8, rotation=90,
+                                ha='center', va='bottom')
+        ax_xrd.set_xlabel(x_axis_metric)
         ax_xrd.set_ylabel("Intensity (a.u.)")
         ax_xrd.set_title(f"XRD Pattern: {file.name}")
         ax_xrd.legend()
         st.pyplot(fig_xrd)
 
-        # Expander for viewing data for all peaks.
         with st.expander(f"View Data for XRD Pattern: {file.name}"):
             table_str = "#X-axis    Intensity    hkl\n"
             for theta, intensity, hkl_group in zip(peak_vals, xrd_pattern.y, xrd_pattern.hkls):
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                     for h in hkl_group])
+                hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                                     for h in hkl_group])
                 table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str, language="text")
 
-        # Expander for viewing highest intensity peaks (expanded by default).
         with st.expander(f"View Data for Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
             table_str2 = "#X-axis    Intensity    hkl\n"
             for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, xrd_pattern.y, xrd_pattern.hkls)):
                 if i in annotate_indices:
-                    hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                         for h in hkl_group])
+                    hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                                         for h in hkl_group])
                     table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str2, language="text")
