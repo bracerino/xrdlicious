@@ -4,3 +4,4 @@ matplotlib
 ase
 matminer
 pymatgen
+pymol3D
