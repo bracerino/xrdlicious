@@ -385,9 +385,9 @@ preset_wavelengths = {
     'AgKb1': 0.0496,
     'Ag(Ka1+Ka2+Kb1)': 0.0557006
 }
-preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0, help=(
+preset_choice = st.selectbox("⚙️ Preset Wavelength", options=preset_options, index=0, help=(
     "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
-wavelength_value = st.number_input("Wavelength (nm)",
+wavelength_value = st.number_input("⚙️ Wavelength (nm)",
                                    value=preset_wavelengths[preset_choice],
                                    min_value=0.001,
                                    step=0.001, format="%.5f")
@@ -436,9 +436,9 @@ else:
     step_val = 0.1
 
 col1, col2 = st.columns(2)
-min_val = col1.number_input(f"Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
+min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
                             key=f"min_val_{x_axis_metric}")
-max_val = col2.number_input(f"Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
+max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
                             key=f"max_val_{x_axis_metric}")
 
 # --- Update the canonical two_theta values based on current inputs ---
