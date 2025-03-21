@@ -662,39 +662,38 @@ if st.session_state.calc_xrd and uploaded_files:
 
     # --- NEW EXPANDER: COMBINED DATA TABLE ---
     selected_metric = st.session_state.x_axis_metric
-    if len(uploaded_files) > 1:
-        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-            combined_df = pd.DataFrame()
+    with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+        combined_df = pd.DataFrame()
 
-            data_list = []
+        data_list = []
 
-            for file in uploaded_files:
-                file_name = file.name
+        for file in uploaded_files:
+            file_name = file.name
 
-                if file_name in combined_data:
-                    peak_vals = combined_data[file_name]["Peak Vals"]
-                    intensities = combined_data[file_name]["Intensities"]
-                    hkls = combined_data[file_name]["HKLs"]
-                    print(peak_vals)
-                    print(intensities)
-                    print(hkls)
+            if file_name in combined_data:
+                peak_vals = combined_data[file_name]["Peak Vals"]
+                intensities = combined_data[file_name]["Intensities"]
+                hkls = combined_data[file_name]["HKLs"]
+                print(peak_vals)
+                print(intensities)
+                print(hkls)
 
-                    for i in range(len(peak_vals)):
-                        for group in hkls:
-                            for item in group:
+                for i in range(len(peak_vals)):
+                    for group in hkls:
+                        for item in group:
 
-                                hkl = item['hkl']
-                                print(hkl)
-                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                    continue
-                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                    continue
+                            hkl = item['hkl']
+                            print(hkl)
+                            if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                continue
+                            if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                continue
 
-                        if len(hkl) == 3:
-                            hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
-                        if len(hkl) == 4:
-                            hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
-                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+                    if len(hkl) == 3:
+                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
+                    if len(hkl) == 4:
+                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
+                    data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
 
-            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-            st.dataframe(combined_df)
+        combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+        st.dataframe(combined_df)
