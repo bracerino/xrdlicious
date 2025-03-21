@@ -1,5 +1,6 @@
 import streamlit as st
-st.set_page_config(page_title="(P)RDF and Powder XRD Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+
+st.set_page_config(page_title="Powder XRD and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,13 +43,14 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator of Partial Radial Distribution Function (PRDF), Global RDF, and Powder XRD Pattern for Crystal Structures (CIF, POSCAR, XYZ, ...)">
+        <meta name="description" content="Online calculator of Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XYZ, ...)">
     </head>
     """,
     height=0,
 )
 
-st.title("Partial Radial Distribution Function (PRDF), Global RDF, and Powder XRD Pattern Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+st.title(
+    "Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
 st.divider()
 
 # --- File Upload ---
@@ -61,12 +63,13 @@ if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
     st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
-st.warning("💡 You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/)")
+st.warning(
+    "💡 You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/)")
 st.info(
-    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XYZ), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD diffraction pattern. "
+    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XYZ format), and this tool will calculate either the "
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD patterns, diffraction data from multiple structures can be combined into a single figure. "
-    "Below, you can change the settings for PRDF or XRD calculation."
+    "Below, you can change the settings for XRD calculation or PRDF."
 )
 
 # --- Detect Atomic Species ---
@@ -83,6 +86,7 @@ if uploaded_files:
     st.write(", ".join(species_list))
 else:
     species_list = []
+
 
 def add_box(view, cell, color='black', linewidth=2):
     a, b, c = np.array(cell[0]), np.array(cell[1]), np.array(cell[2])
@@ -127,6 +131,7 @@ def add_box(view, cell, color='black', linewidth=2):
 
     # Add value labels at end of vectors
     offset = 0.3
+
     def add_axis_label(vec, label_val):
         norm = np.linalg.norm(vec)
         end = vec + offset * vec / (norm + 1e-6)
@@ -144,6 +149,7 @@ def add_box(view, cell, color='black', linewidth=2):
     add_axis_label(a, f"a = {a_len:.2f} Å")
     add_axis_label(b, f"b = {b_len:.2f} Å")
     add_axis_label(c, f"c = {c_len:.2f} Å")
+
 
 # --- Structure Visualization ---
 jmol_colors = {
@@ -189,7 +195,9 @@ if uploaded_files:
     view.zoomTo()
     view.zoom(1.2)
 
-    st.components.v1.html(view._make_html(), height=420)
+    html_str = view._make_html()
+    centered_html = f"<div style='display: flex; justify-content: center;'>{html_str}</div>"
+    st.components.v1.html(centered_html, height=420)
 
     unique_elements = sorted(set(structure.get_chemical_symbols()))
     legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;'>"
@@ -229,12 +237,440 @@ if uploaded_files:
     except Exception as e:
         right_col.markdown("**Space Group:** Not available")
 
-# --- RDF (PRDF) Settings and Calculation ---
+
+# --- XRD Settings and Calculation ---
+st.divider()
+st.subheader(
+    "⚙️ XRD Settings",
+    help=(
+        "Calculates the XRD pattern using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
+        "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
+        "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
+        "factors. The atomic scattering factor is given by:\n\n"
+        "  f(s) = Z − 41.78214·s²·Σᵢ aᵢ exp(−bᵢ s²)  with s = sinθ/λ\n\n"
+        "Here:\n"
+        " • f(s) is the atomic scattering factor.\n"
+        " • Z is the atomic number.\n"
+        " • aᵢ and bᵢ are tabulated fitted parameters that describe the decay of f(s) with increasing s.\n\n"
+        "The intensity is then computed as Iₕₖₗ = |Fₕₖₗ|², and a Lorentz-polarization correction P(θ) = "
+        "(1+cos²(2θ))/(sin²θ cosθ) is applied."
+    )
+)
+
+st.info(
+    "🔬 The following XRD patterns are for **powder samples** using **Bragg-Brentano (θ-2θ) geometry**, assuming **randomly oriented crystallites**. "
+    "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for preferred orientation, "
+    "instrumental broadening, or temperature effects (Debye-Waller factors). ")
+
+import matplotlib.pyplot as plt
+from ase.io import read
+from pymatgen.io.ase import AseAtomsAdaptor
+from pymatgen.analysis.diffraction.xrd import XRDCalculator
+
+
+def format_index(index):
+    s = str(index)
+    if len(s) == 2:
+        return s + " "
+    return s
+
+
+def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
+    twotheta_deg = np.asarray(twotheta_deg)
+    theta = np.deg2rad(twotheta_deg / 2)
+    if metric == "2θ (°)":
+        result = twotheta_deg
+    elif metric == "2θ (rad)":
+        result = np.deg2rad(twotheta_deg)
+    elif metric == "q (1/Å)":
+        result = (4 * np.pi / wavelength_A) * np.sin(theta)
+    elif metric == "q (1/nm)":
+        result = (4 * np.pi / wavelength_nm) * np.sin(theta)
+    elif metric == "d (Å)":
+        result = np.where(np.sin(theta) == 0, np.inf, wavelength_A / (2 * np.sin(theta)))
+    elif metric == "d (nm)":
+        result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
+    elif metric == "energy (keV)":
+        result = (24.796 * np.sin(theta)) / wavelength_A
+    elif metric == "frequency (PHz)":
+        f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
+        result = f_Hz / 1e15
+    else:
+        result = twotheta_deg
+    if np.ndim(twotheta_deg) == 0:
+        return float(result)
+    return result
+
+
+def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
+    if metric == "2θ (°)":
+        return metric_value
+    elif metric == "2θ (rad)":
+        return np.rad2deg(metric_value)
+    elif metric == "q (1/Å)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "q (1/nm)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "d (Å)":
+        sin_theta = np.clip(wavelength_A / (2 * metric_value), 0, 1)
+        theta = np.arcsin(sin_theta)
+        return np.rad2deg(2 * theta)
+    elif metric == "d (nm)":
+        sin_theta = np.clip(wavelength_nm / (2 * metric_value), 0, 1)
+        theta = np.arcsin(sin_theta)
+        return np.rad2deg(2 * theta)
+    elif metric == "energy (keV)":
+        theta = np.arcsin(np.clip(metric_value * wavelength_A / 24.796, 0, 1))
+        return np.rad2deg(2 * theta)
+    elif metric == "frequency (PHz)":
+        f_Hz = metric_value * 1e15
+        E_keV = f_Hz / 2.418e17
+        theta = np.arcsin(np.clip(E_keV * wavelength_A / 24.796, 0, 1))
+        return np.rad2deg(2 * theta)
+    else:
+        return metric_value
+
+
+conversion_info = {
+    "2θ (°)": "Identity: 2θ in degrees.",
+    "2θ (rad)": "Conversion: radians = degrees * (π/180).",
+    "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
+    "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
+    "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
+    "d (nm)": "d = λ / (2 sin(θ)), with λ in nm.",
+    "energy (keV)": "E = (24.796 * sin(θ)) / λ, with λ in Å.",
+    "frequency (PHz)": "f = [(24.796 * sin(θ))/λ * 2.418e17] / 1e15, with λ in Å."
+}
+
+# --- Wavelength Selection ---
+preset_options = [
+    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)', 'CoKb1',
+    'MoKa1', 'MoKa2', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
+    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)', 'CuKb1',
+    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
+    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
+    'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
+]
+preset_wavelengths = {
+    'Cu(Ka1+Ka2)': 0.154,
+    'CuKa2': 0.15444,
+    'CuKa1': 0.15406,
+    'Cu(Ka1+Ka2+Kb1)': 0.153339,
+    'CuKb1': 0.13922,
+    'Mo(Ka1+Ka2)': 0.071,
+    'MoKa2': 0.0711,
+    'MoKa1': 0.07093,
+    'Mo(Ka1+Ka2+Kb1)': 0.07059119,
+    'MoKb1': 0.064,
+    'Cr(Ka1+Ka2)': 0.229,
+    'CrKa2': 0.22888,
+    'CrKa1': 0.22897,
+    'Cr(Ka1+Ka2+Kb1)': 0.22775471,
+    'CrKb1': 0.208,
+    'Fe(Ka1+Ka2)': 0.194,
+    'FeKa2': 0.194,
+    'FeKa1': 0.19360,
+    'Fe(Ka1+Ka2+Kb1)': 0.1927295,
+    'FeKb1': 0.176,
+    'Co(Ka1+Ka2)': 0.179,
+    'CoKa2': 0.17927,
+    'CoKa1': 0.17889,
+    'Co(Ka1+Ka2+Kb1)': 0.1781100,
+    'CoKb1': 0.163,
+    'Ag(Ka1+Ka2)': 0.0561,
+    'AgKa2': 0.0560,
+    'AgKa1': 0.0561,
+    'AgKb1': 0.0496,
+    'Ag(Ka1+Ka2+Kb1)': 0.0557006
+}
+preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0, help=(
+    "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
+wavelength_value = st.number_input("Wavelength (nm)",
+                                   value=preset_wavelengths[preset_choice],
+                                   min_value=0.001,
+                                   step=0.001, format="%.5f")
+st.write(f"**Using wavelength = {wavelength_value} nm**")
+wavelength_A = wavelength_value * 10  # Convert nm to Å
+wavelength_nm = wavelength_value
+
+# --- X-axis Metric Selection ---
+x_axis_options = [
+    "2θ (°)", "2θ (rad)",
+    "q (1/Å)", "q (1/nm)",
+    "d (Å)", "d (nm)",
+    "energy (keV)", "frequency (PHz)"
+]
+if "x_axis_metric" not in st.session_state:
+    st.session_state.x_axis_metric = x_axis_options[0]
+
+x_axis_metric = st.selectbox(
+    "⚙️ XRD x-axis Metric",
+    x_axis_options,
+    index=x_axis_options.index(st.session_state.x_axis_metric),
+    key="x_axis_metric",
+    help=conversion_info[st.session_state.x_axis_metric]
+)
+
+# --- Initialize canonical two_theta_range in session_state (always in degrees) ---
+if "two_theta_min" not in st.session_state:
+    if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
+        st.session_state.two_theta_min = 2.0
+    elif x_axis_metric in ["d (Å)", "d (nm)"]:
+        st.session_state.two_theta_min = 20.0
+    else:
+        st.session_state.two_theta_min = 2.0
+if "two_theta_max" not in st.session_state:
+    st.session_state.two_theta_max = 165.0
+
+# --- Compute display values by converting canonical two_theta values to current unit ---
+display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm)
+display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm)
+
+if x_axis_metric == "2θ (°)":
+    step_val = 1.0
+elif x_axis_metric == "2θ (rad)":
+    step_val = 0.0174533
+else:
+    step_val = 0.1
+
+col1, col2 = st.columns(2)
+min_val = col1.number_input(f"Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
+                            key=f"min_val_{x_axis_metric}")
+max_val = col2.number_input(f"Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
+                            key=f"max_val_{x_axis_metric}")
+
+# --- Update the canonical two_theta values based on current inputs ---
+st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm)
+st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm)
+two_theta_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
+
+sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
+                        min_value=0.01, max_value=1.0, value=0.1, step=0.01)
+num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
+                               min_value=0, max_value=30, value=5, step=1)
+
+# NEW: Option to select between normalized or absolute intensity scales.
+intensity_scale_option = st.radio(
+    "Select intensity scale",
+    options=["Normalized", "Absolute"],
+    index=0,
+    help="Normalized scale sets maximum peak to 100; Absolute scale shows raw calculated intensities."
+)
+
+if "calc_xrd" not in st.session_state:
+    st.session_state.calc_xrd = False
+if st.button("Calculate XRD"):
+    st.session_state.calc_xrd = True
+
+# --- XRD Calculation ---
+if st.session_state.calc_xrd and uploaded_files:
+    st.subheader("📊 OUTPUT → XRD Patterns")
+    st.markdown("### Exclude Structures from the XRD Plot")
+    include_in_combined = {}
+    for file in uploaded_files:
+        include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
+    xrd_calc = XRDCalculator(wavelength=wavelength_A)
+    fig_combined, ax_combined = plt.subplots()
+    colors = plt.cm.tab10.colors
+    pattern_details = {}
+
+    # Assign local two_theta boundaries from session_state for later use
+    two_theta_min = st.session_state.two_theta_min
+    two_theta_max = st.session_state.two_theta_max
+
+    for idx, file in enumerate(uploaded_files):
+        structure = read(file.name)
+        mg_structure = AseAtomsAdaptor.get_structure(structure)
+        # Get pattern with absolute intensities (we will scale manually if needed)
+        xrd_pattern = xrd_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
+
+        filtered_x = []
+        filtered_y = []
+        filtered_hkls = []
+
+        for x_val, y_val, hkl_group in zip(xrd_pattern.x, xrd_pattern.y, xrd_pattern.hkls):
+            if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                continue
+            if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                continue
+            filtered_x.append(x_val)
+            filtered_y.append(y_val)
+            filtered_hkls.append(hkl_group)
+
+        x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
+        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm)
+        y_dense = np.zeros_like(x_dense)
+
+        # Build continuous intensity curve via Gaussian broadening
+        # Build continuous intensity curve via Gaussian broadening
+        for peak, intensity in zip(filtered_x, filtered_y):
+            y_dense += intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
+
+        # Compute normalization factors
+        norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
+        norm_factor_curve = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
+
+        # Adjust the continuous curve so that its maximum equals the raw maximum
+        scaling_factor = norm_factor_raw / norm_factor_curve
+        y_dense = y_dense * scaling_factor
+
+        # Now use the raw maximum as the normalization factor for both arrays
+        if intensity_scale_option == "Normalized":
+            y_dense = (y_dense / norm_factor_raw) * 100
+            displayed_intensity_array = (np.array(filtered_y) / norm_factor_raw) * 100
+        else:
+            displayed_intensity_array = np.array(filtered_y)
+
+        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm)
+        if len(displayed_intensity_array) > 0:
+            annotate_indices = set(np.argsort(displayed_intensity_array)[-num_annotate:])
+        else:
+            annotate_indices = set()
+
+        pattern_details[file.name] = {
+            "peak_vals": peak_vals,
+            "intensities": displayed_intensity_array,
+            "hkls": filtered_hkls,
+            "annotate_indices": annotate_indices,
+            "x_dense_plot": x_dense_plot,
+            "y_dense": y_dense
+        }
+
+        if include_in_combined[file.name]:
+            color = colors[idx % len(colors)]
+            ax_combined.plot(x_dense_plot, y_dense, label=f"{file.name}", color=color)
+            for i, (peak, hkl_group) in enumerate(zip(peak_vals, filtered_hkls)):
+                # Find the actual plotted intensity for this peak in y_dense
+                closest_index = np.abs(x_dense_plot - peak).argmin()  # Find the nearest x value
+                actual_intensity = y_dense[closest_index]  # Get corresponding y value
+                if i in annotate_indices:
+                    if len(hkl_group[0]['hkl']) == 3:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                             for h in hkl_group])
+                    if len(hkl_group[0]['hkl']) == 4:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                             for h in hkl_group])
+                    ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
+                                         textcoords='offset points', fontsize=8, rotation=90,
+                                         ha='center', va='bottom')
+
+    ax_combined.set_xlabel(x_axis_metric)
+    if intensity_scale_option == "Normalized":
+        ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
+    else:
+        ax_combined.set_ylabel("Intensity (Absolute, a.u.)")
+    ax_combined.set_title("Powder XRD Patterns")
+    if ax_combined.get_lines():
+        max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
+        ax_combined.set_ylim(0, max_intensity * 1.2)
+    ax_combined.legend()
+    st.pyplot(fig_combined)
+
+    for file in uploaded_files:
+        details = pattern_details[file.name]
+        peak_vals = details["peak_vals"]
+        intensities = details["intensities"]
+        hkls = details["hkls"]
+        annotate_indices = details["annotate_indices"]
+        x_dense_plot = details["x_dense_plot"]
+        y_dense = details["y_dense"]
+
+        with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
+            table_str = "#X-axis    Intensity    hkl\n"
+            for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
+                if len(hkl_group[0]['hkl']) == 3:
+                    hkl_str = ", ".join(
+                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                         for h in hkl_group])
+                if len(hkl_group[0]['hkl']) == 4:
+                    hkl_str = ", ".join(
+                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                         for h in hkl_group])
+                table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
+            st.code(table_str, language="text")
+
+        with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
+            table_str2 = "#X-axis    Intensity    hkl\n"
+            for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
+                if i in annotate_indices:
+                    if len(hkl_group[0]['hkl']) == 3:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                             for h in hkl_group])
+                    if len(hkl_group[0]['hkl']) == 4:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                             for h in hkl_group])
+                    table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
+            st.code(table_str2, language="text")
+
+        with st.expander(f"View Continuous Curve Data for XRD Pattern: {file.name}"):
+            table_str3 = "#X-axis    Y-value\n"
+            for x_val, y_val in zip(x_dense_plot, y_dense):
+                table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
+            st.code(table_str3, language="text")
+
+        st.divider()
+    import pandas as pd
+
+    # Dictionary to store combined data
+    combined_data = {}
+
+    # First, populate the combined_data dictionary
+    for file in uploaded_files:
+        file_name = file.name
+        details = pattern_details[file_name]  # Ensure we are using the right source
+
+        combined_data[file_name] = {
+            "Peak Vals": details["peak_vals"],
+            "Intensities": details["intensities"],
+            "HKLs": details["hkls"]
+        }
+
+    # --- NEW EXPANDER: COMBINED DATA TABLE ---
+    selected_metric = st.session_state.x_axis_metric
+    with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+        combined_df = pd.DataFrame()
+        data_list = []
+        for file in uploaded_files:
+            file_name = file.name
+            if file_name in combined_data:
+                peak_vals = combined_data[file_name]["Peak Vals"]
+                intensities = combined_data[file_name]["Intensities"]
+                hkls = combined_data[file_name]["HKLs"]
+                for i in range(len(peak_vals)):
+                    for group in hkls:
+                        for item in group:
+                            hkl = item['hkl']
+                            if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                continue
+                            if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                continue
+                    if len(hkl) == 3:
+                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
+                    if len(hkl) == 4:
+                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
+                    data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+        combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+        st.dataframe(combined_df)
+
+
+
+
+
+
+
+# --- RDF (PRDF) Settings and Calculation --
 st.divider()
 st.subheader("⚙️ (P)RDF Settings")
-st.info("🔬 **PRDF** describes the atomic element pair distribution within a structure, providing insight into **local environments** and **structural disorder**. "
-        "It is commonly used in **diffusion studies** to track atomic movement and ion transport, as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
-        "Additionally, PRDF/RDF are employed as one of the **structural descriptors in machine learning**.")
+st.info(
+    "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, providing insight into **local environments** and **structural disorder**. "
+    "It is commonly used in **diffusion studies** to track atomic movement and ion transport, as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
+    "Additionally, PRDF/RDF are employed as one of the **structural descriptors in machine learning**.")
 
 cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
 bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05, format="%.2f")
@@ -330,404 +766,3 @@ if st.session_state.calc_rdf and uploaded_files:
             table_str += f"{x:<12.3f} {y:<12.3f}\n"
         st.code(table_str, language="text")
 
-
-# --- XRD Settings and Calculation ---
-st.divider()
-st.divider()
-st.subheader("⚙️ XRD Settings")
-st.info("🔬 The following XRD patterns are for **powder samples** using **Bragg-Brentano (θ-2θ) geometry**, assuming **randomly oriented crystallites**. "
-        "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for preferred orientation, "
-        "instrumental broadening, or temperature effects (Debye-Waller factors). "
-        )
-
-
-# --- XRD Settings and Calculation ---
-import matplotlib.pyplot as plt
-from ase.io import read
-from pymatgen.io.ase import AseAtomsAdaptor
-from pymatgen.analysis.diffraction.xrd import XRDCalculator
-
-def format_index(index):
-    s = str(index)
-    if len(s) == 2:
-        return s + " "
-    return s
-
-def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
-    twotheta_deg = np.asarray(twotheta_deg)
-    theta = np.deg2rad(twotheta_deg / 2)
-    if metric == "2θ (°)":
-        result = twotheta_deg
-    elif metric == "2θ (rad)":
-        result = np.deg2rad(twotheta_deg)
-    elif metric == "q (1/Å)":
-        result = (4 * np.pi / wavelength_A) * np.sin(theta)
-    elif metric == "q (1/nm)":
-        result = (4 * np.pi / wavelength_nm) * np.sin(theta)
-    elif metric == "d (Å)":
-        result = np.where(np.sin(theta) == 0, np.inf, wavelength_A / (2 * np.sin(theta)))
-    elif metric == "d (nm)":
-        result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
-    elif metric == "energy (keV)":
-        result = (24.796 * np.sin(theta)) / wavelength_A
-    elif metric == "frequency (PHz)":
-        f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
-        result = f_Hz / 1e15
-    else:
-        result = twotheta_deg
-    if np.ndim(twotheta_deg) == 0:
-        return float(result)
-    return result
-
-def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
-    if metric == "2θ (°)":
-        return metric_value
-    elif metric == "2θ (rad)":
-        return np.rad2deg(metric_value)
-    elif metric == "q (1/Å)":
-        theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
-        return np.rad2deg(2 * theta)
-    elif metric == "q (1/nm)":
-        theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
-        return np.rad2deg(2 * theta)
-    elif metric == "d (Å)":
-        sin_theta = np.clip(wavelength_A / (2 * metric_value), 0, 1)
-        theta = np.arcsin(sin_theta)
-        return np.rad2deg(2 * theta)
-    elif metric == "d (nm)":
-        sin_theta = np.clip(wavelength_nm / (2 * metric_value), 0, 1)
-        theta = np.arcsin(sin_theta)
-        return np.rad2deg(2 * theta)
-    elif metric == "energy (keV)":
-        theta = np.arcsin(np.clip(metric_value * wavelength_A / 24.796, 0, 1))
-        return np.rad2deg(2 * theta)
-    elif metric == "frequency (PHz)":
-        f_Hz = metric_value * 1e15
-        E_keV = f_Hz / 2.418e17
-        theta = np.arcsin(np.clip(E_keV * wavelength_A / 24.796, 0, 1))
-        return np.rad2deg(2 * theta)
-    else:
-        return metric_value
-
-conversion_info = {
-    "2θ (°)": "Identity: 2θ in degrees.",
-    "2θ (rad)": "Conversion: radians = degrees * (π/180).",
-    "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
-    "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
-    "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
-    "d (nm)": "d = λ / (2 sin(θ)), with λ in nm.",
-    "energy (keV)": "E = (24.796 * sin(θ)) / λ, with λ in Å.",
-    "frequency (PHz)": "f = [(24.796 * sin(θ))/λ * 2.418e17] / 1e15, with λ in Å."
-}
-
-# --- Wavelength Selection ---
-preset_options = [
-    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)','CoKb1',
-    'MoKa1', 'MoKa2','Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
-    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',  'CuKb1',
-    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)',  'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
-    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)',  'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
-    'AgKa1', 'AgKa2','Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
-]
-preset_wavelengths = {
-    'Cu(Ka1+Ka2)': 0.154,
-    'CuKa2': 0.15444,
-    'CuKa1': 0.15406,
-    'Cu(Ka1+Ka2+Kb1)': 0.153339,
-    'CuKb1': 0.13922,
-    'Mo(Ka1+Ka2)': 0.071,
-    'MoKa2': 0.0711,
-    'MoKa1': 0.07093,
-    'Mo(Ka1+Ka2+Kb1)': 0.07059119,
-    'MoKb1': 0.064,
-    'Cr(Ka1+Ka2)': 0.229,
-    'CrKa2': 0.22888,
-    'CrKa1': 0.22897,
-    'Cr(Ka1+Ka2+Kb1)':0.22775471,
-    'CrKb1': 0.208,
-    'Fe(Ka1+Ka2)': 0.194,
-    'FeKa2': 0.194,
-    'FeKa1': 0.19360,
-    'Fe(Ka1+Ka2+Kb1)': 0.1927295,
-    'FeKb1': 0.176,
-    'Co(Ka1+Ka2)': 0.179,
-    'CoKa2': 0.17927,
-    'CoKa1': 0.17889,
-    'Co(Ka1+Ka2+Kb1)': 0.1781100,
-    'CoKb1': 0.163,
-    'Ag(Ka1+Ka2)': 0.0561,
-    'AgKa2': 0.0560,
-    'AgKa1': 0.0561,
-    'AgKb1': 0.0496,
-    'Ag(Ka1+Ka2+Kb1)':0.0557006
-}
-preset_choice = st.selectbox("Preset Wavelength", options=preset_options, index=0, help=( "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
-wavelength_value = st.number_input("Wavelength (nm)",
-                                   value=preset_wavelengths[preset_choice],
-                                   min_value=0.001,
-                                   step=0.001, format="%.5f")
-st.write(f"**Using wavelength = {wavelength_value} nm**")
-wavelength_A = wavelength_value * 10  # Convert nm to Å
-wavelength_nm = wavelength_value
-
-# --- X-axis Metric Selection ---
-x_axis_options = [
-    "2θ (°)", "2θ (rad)",
-    "q (1/Å)", "q (1/nm)",
-    "d (Å)", "d (nm)",
-    "energy (keV)", "frequency (PHz)"
-]
-if "x_axis_metric" not in st.session_state:
-    st.session_state.x_axis_metric = x_axis_options[0]
-
-x_axis_metric = st.selectbox(
-    "⚙️ XRD x-axis Metric",
-    x_axis_options,
-    index=x_axis_options.index(st.session_state.x_axis_metric),
-    key="x_axis_metric",
-    help=conversion_info[st.session_state.x_axis_metric]
-)
-
-# --- Initialize canonical two_theta_range in session_state (always in degrees) ---
-if "two_theta_min" not in st.session_state:
-    if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
-         st.session_state.two_theta_min = 2.0
-    elif x_axis_metric in ["d (Å)", "d (nm)"]:
-         st.session_state.two_theta_min = 20.0
-    else:
-         st.session_state.two_theta_min = 2.0
-if "two_theta_max" not in st.session_state:
-    st.session_state.two_theta_max = 165.0
-
-# --- Compute display values by converting canonical two_theta values to current unit ---
-display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm)
-display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm)
-
-if x_axis_metric == "2θ (°)":
-    step_val = 1.0
-elif x_axis_metric == "2θ (rad)":
-    step_val = 0.0174533
-else:
-    step_val = 0.1
-
-col1, col2 = st.columns(2)
-min_val = col1.number_input(f"Minimum {x_axis_metric}", value=display_metric_min, step=step_val, key=f"min_val_{x_axis_metric}")
-max_val = col2.number_input(f"Maximum {x_axis_metric}", value=display_metric_max, step=step_val, key=f"max_val_{x_axis_metric}")
-
-# --- Update the canonical two_theta values based on current inputs ---
-st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm)
-st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm)
-two_theta_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
-
-sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
-                        min_value=0.01, max_value=1.0, value=0.1, step=0.01)
-num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
-                               min_value=0, max_value=30, value=5, step=1)
-
-if "calc_xrd" not in st.session_state:
-    st.session_state.calc_xrd = False
-if st.button("Calculate XRD"):
-    st.session_state.calc_xrd = True
-
-# --- XRD Calculation ---
-if st.session_state.calc_xrd and uploaded_files:
-    st.subheader("📊 OUTPUT → XRD Patterns")
-    st.markdown("### Exclude Structures from the XRD Plot")
-    include_in_combined = {}
-    for file in uploaded_files:
-        include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
-    xrd_calc = XRDCalculator(wavelength=wavelength_A)
-    fig_combined, ax_combined = plt.subplots()
-    colors = plt.cm.tab10.colors
-    pattern_details = {}
-
-    # Assign local two_theta boundaries from session_state for later use
-    two_theta_min = st.session_state.two_theta_min
-    two_theta_max = st.session_state.two_theta_max
-
-    for idx, file in enumerate(uploaded_files):
-        structure = read(file.name)
-        mg_structure = AseAtomsAdaptor.get_structure(structure)
-        xrd_pattern = xrd_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max))
-
-        filtered_x = []
-        filtered_y = []
-        filtered_hkls = []
-
-        for x_val, y_val, hkl_group in zip(xrd_pattern.x, xrd_pattern.y, xrd_pattern.hkls):
-            if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
-                continue
-            if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0,0) for h in hkl_group):
-                continue
-            filtered_x.append(x_val)
-            filtered_y.append(y_val)
-            filtered_hkls.append(hkl_group)
-
-        x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
-        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm)
-        y_dense = np.zeros_like(x_dense)
-
-        for peak, intensity in zip(filtered_x, filtered_y):
-            y_dense += intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
-        if np.max(y_dense) > 0:  # Avoid division by zero
-            y_dense = (y_dense / np.max(y_dense)) * 100
-
-        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm)
-        intensity_array = np.array(filtered_y)
-        if len(intensity_array) > 0:
-            annotate_indices = set(np.argsort(intensity_array)[-num_annotate:])
-        else:
-            annotate_indices = set()
-
-        pattern_details[file.name] = {
-            "peak_vals": peak_vals,
-            "intensities": intensity_array,
-            "hkls": filtered_hkls,
-            "annotate_indices": annotate_indices,
-            "x_dense_plot": x_dense_plot,
-            "y_dense": y_dense
-        }
-
-        if include_in_combined[file.name]:
-            color = colors[idx % len(colors)]
-            ax_combined.plot(x_dense_plot, y_dense, label=f"{file.name}", color=color)
-            for i, (peak, hkl_group) in enumerate(zip(peak_vals, filtered_hkls)):
-                # Find the actual plotted intensity for this peak in y_dense
-                closest_index = np.abs(x_dense_plot - peak).argmin()  # Find the nearest x value
-                actual_intensity = y_dense[closest_index]  # Get corresponding y value
-                if i in annotate_indices:
-                    if len(hkl_group[0]['hkl']) == 3:
-                        hkl_str = ", ".join(
-                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                             for h in hkl_group])
-                    if len(hkl_group[0]['hkl']) == 4:
-                        hkl_str = ", ".join(
-                            [
-                                # f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
-                                f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                                for h in hkl_group])
-                    ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
-                                         textcoords='offset points', fontsize=8, rotation=90,
-                                         ha='center', va='bottom')
-
-    ax_combined.set_xlabel(x_axis_metric)
-    ax_combined.set_ylabel("Intensity (a.u.)")
-    ax_combined.set_title("Powder XRD Patterns")
-    if ax_combined.get_lines():
-        max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
-        ax_combined.set_ylim(0, max_intensity * 1.2)
-    ax_combined.legend()
-    st.pyplot(fig_combined)
-
-    for file in uploaded_files:
-        details = pattern_details[file.name]
-        peak_vals = details["peak_vals"]
-        intensities = details["intensities"]
-        hkls = details["hkls"]
-        annotate_indices = details["annotate_indices"]
-        x_dense_plot = details["x_dense_plot"]
-        y_dense = details["y_dense"]
-
-
-
-
-
-        with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
-            table_str = "#X-axis    Intensity    hkl\n"
-            for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
-
-                if len(hkl_group[0]['hkl']) == 3:
-                    hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                         for h in hkl_group])
-                if len(hkl_group[0]['hkl']) == 4:
-                    hkl_str = ", ".join(
-                        #[f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
-                        [
-                            f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                         for h in hkl_group])
-                table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
-            #else:
-            #    hkl_str = ", ".join(
-             #       [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
-             #        for h in hkl_group])
-               #  table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
-            st.code(table_str, language="text")
-
-        with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
-            table_str2 = "#X-axis    Intensity    hkl\n"
-            for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
-                if i in annotate_indices:
-                    if len(hkl_group[0]['hkl']) == 3:
-                        hkl_str = ", ".join(
-                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                             for h in hkl_group])
-                    if len(hkl_group[0]['hkl']) == 4:
-                        hkl_str = ", ".join(
-                            [
-                                #f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
-                                f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                                for h in hkl_group])
-                    table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
-            st.code(table_str2, language="text")
-
-        with st.expander(f"View Continuous Curve Data for XRD Pattern: {file.name}"):
-            table_str3 = "#X-axis    Y-value\n"
-            for x_val, y_val in zip(x_dense_plot, y_dense):
-                table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
-            st.code(table_str3, language="text")
-
-        st.divider()
-    import pandas as pd
-
-    # Dictionary to store combined data
-    combined_data = {}
-
-    # First, populate the combined_data dictionary
-    for file in uploaded_files:
-        file_name = file.name
-        details = pattern_details[file_name]  # Ensure we are using the right source
-
-        combined_data[file_name] = {
-            "Peak Vals": details["peak_vals"],
-            "Intensities": details["intensities"],
-            "HKLs": details["hkls"]
-        }
-
-    # --- NEW EXPANDER: COMBINED DATA TABLE ---
-    selected_metric = st.session_state.x_axis_metric
-    with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-        combined_df = pd.DataFrame()
-
-        data_list = []
-
-        for file in uploaded_files:
-            file_name = file.name
-
-            if file_name in combined_data:
-                peak_vals = combined_data[file_name]["Peak Vals"]
-                intensities = combined_data[file_name]["Intensities"]
-                hkls = combined_data[file_name]["HKLs"]
-                print(peak_vals)
-                print(intensities)
-                print(hkls)
-
-                for i in range(len(peak_vals)):
-                    for group in hkls:
-                        for item in group:
-
-                            hkl = item['hkl']
-                            print(hkl)
-                            if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                continue
-                            if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                continue
-
-                    if len(hkl) == 3:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
-                    if len(hkl) == 4:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
-                    data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-
-        combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-        st.dataframe(combined_df)
