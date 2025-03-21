@@ -85,13 +85,15 @@ else:
     species_list = []
 
 def add_box(view, cell, color='black', linewidth=2):
-    a, b, c = cell[0], cell[1], cell[2]
+    a, b, c = np.array(cell[0]), np.array(cell[1]), np.array(cell[2])
     corners = []
     for i in [0, 1]:
         for j in [0, 1]:
             for k in [0, 1]:
                 corner = i * a + j * b + k * c
                 corners.append(corner)
+
+    # Draw box edges
     edges = []
     for idx in range(8):
         i = idx & 1
@@ -103,6 +105,7 @@ def add_box(view, cell, color='black', linewidth=2):
             edges.append((corners[idx], corners[idx + 2]))
         if k == 0:
             edges.append((corners[idx], corners[idx + 4]))
+
     for start, end in edges:
         view.addLine({
             'start': {'x': float(start[0]), 'y': float(start[1]), 'z': float(start[2])},
@@ -110,6 +113,37 @@ def add_box(view, cell, color='black', linewidth=2):
             'color': color,
             'linewidth': linewidth
         })
+
+    # Add arrows for a, b, c directions
+    arrow_radius = 0.04  # thinner
+    arrow_color = '#000000'  # semi-transparent red
+    for vec in [a, b, c]:
+        view.addArrow({
+            'start': {'x': 0, 'y': 0, 'z': 0},
+            'end': {'x': float(vec[0]), 'y': float(vec[1]), 'z': float(vec[2])},
+            'color': arrow_color,
+            'radius': arrow_radius
+        })
+
+    # Add value labels at end of vectors
+    offset = 0.3
+    def add_axis_label(vec, label_val):
+        norm = np.linalg.norm(vec)
+        end = vec + offset * vec / (norm + 1e-6)
+        view.addLabel(label_val, {
+            'position': {'x': float(end[0]), 'y': float(end[1]), 'z': float(end[2])},
+            'fontSize': 14,
+            'fontColor': color,
+            'showBackground': False
+        })
+
+    a_len = np.linalg.norm(a)
+    b_len = np.linalg.norm(b)
+    c_len = np.linalg.norm(c)
+
+    add_axis_label(a, f"a = {a_len:.2f} Å")
+    add_axis_label(b, f"b = {b_len:.2f} Å")
+    add_axis_label(c, f"c = {c_len:.2f} Å")
 
 # --- Structure Visualization ---
 jmol_colors = {
