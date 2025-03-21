@@ -259,7 +259,7 @@ st.subheader(
 
 st.info(
     "🔬 The following XRD patterns are for **powder samples** using **Bragg-Brentano (θ-2θ) geometry**, assuming **randomly oriented crystallites**. "
-    "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for preferred orientation, "
+    "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for other corrections, such as preferred orientation, "
     "instrumental broadening, or temperature effects (Debye-Waller factors). ")
 
 import matplotlib.pyplot as plt
