@@ -306,6 +306,7 @@ st.info("🔬 The following XRD patterns are for **powder samples** using **Brag
         "instrumental broadening, or temperature effects (Debye-Waller factors). "
         )
 
+
 # --- XRD Settings and Calculation ---
 import matplotlib.pyplot as plt
 from ase.io import read
@@ -456,11 +457,11 @@ x_axis_metric = st.selectbox(
 # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
 if "two_theta_min" not in st.session_state:
     if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
-         st.session_state.two_theta_min = 1.0
+         st.session_state.two_theta_min = 2.0
     elif x_axis_metric in ["d (Å)", "d (nm)"]:
          st.session_state.two_theta_min = 20.0
     else:
-         st.session_state.two_theta_min = 0.0
+         st.session_state.two_theta_min = 2.0
 if "two_theta_max" not in st.session_state:
     st.session_state.two_theta_max = 165.0
 
@@ -518,8 +519,11 @@ if st.session_state.calc_xrd and uploaded_files:
         filtered_x = []
         filtered_y = []
         filtered_hkls = []
+
         for x_val, y_val, hkl_group in zip(xrd_pattern.x, xrd_pattern.y, xrd_pattern.hkls):
-            if any(tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+            if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                continue
+            if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0,0) for h in hkl_group):
                 continue
             filtered_x.append(x_val)
             filtered_y.append(y_val)
@@ -534,7 +538,6 @@ if st.session_state.calc_xrd and uploaded_files:
         if np.max(y_dense) > 0:  # Avoid division by zero
             y_dense = (y_dense / np.max(y_dense)) * 100
 
-        print(y_dense[y_dense>0.1])
         peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm)
         intensity_array = np.array(filtered_y)
         if len(intensity_array) > 0:
@@ -559,10 +562,16 @@ if st.session_state.calc_xrd and uploaded_files:
                 closest_index = np.abs(x_dense_plot - peak).argmin()  # Find the nearest x value
                 actual_intensity = y_dense[closest_index]  # Get corresponding y value
                 if i in annotate_indices:
-                    hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                         for h in hkl_group])
-
+                    if len(hkl_group[0]['hkl']) == 3:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                             for h in hkl_group])
+                    if len(hkl_group[0]['hkl']) == 4:
+                        hkl_str = ", ".join(
+                            [
+                                # f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
+                                f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                                for h in hkl_group])
                     ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                          textcoords='offset points', fontsize=8, rotation=90,
                                          ha='center', va='bottom')
@@ -585,22 +594,46 @@ if st.session_state.calc_xrd and uploaded_files:
         x_dense_plot = details["x_dense_plot"]
         y_dense = details["y_dense"]
 
+
+
+
+
         with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
             table_str = "#X-axis    Intensity    hkl\n"
             for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                     for h in hkl_group])
+
+                if len(hkl_group[0]['hkl']) == 3:
+                    hkl_str = ", ".join(
+                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                         for h in hkl_group])
+                if len(hkl_group[0]['hkl']) == 4:
+                    hkl_str = ", ".join(
+                        #[f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
+                        [
+                            f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                         for h in hkl_group])
                 table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
+            #else:
+            #    hkl_str = ", ".join(
+             #       [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
+             #        for h in hkl_group])
+               #  table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str, language="text")
 
         with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
             table_str2 = "#X-axis    Intensity    hkl\n"
             for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
                 if i in annotate_indices:
-                    hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                         for h in hkl_group])
+                    if len(hkl_group[0]['hkl']) == 3:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                             for h in hkl_group])
+                    if len(hkl_group[0]['hkl']) == 4:
+                        hkl_str = ", ".join(
+                            [
+                                #f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])}{format_index(h['hkl'][3])})"
+                                f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                                for h in hkl_group])
                     table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str2, language="text")
 
@@ -609,4 +642,59 @@ if st.session_state.calc_xrd and uploaded_files:
             for x_val, y_val in zip(x_dense_plot, y_dense):
                 table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
             st.code(table_str3, language="text")
+
         st.divider()
+    import pandas as pd
+
+    # Dictionary to store combined data
+    combined_data = {}
+
+    # First, populate the combined_data dictionary
+    for file in uploaded_files:
+        file_name = file.name
+        details = pattern_details[file_name]  # Ensure we are using the right source
+
+        combined_data[file_name] = {
+            "Peak Vals": details["peak_vals"],
+            "Intensities": details["intensities"],
+            "HKLs": details["hkls"]
+        }
+
+    # --- NEW EXPANDER: COMBINED DATA TABLE ---
+    selected_metric = st.session_state.x_axis_metric
+    if len(uploaded_files) > 1:
+        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+            combined_df = pd.DataFrame()
+
+            data_list = []
+
+            for file in uploaded_files:
+                file_name = file.name
+
+                if file_name in combined_data:
+                    peak_vals = combined_data[file_name]["Peak Vals"]
+                    intensities = combined_data[file_name]["Intensities"]
+                    hkls = combined_data[file_name]["HKLs"]
+                    print(peak_vals)
+                    print(intensities)
+                    print(hkls)
+
+                    for i in range(len(peak_vals)):
+                        for group in hkls:
+                            for item in group:
+
+                                hkl = item['hkl']
+                                print(hkl)
+                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                    continue
+                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                    continue
+
+                        if len(hkl) == 3:
+                            hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
+                        if len(hkl) == 4:
+                            hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
+                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+
+            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+            st.dataframe(combined_df)
