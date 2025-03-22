@@ -303,7 +303,7 @@ def format_index(index):
     return s
 
 
-def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
+def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffraction_choice):
     twotheta_deg = np.asarray(twotheta_deg)
     theta = np.deg2rad(twotheta_deg / 2)
     if metric == "2θ (°)":
@@ -319,7 +319,13 @@ def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
     elif metric == "d (nm)":
         result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
     elif metric == "energy (keV)":
-        result = (24.796 * np.sin(theta)) / wavelength_A
+        if diffraction_choice == "ND (Neutron)":
+            return 0.003956 / (wavelength_nm ** 2) # !!! NEEDS TO CORRECT THIS CHOICE
+
+        else:
+            return (24.796 * np.sin(theta)) / wavelength_A
+
+        #result = (24.796 * np.sin(theta)) / wavelength_A
     elif metric == "frequency (PHz)":
         f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
         result = f_Hz / 1e15
@@ -330,7 +336,7 @@ def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
     return result
 
 
-def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
+def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm, diffraction_choice):
     if metric == "2θ (°)":
         return metric_value
     elif metric == "2θ (rad)":
@@ -350,7 +356,15 @@ def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
         theta = np.arcsin(sin_theta)
         return np.rad2deg(2 * theta)
     elif metric == "energy (keV)":
-        theta = np.arcsin(np.clip(metric_value * wavelength_A / 24.796, 0, 1))
+        if diffraction_choice == "ND (Neutron)": # !!! NEEDS TO CORRECT THIS CHOICE
+            λ_nm = np.sqrt(0.003956 / metric_value)
+            sin_theta = λ_nm / (2 * wavelength_nm)
+            print("SIN THETA {}".format(sin_theta))
+            theta = np.arcsin(np.clip(sin_theta, 0, 1))
+            print(np.rad2deg(2 * theta))
+        else:
+            sin_theta = np.clip(metric_value * wavelength_A / 24.796, 0, 1)
+        theta = np.arcsin(np.clip(sin_theta, 0, 1))
         return np.rad2deg(2 * theta)
     elif metric == "frequency (PHz)":
         f_Hz = metric_value * 1e15
@@ -415,44 +429,90 @@ preset_wavelengths = {
 }
 col1, col2 = st.columns(2)
 
-with col1:
-    preset_choice = st.selectbox(
-        "Preset Wavelength",
-        options=preset_options,
-        index=0,
-        help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
-    )
 
-with col2:
-    wavelength_value = st.number_input(
-        "Wavelength (nm)",
-        value=preset_wavelengths[preset_choice],
-        min_value=0.001,
-        step=0.001,
-        format="%.5f"
-    )
+preset_options_neutrons = [
+    'Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
+preset_wavelengths_neutrons ={
+    'Thermal Neutrons': 0.154,
+    'Cold Neutrons': 0.475,
+    'Hot Neutrons': 0.087
+}
+
+if diffraction_choice == "XRD (X-ray)":
+    with col1:
+        preset_choice = st.selectbox(
+            "Preset Wavelength",
+            options=preset_options,
+            index=0,
+            help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+        )
+
+    with col2:
+        wavelength_value = st.number_input(
+            "Wavelength (nm)",
+            value=preset_wavelengths[preset_choice],
+            min_value=0.001,
+            step=0.001,
+            format="%.5f"
+        )
+elif diffraction_choice == "ND (Neutron)":
+    with col1:
+        preset_choice = st.selectbox(
+            "Preset Wavelength",
+            options=preset_options_neutrons,
+            index=0,
+            help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+        )
+
+    with col2:
+        wavelength_value = st.number_input(
+            "Wavelength (nm)",
+            value=preset_wavelengths_neutrons[preset_choice],
+            min_value=0.001,
+            step=0.001,
+            format="%.5f"
+        )
+
 
 st.write(f"**Using wavelength = {wavelength_value} nm**")
 wavelength_A = wavelength_value * 10  # Convert nm to Å
 wavelength_nm = wavelength_value
 
-# --- X-axis Metric Selection ---
+
 x_axis_options = [
     "2θ (°)", "2θ (rad)",
     "q (1/Å)", "q (1/nm)",
     "d (Å)", "d (nm)",
     "energy (keV)", "frequency (PHz)"
 ]
-if "x_axis_metric" not in st.session_state:
-    st.session_state.x_axis_metric = x_axis_options[0]
+x_axis_options_neutron = [
+    "2θ (°)", "2θ (rad)",
+    "q (1/Å)", "q (1/nm)",
+    "d (Å)", "d (nm)",
+]
+# --- X-axis Metric Selection ---
+if diffraction_choice == "ND (Neutron)":
+    if "x_axis_metric" not in st.session_state:
+        st.session_state.x_axis_metric = x_axis_options_neutron[0]
 
-x_axis_metric = st.selectbox(
-    "⚙️ XRD x-axis Metric",
-    x_axis_options,
-    index=x_axis_options.index(st.session_state.x_axis_metric),
-    key="x_axis_metric",
-    help=conversion_info[st.session_state.x_axis_metric]
-)
+    x_axis_metric = st.selectbox(
+        "⚙️ ND x-axis Metric",
+        x_axis_options_neutron,
+        index=x_axis_options_neutron.index(st.session_state.x_axis_metric),
+        key="x_axis_metric",
+        help=conversion_info[st.session_state.x_axis_metric]
+    )
+else:
+    if "x_axis_metric" not in st.session_state:
+        st.session_state.x_axis_metric = x_axis_options[0]
+
+    x_axis_metric = st.selectbox(
+        "⚙️ XRD x-axis Metric",
+        x_axis_options,
+        index=x_axis_options.index(st.session_state.x_axis_metric),
+        key="x_axis_metric",
+        help=conversion_info[st.session_state.x_axis_metric]
+    )
 
 # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
 if "two_theta_min" not in st.session_state:
@@ -466,8 +526,8 @@ if "two_theta_max" not in st.session_state:
     st.session_state.two_theta_max = 165.0
 
 # --- Compute display values by converting canonical two_theta values to current unit ---
-display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm)
-display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm)
+display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
 
 if x_axis_metric == "2θ (°)":
     step_val = 1.0
@@ -483,8 +543,8 @@ max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_met
                             key=f"max_val_{x_axis_metric}")
 
 # --- Update the canonical two_theta values based on current inputs ---
-st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm)
-st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm)
+st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
 two_theta_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
 sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
@@ -495,8 +555,13 @@ num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity
 
 if "calc_xrd" not in st.session_state:
     st.session_state.calc_xrd = False
-if st.button("Calculate XRD"):
-    st.session_state.calc_xrd = True
+
+if diffraction_choice == "ND (Neutron)":
+    if st.button("Calculate ND"):
+        st.session_state.calc_xrd = True
+else:
+    if st.button("Calculate XRD"):
+        st.session_state.calc_xrd = True
 
 # --- XRD Calculation ---
 if st.session_state.calc_xrd and uploaded_files:
@@ -539,7 +604,7 @@ if st.session_state.calc_xrd and uploaded_files:
             filtered_hkls.append(hkl_group)
 
         x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
-        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm)
+        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense = np.zeros_like(x_dense)
 
         # Build continuous intensity curve via Gaussian broadening
@@ -562,7 +627,7 @@ if st.session_state.calc_xrd and uploaded_files:
         else:
             displayed_intensity_array = np.array(filtered_y)
 
-        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm)
+        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         if len(displayed_intensity_array) > 0:
             annotate_indices = set(np.argsort(displayed_intensity_array)[-num_annotate:])
         else:
