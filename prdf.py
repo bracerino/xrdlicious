@@ -606,11 +606,11 @@ if st.session_state.calc_xrd and uploaded_files:
         x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
         x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense = np.zeros_like(x_dense)
-
-        # Build continuous intensity curve via Gaussian broadening
-        # Build continuous intensity curve via Gaussian broadening
         for peak, intensity in zip(filtered_x, filtered_y):
-            y_dense += intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
+            # Compute a temporary Gaussian for this peak.
+            y_temp = intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
+            # Use pointwise maximum so that overlapping contributions do not add up.
+            y_dense = np.maximum(y_dense, y_temp)
 
         # Compute normalization factors
         norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
