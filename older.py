@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Powder XRD and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+st.set_page_config(page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,11 +8,16 @@ from ase.io import read, write
 from matminer.featurizers.structure import PartialRadialDistributionFunction
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
+from pymatgen.analysis.diffraction.neutron import NDCalculator
 from collections import defaultdict
 from itertools import combinations
 import streamlit.components.v1 as components
 import py3Dmol
 from io import StringIO
+import matplotlib.pyplot as plt
+from ase.io import read
+from pymatgen.io.ase import AseAtomsAdaptor
+import pandas as pd
 
 # Inject custom CSS for buttons.
 st.markdown(
@@ -43,19 +48,19 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator of Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XYZ, ...)">
+        <meta name="description" content="Online calculator of Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+    "Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 # --- File Upload ---
 uploaded_files = st.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, XYZ, etc.)",
+    "Upload Structure Files (CIF, POSCAR, XSF, etc.)",
     type=None,
     accept_multiple_files=True
 )
@@ -64,9 +69,10 @@ if uploaded_files:
 else:
     st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
 st.warning(
-    "💡 You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/)")
+    "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
+    "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)")
 st.info(
-    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XYZ format), and this tool will calculate either the "
+    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD patterns, diffraction data from multiple structures can be combined into a single figure. "
     "Below, you can change the settings for XRD calculation or PRDF."
@@ -154,6 +160,8 @@ def add_box(view, cell, color='black', linewidth=2):
 # --- Structure Visualization ---
 jmol_colors = {
     'H': '#FFFFFF',
+    'Sr': '#00CC00',
+    'Ba': '#008000',
     'He': '#D9FFFF',
     'Li': '#CC80FF',
     'Be': '#C2FF00',
@@ -238,12 +246,12 @@ if uploaded_files:
         right_col.markdown("**Space Group:** Not available")
 
 
-# --- XRD Settings and Calculation ---
+# --- Diffraction Settings and Calculation ---
 st.divider()
 st.subheader(
-    "⚙️ XRD Settings",
+    "⚙️ Diffraction Settings",
     help=(
-        "Calculates the XRD pattern using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
+        "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
         "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
         "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
         "factors. The atomic scattering factor is given by:\n\n"
@@ -257,15 +265,35 @@ st.subheader(
     )
 )
 
-st.info(
-    "🔬 The following XRD patterns are for **powder samples** using **Bragg-Brentano (θ-2θ) geometry**, assuming **randomly oriented crystallites**. "
-    "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for other corrections, such as preferred orientation, "
-    "instrumental broadening, or temperature effects (Debye-Waller factors). ")
+# --- Diffraction Calculator Selection ---
+# Allow the user to choose between XRD (X-ray) and ND (Neutron) calculators.
+col1, col2 = st.columns(2)
 
-import matplotlib.pyplot as plt
-from ase.io import read
-from pymatgen.io.ase import AseAtomsAdaptor
-from pymatgen.analysis.diffraction.xrd import XRDCalculator
+with col1:
+    diffraction_choice = st.radio(
+        "Select Diffraction Calculator",
+        ["XRD (X-ray)", "ND (Neutron)"],
+        index=0,
+    )
+
+with col2:
+    intensity_scale_option = st.radio(
+        "Select intensity scale",
+        options=["Normalized", "Absolute"],
+        index=0,
+        help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
+    )
+
+if diffraction_choice == "ND (Neutron)":
+    st.info("🔬 The following neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+            "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
+        "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
+            " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.")
+else:
+    st.info(
+        "🔬 The following X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+        "The calculator applies the **Lorentz-polarization correction**: `LP(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
+        "instrumental broadening, or temperature effects (Debye-Waller factors). ")
 
 
 def format_index(index):
@@ -275,7 +303,7 @@ def format_index(index):
     return s
 
 
-def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
+def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffraction_choice):
     twotheta_deg = np.asarray(twotheta_deg)
     theta = np.deg2rad(twotheta_deg / 2)
     if metric == "2θ (°)":
@@ -291,7 +319,13 @@ def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
     elif metric == "d (nm)":
         result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
     elif metric == "energy (keV)":
-        result = (24.796 * np.sin(theta)) / wavelength_A
+        if diffraction_choice == "ND (Neutron)":
+            return 0.003956 / (wavelength_nm ** 2) # !!! NEEDS TO CORRECT THIS CHOICE
+
+        else:
+            return (24.796 * np.sin(theta)) / wavelength_A
+
+        #result = (24.796 * np.sin(theta)) / wavelength_A
     elif metric == "frequency (PHz)":
         f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
         result = f_Hz / 1e15
@@ -302,7 +336,7 @@ def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm):
     return result
 
 
-def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
+def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm, diffraction_choice):
     if metric == "2θ (°)":
         return metric_value
     elif metric == "2θ (rad)":
@@ -322,7 +356,15 @@ def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm):
         theta = np.arcsin(sin_theta)
         return np.rad2deg(2 * theta)
     elif metric == "energy (keV)":
-        theta = np.arcsin(np.clip(metric_value * wavelength_A / 24.796, 0, 1))
+        if diffraction_choice == "ND (Neutron)": # !!! NEEDS TO CORRECT THIS CHOICE
+            λ_nm = np.sqrt(0.003956 / metric_value)
+            sin_theta = λ_nm / (2 * wavelength_nm)
+            print("SIN THETA {}".format(sin_theta))
+            theta = np.arcsin(np.clip(sin_theta, 0, 1))
+            print(np.rad2deg(2 * theta))
+        else:
+            sin_theta = np.clip(metric_value * wavelength_A / 24.796, 0, 1)
+        theta = np.arcsin(np.clip(sin_theta, 0, 1))
         return np.rad2deg(2 * theta)
     elif metric == "frequency (PHz)":
         f_Hz = metric_value * 1e15
@@ -385,33 +427,92 @@ preset_wavelengths = {
     'AgKb1': 0.0496,
     'Ag(Ka1+Ka2+Kb1)': 0.0557006
 }
-preset_choice = st.selectbox("⚙️ Preset Wavelength", options=preset_options, index=0, help=(
-    "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
-wavelength_value = st.number_input("⚙️ Wavelength (nm)",
-                                   value=preset_wavelengths[preset_choice],
-                                   min_value=0.001,
-                                   step=0.001, format="%.5f")
+col1, col2 = st.columns(2)
+
+
+preset_options_neutrons = [
+    'Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
+preset_wavelengths_neutrons ={
+    'Thermal Neutrons': 0.154,
+    'Cold Neutrons': 0.475,
+    'Hot Neutrons': 0.087
+}
+
+if diffraction_choice == "XRD (X-ray)":
+    with col1:
+        preset_choice = st.selectbox(
+            "Preset Wavelength",
+            options=preset_options,
+            index=0,
+            help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+        )
+
+    with col2:
+        wavelength_value = st.number_input(
+            "Wavelength (nm)",
+            value=preset_wavelengths[preset_choice],
+            min_value=0.001,
+            step=0.001,
+            format="%.5f"
+        )
+elif diffraction_choice == "ND (Neutron)":
+    with col1:
+        preset_choice = st.selectbox(
+            "Preset Wavelength",
+            options=preset_options_neutrons,
+            index=0,
+            help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+        )
+
+    with col2:
+        wavelength_value = st.number_input(
+            "Wavelength (nm)",
+            value=preset_wavelengths_neutrons[preset_choice],
+            min_value=0.001,
+            step=0.001,
+            format="%.5f"
+        )
+
+
 st.write(f"**Using wavelength = {wavelength_value} nm**")
 wavelength_A = wavelength_value * 10  # Convert nm to Å
 wavelength_nm = wavelength_value
 
-# --- X-axis Metric Selection ---
+
 x_axis_options = [
     "2θ (°)", "2θ (rad)",
     "q (1/Å)", "q (1/nm)",
     "d (Å)", "d (nm)",
     "energy (keV)", "frequency (PHz)"
 ]
-if "x_axis_metric" not in st.session_state:
-    st.session_state.x_axis_metric = x_axis_options[0]
+x_axis_options_neutron = [
+    "2θ (°)", "2θ (rad)",
+    "q (1/Å)", "q (1/nm)",
+    "d (Å)", "d (nm)",
+]
+# --- X-axis Metric Selection ---
+if diffraction_choice == "ND (Neutron)":
+    if "x_axis_metric" not in st.session_state:
+        st.session_state.x_axis_metric = x_axis_options_neutron[0]
 
-x_axis_metric = st.selectbox(
-    "⚙️ XRD x-axis Metric",
-    x_axis_options,
-    index=x_axis_options.index(st.session_state.x_axis_metric),
-    key="x_axis_metric",
-    help=conversion_info[st.session_state.x_axis_metric]
-)
+    x_axis_metric = st.selectbox(
+        "⚙️ ND x-axis Metric",
+        x_axis_options_neutron,
+        index=x_axis_options_neutron.index(st.session_state.x_axis_metric),
+        key="x_axis_metric",
+        help=conversion_info[st.session_state.x_axis_metric]
+    )
+else:
+    if "x_axis_metric" not in st.session_state:
+        st.session_state.x_axis_metric = x_axis_options[0]
+
+    x_axis_metric = st.selectbox(
+        "⚙️ XRD x-axis Metric",
+        x_axis_options,
+        index=x_axis_options.index(st.session_state.x_axis_metric),
+        key="x_axis_metric",
+        help=conversion_info[st.session_state.x_axis_metric]
+    )
 
 # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
 if "two_theta_min" not in st.session_state:
@@ -425,8 +526,8 @@ if "two_theta_max" not in st.session_state:
     st.session_state.two_theta_max = 165.0
 
 # --- Compute display values by converting canonical two_theta values to current unit ---
-display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm)
-display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm)
+display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
 
 if x_axis_metric == "2θ (°)":
     step_val = 1.0
@@ -442,8 +543,8 @@ max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_met
                             key=f"max_val_{x_axis_metric}")
 
 # --- Update the canonical two_theta values based on current inputs ---
-st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm)
-st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm)
+st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
 two_theta_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
 sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
@@ -451,27 +552,28 @@ sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller 
 num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
                                min_value=0, max_value=30, value=5, step=1)
 
-# NEW: Option to select between normalized or absolute intensity scales.
-intensity_scale_option = st.radio(
-    "Select intensity scale",
-    options=["Normalized", "Absolute"],
-    index=0,
-    help="Normalized scale sets maximum peak to 100; Absolute scale shows raw calculated intensities."
-)
 
 if "calc_xrd" not in st.session_state:
     st.session_state.calc_xrd = False
-if st.button("Calculate XRD"):
-    st.session_state.calc_xrd = True
+
+if diffraction_choice == "ND (Neutron)":
+    if st.button("Calculate ND"):
+        st.session_state.calc_xrd = True
+else:
+    if st.button("Calculate XRD"):
+        st.session_state.calc_xrd = True
 
 # --- XRD Calculation ---
 if st.session_state.calc_xrd and uploaded_files:
-    st.subheader("📊 OUTPUT → XRD Patterns")
-    st.markdown("### Exclude Structures from the XRD Plot")
+    st.subheader("📊 OUTPUT → Diffraction Patterns")
+    st.markdown("### Structures to have in the Diffraction Plot:")
     include_in_combined = {}
     for file in uploaded_files:
         include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
-    xrd_calc = XRDCalculator(wavelength=wavelength_A)
+    if diffraction_choice == "ND (Neutron)":
+        diff_calc = NDCalculator(wavelength=wavelength_A)
+    else:
+        diff_calc = XRDCalculator(wavelength=wavelength_A)
     fig_combined, ax_combined = plt.subplots()
     colors = plt.cm.tab10.colors
     pattern_details = {}
@@ -484,13 +586,15 @@ if st.session_state.calc_xrd and uploaded_files:
         structure = read(file.name)
         mg_structure = AseAtomsAdaptor.get_structure(structure)
         # Get pattern with absolute intensities (we will scale manually if needed)
-        xrd_pattern = xrd_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
+        diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
+
+
 
         filtered_x = []
         filtered_y = []
         filtered_hkls = []
 
-        for x_val, y_val, hkl_group in zip(xrd_pattern.x, xrd_pattern.y, xrd_pattern.hkls):
+        for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
             if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                 continue
             if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
@@ -500,7 +604,7 @@ if st.session_state.calc_xrd and uploaded_files:
             filtered_hkls.append(hkl_group)
 
         x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
-        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm)
+        x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense = np.zeros_like(x_dense)
 
         # Build continuous intensity curve via Gaussian broadening
@@ -523,7 +627,7 @@ if st.session_state.calc_xrd and uploaded_files:
         else:
             displayed_intensity_array = np.array(filtered_y)
 
-        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm)
+        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         if len(displayed_intensity_array) > 0:
             annotate_indices = set(np.argsort(displayed_intensity_array)[-num_annotate:])
         else:
@@ -563,7 +667,11 @@ if st.session_state.calc_xrd and uploaded_files:
         ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
     else:
         ax_combined.set_ylabel("Intensity (Absolute, a.u.)")
-    ax_combined.set_title("Powder XRD Patterns")
+    if diffraction_choice == "ND (Neutron)":
+        ax_combined.set_title("Powder ND Patterns")
+    else:
+        ax_combined.set_title("Powder XRD Patterns")
+
     if ax_combined.get_lines():
         max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
         ax_combined.set_ylim(0, max_intensity * 1.2)
@@ -615,7 +723,7 @@ if st.session_state.calc_xrd and uploaded_files:
             st.code(table_str3, language="text")
 
         st.divider()
-    import pandas as pd
+
 
     # Dictionary to store combined data
     combined_data = {}
@@ -670,7 +778,8 @@ st.subheader("⚙️ (P)RDF Settings")
 st.info(
     "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, providing insight into **local environments** and **structural disorder**. "
     "It is commonly used in **diffusion studies** to track atomic movement and ion transport, as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
-    "Additionally, PRDF/RDF are employed as one of the **structural descriptors in machine learning**.")
+    "Additionally, PRDF/RDF can be employed as one of the **structural descriptors in machine learning**. "
+    "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. Peak width = disorder. Height = relative likelihood.")
 
 cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
 bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05, format="%.2f")
