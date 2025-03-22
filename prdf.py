@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Powder XRD and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+st.set_page_config(page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,19 +48,19 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator of Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XYZ, ...)">
+        <meta name="description" content="Online calculator of Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "Powder XRD Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XYZ, ...)")
+    "Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 # --- File Upload ---
 uploaded_files = st.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, XYZ, etc.)",
+    "Upload Structure Files (CIF, POSCAR, XSF, etc.)",
     type=None,
     accept_multiple_files=True
 )
@@ -72,7 +72,7 @@ st.warning(
     "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
     "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)")
 st.info(
-    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XYZ format), and this tool will calculate either the "
+    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD patterns, diffraction data from multiple structures can be combined into a single figure. "
     "Below, you can change the settings for XRD calculation or PRDF."
