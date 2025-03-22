@@ -8,11 +8,16 @@ from ase.io import read, write
 from matminer.featurizers.structure import PartialRadialDistributionFunction
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
+from pymatgen.analysis.diffraction.neutron import NDCalculator
 from collections import defaultdict
 from itertools import combinations
 import streamlit.components.v1 as components
 import py3Dmol
 from io import StringIO
+import matplotlib.pyplot as plt
+from ase.io import read
+from pymatgen.io.ase import AseAtomsAdaptor
+import pandas as pd
 
 # Inject custom CSS for buttons.
 st.markdown(
@@ -64,7 +69,8 @@ if uploaded_files:
 else:
     st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
 st.warning(
-    "💡 You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/)")
+    "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
+    "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)")
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XYZ format), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
@@ -154,6 +160,8 @@ def add_box(view, cell, color='black', linewidth=2):
 # --- Structure Visualization ---
 jmol_colors = {
     'H': '#FFFFFF',
+    'Sr': '#00CC00',
+    'Ba': '#008000',
     'He': '#D9FFFF',
     'Li': '#CC80FF',
     'Be': '#C2FF00',
@@ -238,12 +246,12 @@ if uploaded_files:
         right_col.markdown("**Space Group:** Not available")
 
 
-# --- XRD Settings and Calculation ---
+# --- Diffraction Settings and Calculation ---
 st.divider()
 st.subheader(
-    "⚙️ XRD Settings",
+    "⚙️ Diffraction Settings",
     help=(
-        "Calculates the XRD pattern using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
+        "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
         "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
         "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
         "factors. The atomic scattering factor is given by:\n\n"
@@ -257,15 +265,35 @@ st.subheader(
     )
 )
 
-st.info(
-    "🔬 The following XRD patterns are for **powder samples** using **Bragg-Brentano (θ-2θ) geometry**, assuming **randomly oriented crystallites**. "
-    "The calculator applies the **Lorentz-polarization correction**: `P(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for other corrections, such as preferred orientation, "
-    "instrumental broadening, or temperature effects (Debye-Waller factors). ")
+# --- Diffraction Calculator Selection ---
+# Allow the user to choose between XRD (X-ray) and ND (Neutron) calculators.
+col1, col2 = st.columns(2)
 
-import matplotlib.pyplot as plt
-from ase.io import read
-from pymatgen.io.ase import AseAtomsAdaptor
-from pymatgen.analysis.diffraction.xrd import XRDCalculator
+with col1:
+    diffraction_choice = st.radio(
+        "Select Diffraction Calculator",
+        ["XRD (X-ray)", "ND (Neutron)"],
+        index=0,
+    )
+
+with col2:
+    intensity_scale_option = st.radio(
+        "Select intensity scale",
+        options=["Normalized", "Absolute"],
+        index=0,
+        help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
+    )
+
+if diffraction_choice == "ND (Neutron)":
+    st.info("🔬 The following neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+            "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
+        "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
+            " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.")
+else:
+    st.info(
+        "🔬 The following X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+        "The calculator applies the **Lorentz-polarization correction**: `LP(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
+        "instrumental broadening, or temperature effects (Debye-Waller factors). ")
 
 
 def format_index(index):
@@ -385,12 +413,25 @@ preset_wavelengths = {
     'AgKb1': 0.0496,
     'Ag(Ka1+Ka2+Kb1)': 0.0557006
 }
-preset_choice = st.selectbox("⚙️ Preset Wavelength", options=preset_options, index=0, help=(
-    "Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"))
-wavelength_value = st.number_input("⚙️ Wavelength (nm)",
-                                   value=preset_wavelengths[preset_choice],
-                                   min_value=0.001,
-                                   step=0.001, format="%.5f")
+col1, col2 = st.columns(2)
+
+with col1:
+    preset_choice = st.selectbox(
+        "Preset Wavelength",
+        options=preset_options,
+        index=0,
+        help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+    )
+
+with col2:
+    wavelength_value = st.number_input(
+        "Wavelength (nm)",
+        value=preset_wavelengths[preset_choice],
+        min_value=0.001,
+        step=0.001,
+        format="%.5f"
+    )
+
 st.write(f"**Using wavelength = {wavelength_value} nm**")
 wavelength_A = wavelength_value * 10  # Convert nm to Å
 wavelength_nm = wavelength_value
@@ -451,13 +492,6 @@ sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller 
 num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
                                min_value=0, max_value=30, value=5, step=1)
 
-# NEW: Option to select between normalized or absolute intensity scales.
-intensity_scale_option = st.radio(
-    "Select intensity scale",
-    options=["Normalized", "Absolute"],
-    index=0,
-    help="Normalized scale sets maximum peak to 100; Absolute scale shows raw calculated intensities."
-)
 
 if "calc_xrd" not in st.session_state:
     st.session_state.calc_xrd = False
@@ -466,12 +500,15 @@ if st.button("Calculate XRD"):
 
 # --- XRD Calculation ---
 if st.session_state.calc_xrd and uploaded_files:
-    st.subheader("📊 OUTPUT → XRD Patterns")
-    st.markdown("### Exclude Structures from the XRD Plot")
+    st.subheader("📊 OUTPUT → Diffraction Patterns")
+    st.markdown("### Structures to have in the Diffraction Plot:")
     include_in_combined = {}
     for file in uploaded_files:
         include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
-    xrd_calc = XRDCalculator(wavelength=wavelength_A)
+    if diffraction_choice == "ND (Neutron)":
+        diff_calc = NDCalculator(wavelength=wavelength_A)
+    else:
+        diff_calc = XRDCalculator(wavelength=wavelength_A)
     fig_combined, ax_combined = plt.subplots()
     colors = plt.cm.tab10.colors
     pattern_details = {}
@@ -484,13 +521,15 @@ if st.session_state.calc_xrd and uploaded_files:
         structure = read(file.name)
         mg_structure = AseAtomsAdaptor.get_structure(structure)
         # Get pattern with absolute intensities (we will scale manually if needed)
-        xrd_pattern = xrd_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
+        diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
+
+
 
         filtered_x = []
         filtered_y = []
         filtered_hkls = []
 
-        for x_val, y_val, hkl_group in zip(xrd_pattern.x, xrd_pattern.y, xrd_pattern.hkls):
+        for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
             if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                 continue
             if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
@@ -563,7 +602,11 @@ if st.session_state.calc_xrd and uploaded_files:
         ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
     else:
         ax_combined.set_ylabel("Intensity (Absolute, a.u.)")
-    ax_combined.set_title("Powder XRD Patterns")
+    if diffraction_choice == "ND (Neutron)":
+        ax_combined.set_title("Powder ND Patterns")
+    else:
+        ax_combined.set_title("Powder XRD Patterns")
+
     if ax_combined.get_lines():
         max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
         ax_combined.set_ylim(0, max_intensity * 1.2)
@@ -615,7 +658,7 @@ if st.session_state.calc_xrd and uploaded_files:
             st.code(table_str3, language="text")
 
         st.divider()
-    import pandas as pd
+
 
     # Dictionary to store combined data
     combined_data = {}
@@ -670,7 +713,8 @@ st.subheader("⚙️ (P)RDF Settings")
 st.info(
     "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, providing insight into **local environments** and **structural disorder**. "
     "It is commonly used in **diffusion studies** to track atomic movement and ion transport, as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
-    "Additionally, PRDF/RDF are employed as one of the **structural descriptors in machine learning**.")
+    "Additionally, PRDF/RDF can be employed as one of the **structural descriptors in machine learning**. "
+    "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. Peak width = disorder. Height = relative likelihood.")
 
 cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
 bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05, format="%.2f")
@@ -765,4 +809,3 @@ if st.session_state.calc_rdf and uploaded_files:
         for x, y in zip(global_bins, global_rdf_avg):
             table_str += f"{x:<12.3f} {y:<12.3f}\n"
         st.code(table_str, language="text")
-
