@@ -609,8 +609,12 @@ if st.session_state.calc_xrd and uploaded_files:
         for peak, intensity in zip(filtered_x, filtered_y):
             # Compute a temporary Gaussian for this peak.
             y_temp = intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
-            # Use pointwise maximum so that overlapping contributions do not add up.
+            # Use the pointwise maximum to prevent overlapping Gaussians from adding.
             y_dense = np.maximum(y_dense, y_temp)
+        # Ensure that at each discrete peak, the intensity equals the original calculated value.
+        for peak, intensity in zip(filtered_x, filtered_y):
+            idx_closest = np.argmin(np.abs(x_dense - peak))
+            y_dense[idx_closest] = intensity
 
         # Compute normalization factors
         norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
