@@ -758,10 +758,11 @@ if st.session_state.calc_xrd and uploaded_files:
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
-
+    
     for idx, (file_name, details) in enumerate(pattern_details.items()):
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-
+        t.write(details["x_dense_plot"])
+        st.write(details["y_dense"])
         # Continuous curve trace (visible)
         fig_interactive.add_trace(go.Scatter(
             x=details["x_dense_plot"],
@@ -822,7 +823,7 @@ if st.session_state.calc_xrd and uploaded_files:
     )
 
     # Capture click events
-    #clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
+    clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
     if clicked_points:
         st.markdown("### Selected Peak Details")
         point = clicked_points[0]
