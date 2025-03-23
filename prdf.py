@@ -823,7 +823,7 @@ if st.session_state.calc_xrd and uploaded_files:
     )
     
     # Capture click events.
-    #clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
+    clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
     if clicked_points:
         st.markdown("### Selected Peak Details")
         point = clicked_points[0]
