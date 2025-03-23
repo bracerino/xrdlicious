@@ -698,18 +698,25 @@ if st.session_state.calc_xrd and uploaded_files:
 
     fig_interactive = go.Figure()
 
+    # Iterate over each file's details.
+    # Only include files that were checked in the "Include in combined XRD plot" section.
     for idx, (file_name, details) in enumerate(pattern_details.items()):
+        if not include_in_combined.get(file_name, True):
+            continue  # Skip files that are not checked
+        
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-        # Continuous curve trace (visible)
-        fig_interactive.add_trace(go.Scatter(
-            x=details["x_dense_plot"],
-            y=details["y_dense"],
-            mode='lines',
-            name=file_name,
-            line=dict(color=color, width=2),
-            hoverinfo='skip'
-        ))
-
+        
+        # Optionally add the continuous curve trace based on user selection.
+        if show_continuous:
+            fig_interactive.add_trace(go.Scatter(
+                x=details["x_dense_plot"],
+                y=details["y_dense"],
+                mode='lines',
+                name=file_name,
+                line=dict(color=color, width=line_width),
+                hoverinfo='skip'
+            ))
+        
         # Prepare hover texts with HKL indexing information.
         hover_texts = []
         for hkl_group in details["hkls"]:
@@ -722,22 +729,22 @@ if st.session_state.calc_xrd and uploaded_files:
                     [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
                      for h in hkl_group])
             hover_texts.append(f"HKL: {hkl_str}")
-
-        # Markers trace for discrete peaks: 50% transparency, not included in legend.
-        fig_interactive.add_trace(go.Scatter(
-        x=details["peak_vals"],
-        y=details["intensities"],
-        mode='markers',
-        name=f"{file_name} Peaks",
-        showlegend=False,
-        marker=dict(color=color, size=8, opacity=0.5),
-        text=hover_texts,
-        hovertemplate=f"<b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
-        hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20)))
-                                 )
         
-
-        fig_interactive.update_layout(
+        # Optionally add the markers trace based on user selection.
+        if show_markers:
+            fig_interactive.add_trace(go.Scatter(
+                x=details["peak_vals"],
+                y=details["intensities"],
+                mode='markers',
+                name=f"{file_name} Peaks",
+                showlegend=False,
+                marker=dict(color=color, size=marker_size, opacity=marker_opacity),
+                text=hover_texts,
+                hovertemplate=f"<b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
+            ))
+    
+    fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
         hovermode="closest",
         legend=dict(
@@ -750,7 +757,8 @@ if st.session_state.calc_xrd and uploaded_files:
         ),
         xaxis=dict(
             title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
-            tickfont=dict(size=20)
+            tickfont=dict(size=20),
+            type=xaxis_scale  # Uses the scale selected in the sidebar (linear/log)
         ),
         yaxis=dict(
             title=dict(text="Intensity (a.u.)", font=dict(size=24)),
