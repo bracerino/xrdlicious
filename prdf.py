@@ -823,6 +823,7 @@ if st.session_state.calc_xrd and uploaded_files:
     )
 
     # Capture click events
+    """
     clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
     if clicked_points:
         st.markdown("### Selected Peak Details")
@@ -833,7 +834,7 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**2θ:** {clicked_x:.2f}")
         st.write(f"**Intensity:** {clicked_y:.2f}")
         st.write(f"**Indexing:** {clicked_text}")
-
+    """
     st.plotly_chart(fig_interactive, use_container_width=True)
 
 
