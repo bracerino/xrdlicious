@@ -756,14 +756,13 @@ if st.session_state.calc_xrd and uploaded_files:
     
     st.divider()
     st.subheader("Interactive Peak Identification and Indexing")
-    
+
     fig_interactive = go.Figure()
-    
+
     for idx, (file_name, details) in enumerate(pattern_details.items()):
-        # Get the color for this trace
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-        
-        # Add continuous curve trace (visible)
+
+        # Continuous curve trace (visible)
         fig_interactive.add_trace(go.Scatter(
             x=details["x_dense_plot"],
             y=details["y_dense"],
@@ -772,19 +771,21 @@ if st.session_state.calc_xrd and uploaded_files:
             line=dict(color=color, width=2),
             hoverinfo='skip'
         ))
-        
+
         # Prepare hover texts with HKL indexing information.
         hover_texts = []
         for hkl_group in details["hkls"]:
             if len(hkl_group[0]['hkl']) == 3:
-                hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                                      for h in hkl_group])
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                     for h in hkl_group])
             else:
-                hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                                      for h in hkl_group])
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                     for h in hkl_group])
             hover_texts.append(f"HKL: {hkl_str}")
-        
-        # Add markers trace for discrete peaks with 50% transparency; do not include in legend.
+
+        # Markers trace for discrete peaks: 50% transparency, not included in legend.
         fig_interactive.add_trace(go.Scatter(
             x=details["peak_vals"],
             y=details["intensities"],
@@ -796,10 +797,10 @@ if st.session_state.calc_xrd and uploaded_files:
             hovertemplate="<b>2θ:</b> %{x:.2f}<br><b>Intensity:</b> %{y:.2f}<br>%{text}<extra></extra>",
             hoverlabel=dict(bgcolor=color, font=dict(color="white"))
         ))
-    
+
     fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
-        hovermode="closest",  # Each trace shows its own hover label.
+        hovermode="closest",  # Shows individual hover labels per trace.
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -819,8 +820,8 @@ if st.session_state.calc_xrd and uploaded_files:
         font=dict(size=14),
         autosize=True
     )
-    
-    # Capture click events (this call also renders the figure)
+
+    # Capture click events
     clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
     if clicked_points:
         st.markdown("### Selected Peak Details")
@@ -831,6 +832,8 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**2θ:** {clicked_x:.2f}")
         st.write(f"**Intensity:** {clicked_y:.2f}")
         st.write(f"**Indexing:** {clicked_text}")
+
+    #st.plotly_chart(fig_interactive, use_container_width=True)
 
 
 
