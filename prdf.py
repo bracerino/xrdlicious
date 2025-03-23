@@ -757,13 +757,15 @@ if st.session_state.calc_xrd and uploaded_files:
     st.divider()
     st.subheader("Interactive Peak Identification and Indexing")
     
+    # Create a container to ensure only one graph is displayed.
+    interactive_container = st.empty()
+    
     fig_interactive = go.Figure()
     
     for idx, (file_name, details) in enumerate(pattern_details.items()):
-        # Get the color for this trace
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         
-        # Add continuous curve trace (visible)
+        # Add continuous curve trace
         fig_interactive.add_trace(go.Scatter(
             x=details["x_dense_plot"],
             y=details["y_dense"],
@@ -784,7 +786,7 @@ if st.session_state.calc_xrd and uploaded_files:
                                       for h in hkl_group])
             hover_texts.append(f"HKL: {hkl_str}")
         
-        # Add markers trace for discrete peaks with 50% transparency; do not include in legend.
+        # Add markers trace for discrete peaks with 50% transparency and not in legend.
         fig_interactive.add_trace(go.Scatter(
             x=details["peak_vals"],
             y=details["intensities"],
@@ -797,11 +799,9 @@ if st.session_state.calc_xrd and uploaded_files:
             hoverlabel=dict(bgcolor=color, font=dict(color="white"))
         ))
     
-    # Update layout: use hovermode "closest" so each trace gets its own hover label,
-    # set x-axis title with standoff so it is not cut off, and increase legend font size.
     fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
-        hovermode="closest",
+        hovermode="closest",  # Each trace shows its own hover label.
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -834,8 +834,9 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**Intensity:** {clicked_y:.2f}")
         st.write(f"**Indexing:** {clicked_text}")
     
-    # Render the interactive chart once.
-    st.plotly_chart(fig_interactive, use_container_width=True)
+    # Render the interactive chart in the container.
+    interactive_container.plotly_chart(fig_interactive, use_container_width=True)
+
 
 
 
