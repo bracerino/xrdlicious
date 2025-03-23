@@ -833,7 +833,7 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**Intensity:** {clicked_y:.2f}")
         st.write(f"**Indexing:** {clicked_text}")
 
-    #st.plotly_chart(fig_interactive, use_container_width=True)
+    st.plotly_chart(fig_interactive, use_container_width=True)
 
 
 
