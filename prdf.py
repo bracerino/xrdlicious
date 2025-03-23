@@ -738,9 +738,9 @@ if st.session_state.calc_xrd and uploaded_files:
             hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
         ))
 
-    fig_interactive.update_layout(
+        fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
-        hovermode="closest",  # Shows individual hover labels per trace.
+        hovermode="closest",
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -750,17 +750,18 @@ if st.session_state.calc_xrd and uploaded_files:
             font=dict(size=18)
         ),
         xaxis=dict(
-            title=dict(text="2θ (Degrees)", font=dict(size=24), standoff=20),
+            title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
             tickfont=dict(size=20)
         ),
         yaxis=dict(
             title=dict(text="Intensity (a.u.)", font=dict(size=24)),
             tickfont=dict(size=20)
         ),
-        hoverlabel=dict(font=dict(size=20)),  # Global hover label font size
+        hoverlabel=dict(font=dict(size=20)),
         font=dict(size=14),
         autosize=True
     )
+
 
     st.plotly_chart(fig_interactive, use_container_width=True)
     
