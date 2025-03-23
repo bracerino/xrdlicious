@@ -835,7 +835,7 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**Indexing:** {clicked_text}")
     
     # Render the interactive chart in the container.
-    interactive_container.plotly_chart(fig_interactive, use_container_width=True)
+    #interactive_container.plotly_chart(fig_interactive, use_container_width=True)
 
 
 
