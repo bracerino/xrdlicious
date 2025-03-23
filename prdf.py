@@ -762,11 +762,11 @@ if st.session_state.calc_xrd and uploaded_files:
     for idx, (file_name, details) in enumerate(pattern_details.items()):
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         st.write(details["x_dense_plot"])
-        st.write(details["intensities"])
+        st.write(details["y_dense"])
         # Continuous curve trace (visible)
         fig_interactive.add_trace(go.Scatter(
             x=details["x_dense_plot"],
-            y=details["intensities"],
+            y=details["y_dense"],
             mode='lines',
             name=file_name,
             line=dict(color=color, width=2),
