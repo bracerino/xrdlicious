@@ -690,6 +690,83 @@ if st.session_state.calc_xrd and uploaded_files:
     ax_combined.legend()
     st.pyplot(fig_combined)
 
+
+
+
+    st.divider()
+    st.subheader("Interactive Peak Identification and Indexing")
+
+    fig_interactive = go.Figure()
+
+    for idx, (file_name, details) in enumerate(pattern_details.items()):
+        color = rgb_color(colors[idx % len(colors)], opacity=0.8)
+        st.write(details["x_dense_plot"])
+        st.write(details["y_dense"])
+        # Continuous curve trace (visible)
+        fig_interactive.add_trace(go.Scatter(
+            x=details["x_dense_plot"],
+            y=details["y_dense"],
+            mode='lines',
+            name=file_name,
+            line=dict(color=color, width=2),
+            hoverinfo='skip'
+        ))
+
+        # Prepare hover texts with HKL indexing information.
+        hover_texts = []
+        for hkl_group in details["hkls"]:
+            if len(hkl_group[0]['hkl']) == 3:
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                     for h in hkl_group])
+            else:
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                     for h in hkl_group])
+            hover_texts.append(f"HKL: {hkl_str}")
+
+        # Markers trace for discrete peaks: 50% transparency, not included in legend.
+        fig_interactive.add_trace(go.Scatter(
+            x=details["peak_vals"],
+            y=details["intensities"],
+            mode='markers',
+            name=f"{file_name} Peaks",
+            showlegend=False,
+            marker=dict(color=color, size=8, opacity=0.5),
+            text=hover_texts,
+            hovertemplate="<b>2θ:</b> %{x:.2f}<br><b>Intensity:</b> %{y:.2f}<br>%{text}<extra></extra>",
+            hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
+        ))
+
+    fig_interactive.update_layout(
+        margin=dict(t=80, b=80, l=60, r=30),
+        hovermode="closest",  # Shows individual hover labels per trace.
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.1,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=18)
+        ),
+        xaxis=dict(
+            title=dict(text="2θ (Degrees)", font=dict(size=24), standoff=20),
+            tickfont=dict(size=20)
+        ),
+        yaxis=dict(
+            title=dict(text="Intensity (a.u.)", font=dict(size=24)),
+            tickfont=dict(size=20)
+        ),
+        hoverlabel=dict(font=dict(size=20)),  # Global hover label font size
+        font=dict(size=14),
+        autosize=True
+    )
+
+    st.plotly_chart(fig_interactive, use_container_width=True)
+    
+
+
+    
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -750,100 +827,6 @@ if st.session_state.calc_xrd and uploaded_files:
             "Intensities": details["intensities"],
             "HKLs": details["hkls"]
         }
-
-
-
-    
-    st.divider()
-    st.subheader("Interactive Peak Identification and Indexing")
-
-    fig_interactive = go.Figure()
-    
-    for idx, (file_name, details) in enumerate(pattern_details.items()):
-        color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-        st.write(details["x_dense_plot"])
-        st.write(details["y_dense"])
-        # Continuous curve trace (visible)
-        fig_interactive.add_trace(go.Scatter(
-            x=details["x_dense_plot"],
-            y=details["y_dense"],
-            mode='lines',
-            name=file_name,
-            line=dict(color=color, width=2),
-            hoverinfo='skip'
-        ))
-
-        # Prepare hover texts with HKL indexing information.
-        hover_texts = []
-        for hkl_group in details["hkls"]:
-            if len(hkl_group[0]['hkl']) == 3:
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                     for h in hkl_group])
-            else:
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                     for h in hkl_group])
-            hover_texts.append(f"HKL: {hkl_str}")
-
-        # Markers trace for discrete peaks: 50% transparency, not included in legend.
-        fig_interactive.add_trace(go.Scatter(
-            x=details["peak_vals"],
-            y=details["intensities"],
-            mode='markers',
-            name=f"{file_name} Peaks",
-            showlegend=False,
-            marker=dict(color=color, size=8, opacity=0.5),
-            text=hover_texts,
-            hovertemplate="<b>2θ:</b> %{x:.2f}<br><b>Intensity:</b> %{y:.2f}<br>%{text}<extra></extra>",
-            hoverlabel=dict(bgcolor=color, font=dict(color="white"))
-        ))
-
-    fig_interactive.update_layout(
-        margin=dict(t=80, b=80, l=60, r=30),
-        hovermode="closest",  # Shows individual hover labels per trace.
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.1,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=18)
-        ),
-        xaxis=dict(
-            title=dict(text="2θ (Degrees)", font=dict(size=18), standoff=20),
-            tickfont=dict(size=14)
-        ),
-        yaxis=dict(
-            title=dict(text="Intensity (a.u.)", font=dict(size=18)),
-            tickfont=dict(size=14)
-        ),
-        font=dict(size=14),
-        autosize=True
-    )
-
-    # Capture click events
-    """
-    clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
-    if clicked_points:
-        st.markdown("### Selected Peak Details")
-        point = clicked_points[0]
-        clicked_x = point.get("x")
-        clicked_y = point.get("y")
-        clicked_text = point.get("text")
-        st.write(f"**2θ:** {clicked_x:.2f}")
-        st.write(f"**Intensity:** {clicked_y:.2f}")
-        st.write(f"**Indexing:** {clicked_text}")
-    """
-    st.plotly_chart(fig_interactive, use_container_width=True)
-
-
-
-
-
-
-
-
 
 
     
