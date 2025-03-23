@@ -727,16 +727,17 @@ if st.session_state.calc_xrd and uploaded_files:
 
         # Markers trace for discrete peaks: 50% transparency, not included in legend.
         fig_interactive.add_trace(go.Scatter(
-            x=details["peak_vals"],
-            y=details["intensities"],
-            mode='markers',
-            name=f"{file_name} Peaks",
-            showlegend=False,
-            marker=dict(color=color, size=8, opacity=0.5),
-            text=hover_texts,
-            hovertemplate="<b>2θ:</b> %{x:.2f}<br><b>Intensity:</b> %{y:.2f}<br>%{text}<extra></extra>",
-            hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
-        ))
+        x=details["peak_vals"],
+        y=details["intensities"],
+        mode='markers',
+        name=f"{file_name} Peaks",
+        showlegend=False,
+        marker=dict(color=color, size=8, opacity=0.5),
+        text=hover_texts,
+        hovertemplate=f"<b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+        hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20)))
+                                 )
+        
 
         fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
