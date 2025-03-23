@@ -21,6 +21,12 @@ import pandas as pd
 import plotly.graph_objs as go
 from streamlit_plotly_events import plotly_events
 
+
+def rgb_color(color_tuple, opacity=0.8):
+    r, g, b = [int(255*x) for x in color_tuple]
+    return f"rgba({r},{g},{b},{opacity})"
+
+
 # Inject custom CSS for buttons.
 st.markdown(
     """
