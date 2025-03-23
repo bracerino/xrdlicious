@@ -760,9 +760,10 @@ if st.session_state.calc_xrd and uploaded_files:
     fig_interactive = go.Figure()
     
     for idx, (file_name, details) in enumerate(pattern_details.items()):
+        # Get the color for this trace
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         
-        # Continuous curve trace (visible)
+        # Add continuous curve trace (visible)
         fig_interactive.add_trace(go.Scatter(
             x=details["x_dense_plot"],
             y=details["y_dense"],
@@ -783,7 +784,7 @@ if st.session_state.calc_xrd and uploaded_files:
                                       for h in hkl_group])
             hover_texts.append(f"HKL: {hkl_str}")
         
-        # Markers trace for discrete peaks: 50% transparency, not included in legend.
+        # Add markers trace for discrete peaks with 50% transparency; do not include in legend.
         fig_interactive.add_trace(go.Scatter(
             x=details["peak_vals"],
             y=details["intensities"],
@@ -796,9 +797,11 @@ if st.session_state.calc_xrd and uploaded_files:
             hoverlabel=dict(bgcolor=color, font=dict(color="white"))
         ))
     
+    # Update layout: use hovermode "closest" so each trace gets its own hover label,
+    # set x-axis title with standoff so it is not cut off, and increase legend font size.
     fig_interactive.update_layout(
         margin=dict(t=80, b=80, l=60, r=30),
-        hovermode="closest",  # Shows individual hover labels per trace.
+        hovermode="closest",
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -819,7 +822,7 @@ if st.session_state.calc_xrd and uploaded_files:
         autosize=True
     )
     
-    # Capture click events
+    # Capture click events.
     clicked_points = plotly_events(fig_interactive, click_event=True, hover_event=False)
     if clicked_points:
         st.markdown("### Selected Peak Details")
@@ -831,7 +834,9 @@ if st.session_state.calc_xrd and uploaded_files:
         st.write(f"**Intensity:** {clicked_y:.2f}")
         st.write(f"**Indexing:** {clicked_text}")
     
+    # Render the interactive chart once.
     st.plotly_chart(fig_interactive, use_container_width=True)
+
 
 
 
