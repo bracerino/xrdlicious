@@ -5,3 +5,5 @@ ase
 matminer
 pymatgen
 py3Dmol
+plotly
+streamlit-plotly-events
