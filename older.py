@@ -1,6 +1,7 @@
 import streamlit as st
 
-st.set_page_config(page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+st.set_page_config(
+    page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,6 +19,14 @@ import matplotlib.pyplot as plt
 from ase.io import read
 from pymatgen.io.ase import AseAtomsAdaptor
 import pandas as pd
+import plotly.graph_objs as go
+from streamlit_plotly_events import plotly_events
+
+
+def rgb_color(color_tuple, opacity=0.8):
+    r, g, b = [int(255 * x) for x in color_tuple]
+    return f"rgba({r},{g},{b},{opacity})"
+
 
 # Inject custom CSS for buttons.
 st.markdown(
@@ -245,7 +254,6 @@ if uploaded_files:
     except Exception as e:
         right_col.markdown("**Space Group:** Not available")
 
-
 # --- Diffraction Settings and Calculation ---
 st.divider()
 st.subheader(
@@ -285,10 +293,11 @@ with col2:
     )
 
 if diffraction_choice == "ND (Neutron)":
-    st.info("🔬 The following neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
-            "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
+    st.info(
+        "🔬 The following neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+        "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not **not** account for other corrections, such as preferred orientation, absorption, "
         "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
-            " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.")
+        " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.")
 else:
     st.info(
         "🔬 The following X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
@@ -320,12 +329,12 @@ def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffra
         result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
     elif metric == "energy (keV)":
         if diffraction_choice == "ND (Neutron)":
-            return 0.003956 / (wavelength_nm ** 2) # !!! NEEDS TO CORRECT THIS CHOICE
+            return 0.003956 / (wavelength_nm ** 2)  # !!! NEEDS TO CORRECT THIS CHOICE
 
         else:
             return (24.796 * np.sin(theta)) / wavelength_A
 
-        #result = (24.796 * np.sin(theta)) / wavelength_A
+        # result = (24.796 * np.sin(theta)) / wavelength_A
     elif metric == "frequency (PHz)":
         f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
         result = f_Hz / 1e15
@@ -356,7 +365,7 @@ def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm, diffra
         theta = np.arcsin(sin_theta)
         return np.rad2deg(2 * theta)
     elif metric == "energy (keV)":
-        if diffraction_choice == "ND (Neutron)": # !!! NEEDS TO CORRECT THIS CHOICE
+        if diffraction_choice == "ND (Neutron)":  # !!! NEEDS TO CORRECT THIS CHOICE
             λ_nm = np.sqrt(0.003956 / metric_value)
             sin_theta = λ_nm / (2 * wavelength_nm)
             print("SIN THETA {}".format(sin_theta))
@@ -429,10 +438,9 @@ preset_wavelengths = {
 }
 col1, col2 = st.columns(2)
 
-
 preset_options_neutrons = [
     'Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
-preset_wavelengths_neutrons ={
+preset_wavelengths_neutrons = {
     'Thermal Neutrons': 0.154,
     'Cold Neutrons': 0.475,
     'Hot Neutrons': 0.087
@@ -473,11 +481,9 @@ elif diffraction_choice == "ND (Neutron)":
             format="%.5f"
         )
 
-
 st.write(f"**Using wavelength = {wavelength_value} nm**")
 wavelength_A = wavelength_value * 10  # Convert nm to Å
 wavelength_nm = wavelength_value
-
 
 x_axis_options = [
     "2θ (°)", "2θ (rad)",
@@ -526,8 +532,10 @@ if "two_theta_max" not in st.session_state:
     st.session_state.two_theta_max = 165.0
 
 # --- Compute display values by converting canonical two_theta values to current unit ---
-display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
-display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm,
+                                        diffraction_choice)
+display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
+                                        diffraction_choice)
 
 if x_axis_metric == "2θ (°)":
     step_val = 1.0
@@ -543,15 +551,16 @@ max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_met
                             key=f"max_val_{x_axis_metric}")
 
 # --- Update the canonical two_theta values based on current inputs ---
-st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
-st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
+                                                    diffraction_choice)
+st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm,
+                                                    diffraction_choice)
 two_theta_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
 sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
                         min_value=0.01, max_value=1.0, value=0.1, step=0.01)
 num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):",
                                min_value=0, max_value=30, value=5, step=1)
-
 
 if "calc_xrd" not in st.session_state:
     st.session_state.calc_xrd = False
@@ -588,8 +597,6 @@ if st.session_state.calc_xrd and uploaded_files:
         # Get pattern with absolute intensities (we will scale manually if needed)
         diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
 
-
-
         filtered_x = []
         filtered_y = []
         filtered_hkls = []
@@ -606,11 +613,15 @@ if st.session_state.calc_xrd and uploaded_files:
         x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
         x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense = np.zeros_like(x_dense)
-
-        # Build continuous intensity curve via Gaussian broadening
-        # Build continuous intensity curve via Gaussian broadening
         for peak, intensity in zip(filtered_x, filtered_y):
-            y_dense += intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
+            # Compute a temporary Gaussian for this peak.
+            y_temp = intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
+            # Use the pointwise maximum to prevent overlapping Gaussians from adding.
+            y_dense = np.maximum(y_dense, y_temp)
+        # Ensure that at each discrete peak, the intensity equals the original calculated value.
+        for peak, intensity in zip(filtered_x, filtered_y):
+            idx_closest = np.argmin(np.abs(x_dense - peak))
+            y_dense[idx_closest] = intensity
 
         # Compute normalization factors
         norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
@@ -627,7 +638,8 @@ if st.session_state.calc_xrd and uploaded_files:
         else:
             displayed_intensity_array = np.array(filtered_y)
 
-        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+        peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
+                                       diffraction_choice)
         if len(displayed_intensity_array) > 0:
             annotate_indices = set(np.argsort(displayed_intensity_array)[-num_annotate:])
         else:
@@ -678,6 +690,75 @@ if st.session_state.calc_xrd and uploaded_files:
     ax_combined.legend()
     st.pyplot(fig_combined)
 
+    st.divider()
+    st.subheader("Interactive Peak Identification and Indexing")
+
+    fig_interactive = go.Figure()
+
+    for idx, (file_name, details) in enumerate(pattern_details.items()):
+        color = rgb_color(colors[idx % len(colors)], opacity=0.8)
+        # Continuous curve trace (visible)
+        fig_interactive.add_trace(go.Scatter(
+            x=details["x_dense_plot"],
+            y=details["y_dense"],
+            mode='lines',
+            name=file_name,
+            line=dict(color=color, width=2),
+            hoverinfo='skip'
+        ))
+
+        # Prepare hover texts with HKL indexing information.
+        hover_texts = []
+        for hkl_group in details["hkls"]:
+            if len(hkl_group[0]['hkl']) == 3:
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                     for h in hkl_group])
+            else:
+                hkl_str = ", ".join(
+                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                     for h in hkl_group])
+            hover_texts.append(f"HKL: {hkl_str}")
+
+        # Markers trace for discrete peaks: 50% transparency, not included in legend.
+        fig_interactive.add_trace(go.Scatter(
+            x=details["peak_vals"],
+            y=details["intensities"],
+            mode='markers',
+            name=f"{file_name} Peaks",
+            showlegend=False,
+            marker=dict(color=color, size=8, opacity=0.5),
+            text=hover_texts,
+            hovertemplate=f"<b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+            hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20)))
+        )
+
+        fig_interactive.update_layout(
+            margin=dict(t=80, b=80, l=60, r=30),
+            hovermode="closest",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.1,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=18)
+            ),
+            xaxis=dict(
+                title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
+                tickfont=dict(size=20)
+            ),
+            yaxis=dict(
+                title=dict(text="Intensity (a.u.)", font=dict(size=24)),
+                tickfont=dict(size=20)
+            ),
+            hoverlabel=dict(font=dict(size=20)),
+            font=dict(size=14),
+            autosize=True
+        )
+
+    st.plotly_chart(fig_interactive, use_container_width=True)
+
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -724,7 +805,6 @@ if st.session_state.calc_xrd and uploaded_files:
 
         st.divider()
 
-
     # Dictionary to store combined data
     combined_data = {}
 
@@ -765,12 +845,6 @@ if st.session_state.calc_xrd and uploaded_files:
                     data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
         combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
         st.dataframe(combined_df)
-
-
-
-
-
-
 
 # --- RDF (PRDF) Settings and Calculation --
 st.divider()
