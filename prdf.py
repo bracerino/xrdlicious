@@ -644,18 +644,24 @@ if st.session_state.calc_xrd and uploaded_files:
             filtered_y.append(y_val)
             filtered_hkls.append(hkl_group)
 
-        x_dense = np.linspace(two_theta_min, two_theta_max, 2000)
+        
+        if sigma < 0.1:
+            num_points = int(2000 * (0.1 / sigma))
+        else:
+            num_points = 2000
+        x_dense = np.linspace(two_theta_min, two_theta_max, num_points)
         x_dense_plot = twotheta_to_metric(x_dense, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense = np.zeros_like(x_dense)
-        for peak, intensity in zip(filtered_x, filtered_y):
-            # Compute a temporary Gaussian for this peak.
-            y_temp = intensity * np.exp(-((x_dense - peak) ** 2) / (2 * sigma ** 2))
-            # Use the pointwise maximum to prevent overlapping Gaussians from adding.
-            y_dense = np.maximum(y_dense, y_temp)
-        # Ensure that at each discrete peak, the intensity equals the original calculated value.
-        for peak, intensity in zip(filtered_x, filtered_y):
-            idx_closest = np.argmin(np.abs(x_dense - peak))
-            y_dense[idx_closest] = intensity
+        if peak_representation == "Gaussian":
+            # For each peak, add a normalized Gaussian.
+            # The normalization factor 1/(sqrt(2π)*sigma) ensures that the area equals the intensity.
+            for peak, intensity in zip(filtered_x, filtered_y):
+                y_temp = intensity * np.exp(-((x_dense - peak)**2) / (2 * sigma**2)) / (np.sqrt(2*np.pi) * sigma)
+                y_dense += y_temp  # Sum contributions from overlapping peaks
+        else:  # "Delta" representation
+            for peak, intensity in zip(filtered_x, filtered_y):
+                idx_closest = np.argmin(np.abs(x_dense - peak))
+                y_dense[idx_closest] += intensity  # Add intensity at the nearest grid point
 
         # Compute normalization factors
         norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
