@@ -21,11 +21,27 @@ from pymatgen.io.ase import AseAtomsAdaptor
 import pandas as pd
 import plotly.graph_objs as go
 from streamlit_plotly_events import plotly_events
-
+from pymatgen.core import Structure as PmgStructure
 
 def rgb_color(color_tuple, opacity=0.8):
     r, g, b = [int(255 * x) for x in color_tuple]
     return f"rgba({r},{g},{b},{opacity})"
+
+
+def load_structure(file_or_name):
+    if isinstance(file_or_name, str):
+        filename = file_or_name
+    else:
+        filename = file_or_name.name
+        with open(filename, "wb") as f:
+            f.write(file_or_name.getbuffer())
+
+    if filename.lower().endswith(".cif"):
+        mg_structure = PmgStructure.from_file(filename)
+    else:
+        atoms = read(filename)
+        mg_structure = AseAtomsAdaptor.get_structure(atoms)
+    return mg_structure
 
 
 # Inject custom CSS for buttons.
@@ -93,9 +109,15 @@ if uploaded_files:
     for file in uploaded_files:
         with open(file.name, "wb") as f:
             f.write(file.getbuffer())
-        structure = read(file.name)
+        structure = load_structure(file)
         for atom in structure:
-            species_set.add(atom.symbol)
+            if atom.is_ordered:
+                # For ordered sites
+                species_set.add(atom.specie.symbol)
+            else:
+                # For disordered sites
+                for sp in atom.species:
+                    species_set.add(sp.symbol)
     species_list = sorted(species_set)
     st.subheader("📊 Detected Atomic Species")
     st.write(", ".join(species_list))
@@ -593,7 +615,8 @@ if st.session_state.calc_xrd and uploaded_files:
 
     for idx, file in enumerate(uploaded_files):
         structure = read(file.name)
-        mg_structure = AseAtomsAdaptor.get_structure(structure)
+        #mg_structure = AseAtomsAdaptor.get_structure(structure)
+        mg_structure = load_structure(file)
         # Get pattern with absolute intensities (we will scale manually if needed)
         diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=(two_theta_min, two_theta_max), scaled=False)
 
