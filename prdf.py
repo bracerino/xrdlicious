@@ -297,7 +297,7 @@ st.subheader(
 
 # --- Diffraction Calculator Selection ---
 # Allow the user to choose between XRD (X-ray) and ND (Neutron) calculators.
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     diffraction_choice = st.radio(
@@ -305,8 +305,19 @@ with col1:
         ["XRD (X-ray)", "ND (Neutron)"],
         index=0,
     )
-
 with col2:
+    peak_representation = st.radio(
+        "Peak Representation",
+        ["Delta", "Gaussian"],
+        index=1,
+        key="peak_representation",  # Unique key added
+        help=("Choose whether to represent each diffraction peak as a delta function "
+              "or as a Gaussian. When using Gaussian, the area under each peak equals "
+              "the calculated intensity, and overlapping Gaussians are summed.")
+    )
+
+
+with col3:
     intensity_scale_option = st.radio(
         "Select intensity scale",
         options=["Normalized", "Absolute"],
