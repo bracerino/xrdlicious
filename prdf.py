@@ -20,7 +20,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from streamlit_plotly_events import plotly_events
 from pymatgen.core import Structure as PmgStructure
-
+import matplotlib.colors as mcolors
 
 def rgb_color(color_tuple, opacity=0.8):
     r, g, b = [int(255 * x) for x in color_tuple]
@@ -86,13 +86,21 @@ st.divider()
 mode = st.radio("Select Mode", ["Basic", "Advanced"], index=0)
 
 if mode == "Basic":
-    st.divider()
+    #st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 5:</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
+        🪧 <strong>Step 1 / 4</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    # Custom thick black divider
+    st.markdown("""
+    <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+    """, unsafe_allow_html=True)
+
+    #st.divider()
 
 # Use the mode selection to control when the rest of the interface appears:
 uploaded_files = st.file_uploader(
@@ -125,13 +133,17 @@ if mode == "Basic" and not uploaded_files:
 # --- Detect Atomic Species ---
 
 if mode == "Basic":
-    st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 5 (OPTIONAL):</strong>  👉 Visually Inspect Your Crystal Structures If Needed: ⬇️
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong>  👉 Visually Inspect Your Crystal Structures If Needed: ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
 
 if uploaded_files:
     species_set = set()
@@ -310,17 +322,22 @@ if uploaded_files:
 
 
 if mode == "Basic":
-    st.divider()
+    st.markdown("""
+            <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+            """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 3 / 5:</strong>  👉 Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
+        🪧 <strong>Step 3 / 4:</strong>  👉 Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+            <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+            """, unsafe_allow_html=True)
 
 
 
-col_settings, col_plot = st.columns(2)
+col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
+
 
 
 with col_settings:
@@ -641,11 +658,19 @@ with col_settings:
         if st.button("Calculate XRD"):
             st.session_state.calc_xrd = True
 
+with col_divider:
+    # Use a fixed or minimum height (e.g., 600px) for the vertical line.
+    st.markdown(
+        """
+        <div style="min-height: 800px; border-left: 2px solid black; margin: 0 10px;"></div>
+        """, unsafe_allow_html=True)
 
 # --- XRD Calculation ---
 with col_plot:
     if not st.session_state.calc_xrd:
         st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
+
+
 
 if st.session_state.calc_xrd and uploaded_files:
     with col_plot:
@@ -768,20 +793,33 @@ if st.session_state.calc_xrd and uploaded_files:
             fontsize=10  # Font size (optional)
         )
 
-        st.pyplot(fig_combined)
+        if "placeholder_static" not in st.session_state:
+            st.session_state.placeholder_static = st.empty()
+        st.session_state.fig_combined = fig_combined
+        st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+
+
 
     if mode == "Basic":
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 4 / 5:</strong>  👉 See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.
+            🎯 <strong>Results Section 1 / 2:</strong>  👉 See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.<br>
+            🪧 <strong>Step 4 / 4</strong> 👉 If Needed, Upload Your Own Diffraction Patterns For Comparison: ⬇️
          </div>
         """, unsafe_allow_html=True)
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
+
 
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
+
 
     # Loop over each structure's pattern details
     for idx, (file_name, details) in enumerate(pattern_details.items()):
@@ -837,6 +875,7 @@ if st.session_state.calc_xrd and uploaded_files:
             hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
         ))
         fig_interactive.update_layout(
+            height=1000,
             margin=dict(t=80, b=80, l=60, r=30),
             hovermode="closest",
             legend=dict(
@@ -845,32 +884,156 @@ if st.session_state.calc_xrd and uploaded_files:
                 y=1.1,
                 xanchor="center",
                 x=0.5,
-                font=dict(size=18)
+                font=dict(size=22)
             ),
             xaxis=dict(
                 title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
-                tickfont=dict(size=20)
+                tickfont=dict(size=24)
             ),
             yaxis=dict(
                 title=dict(text="Intensity (a.u.)", font=dict(size=24)),
-                tickfont=dict(size=20)
+                tickfont=dict(size=24)
             ),
             hoverlabel=dict(font=dict(size=20)),
             font=dict(size=14),
             autosize=True
         )
-    st.plotly_chart(fig_interactive, use_container_width=True)
+        # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
+    if "placeholder_interactive" not in st.session_state:
+        st.session_state.placeholder_interactive = st.empty()
+    st.session_state.fig_interactive = fig_interactive
+
+
+
+
+    st.subheader("Append Your XRD Pattern Data")
+    show_user_pattern = st.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    user_pattern_file = st.file_uploader(
+        "Upload additional XRD pattern (2 columns: X-values and Intensity)",
+        type=["csv", "txt"],
+        key="user_xrd", accept_multiple_files=True
+    )
+
+
+      #  st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
+       #                                                       use_container_width=True, )
+
+
+    # if user_pattern_file is not None and show_user_pattern:
+
+
+    if user_pattern_file and show_user_pattern:
+        # Check if multiple files were uploaded:
+        if isinstance(user_pattern_file, list):
+            # Get a list of colors from the tab10 colormap
+            cmap = plt.cm.Set2
+            n_files = len(user_pattern_file)
+            static_colors = [cmap(i / n_files) for i in range(n_files)]
+            # For Plotly, convert to hex colors:
+            interactive_colors = [mcolors.to_hex(c) for c in static_colors]
+
+            user_colorss = ["#000000", "#8B4513", "#808080", "#000000", "#8B4513", "#808080"]
+            static_colors = user_colorss
+            interactive_colors = user_colorss
+            for idx, file in enumerate(user_pattern_file):
+                try:
+                    df = pd.read_csv(file, delim_whitespace=True, header=None)
+                    if df.shape[1] < 2:
+                        df = pd.read_csv(file, sep=",", header=None)
+                    x_user = df.iloc[:, 0].values
+                    y_user = df.iloc[:, 1].values
+                except Exception as e:
+                    st.error(f"Error processing the uploaded file {file.name}: {e}")
+                    continue  # Skip this file if there's an error
+
+                if x_user is not None and y_user is not None:
+                    if intensity_scale_option == "Normalized":
+                        y_user = (y_user / np.max(y_user)) * 100
+
+                    # Filter user data to the current x-axis range
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
+                    x_user_filtered = x_user[mask_user]
+                    y_user_filtered = y_user[mask_user]
+
+                    # Append to the static matplotlib figure with a unique color
+                    ax = st.session_state.fig_combined.gca()
+                    ax.plot(x_user_filtered, y_user_filtered, label=file.name, linestyle='--', linewidth=2,
+                            color=static_colors[idx])
+                    ax.legend()
+                    # Update y-axis range to include new data
+                    current_ylim = ax.get_ylim()
+                    if len(y_user_filtered) > 0:
+                        new_max = np.max(y_user_filtered)
+                        ax.set_ylim(0, max(current_ylim[1], new_max * 1.1))
+                    st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+                    # Append to the interactive Plotly figure with the file's name and unique color
+                    st.session_state.fig_interactive.add_trace(go.Scatter(
+                        x=x_user_filtered,
+                        y=y_user_filtered,
+                        mode='lines',
+                        name=file.name,
+                        line=dict(dash='dash', color=interactive_colors[idx])
+                    ))
+        else:
+            # Only one file was uploaded; use the first color from tab10
+            static_color = plt.cm.Set2(0)
+            interactive_color = mcolors.to_hex(static_color)
+            try:
+                df = pd.read_csv(user_pattern_file, delim_whitespace=True, header=None)
+                if df.shape[1] < 2:
+                    df = pd.read_csv(user_pattern_file, sep=",", header=None)
+                x_user = df.iloc[:, 0].values
+                y_user = df.iloc[:, 1].values
+            except Exception as e:
+                st.error(f"Error processing the uploaded file: {e}")
+                x_user, y_user = None, None
+
+            if x_user is not None and y_user is not None:
+                if intensity_scale_option == "Normalized":
+                    y_user = (y_user / np.max(y_user)) * 100
+
+                mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
+                x_user_filtered = x_user[mask_user]
+                y_user_filtered = y_user[mask_user]
+
+                ax = st.session_state.fig_combined.gca()
+                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', linewidth=2,
+                        color=static_color)
+                ax.legend()
+                current_ylim = ax.get_ylim()
+                if len(y_user_filtered) > 0:
+                    new_max = np.max(y_user_filtered)
+                    ax.set_ylim(0, max(current_ylim[1], new_max * 1.1))
+                st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+                st.session_state.fig_interactive.add_trace(go.Scatter(
+                    x=x_user_filtered,
+                    y=y_user_filtered,
+                    mode='lines',
+                    name=user_pattern_file.name,
+                    line=dict(dash='dash', color=interactive_color)
+                ))
+    # Always update the interactive plot placeholder regardless
+    st.session_state.placeholder_interactive.plotly_chart(
+        st.session_state.fig_interactive, use_container_width=True, key="interactive_plot_updated"
+    )
 
     if mode == "Basic":
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 5 / 5:</strong>  👉 If Needed, Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️.
+            🎯 <strong>Results Section 2 / 2:</strong>  👉 Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️
          </div>
         """, unsafe_allow_html=True)
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
+    st.divider()
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -922,6 +1085,16 @@ if st.session_state.calc_xrd and uploaded_files:
             "HKLs": details["hkls"]
         }
     selected_metric = st.session_state.x_axis_metric
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stDataFrameContainer"] table td {
+             font-size: 22px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
         combined_df = pd.DataFrame()
         data_list = []
