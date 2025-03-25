@@ -70,14 +70,14 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator of Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "Powder XRD / ND Pattern, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "Powder XRD / ND Patterns, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
@@ -89,7 +89,7 @@ if mode == "Basic":
     st.divider()
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 5:</strong>  👉 <strong>Next:</strong>  Upload your crystal structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
+        🪧 <strong>Step 1 / 5:</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -128,7 +128,7 @@ if mode == "Basic":
     st.divider()
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 5 (OPTIONAL):</strong>  👉 <strong>Next:</strong>  Visually Inspect Your Crystal Structures If Needed: ⬇️
+        🪧 <strong>Step 2 / 5 (OPTIONAL):</strong>  👉 Visually Inspect Your Crystal Structures If Needed: ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.divider()
