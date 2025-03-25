@@ -89,7 +89,7 @@ if mode == "Basic":
     st.divider()
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 5:</strong>  👉 <strong>Next:</strong>  Upload your crystal structures: ⬇️
+        🪧 <strong>Step 1 / 5:</strong>  👉 <strong>Next:</strong>  Upload your crystal structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.divider()
