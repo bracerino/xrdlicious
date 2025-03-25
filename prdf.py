@@ -313,7 +313,7 @@ if mode == "Basic":
     st.divider()
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 3 / 5:</strong>  👉 <strong>Next:</strong>  Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
+        🪧 <strong>Step 3 / 5:</strong>  👉 Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -354,7 +354,7 @@ with col_settings:
         peak_representation = st.radio(
             "Peak Representation",
             ["Delta", "Gaussian"],
-            index=1,
+            index=0,
             key="peak_representation",
             help=("Choose whether to represent each diffraction peak as a delta function "
                   "or as a Gaussian. When using Gaussian, the area under each peak equals "
@@ -774,7 +774,7 @@ if st.session_state.calc_xrd and uploaded_files:
         st.divider()
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 4 / 5:</strong>  👉 <strong>Next:</strong>  See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.
+            🎯 <strong>Step 4 / 5:</strong>  👉 See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.
          </div>
         """, unsafe_allow_html=True)
         st.divider()
@@ -865,7 +865,7 @@ if st.session_state.calc_xrd and uploaded_files:
         st.divider()
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 5 / 5:</strong>  👉 <strong>Next:</strong>  If Needed, Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️.
+            🎯 <strong>Step 5 / 5:</strong>  👉 If Needed, Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️.
          </div>
         """, unsafe_allow_html=True)
         st.divider()
