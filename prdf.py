@@ -880,15 +880,15 @@ if st.session_state.calc_xrd and uploaded_files:
                 y=1.1,
                 xanchor="center",
                 x=0.5,
-                font=dict(size=30)
+                font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=30), standoff=20),
-                tickfont=dict(size=30)
+                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
+                tickfont=dict(size=36)
             ),
             yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=30)),
-                tickfont=dict(size=30)
+                title=dict(text="Intensity (a.u.)", font=dict(size=36)),
+                tickfont=dict(size=36)
             ),
             hoverlabel=dict(font=dict(size=30)),
             font=dict(size=18),
