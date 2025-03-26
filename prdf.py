@@ -124,9 +124,9 @@ st.warning(
 )
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
-    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD patterns, diffraction data from multiple structures can be combined into a single figure. "
-    "Below, you can change the settings for XRD calculation or PRDF."
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
+    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
+    "Below, you can change the settings for the diffraction calculation or PRDF."
 )
 if mode == "Basic" and not uploaded_files:
     st.stop()
