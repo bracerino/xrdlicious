@@ -659,11 +659,7 @@ with col_settings:
             st.session_state.calc_xrd = True
 
 with col_divider:
-    # Use a fixed or minimum height (e.g., 600px) for the vertical line.
-    st.markdown(
-        """
-        <div style="min-height: 800px; border-left: 2px solid black; margin: 0 10px;"></div>
-        """, unsafe_allow_html=True)
+        st.write("")
 
 # --- XRD Calculation ---
 with col_plot:
