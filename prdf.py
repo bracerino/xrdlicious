@@ -880,7 +880,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 y=1.1,
                 xanchor="center",
                 x=0.5,
-                font=dict(size=22)
+                font=dict(size=30)
             ),
             xaxis=dict(
                 title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
