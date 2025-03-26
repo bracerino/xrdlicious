@@ -1122,6 +1122,7 @@ if st.session_state.calc_xrd and uploaded_files:
 # --- RDF (PRDF) Settings and Calculation ---
 st.divider()
 left_rdf, right_rdf = st.columns(2)
+left_rdf,col_divider_rdf, right_rdf = st.columns([1, 0.05, 1])
 
 with left_rdf:
     st.subheader("⚙️ (P)RDF Settings")
@@ -1137,6 +1138,10 @@ with left_rdf:
         st.session_state.calc_rdf = False
     if st.button("Calculate RDF"):
         st.session_state.calc_rdf = True
+
+with col_divider_rdf:
+    st.write("")
+
 with right_rdf:
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
