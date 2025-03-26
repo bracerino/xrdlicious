@@ -873,7 +873,7 @@ if st.session_state.calc_xrd and uploaded_files:
         fig_interactive.update_layout(
             height=1000,
             margin=dict(t=80, b=80, l=60, r=30),
-            hovermode="closest",
+            hovermode="x",
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
