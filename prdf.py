@@ -883,15 +883,15 @@ if st.session_state.calc_xrd and uploaded_files:
                 font=dict(size=30)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
-                tickfont=dict(size=24)
+                title=dict(text=x_axis_metric, font=dict(size=30), standoff=20),
+                tickfont=dict(size=30)
             ),
             yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=24)),
-                tickfont=dict(size=24)
+                title=dict(text="Intensity (a.u.)", font=dict(size=30)),
+                tickfont=dict(size=30)
             ),
-            hoverlabel=dict(font=dict(size=20)),
-            font=dict(size=14),
+            hoverlabel=dict(font=dict(size=30)),
+            font=dict(size=18),
             autosize=True
         )
         # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
