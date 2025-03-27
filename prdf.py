@@ -896,7 +896,7 @@ if st.session_state.calc_xrd and uploaded_files:
                                      for h in hkl_group])
                             ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                                  textcoords='offset points', fontsize=8, rotation=90,
-                                                 ha='center', va='bottom')
+                                                 ha='center', va='bottom', color=color, fontweight='bold')
         ax_combined.set_xlabel(x_axis_metric)
         if intensity_scale_option == "Normalized":
             ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
