@@ -7,3 +7,4 @@ pymatgen
 py3Dmol
 plotly
 streamlit-plotly-events
+setuptools
