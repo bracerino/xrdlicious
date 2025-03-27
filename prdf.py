@@ -26,7 +26,12 @@ def rgb_color(color_tuple, opacity=0.8):
     r, g, b = [int(255 * x) for x in color_tuple]
     return f"rgba({r},{g},{b},{opacity})"
 
-
+import pkg_resources
+installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
+st.title("Installed Packages")
+for name, version in installed_packages:
+    st.write(f"{name}=={version}")
+    
 def load_structure(file_or_name):
     if isinstance(file_or_name, str):
         filename = file_or_name
