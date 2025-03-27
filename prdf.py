@@ -332,6 +332,7 @@ jmol_colors = {
     "Mt": "#EB0026"
 }
 
+
 if uploaded_files:
     file_options = [file.name for file in uploaded_files]
     st.subheader("Select structure for interactive visualization:")
@@ -341,25 +342,29 @@ if uploaded_files:
         selected_file = st.radio("", file_options)
     structure = read(selected_file)
 
-
+    # Checkbox option to show atomic positions (labels on structure and list in table)
     show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
-
     xyz_io = StringIO()
     write(xyz_io, structure, format="xyz")
     xyz_str = xyz_io.getvalue()
     view = py3Dmol.view(width=800, height=600)
     view.addModel(xyz_str, "xyz")
     view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
-    cell = structure.get_cell()
+    cell = structure.get_cell()  # 3x3 array of lattice vectors
     add_box(view, cell, color='black', linewidth=2)
     view.zoomTo()
     view.zoom(1.2)
 
+
     atomic_info = []
     if show_atomic:
+        import numpy as np
+        inv_cell = np.linalg.inv(cell)
         for i, atom in enumerate(structure):
             symbol = atom.symbol
             x, y, z = atom.position
+
+            frac = np.dot(inv_cell, atom.position)
             label_text = f"{symbol}{i}"
             view.addLabel(label_text, {
                 "position": {"x": x, "y": y, "z": z},
@@ -369,15 +374,23 @@ if uploaded_files:
                 "borderThickness": 1,
                 "borderColor": "black"
             })
-            atomic_info.append(
-                {"Atom": label_text, "Element": symbol, "X": round(x, 3), "Y": round(y, 3), "Z": round(z, 3)}
-            )
+            atomic_info.append({
+                "Atom": label_text,
+                "Element": symbol,
+                "Atomic Number": atom.number,
+                "X": round(x, 3),
+                "Y": round(y, 3),
+                "Z": round(z, 3),
+                "Frac X": round(frac[0], 3),
+                "Frac Y": round(frac[1], 3),
+                "Frac Z": round(frac[2], 3)
+            })
 
     html_str = view._make_html()
 
+
     centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
 
-    # Prepare additional structure info (legend, lattice parameters, etc.)
     unique_elements = sorted(set(structure.get_chemical_symbols()))
     legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
     for elem in unique_elements:
@@ -403,7 +416,7 @@ if uploaded_files:
     left_col, right_col = st.columns(2)
 
     with left_col:
-        st.markdown("<h3 style='text-align: center;'>📊 Interactive Structure Visualization</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
 
         try:
             from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -428,7 +441,7 @@ if uploaded_files:
         if show_atomic:
             import pandas as pd
             df_atoms = pd.DataFrame(atomic_info)
-            st.subheader("📊 Atomic Positions")
+            st.subheader("Atomic Positions")
             st.dataframe(df_atoms)
 
     with right_col:
