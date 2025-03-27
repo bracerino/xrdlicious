@@ -247,9 +247,7 @@ jmol_colors = {
 
 if uploaded_files:
     file_options = [file.name for file in uploaded_files]
-    st.markdown(
-        "<p style='font-size: 24px; color: black;'><strong>Select structure for interactive visualization:</strong></p>",
-        unsafe_allow_html=True)
+    st.subheader("Select structure for interactive visualization:")
     if len(file_options) > 3:
         selected_file = st.selectbox("", file_options)
     else:
@@ -318,7 +316,7 @@ if uploaded_files:
     left_col, right_col = st.columns(2)
 
     with left_col:
-        st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center;'>📊 Interactive Structure Visualization</h3>", unsafe_allow_html=True)
 
         try:
             from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -343,7 +341,7 @@ if uploaded_files:
         if show_atomic:
             import pandas as pd
             df_atoms = pd.DataFrame(atomic_info)
-            st.subheader("Atomic Positions")
+            st.subheader("📊 Atomic Positions")
             st.dataframe(df_atoms)
 
     with right_col:
