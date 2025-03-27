@@ -247,10 +247,18 @@ jmol_colors = {
 
 if uploaded_files:
     file_options = [file.name for file in uploaded_files]
-    selected_file = st.selectbox("Select structure for interactive visualization", file_options)
+    st.markdown(
+        "<p style='font-size: 24px; color: black;'><strong>Select structure for interactive visualization:</strong></p>",
+        unsafe_allow_html=True)
+    if len(file_options) > 3:
+        selected_file = st.selectbox("", file_options)
+    else:
+        selected_file = st.radio("", file_options)
     structure = read(selected_file)
 
-    # Prepare the 3D structure visualization with py3Dmol
+
+    show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
+
     xyz_io = StringIO()
     write(xyz_io, structure, format="xyz")
     xyz_str = xyz_io.getvalue()
@@ -261,10 +269,30 @@ if uploaded_files:
     add_box(view, cell, color='black', linewidth=2)
     view.zoomTo()
     view.zoom(1.2)
-    html_str = view._make_html()
-    centered_html = f"<div style='display: flex; justify-content: center;'>{html_str}</div>"
 
-    # Prepare additional structure info
+    atomic_info = []
+    if show_atomic:
+        for i, atom in enumerate(structure):
+            symbol = atom.symbol
+            x, y, z = atom.position
+            label_text = f"{symbol}{i}"
+            view.addLabel(label_text, {
+                "position": {"x": x, "y": y, "z": z},
+                "backgroundColor": "white",
+                "fontColor": "black",
+                "fontSize": 10,
+                "borderThickness": 1,
+                "borderColor": "black"
+            })
+            atomic_info.append(
+                {"Atom": label_text, "Element": symbol, "X": round(x, 3), "Y": round(y, 3), "Z": round(z, 3)}
+            )
+
+    html_str = view._make_html()
+
+    centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
+
+    # Prepare additional structure info (legend, lattice parameters, etc.)
     unique_elements = sorted(set(structure.get_chemical_symbols()))
     legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
     for elem in unique_elements:
@@ -287,16 +315,13 @@ if uploaded_files:
         f"γ = {cell_params[5]:.2f}°"
     )
 
-    # Create two columns: left for info, right for visualization
     left_col, right_col = st.columns(2)
 
     with left_col:
         st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
 
-        # Try extracting space group info
         try:
             from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-
             mg_structure = AseAtomsAdaptor.get_structure(structure)
             sg_analyzer = SpacegroupAnalyzer(mg_structure)
             spg_symbol = sg_analyzer.get_space_group_symbol()
@@ -305,15 +330,21 @@ if uploaded_files:
         except Exception:
             space_group_str = "Not available"
 
-        # Wrap everything in a centered div
         st.markdown(f"""
-        <div style='text-align: center; font-size: 16px;'>
+        <div style='text-align: center; font-size: 28px;'>
             <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
             <p><strong>Legend:</strong><br>{legend_html}</p>
             <p><strong>Number of Atoms:</strong> {len(structure)}</p>
             <p><strong>Space Group:</strong> {space_group_str}</p>
         </div>
         """, unsafe_allow_html=True)
+
+        # If atomic positions are to be shown, display them as a table.
+        if show_atomic:
+            import pandas as pd
+            df_atoms = pd.DataFrame(atomic_info)
+            st.subheader("Atomic Positions")
+            st.dataframe(df_atoms)
 
     with right_col:
         st.components.v1.html(centered_html, height=600)
