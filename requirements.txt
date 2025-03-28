@@ -8,3 +8,4 @@ py3Dmol
 plotly
 streamlit-plotly-events
 setuptools
+mp-api
