@@ -91,7 +91,7 @@ components.html(
 )
 
 st.title(
-    "XRDlicous: Powder XRD / ND Patterns, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicous: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
