@@ -107,7 +107,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: ⬇️
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: ⬇️
     </div>
     """, unsafe_allow_html=True)
     # Custom thick black divider
@@ -241,7 +241,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong>  👉 Visually Inspect Your Crystal Structures If Needed: ⬇️
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.markdown("""
@@ -559,7 +559,7 @@ if mode == "Basic":
             """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 3 / 4:</strong>  👉 Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
+        🪧 <strong>Step 3 / 4:</strong> Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.markdown("""
@@ -1040,8 +1040,8 @@ if st.session_state.calc_xrd and uploaded_files:
                 """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Results Section 1 / 2:</strong>  👉 See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.<br>
-            🪧 <strong>Step 4 / 4</strong> 👉 If Needed, Upload Your Own Diffraction Patterns For Comparison: ⬇️
+            🎯 <strong>Results Section 1 / 2:</strong> See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.<br>
+            🪧 <strong>Step 4 / 4</strong> If Needed, Upload Your Own Diffraction Patterns For Comparison: ⬇️
          </div>
         """, unsafe_allow_html=True)
         st.markdown("""
