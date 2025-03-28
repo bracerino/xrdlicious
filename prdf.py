@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicous: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
 )
 
 import numpy as np
@@ -21,17 +21,21 @@ import plotly.graph_objs as go
 from streamlit_plotly_events import plotly_events
 from pymatgen.core import Structure as PmgStructure
 import matplotlib.colors as mcolors
+import streamlit as st
+from mp_api.client import MPRester
+from pymatgen.io.cif import CifWriter
+import io
+import re
+
+MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
+
+
 
 def rgb_color(color_tuple, opacity=0.8):
     r, g, b = [int(255 * x) for x in color_tuple]
     return f"rgba({r},{g},{b},{opacity})"
 
-#import pkg_resources
-#st.title("Installed Packages")
-#installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
-#for name, version in installed_packages:
-#    st.write(f"{name}=={version}")
-    
+
 def load_structure(file_or_name):
     if isinstance(file_or_name, str):
         filename = file_or_name
@@ -82,13 +86,14 @@ components.html(
 )
 
 st.title(
-    "Powder XRD / ND Patterns, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicous: Powder XRD / ND Patterns, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
 
 # Add mode selection at the very beginning
-mode = st.radio("Select Mode", ["Basic", "Advanced"], index=0)
+st.sidebar.markdown("## 🍕 XRDlicous")
+mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
 
 if mode == "Basic":
     #st.divider()
@@ -97,7 +102,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
+        🪧 <strong>Step 1 / 4</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: ⬇️
     </div>
     """, unsafe_allow_html=True)
     # Custom thick black divider
@@ -107,17 +112,105 @@ if mode == "Basic":
 
     #st.divider()
 
-# Use the mode selection to control when the rest of the interface appears:
-uploaded_files = st.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...)",
-    type=None,
-    accept_multiple_files=True
-)
+
+
+# Initialize session state keys if not already set.
+if 'mp_options' not in st.session_state:
+    st.session_state['mp_options'] = None
+if 'selected_structure' not in st.session_state:
+    st.session_state['selected_structure'] = None
+if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
+    st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
 
 
+# Create two columns: one for search and one for structure selection and actions.
+col1, col2, col3 = st.columns(3)
+
+# Column 1: Search for structures.
+with col1:
+    # --- Existing file uploader remains below (optional for user-uploaded structures) ---
+    st.subheader("📤 Upload Your Structure Files")
+    uploaded_files_user = st.file_uploader(
+        "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...):",
+        type=None,
+        accept_multiple_files=True
+    )
+with col2:
+    st.subheader("🔍 Search Structures in Materials Project Database")
+    search_query = st.text_input("Enter elements separated with space (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
+    if st.button("Search Materials Project", key="search_btn") and search_query:
+        with st.spinner("Searching for structures in database..."):
+            elements_list = sorted(set(search_query.split()))
+            with MPRester(MP_API_KEY) as mpr:
+                docs = mpr.materials.summary.search(
+                    elements=elements_list,
+                    num_elements=len(elements_list),
+                    fields=["material_id", "formula_pretty", "symmetry"]
+                )
+        if docs:
+            st.session_state['mp_options'] = [
+                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol})"
+                for doc in docs
+            ]
+        else:
+            st.session_state['mp_options'] = []
+            st.warning("No matching structures found in Materials Project.")
+        st.success("Finished searching for structures.")
+
+# Column 2: Select structure and add/download CIF.
+with col3:
+    st.subheader("🧪 Structures Found in Materials Project")
+    if st.session_state['mp_options']:
+        selected_mp_structure = st.selectbox(
+            "Select a structure from Materials Project:",
+            st.session_state['mp_options']
+        )
+        # Extract material ID and composition (ignore space group).
+        selected_id = selected_mp_structure.split(":")[0].strip()
+        composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
+        file_name = f"{selected_id}_{composition}.cif"
+
+        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+        if st.button("Add Selected Structure", key="add_btn"):
+            with MPRester(MP_API_KEY) as mpr:
+                pmg_structure = mpr.get_structure_by_material_id(selected_id)
+            cif_writer = CifWriter(pmg_structure)
+            cif_content = cif_writer.__str__()
+            cif_file = io.BytesIO(cif_content.encode('utf-8'))
+            cif_file.name = file_name
+
+            if all(f.name != file_name for f in st.session_state['uploaded_files']):
+                st.session_state['uploaded_files'].append(cif_file)
+            st.session_state['selected_structure'] = selected_mp_structure
+            st.success("Structure added!")
 
 
+        # Fetch the structure for the currently selected material ID.
+        with MPRester(MP_API_KEY) as mpr:
+            pmg_structure = mpr.get_structure_by_material_id(selected_id)
+        cif_writer = CifWriter(pmg_structure)
+        cif_content = cif_writer.__str__()
+        st.download_button(
+            label="Download CIF File",
+            data=cif_content,
+            file_name=file_name,
+            mime="chemical/x-cif"
+        )
+
+st.markdown("---")
+
+
+
+if uploaded_files_user:
+    uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user
+else:
+    uploaded_files = st.session_state['uploaded_files']
+
+
+st.sidebar.markdown("### Final List of Structure Files:")
+st.sidebar.write([f.name for f in uploaded_files])
 
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
@@ -803,12 +896,17 @@ with col_plot:
 
 
 if st.session_state.calc_xrd and uploaded_files:
+    include_in_combined = {}
+    st.sidebar.markdown("### Structures to include in the Diffraction Plot:")
+    for file in uploaded_files:
+        include_in_combined[file.name] = st.sidebar.checkbox(f"Include {file.name}", value=True)
+
     with col_plot:
         st.subheader("📊 OUTPUT → Diffraction Patterns")
         st.markdown("### Structures to have in the Diffraction Plot:")
-        include_in_combined = {}
-        for file in uploaded_files:
-            include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
+       # include_in_combined = {}
+       # for file in uploaded_files:
+       #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
         if diffraction_choice == "ND (Neutron)":
             diff_calc = NDCalculator(wavelength=wavelength_A)
         else:
@@ -901,7 +999,7 @@ if st.session_state.calc_xrd and uploaded_files:
                                      for h in hkl_group])
                             ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                                  textcoords='offset points', fontsize=8, rotation=90,
-                                                 ha='center', va='bottom', color=color, fontweight='bold')
+                                                 ha='center', va='bottom', color=color, )
         ax_combined.set_xlabel(x_axis_metric)
         if intensity_scale_option == "Normalized":
             ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
@@ -917,10 +1015,10 @@ if st.session_state.calc_xrd and uploaded_files:
             max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
             ax_combined.set_ylim(0, max_intensity * 1.2)
         ax_combined.legend(
-            loc="upper center",  # Place at the top
-            bbox_to_anchor=(0.5, 1.2),  # Centered horizontally, just above the plot
-            ncol=2,  # Number of columns (optional)
-            fontsize=10  # Font size (optional)
+            loc="lower center",  # Positions legend at the bottom center
+            bbox_to_anchor=(0.5, -0.35),  # Adjust the y-coordinate to move it below the plot
+            ncol=2,  # Number of columns
+            fontsize=10  # Font size
         )
 
         if "placeholder_static" not in st.session_state:
@@ -1364,3 +1462,7 @@ with right_rdf:
             for x, y in zip(global_bins, global_rdf_avg):
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
+st.divider()
+st.markdown("""
+This application was built using open-source libraries that are distributed under free licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**
+""")
