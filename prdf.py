@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicous: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicious: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
 )
 
 import numpy as np
@@ -84,20 +84,20 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "XRDlicous: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicious: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
 
 # Add mode selection at the very beginning
-st.sidebar.markdown("## 🍕 XRDlicous")
+st.sidebar.markdown("## 🍕 XRDlicious")
 mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
 
 if mode == "Basic":
