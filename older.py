@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicious: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
 )
 
 import numpy as np
@@ -20,6 +20,20 @@ import pandas as pd
 import plotly.graph_objs as go
 from streamlit_plotly_events import plotly_events
 from pymatgen.core import Structure as PmgStructure
+import matplotlib.colors as mcolors
+import streamlit as st
+from mp_api.client import MPRester
+from pymatgen.io.cif import CifWriter
+import io
+import re
+
+MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
+
+#import pkg_resources
+#installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
+#st.subheader("Installed Python Modules")
+#for package, version in installed_packages:
+#    st.write(f"{package}=={version}")
 
 
 def rgb_color(color_tuple, opacity=0.8):
@@ -70,41 +84,138 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "Powder XRD / ND Patterns, Partial Radial Distribution Function (PRDF), and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicious: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
 
 # Add mode selection at the very beginning
-mode = st.radio("Select Mode", ["Basic", "Advanced"], index=0)
+st.sidebar.markdown("## 🍕 XRDlicious")
+mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
 
 if mode == "Basic":
-    st.divider()
+    #st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 5:</strong> 👉 Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats): ⬇️
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    # Custom thick black divider
+    st.markdown("""
+    <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+    """, unsafe_allow_html=True)
 
-# Use the mode selection to control when the rest of the interface appears:
-uploaded_files = st.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...)",
-    type=None,
-    accept_multiple_files=True
-)
+    #st.divider()
 
 
 
+# Initialize session state keys if not already set.
+if 'mp_options' not in st.session_state:
+    st.session_state['mp_options'] = None
+if 'selected_structure' not in st.session_state:
+    st.session_state['selected_structure'] = None
+if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
+    st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
 
+
+# Create two columns: one for search and one for structure selection and actions.
+col1, col2, col3 = st.columns(3)
+
+# Column 1: Search for structures.
+with col1:
+    # --- Existing file uploader remains below (optional for user-uploaded structures) ---
+    st.subheader("📤 Upload Your Structure Files")
+    uploaded_files_user = st.file_uploader(
+        "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...):",
+        type=None,
+        accept_multiple_files=True
+    )
+with col2:
+    st.subheader("🔍 or Search Structures in Materials Project Database")
+    search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
+    if st.button("Search Materials Project", key="search_btn") and search_query:
+        with st.spinner("Searching for structures in database..."):
+            elements_list = sorted(set(search_query.split()))
+            with MPRester(MP_API_KEY) as mpr:
+                docs = mpr.materials.summary.search(
+                    elements=elements_list,
+                    num_elements=len(elements_list),
+                    fields=["material_id", "formula_pretty", "symmetry"]
+                )
+        if docs:
+            st.session_state['mp_options'] = [
+                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol})"
+                for doc in docs
+            ]
+        else:
+            st.session_state['mp_options'] = []
+            st.warning("No matching structures found in Materials Project.")
+        st.success("Finished searching for structures.")
+
+# Column 2: Select structure and add/download CIF.
+with col3:
+    st.subheader("🧪 Structures Found in Materials Project")
+    if st.session_state['mp_options']:
+        selected_mp_structure = st.selectbox(
+            "Select a structure from Materials Project:",
+            st.session_state['mp_options']
+        )
+        # Extract material ID and composition (ignore space group).
+        selected_id = selected_mp_structure.split(":")[0].strip()
+        composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
+        file_name = f"{selected_id}_{composition}.cif"
+
+        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+        if st.button("Add Selected Structure", key="add_btn"):
+            with MPRester(MP_API_KEY) as mpr:
+                pmg_structure = mpr.get_structure_by_material_id(selected_id)
+            cif_writer = CifWriter(pmg_structure)
+            cif_content = cif_writer.__str__()
+            cif_file = io.BytesIO(cif_content.encode('utf-8'))
+            cif_file.name = file_name
+
+            if all(f.name != file_name for f in st.session_state['uploaded_files']):
+                st.session_state['uploaded_files'].append(cif_file)
+            st.session_state['selected_structure'] = selected_mp_structure
+            st.success("Structure added!")
+
+
+        # Fetch the structure for the currently selected material ID.
+        with MPRester(MP_API_KEY) as mpr:
+            pmg_structure = mpr.get_structure_by_material_id(selected_id)
+        cif_writer = CifWriter(pmg_structure)
+        cif_content = cif_writer.__str__()
+        st.download_button(
+            label="Download CIF File",
+            data=cif_content,
+            file_name=file_name,
+            mime="chemical/x-cif"
+        )
+
+st.markdown("---")
+
+
+
+if uploaded_files_user:
+    uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user
+else:
+    uploaded_files = st.session_state['uploaded_files']
+
+
+st.sidebar.markdown("### Final List of Structure Files:")
+st.sidebar.write([f.name for f in uploaded_files])
 
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
@@ -116,22 +227,26 @@ st.warning(
 )
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the XRD powder diffraction pattern. "
-    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD patterns, diffraction data from multiple structures can be combined into a single figure. "
-    "Below, you can change the settings for XRD calculation or PRDF."
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
+    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
+    "Below, you can change the settings for the diffraction calculation or PRDF."
 )
 if mode == "Basic" and not uploaded_files:
     st.stop()
 # --- Detect Atomic Species ---
 
 if mode == "Basic":
-    st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 5 (OPTIONAL):</strong>  👉 Visually Inspect Your Crystal Structures If Needed: ⬇️
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
 
 if uploaded_files:
     species_set = set()
@@ -209,50 +324,176 @@ def add_box(view, cell, color='black', linewidth=2):
 
 # --- Structure Visualization ---
 jmol_colors = {
-    'H': '#FFFFFF',
-    'Sr': '#00CC00',
-    'Ba': '#008000',
-    'He': '#D9FFFF',
-    'Li': '#CC80FF',
-    'Be': '#C2FF00',
-    'B': '#FFB5B5',
-    'C': '#909090',
-    'N': '#3050F8',
-    'O': '#FF0D0D',
-    'F': '#90FF90',
-    'Ne': '#B4E4F5',
-    'Na': '#AB5CF2',
-    'Mg': '#3DFF00',
-    'Al': '#BFA6A6',
-    'Si': '#FFC86E',
-    'P': '#FF8000',
-    'S': '#FFFF30',
-    'Cl': '#1FF01F',
-    'Ar': '#80D1E2',
-    'K': '#8F40D4',
-    'Ca': '#3DFFFF'
+    "H": "#FFFFFF",
+    "He": "#D9FFFF",
+    "Li": "#CC80FF",
+    "Be": "#C2FF00",
+    "B": "#FFB5B5",
+    "C": "#909090",
+    "N": "#3050F8",
+    "O": "#FF0D0D",
+    "F": "#90E050",
+    "Ne": "#B3E3F5",
+    "Na": "#AB5CF2",
+    "Mg": "#8AFF00",
+    "Al": "#BFA6A6",
+    "Si": "#F0C8A0",
+    "P": "#FF8000",
+    "S": "#FFFF30",
+    "Cl": "#1FF01F",
+    "Ar": "#80D1E3",
+    "K": "#8F40D4",
+    "Ca": "#3DFF00",
+    "Sc": "#E6E6E6",
+    "Ti": "#BFC2C7",
+    "V": "#A6A6AB",
+    "Cr": "#8A99C7",
+    "Mn": "#9C7AC7",
+    "Fe": "#E06633",
+    "Co": "#F090A0",
+    "Ni": "#50D050",
+    "Cu": "#C88033",
+    "Zn": "#7D80B0",
+    "Ga": "#C28F8F",
+    "Ge": "#668F8F",
+    "As": "#BD80E3",
+    "Se": "#FFA100",
+    "Br": "#A62929",
+    "Kr": "#5CB8D1",
+    "Rb": "#702EB0",
+    "Sr": "#00FF00",
+    "Y": "#94FFFF",
+    "Zr": "#94E0E0",
+    "Nb": "#73C2C9",
+    "Mo": "#54B5B5",
+    "Tc": "#3B9E9E",
+    "Ru": "#248F8F",
+    "Rh": "#0A7D8C",
+    "Pd": "#006985",
+    "Ag": "#C0C0C0",
+    "Cd": "#FFD98F",
+    "In": "#A67573",
+    "Sn": "#668080",
+    "Sb": "#9E63B5",
+    "Te": "#D47A00",
+    "I": "#940094",
+    "Xe": "#429EB0",
+    "Cs": "#57178F",
+    "Ba": "#00C900",
+    "La": "#70D4FF",
+    "Ce": "#FFFFC7",
+    "Pr": "#D9FFC7",
+    "Nd": "#C7FFC7",
+    "Pm": "#A3FFC7",
+    "Sm": "#8FFFC7",
+    "Eu": "#61FFC7",
+    "Gd": "#45FFC7",
+    "Tb": "#30FFC7",
+    "Dy": "#1FFFC7",
+    "Ho": "#00FF9C",
+    "Er": "#00E675",
+    "Tm": "#00D452",
+    "Yb": "#00BF38",
+    "Lu": "#00AB24",
+    "Hf": "#4DC2FF",
+    "Ta": "#4DA6FF",
+    "W": "#2194D6",
+    "Re": "#267DAB",
+    "Os": "#266696",
+    "Ir": "#175487",
+    "Pt": "#D0D0E0",
+    "Au": "#FFD123",
+    "Hg": "#B8B8D0",
+    "Tl": "#A6544D",
+    "Pb": "#575961",
+    "Bi": "#9E4FB5",
+    "Po": "#AB5C00",
+    "At": "#754F45",
+    "Rn": "#428296",
+    "Fr": "#420066",
+    "Ra": "#007D00",
+    "Ac": "#70ABFA",
+    "Th": "#00BAFF",
+    "Pa": "#00A1FF",
+    "U": "#008FFF",
+    "Np": "#0080FF",
+    "Pu": "#006BFF",
+    "Am": "#545CF2",
+    "Cm": "#785CE3",
+    "Bk": "#8A4FE3",
+    "Cf": "#A136D4",
+    "Es": "#B31FD4",
+    "Fm": "#B31FBA",
+    "Md": "#B30DA6",
+    "No": "#BD0D87",
+    "Lr": "#C70066",
+    "Rf": "#CC0059",
+    "Db": "#D1004F",
+    "Sg": "#D90045",
+    "Bh": "#E00038",
+    "Hs": "#E6002E",
+    "Mt": "#EB0026"
 }
+
 
 if uploaded_files:
     file_options = [file.name for file in uploaded_files]
-    selected_file = st.selectbox("Select structure for interactive visualization", file_options)
+    st.subheader("Select structure for interactive visualization:")
+    if len(file_options) > 3:
+        selected_file = st.selectbox("", file_options)
+    else:
+        selected_file = st.radio("", file_options)
     structure = read(selected_file)
 
-    # Prepare the 3D structure visualization with py3Dmol
+    # Checkbox option to show atomic positions (labels on structure and list in table)
+    show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
     xyz_io = StringIO()
     write(xyz_io, structure, format="xyz")
     xyz_str = xyz_io.getvalue()
     view = py3Dmol.view(width=800, height=600)
     view.addModel(xyz_str, "xyz")
     view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
-    cell = structure.get_cell()
+    cell = structure.get_cell()  # 3x3 array of lattice vectors
     add_box(view, cell, color='black', linewidth=2)
     view.zoomTo()
     view.zoom(1.2)
-    html_str = view._make_html()
-    centered_html = f"<div style='display: flex; justify-content: center;'>{html_str}</div>"
 
-    # Prepare additional structure info
+
+    atomic_info = []
+    if show_atomic:
+        import numpy as np
+        inv_cell = np.linalg.inv(cell)
+        for i, atom in enumerate(structure):
+            symbol = atom.symbol
+            x, y, z = atom.position
+
+            frac = np.dot(inv_cell, atom.position)
+            label_text = f"{symbol}{i}"
+            view.addLabel(label_text, {
+                "position": {"x": x, "y": y, "z": z},
+                "backgroundColor": "white",
+                "fontColor": "black",
+                "fontSize": 10,
+                "borderThickness": 1,
+                "borderColor": "black"
+            })
+            atomic_info.append({
+                "Atom": label_text,
+                "Element": symbol,
+                "Atomic Number": atom.number,
+                "X": round(x, 3),
+                "Y": round(y, 3),
+                "Z": round(z, 3),
+                "Frac X": round(frac[0], 3),
+                "Frac Y": round(frac[1], 3),
+                "Frac Z": round(frac[2], 3)
+            })
+
+    html_str = view._make_html()
+
+
+    centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
+
     unique_elements = sorted(set(structure.get_chemical_symbols()))
     legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
     for elem in unique_elements:
@@ -275,16 +516,13 @@ if uploaded_files:
         f"γ = {cell_params[5]:.2f}°"
     )
 
-    # Create two columns: left for info, right for visualization
     left_col, right_col = st.columns(2)
 
     with left_col:
         st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
 
-        # Try extracting space group info
         try:
             from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-
             mg_structure = AseAtomsAdaptor.get_structure(structure)
             sg_analyzer = SpacegroupAnalyzer(mg_structure)
             spg_symbol = sg_analyzer.get_space_group_symbol()
@@ -293,15 +531,21 @@ if uploaded_files:
         except Exception:
             space_group_str = "Not available"
 
-        # Wrap everything in a centered div
         st.markdown(f"""
-        <div style='text-align: center; font-size: 16px;'>
+        <div style='text-align: center; font-size: 28px;'>
             <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
             <p><strong>Legend:</strong><br>{legend_html}</p>
             <p><strong>Number of Atoms:</strong> {len(structure)}</p>
             <p><strong>Space Group:</strong> {space_group_str}</p>
         </div>
         """, unsafe_allow_html=True)
+
+        # If atomic positions are to be shown, display them as a table.
+        if show_atomic:
+            import pandas as pd
+            df_atoms = pd.DataFrame(atomic_info)
+            st.subheader("Atomic Positions")
+            st.dataframe(df_atoms)
 
     with right_col:
         st.components.v1.html(centered_html, height=600)
@@ -310,17 +554,22 @@ if uploaded_files:
 
 
 if mode == "Basic":
-    st.divider()
+    st.markdown("""
+            <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+            """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 3 / 5:</strong>  👉 Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
+        🪧 <strong>Step 3 / 4:</strong> Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
     </div>
     """, unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+            <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+            """, unsafe_allow_html=True)
 
 
 
-col_settings, col_plot = st.columns(2)
+col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
+
 
 
 with col_settings:
@@ -641,19 +890,28 @@ with col_settings:
         if st.button("Calculate XRD"):
             st.session_state.calc_xrd = True
 
+with col_divider:
+        st.write("")
 
 # --- XRD Calculation ---
 with col_plot:
     if not st.session_state.calc_xrd:
         st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
 
+
+
 if st.session_state.calc_xrd and uploaded_files:
+    include_in_combined = {}
+    st.sidebar.markdown("### Structures to include in the Diffraction Plot:")
+    for file in uploaded_files:
+        include_in_combined[file.name] = st.sidebar.checkbox(f"Include {file.name}", value=True)
+
     with col_plot:
         st.subheader("📊 OUTPUT → Diffraction Patterns")
         st.markdown("### Structures to have in the Diffraction Plot:")
-        include_in_combined = {}
-        for file in uploaded_files:
-            include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
+       # include_in_combined = {}
+       # for file in uploaded_files:
+       #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
         if diffraction_choice == "ND (Neutron)":
             diff_calc = NDCalculator(wavelength=wavelength_A)
         else:
@@ -746,7 +1004,7 @@ if st.session_state.calc_xrd and uploaded_files:
                                      for h in hkl_group])
                             ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                                  textcoords='offset points', fontsize=8, rotation=90,
-                                                 ha='center', va='bottom')
+                                                 ha='center', va='bottom', color=color, )
         ax_combined.set_xlabel(x_axis_metric)
         if intensity_scale_option == "Normalized":
             ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
@@ -762,26 +1020,39 @@ if st.session_state.calc_xrd and uploaded_files:
             max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
             ax_combined.set_ylim(0, max_intensity * 1.2)
         ax_combined.legend(
-            loc="upper center",  # Place at the top
-            bbox_to_anchor=(0.5, 1.2),  # Centered horizontally, just above the plot
-            ncol=2,  # Number of columns (optional)
-            fontsize=10  # Font size (optional)
+            loc="lower center",  # Positions legend at the bottom center
+            bbox_to_anchor=(0.5, -0.35),  # Adjust the y-coordinate to move it below the plot
+            ncol=2,  # Number of columns
+            fontsize=10  # Font size
         )
 
-        st.pyplot(fig_combined)
+        if "placeholder_static" not in st.session_state:
+            st.session_state.placeholder_static = st.empty()
+        st.session_state.fig_combined = fig_combined
+        st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+
+
 
     if mode == "Basic":
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 4 / 5:</strong>  👉 See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.
+            🎯 <strong>Results Section 1 / 2:</strong> See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.<br>
+            🪧 <strong>Step 4 / 4</strong> If Needed, Upload Your Own Diffraction Patterns For Comparison: ⬇️
          </div>
         """, unsafe_allow_html=True)
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
+
 
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
+
 
     # Loop over each structure's pattern details
     for idx, (file_name, details) in enumerate(pattern_details.items()):
@@ -837,40 +1108,165 @@ if st.session_state.calc_xrd and uploaded_files:
             hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
         ))
         fig_interactive.update_layout(
+            height=1000,
             margin=dict(t=80, b=80, l=60, r=30),
-            hovermode="closest",
+            hovermode="x",
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
                 y=1.1,
                 xanchor="center",
                 x=0.5,
-                font=dict(size=18)
+                font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=24), standoff=20),
-                tickfont=dict(size=20)
+                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
+                tickfont=dict(size=36)
             ),
             yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=24)),
-                tickfont=dict(size=20)
+                title=dict(text="Intensity (a.u.)", font=dict(size=36)),
+                tickfont=dict(size=36)
             ),
-            hoverlabel=dict(font=dict(size=20)),
-            font=dict(size=14),
+            hoverlabel=dict(font=dict(size=30)),
+            font=dict(size=18),
             autosize=True
         )
-    st.plotly_chart(fig_interactive, use_container_width=True)
+        # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
+    if "placeholder_interactive" not in st.session_state:
+        st.session_state.placeholder_interactive = st.empty()
+    st.session_state.fig_interactive = fig_interactive
+
+
+
+
+    st.subheader("Append Your XRD Pattern Data")
+    show_user_pattern = st.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    user_pattern_file = st.file_uploader(
+        "Upload additional XRD pattern (2 columns: X-values and Intensity)",
+        type=["csv", "txt"],
+        key="user_xrd", accept_multiple_files=True
+    )
+
+
+      #  st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
+       #                                                       use_container_width=True, )
+
+
+    # if user_pattern_file is not None and show_user_pattern:
+
+
+    if user_pattern_file and show_user_pattern:
+        # Check if multiple files were uploaded:
+        if isinstance(user_pattern_file, list):
+            # Get a list of colors from the tab10 colormap
+            cmap = plt.cm.Set2
+            n_files = len(user_pattern_file)
+            static_colors = [cmap(i / n_files) for i in range(n_files)]
+            # For Plotly, convert to hex colors:
+            interactive_colors = [mcolors.to_hex(c) for c in static_colors]
+
+            user_colorss = ["#000000", "#8B4513", "#808080", "#000000", "#8B4513", "#808080"]
+            static_colors = user_colorss
+            interactive_colors = user_colorss
+            for idx, file in enumerate(user_pattern_file):
+                try:
+                    df = pd.read_csv(file, delim_whitespace=True, header=None)
+                    if df.shape[1] < 2:
+                        df = pd.read_csv(file, sep=",", header=None)
+                    x_user = df.iloc[:, 0].values
+                    y_user = df.iloc[:, 1].values
+                except Exception as e:
+                    st.error(f"Error processing the uploaded file {file.name}: {e}")
+                    continue  # Skip this file if there's an error
+
+                if x_user is not None and y_user is not None:
+                    if intensity_scale_option == "Normalized":
+                        y_user = (y_user / np.max(y_user)) * 100
+
+                    # Filter user data to the current x-axis range
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
+                    x_user_filtered = x_user[mask_user]
+                    y_user_filtered = y_user[mask_user]
+
+                    # Append to the static matplotlib figure with a unique color
+                    ax = st.session_state.fig_combined.gca()
+                    ax.plot(x_user_filtered, y_user_filtered, label=file.name, linestyle='--', linewidth=2,
+                            color=static_colors[idx])
+                    ax.legend()
+                    # Update y-axis range to include new data
+                    current_ylim = ax.get_ylim()
+                    if len(y_user_filtered) > 0:
+                        new_max = np.max(y_user_filtered)
+                        ax.set_ylim(0, max(current_ylim[1], new_max * 1.1))
+                    st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+                    # Append to the interactive Plotly figure with the file's name and unique color
+                    st.session_state.fig_interactive.add_trace(go.Scatter(
+                        x=x_user_filtered,
+                        y=y_user_filtered,
+                        mode='lines',
+                        name=file.name,
+                        line=dict(dash='dash', color=interactive_colors[idx])
+                    ))
+        else:
+            # Only one file was uploaded; use the first color from tab10
+            static_color = plt.cm.Set2(0)
+            interactive_color = mcolors.to_hex(static_color)
+            try:
+                df = pd.read_csv(user_pattern_file, delim_whitespace=True, header=None)
+                if df.shape[1] < 2:
+                    df = pd.read_csv(user_pattern_file, sep=",", header=None)
+                x_user = df.iloc[:, 0].values
+                y_user = df.iloc[:, 1].values
+            except Exception as e:
+                st.error(f"Error processing the uploaded file: {e}")
+                x_user, y_user = None, None
+
+            if x_user is not None and y_user is not None:
+                if intensity_scale_option == "Normalized":
+                    y_user = (y_user / np.max(y_user)) * 100
+
+                mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
+                x_user_filtered = x_user[mask_user]
+                y_user_filtered = y_user[mask_user]
+
+                ax = st.session_state.fig_combined.gca()
+                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', linewidth=2,
+                        color=static_color)
+                ax.legend()
+                current_ylim = ax.get_ylim()
+                if len(y_user_filtered) > 0:
+                    new_max = np.max(y_user_filtered)
+                    ax.set_ylim(0, max(current_ylim[1], new_max * 1.1))
+                st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
+
+                st.session_state.fig_interactive.add_trace(go.Scatter(
+                    x=x_user_filtered,
+                    y=y_user_filtered,
+                    mode='lines',
+                    name=user_pattern_file.name,
+                    line=dict(dash='dash', color=interactive_color)
+                ))
+    # Always update the interactive plot placeholder regardless
+    st.session_state.placeholder_interactive.plotly_chart(
+        st.session_state.fig_interactive, use_container_width=True, key="interactive_plot_updated"
+    )
 
     if mode == "Basic":
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Step 5 / 5:</strong>  👉 If Needed, Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️.
+            🎯 <strong>Results Section 2 / 2:</strong>  👉 Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️
          </div>
         """, unsafe_allow_html=True)
-        st.divider()
+        st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
+    st.divider()
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -922,6 +1318,16 @@ if st.session_state.calc_xrd and uploaded_files:
             "HKLs": details["hkls"]
         }
     selected_metric = st.session_state.x_axis_metric
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stDataFrameContainer"] table td {
+             font-size: 22px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
         combined_df = pd.DataFrame()
         data_list = []
@@ -953,6 +1359,7 @@ if st.session_state.calc_xrd and uploaded_files:
 # --- RDF (PRDF) Settings and Calculation ---
 st.divider()
 left_rdf, right_rdf = st.columns(2)
+left_rdf,col_divider_rdf, right_rdf = st.columns([1, 0.05, 1])
 
 with left_rdf:
     st.subheader("⚙️ (P)RDF Settings")
@@ -968,6 +1375,10 @@ with left_rdf:
         st.session_state.calc_rdf = False
     if st.button("Calculate RDF"):
         st.session_state.calc_rdf = True
+
+with col_divider_rdf:
+    st.write("")
+
 with right_rdf:
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
@@ -1056,3 +1467,7 @@ with right_rdf:
             for x, y in zip(global_bins, global_rdf_avg):
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
+st.divider()
+st.markdown("""
+This application was built using open-source libraries that are distributed under free licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**
+""")
