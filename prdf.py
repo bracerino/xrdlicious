@@ -142,7 +142,7 @@ with col1:
         accept_multiple_files=True
     )
 with col2:
-    st.subheader("🔍 Search Structures in Materials Project Database")
+    st.subheader("🔍 or Search Structures in Materials Project Database")
     search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
     if st.button("Search Materials Project", key="search_btn") and search_query:
         with st.spinner("Searching for structures in database..."):
