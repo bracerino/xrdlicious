@@ -894,9 +894,9 @@ with col_settings:
 
     if peak_representation != "Delta":
         sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
-                                max_value=1.0, value=0.3, step=0.01)
+                                max_value=1.5, value=0.5, step=0.01)
     else:
-        sigma = 0.3
+        sigma = 0.5
     num_annotate = st.number_input("⚙️ How many highest peaks to annotate (by intensity):", min_value=0, max_value=30, value=5,
                                    step=1)
 
