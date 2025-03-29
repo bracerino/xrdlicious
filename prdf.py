@@ -86,7 +86,7 @@ st.markdown(
     """
     <style>
     div[data-testid="stDataFrameContainer"] table td {
-         font-size: 22px;
+         font-size: 22px !important;
     }
     </style>
     """,
