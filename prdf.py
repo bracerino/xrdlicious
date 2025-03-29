@@ -877,8 +877,11 @@ with col_settings:
                                                         diffraction_choice)
     two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
-    sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
-                            max_value=1.0, value=0.5, step=0.01)
+    if peak_representation != "Delta":
+        sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
+                                max_value=1.0, value=0.2, step=0.01)
+    else:
+        sigma = 0.1
     num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):", min_value=0, max_value=30, value=5,
                                    step=1)
 
