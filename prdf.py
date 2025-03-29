@@ -842,11 +842,11 @@ with col_settings:
     # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
     if "two_theta_min" not in st.session_state:
         if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
-            st.session_state.two_theta_min = 2.0
+            st.session_state.two_theta_min = 5.0
         elif x_axis_metric in ["d (Å)", "d (nm)"]:
             st.session_state.two_theta_min = 20.0
         else:
-            st.session_state.two_theta_min = 2.0
+            st.session_state.two_theta_min = 5.0
     if "two_theta_max" not in st.session_state:
         st.session_state.two_theta_max = 165.0
 
@@ -1168,9 +1168,15 @@ if st.session_state.calc_xrd and uploaded_files:
                                             diffraction_choice)
     display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
                                             diffraction_choice)
-    fig_interactive.update_layout(
-        xaxis=dict(range=[display_metric_min, display_metric_max])
-    )
+    if x_axis_metric in ["d (Å)", "d (nm)"]:
+        # Reverse the range for d-spacing: higher d values should appear on the right.
+        fig_interactive.update_layout(
+            xaxis=dict(range=[display_metric_max, display_metric_min])
+        )
+    else:
+        fig_interactive.update_layout(
+            xaxis=dict(range=[display_metric_min, display_metric_max])
+        )
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
