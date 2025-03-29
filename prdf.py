@@ -1141,7 +1141,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 line=dict(color=color, width=2),
                 hoverinfo='text',
                 text=vertical_hover,
-                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: <b>%{{y:.2f}}</b><br><b>%{{text}}</b><extra></extra>",
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
                 hoverlabel = dict(bgcolor=color, font=dict(color="white", size=20))
             ))
         else:
