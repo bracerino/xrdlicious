@@ -439,7 +439,6 @@ jmol_colors = {
 
 st.sidebar.markdown("### Structure Visualization Tool:")
 show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
-
 if uploaded_files:
     if show_structure:
         file_options = [file.name for file in uploaded_files]
@@ -451,7 +450,7 @@ if uploaded_files:
         structure = read(selected_file)
     
         # Checkbox option to show atomic positions (labels on structure and list in table)
-        show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
+        show_atomic = st.sidebar.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
         xyz_io = StringIO()
         write(xyz_io, structure, format="xyz")
         xyz_str = xyz_io.getvalue()
