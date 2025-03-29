@@ -166,7 +166,9 @@ with col2:
 # Column 2: Select structure and add/download CIF.
 with col3:
     st.subheader("🧪 Structures Found in Materials Project")
-    if st.session_state['mp_options']:
+    if st.session_state['mp_options'] is None:
+        st.info("Please press the 'Search Materials Project' button above to view the available structures.")
+    elif st.session_state['mp_options']:
         selected_mp_structure = st.selectbox(
             "Select a structure from Materials Project:",
             st.session_state['mp_options']
@@ -1061,12 +1063,16 @@ if st.session_state.calc_xrd and uploaded_files:
             continue
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         # Filter the continuous curve to the user-specified x-axis range
+
+
+
+
         mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
                     details["x_dense_full"] <= st.session_state.two_theta_max)
         x_dense_range = twotheta_to_metric(details["x_dense_full"][mask], x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
         y_dense_range = details["y_dense"][mask]
-                if peak_representation != "Delta":
+        if peak_representation != "Delta":
             fig_interactive.add_trace(go.Scatter(
                 x=x_dense_range,
                 y=y_dense_range,
