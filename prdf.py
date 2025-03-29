@@ -1141,7 +1141,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 line=dict(color=color, width=2),
                 hoverinfo='text',
                 text=vertical_hover,
-                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: <b>%{{y:.2f}}</b><br><b>%{{text}}</b><extra></extra>",
                 hoverlabel = dict(bgcolor=color, font=dict(color="white", size=20))
             ))
         else:
@@ -1154,7 +1154,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 showlegend=False,
                 marker=dict(color=color, size=8, opacity=0.5),
                 text=hover_texts_in_range,
-                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
                 hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
             ))
         fig_interactive.update_layout(
