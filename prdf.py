@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
 )
 
 import numpy as np
@@ -84,14 +84,14 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "XRDlicious: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Global RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
