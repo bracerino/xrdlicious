@@ -81,6 +81,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrameContainer"] table td {
+         font-size: 22px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 components.html(
     """
     <head>
