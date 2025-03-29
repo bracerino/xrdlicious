@@ -1066,14 +1066,15 @@ if st.session_state.calc_xrd and uploaded_files:
         x_dense_range = twotheta_to_metric(details["x_dense_full"][mask], x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
         y_dense_range = details["y_dense"][mask]
-        fig_interactive.add_trace(go.Scatter(
-            x=x_dense_range,
-            y=y_dense_range,
-            mode='lines',
-            name=file_name,
-            line=dict(color=color, width=2),
-            hoverinfo='skip'
-        ))
+                if peak_representation != "Delta":
+            fig_interactive.add_trace(go.Scatter(
+                x=x_dense_range,
+                y=y_dense_range,
+                mode='lines',
+                name=file_name,
+                line=dict(color=color, width=2),
+                hoverinfo='skip'
+            ))
         # Build hover texts for peaks
         peak_hover_texts = []
         for hkl_group in details["hkls"]:
@@ -1096,17 +1097,42 @@ if st.session_state.calc_xrd and uploaded_files:
                 peak_vals_in_range.append(peak)
                 intensities_in_range.append(details["intensities"][i])
                 hover_texts_in_range.append(peak_hover_texts[i])
-        fig_interactive.add_trace(go.Scatter(
-            x=peak_vals_in_range,
-            y=intensities_in_range,
-            mode='markers',
-            name=f"{file_name} Peaks",
-            showlegend=False,
-            marker=dict(color=color, size=8, opacity=0.5),
-            text=hover_texts_in_range,
-            hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
-            hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
-        ))
+
+        if peak_representation == "Delta":
+            # Build vertical line segments: for each peak, draw a line from y=0 to the peak's intensity.
+            vertical_x = []
+            vertical_y = []
+            vertical_hover = []
+            for i, peak in enumerate(peak_vals_in_range):
+                vertical_x.extend([peak, peak, None])
+                vertical_y.extend([0, intensities_in_range[i], None])
+                # Optionally, add hover text only on the top of the line.
+                vertical_hover.extend([hover_texts_in_range[i], hover_texts_in_range[i], None])
+            fig_interactive.add_trace(go.Scatter(
+                x=vertical_x,
+                y=vertical_y,
+                mode='lines',
+                name=f"{file_name} Peaks",
+                showlegend=False,
+                line=dict(color=color, width=2),
+                hoverinfo='text',
+                text=vertical_hover,
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+                hoverlabel = dict(bgcolor=color, font=dict(color="white", size=20))
+            ))
+        else:
+            # For Gaussian peak representation, use markers as before.
+            fig_interactive.add_trace(go.Scatter(
+                x=peak_vals_in_range,
+                y=intensities_in_range,
+                mode='markers',
+                name=f"{file_name} Peaks",
+                showlegend=False,
+                marker=dict(color=color, size=8, opacity=0.5),
+                text=hover_texts_in_range,
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
+                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
+            ))
         fig_interactive.update_layout(
             height=1000,
             margin=dict(t=80, b=80, l=60, r=30),
@@ -1120,7 +1146,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
+                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),range=[display_metric_min, display_metric_max],
                 tickfont=dict(size=36)
             ),
             yaxis=dict(
