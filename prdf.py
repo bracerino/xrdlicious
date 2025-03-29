@@ -1152,7 +1152,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),range=[display_metric_min, display_metric_max],
+                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
                 tickfont=dict(size=36)
             ),
             yaxis=dict(
@@ -1164,6 +1164,13 @@ if st.session_state.calc_xrd and uploaded_files:
             autosize=True
         )
         # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
+    display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm,
+                                            diffraction_choice)
+    display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
+                                            diffraction_choice)
+    fig_interactive.update_layout(
+        xaxis=dict(range=[display_metric_min, display_metric_max])
+    )
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
