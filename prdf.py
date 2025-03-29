@@ -84,14 +84,14 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Global RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
@@ -229,7 +229,7 @@ st.warning(
 )
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Total RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
     "Below, you can change the settings for the diffraction calculation or PRDF."
 )
@@ -1433,7 +1433,7 @@ with right_rdf:
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
     if st.session_state.calc_rdf and uploaded_files:
-        st.subheader("📊 OUTPUT → RDF (PRDF & Global RDF)")
+        st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
         species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
         all_prdf_dict = defaultdict(list)
         all_distance_dict = {}
@@ -1491,7 +1491,7 @@ with right_rdf:
                 for x, y in zip(all_distance_dict[comb], prdf_avg):
                     table_str += f"{x:<12.3f} {y:<12.3f}\n"
                 st.code(table_str, language="text")
-        st.subheader("Global RDF Plot:")
+        st.subheader("Total RDF Plot:")
         global_bins_set = set()
         for gd in global_rdf_list:
             global_bins_set.update(gd.keys())
@@ -1507,13 +1507,13 @@ with right_rdf:
         global_color = colors[len(all_prdf_dict) % len(colors)]
         ax_global.plot(global_bins, global_rdf_avg, label="Global RDF", color=global_color)
         ax_global.set_xlabel("Distance (Å)")
-        ax_global.set_ylabel("Global RDF Intensity")
+        ax_global.set_ylabel("Total RDF Intensity")
         ax_global.set_title(title_global)
         ax_global.legend()
         ax_global.set_ylim(bottom=0)
         st.pyplot(fig_global)
-        with st.expander("View Data for Global RDF"):
-            table_str = "#Distance (Å)    Global RDF\n"
+        with st.expander("View Data for Total RDF"):
+            table_str = "#Distance (Å)    Total RDF\n"
             for x, y in zip(global_bins, global_rdf_avg):
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
