@@ -884,7 +884,7 @@ with col_settings:
                                 max_value=1.0, value=0.3, step=0.01)
     else:
         sigma = 0.3
-    num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):", min_value=0, max_value=30, value=5,
+    num_annotate = st.number_input("⚙️ How many highest peaks to annotate (by intensity):", min_value=0, max_value=30, value=5,
                                    step=1)
 
     if "calc_xrd" not in st.session_state:
