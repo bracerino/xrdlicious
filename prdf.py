@@ -142,7 +142,7 @@ with col1:
         accept_multiple_files=True
     )
 with col2:
-    st.subheader("🔍 or Search Structures in Materials Project Database")
+    st.subheader("🔍 or Search for Structures in Materials Project Database")
     search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
     if st.button("Search Materials Project", key="search_btn") and search_query:
         with st.spinner("Searching for structures in database..."):
@@ -1157,12 +1157,12 @@ if st.session_state.calc_xrd and uploaded_files:
                 font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
-                tickfont=dict(size=36)
+                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20, ),
+                tickfont=dict(size=36, color='black')
             ),
             yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=36)),
-                tickfont=dict(size=36)
+                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black'), ),
+                tickfont=dict(size=36, color='black')
             ),
             hoverlabel=dict(font=dict(size=30)),
             font=dict(size=18),
