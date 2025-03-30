@@ -506,8 +506,9 @@ st.sidebar.markdown("### Structure Visualization Tool:")
 show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
 if uploaded_files:
     if show_structure:
-        col_viz, col_download = st.columns(2)
         st.divider()
+        col_viz, col_download = st.columns(2)
+        
         with col_viz:
             file_options = [file.name for file in uploaded_files]
             st.subheader("Select structure for interactive visualization:")
@@ -741,9 +742,9 @@ if mode == "Basic":
 col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
 
 
-
+st.divider()
 with col_settings:
-    st.divider()
+    
     st.subheader(
         "⚙️ Diffraction Settings",
         help=(
