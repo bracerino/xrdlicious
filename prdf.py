@@ -172,8 +172,17 @@ with col2:
                     for doc in docs:
                         # Retrieve the full structure (including lattice parameters)
                         full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                        st.session_state['full_structures'][doc.material_id] = full_structure
-                        lattice = full_structure.lattice
+                        if convert_to_conventional:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_conventional_standard_structure()
+                        elif pymatgen_prim_cell_lll:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
+                            structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                        else:
+                            structure_to_use = full_structure
+                        st.session_state['full_structures'][doc.material_id] = structure_to_use
+                        lattice = structure_to_use.lattice
                         lattice_str = (
                             f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
                             f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
