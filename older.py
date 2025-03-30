@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Powder XRD / ND pattern and (P)RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
 )
 
 import numpy as np
@@ -24,6 +24,8 @@ import matplotlib.colors as mcolors
 import streamlit as st
 from mp_api.client import MPRester
 from pymatgen.io.cif import CifWriter
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from math import cos, radians, sqrt
 import io
 import re
 
@@ -56,6 +58,23 @@ def load_structure(file_or_name):
     return mg_structure
 
 
+def lattice_same_conventional_vs_primitive(structure):
+    try:
+        analyzer = SpacegroupAnalyzer(structure)
+        primitive = analyzer.get_primitive_standard_structure()
+        conventional = analyzer.get_conventional_standard_structure()
+
+        lattice_diff = np.abs(primitive.lattice.matrix - conventional.lattice.matrix)
+        volume_diff = abs(primitive.lattice.volume - conventional.lattice.volume)
+
+        if np.all(lattice_diff < 1e-3) and volume_diff < 1e-2:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return None  # Could not determine
+    
+
 # Inject custom CSS for buttons.
 st.markdown(
     """
@@ -81,17 +100,30 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrameContainer"] table td {
+         font-size: 22px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Global RDF for Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
 st.title(
-    "XRDlicious: Powder XRD / ND Patterns, Partial and Global RDF Calculator for Crystal Structures (CIF, POSCAR, XSF, ...)")
+    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
 
@@ -100,7 +132,21 @@ st.divider()
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
 
+structure_cell_choice = st.sidebar.radio(
+    "Structure Cell Type:",
+    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
+    index=1,  # default to Conventional
+    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
+         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
+)
+
+convert_to_conventional = structure_cell_choice == "Conventional Cell"
+pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
+
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     #st.divider()
     st.markdown("""
         <hr style="height:3px;border:none;color:#333;background-color:#333;" />
@@ -130,6 +176,7 @@ if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'
 
 
 # Create two columns: one for search and one for structure selection and actions.
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
 # Column 1: Search for structures.
@@ -142,7 +189,7 @@ with col1:
         accept_multiple_files=True
     )
 with col2:
-    st.subheader("🔍 or Search Structures in Materials Project Database")
+    st.subheader("🔍 or Search for Structures in Materials Project Database")
     search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
     if st.button("Search Materials Project", key="search_btn") and search_query:
         with st.spinner("Searching for structures in database..."):
@@ -153,20 +200,45 @@ with col2:
                     num_elements=len(elements_list),
                     fields=["material_id", "formula_pretty", "symmetry"]
                 )
-        if docs:
-            st.session_state['mp_options'] = [
-                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol})"
-                for doc in docs
-            ]
-        else:
-            st.session_state['mp_options'] = []
-            st.warning("No matching structures found in Materials Project.")
+                if docs:
+                    st.session_state['mp_options'] = []
+                    st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
+                    for doc in docs:
+                        # Retrieve the full structure (including lattice parameters)
+                        full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                        if convert_to_conventional:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_conventional_standard_structure()
+                        elif pymatgen_prim_cell_lll:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
+                            structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                        elif pymatgen_prim_cell_no_reduce:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
+                        else:
+                            structure_to_use = full_structure
+                        st.session_state['full_structures'][doc.material_id] = structure_to_use
+                        lattice = structure_to_use.lattice
+                        lattice_str = (
+                            f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                            f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
+                        )
+                        st.session_state['mp_options'].append(
+                            f"{doc.material_id}: {doc.formula_pretty} "
+                            f"({doc.symmetry.symbol}, {lattice_str})"
+                        )
+                else:
+                    st.session_state['mp_options'] = []
+                    st.warning("No matching structures found in Materials Project.")
         st.success("Finished searching for structures.")
 
 # Column 2: Select structure and add/download CIF.
 with col3:
     st.subheader("🧪 Structures Found in Materials Project")
-    if st.session_state['mp_options']:
+    if st.session_state['mp_options'] is None:
+        st.info("Please press the 'Search Materials Project' button to view the available structures.")
+    elif st.session_state['mp_options']:
         selected_mp_structure = st.selectbox(
             "Select a structure from Materials Project:",
             st.session_state['mp_options']
@@ -175,32 +247,29 @@ with col3:
         selected_id = selected_mp_structure.split(":")[0].strip()
         composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
         file_name = f"{selected_id}_{composition}.cif"
-
         file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
         if st.button("Add Selected Structure", key="add_btn"):
-            with MPRester(MP_API_KEY) as mpr:
-                pmg_structure = mpr.get_structure_by_material_id(selected_id)
+            # Use the pre-stored structure from session state
+            pmg_structure = st.session_state['full_structures'][selected_id]
             cif_writer = CifWriter(pmg_structure)
             cif_content = cif_writer.__str__()
             cif_file = io.BytesIO(cif_content.encode('utf-8'))
             cif_file.name = file_name
-
             if all(f.name != file_name for f in st.session_state['uploaded_files']):
                 st.session_state['uploaded_files'].append(cif_file)
             st.session_state['selected_structure'] = selected_mp_structure
             st.success("Structure added!")
 
-
-        # Fetch the structure for the currently selected material ID.
-        with MPRester(MP_API_KEY) as mpr:
-            pmg_structure = mpr.get_structure_by_material_id(selected_id)
+        # Use the stored structure for the download button.
+        pmg_structure = st.session_state['full_structures'][selected_id]
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
         st.download_button(
             label="Download CIF File",
             data=cif_content,
             file_name=file_name,
+            type="primary",
             mime="chemical/x-cif"
         )
 
@@ -227,7 +296,7 @@ st.warning(
 )
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Global RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
+    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Total RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
     "Below, you can change the settings for the diffraction calculation or PRDF."
 )
@@ -235,18 +304,7 @@ if mode == "Basic" and not uploaded_files:
     st.stop()
 # --- Detect Atomic Species ---
 
-if mode == "Basic":
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
+
 
 if uploaded_files:
     species_set = set()
@@ -265,7 +323,20 @@ if uploaded_files:
     st.write(", ".join(species_list))
 else:
     species_list = []
-
+    
+if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align: center; font-size: 24px;'>
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures and Download CIF File for the Visualized Structure in either Conventional or Primitive Cell Representation, if Needed: ⬇️
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
 
 def add_box(view, cell, color='black', linewidth=2):
     a, b, c = np.array(cell[0]), np.array(cell[1]), np.array(cell[2])
@@ -435,125 +506,230 @@ jmol_colors = {
     "Mt": "#EB0026"
 }
 
-
+st.sidebar.markdown("### Structure Visualization Tool:")
+show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
 if uploaded_files:
-    file_options = [file.name for file in uploaded_files]
-    st.subheader("Select structure for interactive visualization:")
-    if len(file_options) > 3:
-        selected_file = st.selectbox("", file_options)
-    else:
-        selected_file = st.radio("", file_options)
-    structure = read(selected_file)
+    if show_structure:
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+        col_viz, col_download = st.columns(2)
+        
+        with col_viz:
+            file_options = [file.name for file in uploaded_files]
+            st.subheader("Select Structure for Interactive Visualization:")
+        if len(file_options) > 3:
+            selected_file = st.selectbox("", file_options)
+        else:
+            selected_file = st.radio("", file_options)
+        structure = read(selected_file)
 
-    # Checkbox option to show atomic positions (labels on structure and list in table)
-    show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
-    xyz_io = StringIO()
-    write(xyz_io, structure, format="xyz")
-    xyz_str = xyz_io.getvalue()
-    view = py3Dmol.view(width=800, height=600)
-    view.addModel(xyz_str, "xyz")
-    view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
-    cell = structure.get_cell()  # 3x3 array of lattice vectors
-    add_box(view, cell, color='black', linewidth=2)
-    view.zoomTo()
-    view.zoom(1.2)
+        selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
+        mp_struct = st.session_state.get('full_structures', {}).get(selected_id)
 
+        if mp_struct:
+            if convert_to_conventional:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_conventional_standard_structure()
+            elif pymatgen_prim_cell_niggli:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+            elif pymatgen_prim_cell_lll:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+            else:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+            structure = AseAtomsAdaptor.get_atoms(converted_structure)
 
-    atomic_info = []
-    if show_atomic:
-        import numpy as np
-        inv_cell = np.linalg.inv(cell)
-        for i, atom in enumerate(structure):
-            symbol = atom.symbol
-            x, y, z = atom.position
+        
+    
+        # Checkbox option to show atomic positions (labels on structure and list in table)
+        show_atomic = st.sidebar.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
+        xyz_io = StringIO()
+        write(xyz_io, structure, format="xyz")
+        xyz_str = xyz_io.getvalue()
+        view = py3Dmol.view(width=800, height=600)
+        view.addModel(xyz_str, "xyz")
+        view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
+        cell = structure.get_cell()  # 3x3 array of lattice vectors
+        add_box(view, cell, color='black', linewidth=2)
+        view.zoomTo()
+        view.zoom(1.2)
 
-            frac = np.dot(inv_cell, atom.position)
-            label_text = f"{symbol}{i}"
-            view.addLabel(label_text, {
-                "position": {"x": x, "y": y, "z": z},
-                "backgroundColor": "white",
-                "fontColor": "black",
-                "fontSize": 10,
-                "borderThickness": 1,
-                "borderColor": "black"
-            })
-            atomic_info.append({
-                "Atom": label_text,
-                "Element": symbol,
-                "Atomic Number": atom.number,
-                "X": round(x, 3),
-                "Y": round(y, 3),
-                "Z": round(z, 3),
-                "Frac X": round(frac[0], 3),
-                "Frac Y": round(frac[1], 3),
-                "Frac Z": round(frac[2], 3)
-            })
+        #Download CIF for visualized structure
+        if mp_struct:
+            visual_pmg_structure = converted_structure
+        else:
+            visual_pmg_structure = load_structure(selected_file)
+        for site in visual_pmg_structure.sites:
+            print(site.species)  # This will show occupancy info
+            # Write CIF content directly using pymatgen:
+            # Otherwise, use the chosen conversion
+        if convert_to_conventional:
+            lattice_info = "conventional"
+        elif pymatgen_prim_cell_niggli:
+            lattice_info = "primitive_niggli"
+        elif pymatgen_prim_cell_lll:
+            lattice_info = "primitive_lll"
+        elif pymatgen_prim_cell_no_reduce:
+            lattice_info = "primitive_no_reduce"
+        else:
+            lattice_info = "primitive"
+        
+        cif_writer_visual = CifWriter(visual_pmg_structure, symprec=0.1, refine_struct=False)
+        
+        cif_content_visual = cif_writer_visual.__str__()
 
-    html_str = view._make_html()
+        # Prepare a file name (ensure it ends with .cif)
+        download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
+        if not download_file_name.lower().endswith('.cif'):
+            download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
 
+       
+            
+        with col_download:
+            st.download_button(
+                label="Download CIF for Visualized Structure",
+                data=cif_content_visual,
+                file_name=download_file_name,
+                type="primary",
+                mime="chemical/x-cif"
+            )
 
-    centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
-
-    unique_elements = sorted(set(structure.get_chemical_symbols()))
-    legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
-    for elem in unique_elements:
-        color = jmol_colors.get(elem, "#CCCCCC")
-        legend_html += (
-            f"<div style='margin-right: 15px; display: flex; align-items: center;'>"
-            f"<div style='width: 20px; height: 20px; background-color: {color}; margin-right: 5px; border: 1px solid black;'></div>"
-            f"<span>{elem}</span></div>"
-        )
-    legend_html += "</div>"
-
-    # Get lattice parameters
-    cell_params = structure.get_cell_lengths_and_angles()  # (a, b, c, α, β, γ)
-    lattice_str = (
-        f"a = {cell_params[0]:.4f} Å<br>"
-        f"b = {cell_params[1]:.4f} Å<br>"
-        f"c = {cell_params[2]:.4f} Å<br>"
-        f"α = {cell_params[3]:.2f}°<br>"
-        f"β = {cell_params[4]:.2f}°<br>"
-        f"γ = {cell_params[5]:.2f}°"
-    )
-
-    left_col, right_col = st.columns(2)
-
-    with left_col:
-        st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
-
-        try:
-            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-            mg_structure = AseAtomsAdaptor.get_structure(structure)
-            sg_analyzer = SpacegroupAnalyzer(mg_structure)
-            spg_symbol = sg_analyzer.get_space_group_symbol()
-            spg_number = sg_analyzer.get_space_group_number()
-            space_group_str = f"{spg_symbol} ({spg_number})"
-        except Exception:
-            space_group_str = "Not available"
-
-        st.markdown(f"""
-        <div style='text-align: center; font-size: 28px;'>
-            <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
-            <p><strong>Legend:</strong><br>{legend_html}</p>
-            <p><strong>Number of Atoms:</strong> {len(structure)}</p>
-            <p><strong>Space Group:</strong> {space_group_str}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # If atomic positions are to be shown, display them as a table.
+        
+        atomic_info = []
         if show_atomic:
-            import pandas as pd
-            df_atoms = pd.DataFrame(atomic_info)
-            st.subheader("Atomic Positions")
-            st.dataframe(df_atoms)
+            import numpy as np
+            inv_cell = np.linalg.inv(cell)
+            for i, atom in enumerate(structure):
+                symbol = atom.symbol
+                x, y, z = atom.position
+    
+                frac = np.dot(inv_cell, atom.position)
+                label_text = f"{symbol}{i}"
+                view.addLabel(label_text, {
+                    "position": {"x": x, "y": y, "z": z},
+                    "backgroundColor": "white",
+                    "fontColor": "black",
+                    "fontSize": 10,
+                    "borderThickness": 1,
+                    "borderColor": "black"
+                })
+                atomic_info.append({
+                    "Atom": label_text,
+                    "Element": symbol,
+                    "Atomic Number": atom.number,
+                    "X": round(x, 3),
+                    "Y": round(y, 3),
+                    "Z": round(z, 3),
+                    "Frac X": round(frac[0], 3),
+                    "Frac Y": round(frac[1], 3),
+                    "Frac Z": round(frac[2], 3)
+                })
+    
+        html_str = view._make_html()
+    
+    
+        centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
+    
+        unique_elements = sorted(set(structure.get_chemical_symbols()))
+        legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
+        for elem in unique_elements:
+            color = jmol_colors.get(elem, "#CCCCCC")
+            legend_html += (
+                f"<div style='margin-right: 15px; display: flex; align-items: center;'>"
+                f"<div style='width: 20px; height: 20px; background-color: {color}; margin-right: 5px; border: 1px solid black;'></div>"
+                f"<span>{elem}</span></div>"
+            )
+        legend_html += "</div>"
+    
+        # Get lattice parameters
+        cell_params = structure.get_cell_lengths_and_angles()  # (a, b, c, α, β, γ)
+        a_para, b_para, c_para = cell_params[:3]
+        alpha, beta, gamma = [radians(x) for x in cell_params[3:]]
 
-    with right_col:
-        st.components.v1.html(centered_html, height=600)
+        volume = a_para * b_para * c_para * sqrt(
+            1 - cos(alpha) ** 2 - cos(beta) ** 2 - cos(gamma) ** 2 +
+            2 * cos(alpha) * cos(beta) * cos(gamma)
+        )
+        # Get lattice parameters
+
+        lattice_str = (
+            f"a = {cell_params[0]:.4f} Å<br>"
+            f"b = {cell_params[1]:.4f} Å<br>"
+            f"c = {cell_params[2]:.4f} Å<br>"
+            f"α = {cell_params[3]:.2f}°<br>"
+            f"β = {cell_params[4]:.2f}°<br>"
+            f"γ = {cell_params[5]:.2f}°<br>"
+            f"Volume = {volume:.2f} Å³"
+        )
+    
+        left_col, right_col = st.columns(2)
+    
+        with left_col:
+            st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
+    
+            try:
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+                sg_analyzer = SpacegroupAnalyzer(mg_structure)
+                spg_symbol = sg_analyzer.get_space_group_symbol()
+                spg_number = sg_analyzer.get_space_group_number()
+                space_group_str = f"{spg_symbol} ({spg_number})"
+            except Exception:
+                space_group_str = "Not available"
+            try:
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+                sg_analyzer = SpacegroupAnalyzer(mg_structure)
+                spg_symbol = sg_analyzer.get_space_group_symbol()
+                spg_number = sg_analyzer.get_space_group_number()
+                space_group_str = f"{spg_symbol} ({spg_number})"
+
+                # New check
+                same_lattice = lattice_same_conventional_vs_primitive(mg_structure)
+                if same_lattice is None:
+                    cell_note = "⚠️ Could not determine if cells are identical."
+                    cell_note_color = "gray"
+                elif same_lattice:
+                    cell_note = "✅ Note: Conventional and Primitive Cells have the SAME cell volume."
+                    cell_note_color = "green"
+                else:
+                    cell_note = "Note: Conventional and Primitive Cells have DIFFERENT cell volume."
+                    cell_note_color = "gray"
+            except Exception:
+                space_group_str = "Not available"
+                cell_note = "⚠️ Could not determine space group or cell similarity."
+                cell_note_color = "gray"
+
+            st.markdown(f"""
+            <div style='text-align: center; font-size: 22px; color: {"green" if same_lattice else "gray"}'>
+                <strong>{cell_note}</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style='text-align: center; font-size: 28px;'>
+                <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
+                <p><strong>Legend:</strong><br>{legend_html}</p>
+                <p><strong>Number of Atoms:</strong> {len(structure)}</p>
+                <p><strong>Space Group:</strong> {space_group_str}</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+            # If atomic positions are to be shown, display them as a table.
+            if show_atomic:
+                import pandas as pd
+                df_atoms = pd.DataFrame(atomic_info)
+                st.subheader("Atomic Positions")
+                st.dataframe(df_atoms)
+    
+        with right_col:
+            st.components.v1.html(centered_html, height=600)
 
 # --- Diffraction Settings and Calculation ---
 
 
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.markdown("""
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
@@ -568,12 +744,10 @@ if mode == "Basic":
 
 
 
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
-
-
-
 with col_settings:
-    #st.divider()
+    
     st.subheader(
         "⚙️ Diffraction Settings",
         help=(
@@ -840,11 +1014,11 @@ with col_settings:
     # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
     if "two_theta_min" not in st.session_state:
         if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
-            st.session_state.two_theta_min = 2.0
+            st.session_state.two_theta_min = 5.0
         elif x_axis_metric in ["d (Å)", "d (nm)"]:
             st.session_state.two_theta_min = 20.0
         else:
-            st.session_state.two_theta_min = 2.0
+            st.session_state.two_theta_min = 5.0
     if "two_theta_max" not in st.session_state:
         st.session_state.two_theta_max = 165.0
 
@@ -875,9 +1049,12 @@ with col_settings:
                                                         diffraction_choice)
     two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
-    sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
-                            max_value=1.0, value=0.5, step=0.01)
-    num_annotate = st.number_input("⚙️ Annotate top how many peaks (by intensity):", min_value=0, max_value=30, value=5,
+    if peak_representation != "Delta":
+        sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
+                                max_value=1.5, value=0.5, step=0.01)
+    else:
+        sigma = 0.5
+    num_annotate = st.number_input("⚙️ How many highest peaks to annotate (by intensity):", min_value=0, max_value=30, value=5,
                                    step=1)
 
     if "calc_xrd" not in st.session_state:
@@ -1035,6 +1212,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
 
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
@@ -1048,7 +1226,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
 
-
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
@@ -1061,19 +1239,24 @@ if st.session_state.calc_xrd and uploaded_files:
             continue
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         # Filter the continuous curve to the user-specified x-axis range
+
+
+
+
         mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
                     details["x_dense_full"] <= st.session_state.two_theta_max)
         x_dense_range = twotheta_to_metric(details["x_dense_full"][mask], x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
         y_dense_range = details["y_dense"][mask]
-        fig_interactive.add_trace(go.Scatter(
-            x=x_dense_range,
-            y=y_dense_range,
-            mode='lines',
-            name=file_name,
-            line=dict(color=color, width=2),
-            hoverinfo='skip'
-        ))
+        if peak_representation != "Delta":
+            fig_interactive.add_trace(go.Scatter(
+                x=x_dense_range,
+                y=y_dense_range,
+                mode='lines',
+                name=file_name,
+                line=dict(color=color, width=2),
+                hoverinfo='skip'
+            ))
         # Build hover texts for peaks
         peak_hover_texts = []
         for hkl_group in details["hkls"]:
@@ -1096,17 +1279,42 @@ if st.session_state.calc_xrd and uploaded_files:
                 peak_vals_in_range.append(peak)
                 intensities_in_range.append(details["intensities"][i])
                 hover_texts_in_range.append(peak_hover_texts[i])
-        fig_interactive.add_trace(go.Scatter(
-            x=peak_vals_in_range,
-            y=intensities_in_range,
-            mode='markers',
-            name=f"{file_name} Peaks",
-            showlegend=False,
-            marker=dict(color=color, size=8, opacity=0.5),
-            text=hover_texts_in_range,
-            hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}:</b> %{{x:.2f}}<br><b>Intensity:</b> %{{y:.2f}}<br>%{{text}}<extra></extra>",
-            hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
-        ))
+
+        if peak_representation == "Delta":
+            # Build vertical line segments: for each peak, draw a line from y=0 to the peak's intensity.
+            vertical_x = []
+            vertical_y = []
+            vertical_hover = []
+            for i, peak in enumerate(peak_vals_in_range):
+                vertical_x.extend([peak, peak, None])
+                vertical_y.extend([0, intensities_in_range[i], None])
+                # Optionally, add hover text only on the top of the line.
+                vertical_hover.extend([hover_texts_in_range[i], hover_texts_in_range[i], None])
+            fig_interactive.add_trace(go.Scatter(
+                x=vertical_x,
+                y=vertical_y,
+                mode='lines',
+                name=f"{file_name}",
+                showlegend=True,
+                line=dict(color=color, width=2),
+                hoverinfo='text',
+                text=vertical_hover,
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
+                hoverlabel = dict(bgcolor=color, font=dict(color="white", size=20))
+            ))
+        else:
+            # For Gaussian peak representation, use markers as before.
+            fig_interactive.add_trace(go.Scatter(
+                x=peak_vals_in_range,
+                y=intensities_in_range,
+                mode='markers',
+                name=f"{file_name}",
+                showlegend=True,
+                marker=dict(color=color, size=8, opacity=0.5),
+                text=hover_texts_in_range,
+                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
+                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
+            ))
         fig_interactive.update_layout(
             height=1000,
             margin=dict(t=80, b=80, l=60, r=30),
@@ -1120,18 +1328,31 @@ if st.session_state.calc_xrd and uploaded_files:
                 font=dict(size=36)
             ),
             xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36), standoff=20),
-                tickfont=dict(size=36)
+                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20, ),
+                tickfont=dict(size=36, color='black')
             ),
             yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=36)),
-                tickfont=dict(size=36)
+                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black'), ),
+                tickfont=dict(size=36, color='black')
             ),
             hoverlabel=dict(font=dict(size=30)),
             font=dict(size=18),
             autosize=True
         )
         # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
+    display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm,
+                                            diffraction_choice)
+    display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
+                                            diffraction_choice)
+    if x_axis_metric in ["d (Å)", "d (nm)"]:
+        # Reverse the range for d-spacing: higher d values should appear on the right.
+        fig_interactive.update_layout(
+            xaxis=dict(range=[display_metric_max, display_metric_min])
+        )
+    else:
+        fig_interactive.update_layout(
+            xaxis=dict(range=[display_metric_min, display_metric_max])
+        )
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
@@ -1253,6 +1474,7 @@ if st.session_state.calc_xrd and uploaded_files:
     )
 
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
@@ -1266,7 +1488,8 @@ if st.session_state.calc_xrd and uploaded_files:
                 """, unsafe_allow_html=True)
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
-    st.divider()
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+    st.subheader("Quantitative Data for Calculated Diffraction Patterns")
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -1383,7 +1606,7 @@ with right_rdf:
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
     if st.session_state.calc_rdf and uploaded_files:
-        st.subheader("📊 OUTPUT → RDF (PRDF & Global RDF)")
+        st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
         species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
         all_prdf_dict = defaultdict(list)
         all_distance_dict = {}
@@ -1441,7 +1664,7 @@ with right_rdf:
                 for x, y in zip(all_distance_dict[comb], prdf_avg):
                     table_str += f"{x:<12.3f} {y:<12.3f}\n"
                 st.code(table_str, language="text")
-        st.subheader("Global RDF Plot:")
+        st.subheader("Total RDF Plot:")
         global_bins_set = set()
         for gd in global_rdf_list:
             global_bins_set.update(gd.keys())
@@ -1457,17 +1680,17 @@ with right_rdf:
         global_color = colors[len(all_prdf_dict) % len(colors)]
         ax_global.plot(global_bins, global_rdf_avg, label="Global RDF", color=global_color)
         ax_global.set_xlabel("Distance (Å)")
-        ax_global.set_ylabel("Global RDF Intensity")
+        ax_global.set_ylabel("Total RDF Intensity")
         ax_global.set_title(title_global)
         ax_global.legend()
         ax_global.set_ylim(bottom=0)
         st.pyplot(fig_global)
-        with st.expander("View Data for Global RDF"):
-            table_str = "#Distance (Å)    Global RDF\n"
+        with st.expander("View Data for Total RDF"):
+            table_str = "#Distance (Å)    Total RDF\n"
             for x, y in zip(global_bins, global_rdf_avg):
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
 st.divider()
 st.markdown("""
-This application was built using open-source libraries that are distributed under free licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**
+This application was built using open-source libraries that are distributed under free public licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**, **Materials Project**.
 """)
