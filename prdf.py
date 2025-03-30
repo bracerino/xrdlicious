@@ -166,14 +166,25 @@ with col2:
                     num_elements=len(elements_list),
                     fields=["material_id", "formula_pretty", "symmetry"]
                 )
-        if docs:
-            st.session_state['mp_options'] = [
-                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol})"
-                for doc in docs
-            ]
-        else:
-            st.session_state['mp_options'] = []
-            st.warning("No matching structures found in Materials Project.")
+                if docs:
+                    st.session_state['mp_options'] = []
+                    st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
+                    for doc in docs:
+                        # Retrieve the full structure (including lattice parameters)
+                        full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                        st.session_state['full_structures'][doc.material_id] = full_structure
+                        lattice = full_structure.lattice
+                        lattice_str = (
+                            f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                            f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
+                        )
+                        st.session_state['mp_options'].append(
+                            f"{doc.material_id}: {doc.formula_pretty} "
+                            f"({doc.symmetry.symbol}, {lattice_str})"
+                        )
+                else:
+                    st.session_state['mp_options'] = []
+                    st.warning("No matching structures found in Materials Project.")
         st.success("Finished searching for structures.")
 
 # Column 2: Select structure and add/download CIF.
@@ -190,26 +201,22 @@ with col3:
         selected_id = selected_mp_structure.split(":")[0].strip()
         composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
         file_name = f"{selected_id}_{composition}.cif"
-
         file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
         if st.button("Add Selected Structure", key="add_btn"):
-            with MPRester(MP_API_KEY) as mpr:
-                pmg_structure = mpr.get_structure_by_material_id(selected_id)
+            # Use the pre-stored structure from session state
+            pmg_structure = st.session_state['full_structures'][selected_id]
             cif_writer = CifWriter(pmg_structure)
             cif_content = cif_writer.__str__()
             cif_file = io.BytesIO(cif_content.encode('utf-8'))
             cif_file.name = file_name
-
             if all(f.name != file_name for f in st.session_state['uploaded_files']):
                 st.session_state['uploaded_files'].append(cif_file)
             st.session_state['selected_structure'] = selected_mp_structure
             st.success("Structure added!")
 
-
-        # Fetch the structure for the currently selected material ID.
-        with MPRester(MP_API_KEY) as mpr:
-            pmg_structure = mpr.get_structure_by_material_id(selected_id)
+        # Use the stored structure for the download button.
+        pmg_structure = st.session_state['full_structures'][selected_id]
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
         st.download_button(
