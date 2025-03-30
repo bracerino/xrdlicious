@@ -174,7 +174,8 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: <br>⬇️
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: 
+        <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
     # Custom thick black divider
