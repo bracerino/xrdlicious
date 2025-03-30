@@ -24,6 +24,7 @@ import matplotlib.colors as mcolors
 import streamlit as st
 from mp_api.client import MPRester
 from pymatgen.io.cif import CifWriter
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import io
 import re
 
@@ -113,6 +114,19 @@ st.divider()
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
 
+structure_cell_choice = st.sidebar.radio(
+    "Structure Cell Type:",
+    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
+    index=1,  # default to Conventional
+    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász)"
+         "lattice basis reduction algorithm to produce less skewed representation of the lattice."
+)
+
+convert_to_conventional = structure_cell_choice == "Conventional Cell"
+pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
+
 if mode == "Basic":
     #st.divider()
     st.markdown("""
@@ -179,6 +193,9 @@ with col2:
                             analyzer = SpacegroupAnalyzer(full_structure)
                             structure_to_use = analyzer.get_primitive_standard_structure()
                             structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                        elif pymatgen_prim_cell_no_reduce:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
                         else:
                             structure_to_use = full_structure
                         st.session_state['full_structures'][doc.material_id] = structure_to_use
@@ -477,6 +494,27 @@ if uploaded_files:
         else:
             selected_file = st.radio("", file_options)
         structure = read(selected_file)
+
+        selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
+        mp_struct = st.session_state.get('original_structures', {}).get(selected_id)
+
+        if mp_struct:
+            if convert_to_conventional:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_conventional_standard_structure()
+            elif pymatgen_prim_cell_niggli:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+            elif pymatgen_prim_cell_lll:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+            else:
+                converted_structure = mp_struct
+            structure = AseAtomsAdaptor.get_atoms(converted_structure)
+
+        
     
         # Checkbox option to show atomic positions (labels on structure and list in table)
         show_atomic = st.sidebar.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
@@ -540,13 +578,23 @@ if uploaded_files:
     
         # Get lattice parameters
         cell_params = structure.get_cell_lengths_and_angles()  # (a, b, c, α, β, γ)
+        a_para, b_para, c_para = cell_params[:3]
+        alpha, beta, gamma = [radians(x) for x in cell_params[3:]]
+
+        volume = a_para * b_para * c_para * sqrt(
+            1 - cos(alpha) ** 2 - cos(beta) ** 2 - cos(gamma) ** 2 +
+            2 * cos(alpha) * cos(beta) * cos(gamma)
+        )
+        # Get lattice parameters
+
         lattice_str = (
             f"a = {cell_params[0]:.4f} Å<br>"
             f"b = {cell_params[1]:.4f} Å<br>"
             f"c = {cell_params[2]:.4f} Å<br>"
             f"α = {cell_params[3]:.2f}°<br>"
             f"β = {cell_params[4]:.2f}°<br>"
-            f"γ = {cell_params[5]:.2f}°"
+            f"γ = {cell_params[5]:.2f}°<br>"
+            f"Volume = {volume:.2f} Å³"
         )
     
         left_col, right_col = st.columns(2)
