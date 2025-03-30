@@ -331,7 +331,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures and Download CIF File for the Visualized Structure in either Conventional or Primitive Cell Representation, if Needed: ⬇️
     </div>
     """, unsafe_allow_html=True)
     st.markdown("""
