@@ -231,7 +231,7 @@ with col2:
                         if convert_to_conventional:
                             #analyzer = SpacegroupAnalyzer(full_structure)
                             #structure_to_use = analyzer.get_conventional_standard_structure()
-                            converted_structure = get_full_conventional_structure(full_structure, symprec=0.1)
+                            structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
                         elif pymatgen_prim_cell_lll:
                             analyzer = SpacegroupAnalyzer(full_structure)
                             structure_to_use = analyzer.get_primitive_standard_structure()
