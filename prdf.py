@@ -506,8 +506,11 @@ st.sidebar.markdown("### Structure Visualization Tool:")
 show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
 if uploaded_files:
     if show_structure:
-        file_options = [file.name for file in uploaded_files]
-        st.subheader("Select structure for interactive visualization:")
+        col_viz, col_download = st.columns(2)
+
+        with col_viz:
+            file_options = [file.name for file in uploaded_files]
+            st.subheader("Select structure for interactive visualization:")
         if len(file_options) > 3:
             selected_file = st.selectbox("", file_options)
         else:
