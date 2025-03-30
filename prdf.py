@@ -1489,6 +1489,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+    st.subheader("Quantitative Data for Calculated Diffraction Patterns")
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
