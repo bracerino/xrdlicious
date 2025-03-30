@@ -571,11 +571,13 @@ if uploaded_files:
             lattice_info = "primitive_no_reduce"
         else:
             lattice_info = "primitive"
+        
         cif_writer_visual = CifWriter(visual_pmg_structure, symprec=0.1, refine_struct=False)
         
         cif_content_visual = cif_writer_visual.__str__()
-        sg_analyzer = SpacegroupAnalyzer(mg_structure)
-        spg_number0 = sg_analyzer.get_space_group_number()
+        if mp_struct:
+            sg_analyzer = SpacegroupAnalyzer(mp_struct)
+            spg_number0 = sg_analyzer.get_space_group_number()
         
         # Prepare a file name (ensure it ends with .cif)
         download_file_name = selected_file + 'SpaceGroup_{}_{}'.format(spg_number0,lattice_info) + '.cif'
