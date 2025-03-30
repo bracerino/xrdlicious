@@ -267,6 +267,7 @@ with col3:
             label="Download CIF File",
             data=cif_content,
             file_name=file_name,
+            type="primary",
             mime="chemical/x-cif"
         )
 
@@ -547,8 +548,45 @@ if uploaded_files:
         add_box(view, cell, color='black', linewidth=2)
         view.zoomTo()
         view.zoom(1.2)
-    
-    
+
+        #Download CIF for visualized structure
+        if mp_struct:
+            visual_pmg_structure = converted_structure
+        else:
+            visual_pmg_structure = load_structure(selected_file)
+        for site in visual_pmg_structure.sites:
+            print(site.species)  # This will show occupancy info
+            # Write CIF content directly using pymatgen:
+            # Otherwise, use the chosen conversion
+        if convert_to_conventional:
+            lattice_info = "conventional"
+        elif pymatgen_prim_cell_niggli:
+            lattice_info = "primitive_niggli"
+        elif pymatgen_prim_cell_lll:
+            lattice_info = "primitive_lll"
+        elif pymatgen_prim_cell_no_reduce:
+            lattice_info = "primitive_no_reduce"
+        else:
+            lattice_info = "primitive"
+        cif_writer_visual = CifWriter(visual_pmg_structure, symprec=0.1, refine_struct=False)
+
+        cif_content_visual = cif_writer_visual.__str__()
+        # Prepare a file name (ensure it ends with .cif)
+        download_file_name = selected_file
+        download_file_name = selected_file + '_{}'.format(lattice_info) + '.cif'
+        if not download_file_name.lower().endswith('.cif'):
+            download_file_name = download_file_name.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
+
+        with col_download:
+            st.download_button(
+                label="Download CIF for Visualized Structure",
+                data=cif_content_visual,
+                file_name=download_file_name,
+                type="primary",
+                mime="chemical/x-cif"
+            )
+
+        
         atomic_info = []
         if show_atomic:
             import numpy as np
