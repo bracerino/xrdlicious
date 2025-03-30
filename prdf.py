@@ -180,7 +180,7 @@ with col2:
 with col3:
     st.subheader("🧪 Structures Found in Materials Project")
     if st.session_state['mp_options'] is None:
-        st.info("Please press the 'Search Materials Project' button above to view the available structures.")
+        st.info("Please press the 'Search Materials Project' button to view the available structures.")
     elif st.session_state['mp_options']:
         selected_mp_structure = st.selectbox(
             "Select a structure from Materials Project:",
