@@ -28,14 +28,35 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from math import cos, radians, sqrt
 import io
 import re
+import spglib
+from pymatgen.core import Structure
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
-
 #import pkg_resources
 #installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
 #st.subheader("Installed Python Modules")
 #for package, version in installed_packages:
 #    st.write(f"{package}=={version}")
+
+
+def get_full_conventional_structure(structure, symprec=1e-3):
+    """
+    Returns the full conventional cell for a given pymatgen Structure.
+    This uses spglib to standardize the cell.
+    """
+    # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
+    cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
+    # Get the symmetry dataset from spglib
+    dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+    std_lattice = dataset['std_lattice']
+    std_positions = dataset['std_positions']
+    std_types = dataset['std_types']
+    # Build the conventional cell as a new Structure object
+    conv_structure = Structure(std_lattice, std_types, std_positions)
+    return conv_structure
+
+
+
 
 
 def rgb_color(color_tuple, opacity=0.8):
@@ -207,8 +228,9 @@ with col2:
                         # Retrieve the full structure (including lattice parameters)
                         full_structure = mpr.get_structure_by_material_id(doc.material_id)
                         if convert_to_conventional:
-                            analyzer = SpacegroupAnalyzer(full_structure)
-                            structure_to_use = analyzer.get_conventional_standard_structure()
+                            #analyzer = SpacegroupAnalyzer(full_structure)
+                            #structure_to_use = analyzer.get_conventional_standard_structure()
+                            converted_structure = get_full_conventional_structure(full_structure, symprec=0.1)
                         elif pymatgen_prim_cell_lll:
                             analyzer = SpacegroupAnalyzer(full_structure)
                             structure_to_use = analyzer.get_primitive_standard_structure()
@@ -527,8 +549,9 @@ if uploaded_files:
 
         if mp_struct:
             if convert_to_conventional:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_conventional_standard_structure()
+                #analyzer = SpacegroupAnalyzer(mp_struct)
+                #converted_structure = analyzer.get_conventional_standard_structure()
+                converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
             elif pymatgen_prim_cell_niggli:
                 analyzer = SpacegroupAnalyzer(mp_struct)
                 converted_structure = analyzer.get_primitive_standard_structure()
