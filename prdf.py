@@ -146,6 +146,7 @@ pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
 pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     #st.divider()
     st.markdown("""
         <hr style="height:3px;border:none;color:#333;background-color:#333;" />
@@ -175,6 +176,7 @@ if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'
 
 
 # Create two columns: one for search and one for structure selection and actions.
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
 # Column 1: Search for structures.
@@ -303,6 +305,7 @@ if mode == "Basic" and not uploaded_files:
 # --- Detect Atomic Species ---
 
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.markdown("""
         <hr style="height:3px;border:none;color:#333;background-color:#333;" />
         """, unsafe_allow_html=True)
@@ -506,12 +509,12 @@ st.sidebar.markdown("### Structure Visualization Tool:")
 show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
 if uploaded_files:
     if show_structure:
-        st.divider()
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         col_viz, col_download = st.columns(2)
         
         with col_viz:
             file_options = [file.name for file in uploaded_files]
-            st.subheader("Select structure for interactive visualization:")
+            st.subheader("Select Structure for Interactive Visualization:")
         if len(file_options) > 3:
             selected_file = st.selectbox("", file_options)
         else:
@@ -725,6 +728,7 @@ if uploaded_files:
 
 
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.markdown("""
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
@@ -739,7 +743,6 @@ if mode == "Basic":
 
 
 
-st.divider()
 st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
 with col_settings:
@@ -1208,6 +1211,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
 
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
@@ -1221,7 +1225,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
 
-
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
