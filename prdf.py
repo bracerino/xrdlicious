@@ -1474,6 +1474,7 @@ if st.session_state.calc_xrd and uploaded_files:
     )
 
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
@@ -1487,7 +1488,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 """, unsafe_allow_html=True)
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
-    st.divider()
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
