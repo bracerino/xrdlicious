@@ -580,9 +580,9 @@ if uploaded_files:
             spg_number0 = sg_analyzer.get_space_group_number()
         
         # Prepare a file name (ensure it ends with .cif)
-        download_file_name = selected_file + 'SpaceGroup_{}_{}'.format(spg_number0,lattice_info) + '.cif'
+        download_file_name = selected_file.split('.')[0] + 'SpaceGroup_{}_{}'.format(spg_number0,lattice_info) + '.cif'
         if not download_file_name.lower().endswith('.cif'):
-            download_file_name = selected_file + 'SpaceGroup_{}_{}'.format(spg_number0,lattice_info) + '.cif'
+            download_file_name = selected_file.split('.')[0] + 'SpaceGroup_{}_{}'.format(spg_number0,lattice_info) + '.cif'
 
        
             
