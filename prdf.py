@@ -120,7 +120,7 @@ structure_cell_choice = st.sidebar.radio(
     options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
     index=1,  # default to Conventional
     help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász)"
-         "lattice basis reduction algorithm to produce less skewed representation of the lattice."
+         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
 )
 
 convert_to_conventional = structure_cell_choice == "Conventional Cell"
@@ -512,6 +512,7 @@ if uploaded_files:
                 converted_structure = analyzer.get_primitive_standard_structure()
                 converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
             else:
+                analyzer = SpacegroupAnalyzer(mp_struct)
                 converted_structure = analyzer.get_primitive_standard_structure()
             structure = AseAtomsAdaptor.get_atoms(converted_structure)
 
