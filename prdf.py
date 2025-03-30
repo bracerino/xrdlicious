@@ -58,6 +58,23 @@ def load_structure(file_or_name):
     return mg_structure
 
 
+def lattice_same_conventional_vs_primitive(structure):
+    try:
+        analyzer = SpacegroupAnalyzer(structure)
+        primitive = analyzer.get_primitive_standard_structure()
+        conventional = analyzer.get_conventional_standard_structure()
+
+        lattice_diff = np.abs(primitive.lattice.matrix - conventional.lattice.matrix)
+        volume_diff = abs(primitive.lattice.volume - conventional.lattice.volume)
+
+        if np.all(lattice_diff < 1e-3) and volume_diff < 1e-2:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return None  # Could not determine
+    
+
 # Inject custom CSS for buttons.
 st.markdown(
     """
@@ -605,7 +622,6 @@ if uploaded_files:
             st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
     
             try:
-                from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
                 mg_structure = AseAtomsAdaptor.get_structure(structure)
                 sg_analyzer = SpacegroupAnalyzer(mg_structure)
                 spg_symbol = sg_analyzer.get_space_group_symbol()
@@ -613,7 +629,34 @@ if uploaded_files:
                 space_group_str = f"{spg_symbol} ({spg_number})"
             except Exception:
                 space_group_str = "Not available"
-    
+            try:
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+                sg_analyzer = SpacegroupAnalyzer(mg_structure)
+                spg_symbol = sg_analyzer.get_space_group_symbol()
+                spg_number = sg_analyzer.get_space_group_number()
+                space_group_str = f"{spg_symbol} ({spg_number})"
+
+                # New check
+                same_lattice = lattice_same_conventional_vs_primitive(mg_structure)
+                if same_lattice is None:
+                    cell_note = "⚠️ Could not determine if cells are identical."
+                    cell_note_color = "gray"
+                elif same_lattice:
+                    cell_note = "✅ Note: Conventional and Primitive Cells have the SAME cell volume."
+                    cell_note_color = "green"
+                else:
+                    cell_note = "Note: Conventional and Primitive Cells have DIFFERENT cell volume."
+                    cell_note_color = "gray"
+            except Exception:
+                space_group_str = "Not available"
+                cell_note = "⚠️ Could not determine space group or cell similarity."
+                cell_note_color = "gray"
+
+            st.markdown(f"""
+            <div style='text-align: center; font-size: 22px; color: {"green" if same_lattice else "gray"}'>
+                <strong>{cell_note}</strong>
+            </div>
+            """, unsafe_allow_html=True)
             st.markdown(f"""
             <div style='text-align: center; font-size: 28px;'>
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
