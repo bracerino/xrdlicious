@@ -1135,7 +1135,6 @@ if st.session_state.calc_xrd and uploaded_files:
 
     with col_plot:
         st.subheader("📊 OUTPUT → Diffraction Patterns")
-        st.markdown("### Structures to have in the Diffraction Plot:")
        # include_in_combined = {}
        # for file in uploaded_files:
        #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
