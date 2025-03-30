@@ -512,7 +512,7 @@ if uploaded_files:
                 converted_structure = analyzer.get_primitive_standard_structure()
                 converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
             else:
-                converted_structure = mp_struct
+                converted_structure = analyzer.get_primitive_standard_structure()
             structure = AseAtomsAdaptor.get_atoms(converted_structure)
 
         
