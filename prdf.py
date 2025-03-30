@@ -739,10 +739,9 @@ if mode == "Basic":
 
 
 
-col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
-
-
 st.divider()
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
 with col_settings:
     
     st.subheader(
