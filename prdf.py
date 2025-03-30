@@ -25,6 +25,7 @@ import streamlit as st
 from mp_api.client import MPRester
 from pymatgen.io.cif import CifWriter
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from math import cos, radians, sqrt
 import io
 import re
 
