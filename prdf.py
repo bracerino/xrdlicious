@@ -497,7 +497,7 @@ if uploaded_files:
         structure = read(selected_file)
 
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
-        mp_struct = st.session_state.get('original_structures', {}).get(selected_id)
+        mp_struct = st.session_state.get('full_structures', {}).get(selected_id)
 
         if mp_struct:
             if convert_to_conventional:
