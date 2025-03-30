@@ -287,13 +287,37 @@ with col3:
         pmg_structure = st.session_state['full_structures'][selected_id]
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
-        st.download_button(
-            label="Download CIF File",
-            data=cif_content,
-            file_name=file_name,
-            type="primary",
-            mime="chemical/x-cif"
-        )
+        col_d, col_url = st.columns(2)
+        with col_d:
+            st.download_button(
+                label="Download CIF File",
+                data=cif_content,
+                file_name=file_name,
+                type="primary",
+                mime="chemical/x-cif"
+            )
+        with col_url:
+            # Create the URL for the Materials Project page using the selected material ID.
+            mp_url = f"https://materialsproject.org/materials/{selected_id}"
+
+            # Add a hyperlink styled as a button.
+            st.markdown(
+                f"""
+                <a href="{mp_url}" target="_blank" style="
+                    display: inline-block;
+                    margin-top: 0px;
+                    padding: 0.5em 1em;
+                    background-color: #66bb66;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-weight: normal;
+                    font-size: 16px;">
+                    View Structure {selected_id} on Materials Project
+                </a>
+                """,
+                unsafe_allow_html=True,
+            )
 
 st.markdown("---")
 
