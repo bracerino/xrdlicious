@@ -1679,5 +1679,5 @@ with right_rdf:
             st.code(table_str, language="text")
 st.divider()
 st.markdown("""
-This application was built using open-source libraries that are distributed under free licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**
+This application was built using open-source libraries that are distributed under free public licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**, **Materials Project**.
 """)
