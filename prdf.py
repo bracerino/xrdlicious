@@ -574,7 +574,6 @@ if uploaded_files:
         cif_writer_visual = CifWriter(visual_pmg_structure, symprec=0.1, refine_struct=False)
         
         cif_content_visual = cif_writer_visual.__str__()
-        mg_structure = AseAtomsAdaptor.get_structure(visual_pmg_structure)
         sg_analyzer = SpacegroupAnalyzer(mg_structure)
         spg_number0 = sg_analyzer.get_space_group_number()
         
