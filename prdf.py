@@ -304,19 +304,7 @@ if mode == "Basic" and not uploaded_files:
     st.stop()
 # --- Detect Atomic Species ---
 
-if mode == "Basic":
-    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
+
 
 if uploaded_files:
     species_set = set()
@@ -335,7 +323,20 @@ if uploaded_files:
     st.write(", ".join(species_list))
 else:
     species_list = []
-
+    
+if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align: center; font-size: 24px;'>
+        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+        """, unsafe_allow_html=True)
 
 def add_box(view, cell, color='black', linewidth=2):
     a, b, c = np.array(cell[0]), np.array(cell[1]), np.array(cell[2])
