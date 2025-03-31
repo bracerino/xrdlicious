@@ -1259,6 +1259,7 @@ if st.session_state.calc_xrd and uploaded_files:
         for idx, file in enumerate(uploaded_files):
             structure = read(file.name)
             mg_structure = load_structure(file)
+            mg_structure=get_full_conventional_structure(mg_structure)
             diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
             filtered_x = []
             filtered_y = []
