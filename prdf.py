@@ -1440,9 +1440,9 @@ if st.session_state.calc_xrd and uploaded_files:
             interactive_colors = user_colorss
             for idx, file in enumerate(user_pattern_file):
                 try:
-                    df = pd.read_csv(file, delim_whitespace=True, header=None)
+                    df = pd.read_csv(file, delim_whitespace=True, header=0)
                     if df.shape[1] < 2:
-                        df = pd.read_csv(file, sep=",", header=None)
+                        df = pd.read_csv(file, sep=",", header=0)
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
