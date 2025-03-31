@@ -167,7 +167,6 @@ pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
 pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
 if mode == "Basic":
-    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     #st.divider()
     st.markdown("""
         <hr style="height:3px;border:none;color:#333;background-color:#333;" />
@@ -1411,7 +1410,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
 
     st.subheader("Append Your XRD Pattern Data")
-    show_user_pattern = st.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     user_pattern_file = st.file_uploader(
         "Upload additional XRD pattern (2 columns: X-values and Intensity)",
         type=["csv", "txt"],
