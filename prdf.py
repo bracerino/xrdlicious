@@ -147,8 +147,8 @@ st.divider()
 
 # Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
-mode = st.sidebar.radio("Select Mode", ["Basic", "Advanced"], index=0)
-
+#mode = st.sidebar.radio("Select Mode", ["Basic", "Advanced"], index=0)
+mode = "Basic"
 structure_cell_choice = st.sidebar.radio(
     "Structure Cell Type:",
     options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
