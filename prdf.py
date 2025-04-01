@@ -449,7 +449,7 @@ if files_to_remove:
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
+    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/ZiRbcgS_cd0)")
 st.warning(
     "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
     "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)"
