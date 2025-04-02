@@ -1453,7 +1453,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 mode='lines',
                 name=f"{file_name}",
                 showlegend=True,
-                line=dict(color=color, width=2),
+                line=dict(color=color, width=4),
                 hoverinfo='text',
                 text=vertical_hover,
                 hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
