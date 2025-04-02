@@ -716,7 +716,7 @@ if uploaded_files:
         view.addModel(xyz_str, "xyz")
         view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
         cell = structure.get_cell()  # 3x3 array of lattice vectors
-        add_box(view, cell, color='black', linewidth=2)
+        add_box(view, cell, color='black', linewidth=4)
         view.zoomTo()
         view.zoom(1.2)
 
