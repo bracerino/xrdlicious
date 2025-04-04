@@ -966,11 +966,15 @@ with col_settings:
         )
 
 
-    def format_index(index):
+    def format_index(index, first=False):
         s = str(index)
         if len(s) == 2:
-            return s + " "
+            if first:
+                return s + " "
+            else:
+                return " " + s + " "
         return s
+
 
 
     def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffraction_choice):
@@ -1721,9 +1725,9 @@ if st.session_state.calc_xrd and uploaded_files:
                             if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
                                 continue
                     if len(hkl) == 3:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
+                        hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})" for h in hkls[i]])
                     else:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
+                        hkl_str = ", ".join([f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})" for h in hkls[i]])
                     data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
         combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
         st.dataframe(combined_df)
