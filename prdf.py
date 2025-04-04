@@ -180,6 +180,11 @@ if mode == "Basic":
 
     # st.divider()
 
+st.warning(
+"💡[📺 Quick tutorial for this application here: ](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
+"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)"
+)
+
 # Initialize session state keys if not already set.
 if 'mp_options' not in st.session_state:
     st.session_state['mp_options'] = None
@@ -449,11 +454,7 @@ if files_to_remove:
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/ZiRbcgS_cd0)")
-st.warning(
-    "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
-    "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)"
-)
+    st.warning("📌 Please upload at least one structure file.")
 st.info(
     "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Total RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
