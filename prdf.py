@@ -1153,7 +1153,7 @@ with col_settings:
     wavelength_nm = wavelength_value
 
     x_axis_options = [
-        "2θ (°)", "2θ (rad)",
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
         "q (1/Å)", "q (1/nm)",
         "d (Å)", "d (nm)",
         "energy (keV)", "frequency (PHz)"
