@@ -1533,7 +1533,7 @@ if st.session_state.calc_xrd and uploaded_files:
     show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     user_pattern_file = st.file_uploader(
         "Upload additional XRD pattern (2 columns: X-values and Intensity)",
-        type=["csv", "txt"],
+        type=["csv", "txt", "xy"],
         key="user_xrd", accept_multiple_files=True
     )
 
@@ -1557,9 +1557,9 @@ if st.session_state.calc_xrd and uploaded_files:
             interactive_colors = user_colorss
             for idx, file in enumerate(user_pattern_file):
                 try:
-                    df = pd.read_csv(file, delim_whitespace=True, header=0)
+                    df = pd.read_csv(file, sep=r'[,\t; ]+', header=None, skiprows=1 )
                     if df.shape[1] < 2:
-                        df = pd.read_csv(file, sep=",", header=0)
+                        df = pd.read_csv(file, sep=r'[,\t; ]+', header=None, skiprows=1 )
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
