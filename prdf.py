@@ -824,7 +824,7 @@ if uploaded_files:
             f"Volume = {volume:.2f} Å³"
         )
 
-        left_col, right_col = st.columns(2)
+        left_col, right_col = st.columns([1, 2])
 
         with left_col:
             st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>",
@@ -867,7 +867,7 @@ if uploaded_files:
             </div>
             """, unsafe_allow_html=True)
             st.markdown(f"""
-            <div style='text-align: center; font-size: 28px;'>
+            <div style='text-align: center; font-size: 22px;'>
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
                 <p><strong>Legend:</strong><br>{legend_html}</p>
                 <p><strong>Number of Atoms:</strong> {len(structure)}</p>
