@@ -1,7 +1,8 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)", layout="wide"
+    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)",
+    layout="wide"
 )
 
 import numpy as np
@@ -24,16 +25,38 @@ import matplotlib.colors as mcolors
 import streamlit as st
 from mp_api.client import MPRester
 from pymatgen.io.cif import CifWriter
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from math import cos, radians, sqrt
 import io
 import re
+import spglib
+from pymatgen.core import Structure
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-#import pkg_resources
-#installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
-#st.subheader("Installed Python Modules")
-#for package, version in installed_packages:
+
+# import pkg_resources
+# installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
+# st.subheader("Installed Python Modules")
+# for package, version in installed_packages:
 #    st.write(f"{package}=={version}")
+
+
+def get_full_conventional_structure(structure, symprec=1e-3):
+    """
+    Returns the full conventional cell for a given pymatgen Structure.
+    This uses spglib to standardize the cell.
+    """
+    # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
+    cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
+    # Get the symmetry dataset from spglib
+    dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+    std_lattice = dataset['std_lattice']
+    std_positions = dataset['std_positions']
+    std_types = dataset['std_types']
+    # Build the conventional cell as a new Structure object
+    conv_structure = Structure(std_lattice, std_types, std_positions)
+    return conv_structure
 
 
 def rgb_color(color_tuple, opacity=0.8):
@@ -54,6 +77,23 @@ def load_structure(file_or_name):
         atoms = read(filename)
         mg_structure = AseAtomsAdaptor.get_structure(atoms)
     return mg_structure
+
+
+def lattice_same_conventional_vs_primitive(structure):
+    try:
+        analyzer = SpacegroupAnalyzer(structure)
+        primitive = analyzer.get_primitive_standard_structure()
+        conventional = analyzer.get_conventional_standard_structure()
+
+        lattice_diff = np.abs(primitive.lattice.matrix - conventional.lattice.matrix)
+        volume_diff = abs(primitive.lattice.volume - conventional.lattice.volume)
+
+        if np.all(lattice_diff < 1e-3) and volume_diff < 1e-2:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return None  # Could not determine
 
 
 # Inject custom CSS for buttons.
@@ -81,7 +121,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 st.markdown(
     """
     <style>
@@ -92,7 +131,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 components.html(
     """
@@ -107,20 +145,32 @@ st.title(
     "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
 
-
-
 # Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
-mode = st.sidebar.radio("Select Mode",["Basic", "Advanced"], index=0)
+#mode = st.sidebar.radio("Select Mode", ["Basic", "Advanced"], index=0)
+mode = "Basic"
+structure_cell_choice = st.sidebar.radio(
+    "Structure Cell Type:",
+    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
+    index=1,  # default to Conventional
+    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
+         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
+)
+
+convert_to_conventional = structure_cell_choice == "Conventional Cell"
+pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
 if mode == "Basic":
-    #st.divider()
+    # st.divider()
     st.markdown("""
         <hr style="height:3px;border:none;color:#333;background-color:#333;" />
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: ⬇️
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: 
+        <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
     # Custom thick black divider
@@ -128,9 +178,7 @@ if mode == "Basic":
     <hr style="height:3px;border:none;color:#333;background-color:#333;" />
     """, unsafe_allow_html=True)
 
-    #st.divider()
-
-
+    # st.divider()
 
 # Initialize session state keys if not already set.
 if 'mp_options' not in st.session_state:
@@ -140,10 +188,18 @@ if 'selected_structure' not in st.session_state:
 if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
     st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
-
-
 # Create two columns: one for search and one for structure selection and actions.
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
+
+
+st.sidebar.subheader("📤 Upload Your Structure Files")
+uploaded_files_user_sidebar = st.sidebar.file_uploader(
+        "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...):",
+        type=None,
+        accept_multiple_files=True,
+    key="sidebar_uploader"
+    )
 
 # Column 1: Search for structures.
 with col1:
@@ -156,7 +212,8 @@ with col1:
     )
 with col2:
     st.subheader("🔍 or Search for Structures in Materials Project Database")
-    search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2", value="Sr Ti O")
+    search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2",
+                                 value="Sr Ti O")
     if st.button("Search Materials Project", key="search_btn") and search_query:
         with st.spinner("Searching for structures in database..."):
             elements_list = sorted(set(search_query.split()))
@@ -172,8 +229,21 @@ with col2:
                     for doc in docs:
                         # Retrieve the full structure (including lattice parameters)
                         full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                        st.session_state['full_structures'][doc.material_id] = full_structure
-                        lattice = full_structure.lattice
+                        if convert_to_conventional:
+                            # analyzer = SpacegroupAnalyzer(full_structure)
+                            # structure_to_use = analyzer.get_conventional_standard_structure()
+                            structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                        elif pymatgen_prim_cell_lll:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
+                            structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                        elif pymatgen_prim_cell_no_reduce:
+                            analyzer = SpacegroupAnalyzer(full_structure)
+                            structure_to_use = analyzer.get_primitive_standard_structure()
+                        else:
+                            structure_to_use = full_structure
+                        st.session_state['full_structures'][doc.material_id] = structure_to_use
+                        lattice = structure_to_use.lattice
                         lattice_str = (
                             f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
                             f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
@@ -219,30 +289,167 @@ with col3:
         pmg_structure = st.session_state['full_structures'][selected_id]
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
-        st.download_button(
-            label="Download CIF File",
-            data=cif_content,
-            file_name=file_name,
-            mime="chemical/x-cif"
-        )
+        col_d, col_url = st.columns(2)
+        with col_d:
+            st.download_button(
+                label="Download CIF File",
+                data=cif_content,
+                file_name=file_name,
+                type="primary",
+                mime="chemical/x-cif"
+            )
+        with col_url:
+            # Create the URL for the Materials Project page using the selected material ID.
+            mp_url = f"https://materialsproject.org/materials/{selected_id}"
+
+            # Add a hyperlink styled as a button.
+            st.markdown(
+                f"""
+                <a href="{mp_url}" target="_blank" style="
+                    display: inline-block;
+                    margin-top: 0px;
+                    padding: 0.5em 1em;
+                    background-color: #66bb66;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-weight: normal;
+                    font-size: 16px;">
+                    View Structure {selected_id} on Materials Project
+                </a>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+
+# Column 2: Select structure and add/download CIF.
+search_query = st.sidebar.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2_sidebar",
+                             value="Sr Ti O", )
+if st.sidebar.button("Search Materials Project", key="sidebar_search_btn") and search_query:
+    with st.spinner("Searching for structures in database..."):
+        elements_list = sorted(set(search_query.split()))
+        with MPRester(MP_API_KEY) as mpr:
+            docs = mpr.materials.summary.search(
+                elements=elements_list,
+                num_elements=len(elements_list),
+                fields=["material_id", "formula_pretty", "symmetry"]
+            )
+            if docs:
+                st.session_state['mp_options'] = []
+                st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
+                for doc in docs:
+                    # Retrieve the full structure (including lattice parameters)
+                    full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                    if convert_to_conventional:
+                        # analyzer = SpacegroupAnalyzer(full_structure)
+                        # structure_to_use = analyzer.get_conventional_standard_structure()
+                        structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                    elif pymatgen_prim_cell_lll:
+                        analyzer = SpacegroupAnalyzer(full_structure)
+                        structure_to_use = analyzer.get_primitive_standard_structure()
+                        structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                    elif pymatgen_prim_cell_no_reduce:
+                        analyzer = SpacegroupAnalyzer(full_structure)
+                        structure_to_use = analyzer.get_primitive_standard_structure()
+                    else:
+                        structure_to_use = full_structure
+                    st.session_state['full_structures'][doc.material_id] = structure_to_use
+                    lattice = structure_to_use.lattice
+                    lattice_str = (
+                        f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                        f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
+                    )
+                    st.session_state['mp_options'].append(
+                        f"{doc.material_id}: {doc.formula_pretty} "
+                        f"({doc.symmetry.symbol}, {lattice_str})"
+                    )
+            else:
+                st.session_state['mp_options'] = []
+                st.warning("No matching structures found in Materials Project.")
+    st.sidebar.success("Finished searching for structures.")
+
+
+
+if st.session_state['mp_options'] is None:
+    st.info("Please press the 'Search Materials Project' button to view the available structures.")
+elif st.session_state['mp_options']:
+    selected_mp_structure = st.sidebar.selectbox(
+        "Select a structure from Materials Project:",
+        st.session_state['mp_options'], key='selected_sidebar'
+    )
+    # Extract material ID and composition (ignore space group).
+    selected_id = selected_mp_structure.split(":")[0].strip()
+    composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
+    file_name = f"{selected_id}_{composition}.cif"
+    file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+    if st.sidebar.button("Add Selected Structure", key="add_btn_sidebar"):
+        # Use the pre-stored structure from session state
+        pmg_structure = st.session_state['full_structures'][selected_id]
+        cif_writer = CifWriter(pmg_structure)
+        cif_content = cif_writer.__str__()
+        cif_file = io.BytesIO(cif_content.encode('utf-8'))
+        cif_file.name = file_name
+        if all(f.name != file_name for f in st.session_state['uploaded_files']):
+            st.session_state['uploaded_files'].append(cif_file)
+        st.session_state['selected_structure'] = selected_mp_structure
+        st.sidebar.success("Structure added!")
+
+
+
+
+
+
 
 st.markdown("---")
 
-
-
-if uploaded_files_user:
-    uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user
+if uploaded_files_user or uploaded_files_user_sidebar:
+    uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user + uploaded_files_user_sidebar
 else:
     uploaded_files = st.session_state['uploaded_files']
-
 
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
+
+st.sidebar.markdown("### 🗑️ Remove Structure(s) from MP")
+
+files_to_remove = []
+for i, file in enumerate(st.session_state['uploaded_files']):
+    col1, col2 = st.sidebar.columns([4, 1])
+    col1.write(file.name)
+    if col2.button("❌", key=f"remove_{i}"):
+        files_to_remove.append(file)
+
+if files_to_remove:
+    for f in files_to_remove:
+        st.session_state['uploaded_files'].remove(f)
+    st.rerun()  # 🔁 Force Streamlit to rerun and refresh UI
+
+
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/-zjuqwXT2-k)")
+    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/ZiRbcgS_cd0)")
 st.warning(
     "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
     "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)"
@@ -257,18 +464,6 @@ if mode == "Basic" and not uploaded_files:
     st.stop()
 # --- Detect Atomic Species ---
 
-if mode == "Basic":
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures If Needed: ⬇️
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
 
 if uploaded_files:
     species_set = set()
@@ -287,6 +482,7 @@ if uploaded_files:
     st.write(", ".join(species_list))
 else:
     species_list = []
+
 
 
 def add_box(view, cell, color='black', linewidth=2):
@@ -458,17 +654,59 @@ jmol_colors = {
 }
 
 st.sidebar.markdown("### Structure Visualization Tool:")
-show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
+#show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
+show_structure = True
 if uploaded_files:
     if show_structure:
-        file_options = [file.name for file in uploaded_files]
-        st.subheader("Select structure for interactive visualization:")
+        if mode == "Basic":
+            st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+            st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
+            st.markdown("""
+            <div style='text-align: center; font-size: 24px;'>
+                🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures and Download CIF File for the Visualized Structure in either Conventional or Primitive Cell Representation, if Needed: 
+                <br><span style="font-size: 28px;">⬇️</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+                <hr style="height:3px;border:none;color:#333;background-color:#333;" />
+                """, unsafe_allow_html=True)
+
+
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+        col_viz, col_download = st.columns(2)
+
+        with col_viz:
+            file_options = [file.name for file in uploaded_files]
+            st.subheader("Select Structure for Interactive Visualization:")
         if len(file_options) > 3:
             selected_file = st.selectbox("", file_options)
         else:
             selected_file = st.radio("", file_options)
         structure = read(selected_file)
-    
+
+        selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
+        mp_struct = st.session_state.get('full_structures', {}).get(selected_id)
+
+        if mp_struct:
+            if convert_to_conventional:
+                # analyzer = SpacegroupAnalyzer(mp_struct)
+                # converted_structure = analyzer.get_conventional_standard_structure()
+                converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+            elif pymatgen_prim_cell_niggli:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+            elif pymatgen_prim_cell_lll:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+            else:
+                analyzer = SpacegroupAnalyzer(mp_struct)
+                converted_structure = analyzer.get_primitive_standard_structure()
+            structure = AseAtomsAdaptor.get_atoms(converted_structure)
+
         # Checkbox option to show atomic positions (labels on structure and list in table)
         show_atomic = st.sidebar.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
         xyz_io = StringIO()
@@ -478,19 +716,57 @@ if uploaded_files:
         view.addModel(xyz_str, "xyz")
         view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
         cell = structure.get_cell()  # 3x3 array of lattice vectors
-        add_box(view, cell, color='black', linewidth=2)
+        add_box(view, cell, color='black', linewidth=4)
         view.zoomTo()
         view.zoom(1.2)
-    
-    
+
+        # Download CIF for visualized structure
+        if mp_struct:
+            visual_pmg_structure = converted_structure
+        else:
+            visual_pmg_structure = load_structure(selected_file)
+        for site in visual_pmg_structure.sites:
+            print(site.species)  # This will show occupancy info
+            # Write CIF content directly using pymatgen:
+            # Otherwise, use the chosen conversion
+        if convert_to_conventional:
+            lattice_info = "conventional"
+        elif pymatgen_prim_cell_niggli:
+            lattice_info = "primitive_niggli"
+        elif pymatgen_prim_cell_lll:
+            lattice_info = "primitive_lll"
+        elif pymatgen_prim_cell_no_reduce:
+            lattice_info = "primitive_no_reduce"
+        else:
+            lattice_info = "primitive"
+
+        cif_writer_visual = CifWriter(visual_pmg_structure, symprec=0.1, refine_struct=False)
+
+        cif_content_visual = cif_writer_visual.__str__()
+
+        # Prepare a file name (ensure it ends with .cif)
+        download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
+        if not download_file_name.lower().endswith('.cif'):
+            download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
+
+        with col_download:
+            st.download_button(
+                label="Download CIF for Visualized Structure",
+                data=cif_content_visual,
+                file_name=download_file_name,
+                type="primary",
+                mime="chemical/x-cif"
+            )
+
         atomic_info = []
         if show_atomic:
             import numpy as np
+
             inv_cell = np.linalg.inv(cell)
             for i, atom in enumerate(structure):
                 symbol = atom.symbol
                 x, y, z = atom.position
-    
+
                 frac = np.dot(inv_cell, atom.position)
                 label_text = f"{symbol}{i}"
                 view.addLabel(label_text, {
@@ -512,12 +788,11 @@ if uploaded_files:
                     "Frac Y": round(frac[1], 3),
                     "Frac Z": round(frac[2], 3)
                 })
-    
+
         html_str = view._make_html()
-    
-    
+
         centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
-    
+
         unique_elements = sorted(set(structure.get_chemical_symbols()))
         legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
         for elem in unique_elements:
@@ -528,25 +803,35 @@ if uploaded_files:
                 f"<span>{elem}</span></div>"
             )
         legend_html += "</div>"
-    
+
         # Get lattice parameters
         cell_params = structure.get_cell_lengths_and_angles()  # (a, b, c, α, β, γ)
+        a_para, b_para, c_para = cell_params[:3]
+        alpha, beta, gamma = [radians(x) for x in cell_params[3:]]
+
+        volume = a_para * b_para * c_para * sqrt(
+            1 - cos(alpha) ** 2 - cos(beta) ** 2 - cos(gamma) ** 2 +
+            2 * cos(alpha) * cos(beta) * cos(gamma)
+        )
+        # Get lattice parameters
+
         lattice_str = (
             f"a = {cell_params[0]:.4f} Å<br>"
             f"b = {cell_params[1]:.4f} Å<br>"
             f"c = {cell_params[2]:.4f} Å<br>"
             f"α = {cell_params[3]:.2f}°<br>"
             f"β = {cell_params[4]:.2f}°<br>"
-            f"γ = {cell_params[5]:.2f}°"
+            f"γ = {cell_params[5]:.2f}°<br>"
+            f"Volume = {volume:.2f} Å³"
         )
-    
+
         left_col, right_col = st.columns(2)
-    
+
         with left_col:
-            st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>", unsafe_allow_html=True)
-    
+            st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>",
+                        unsafe_allow_html=True)
+
             try:
-                from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
                 mg_structure = AseAtomsAdaptor.get_structure(structure)
                 sg_analyzer = SpacegroupAnalyzer(mg_structure)
                 spg_symbol = sg_analyzer.get_space_group_symbol()
@@ -554,7 +839,34 @@ if uploaded_files:
                 space_group_str = f"{spg_symbol} ({spg_number})"
             except Exception:
                 space_group_str = "Not available"
-    
+            try:
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+                sg_analyzer = SpacegroupAnalyzer(mg_structure)
+                spg_symbol = sg_analyzer.get_space_group_symbol()
+                spg_number = sg_analyzer.get_space_group_number()
+                space_group_str = f"{spg_symbol} ({spg_number})"
+
+                # New check
+                same_lattice = lattice_same_conventional_vs_primitive(mg_structure)
+                if same_lattice is None:
+                    cell_note = "⚠️ Could not determine if cells are identical."
+                    cell_note_color = "gray"
+                elif same_lattice:
+                    cell_note = "✅ Note: Conventional and Primitive Cells have the SAME cell volume."
+                    cell_note_color = "green"
+                else:
+                    cell_note = "Note: Conventional and Primitive Cells have DIFFERENT cell volume."
+                    cell_note_color = "gray"
+            except Exception:
+                space_group_str = "Not available"
+                cell_note = "⚠️ Could not determine space group or cell similarity."
+                cell_note_color = "gray"
+
+            st.markdown(f"""
+            <div style='text-align: center; font-size: 22px; color: {"green" if same_lattice else "gray"}'>
+                <strong>{cell_note}</strong>
+            </div>
+            """, unsafe_allow_html=True)
             st.markdown(f"""
             <div style='text-align: center; font-size: 28px;'>
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
@@ -563,14 +875,15 @@ if uploaded_files:
                 <p><strong>Space Group:</strong> {space_group_str}</p>
             </div>
             """, unsafe_allow_html=True)
-    
+
             # If atomic positions are to be shown, display them as a table.
             if show_atomic:
                 import pandas as pd
+
                 df_atoms = pd.DataFrame(atomic_info)
                 st.subheader("Atomic Positions")
                 st.dataframe(df_atoms)
-    
+
         with right_col:
             st.components.v1.html(centered_html, height=600)
 
@@ -578,26 +891,23 @@ if uploaded_files:
 
 
 if mode == "Basic":
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.markdown("""
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 3 / 4:</strong> Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: ⬇️
+        🪧 <strong>Step 3 / 4:</strong> Configure Settings for the Calculation of Diffraction Patterns or (P)RDF and Press 'Calculate XRD / ND'  or 'Calculate RDF' Button: 
+        <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("""
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
 
-
-
-col_settings,col_divider, col_plot = st.columns([1, 0.05, 1])
-
-
-
+st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+col_settings, col_divider, col_plot = st.columns([1, 0.05, 1])
 with col_settings:
-    #st.divider()
     st.subheader(
         "⚙️ Diffraction Settings",
         help=(
@@ -904,7 +1214,8 @@ with col_settings:
                                 max_value=1.5, value=0.5, step=0.01)
     else:
         sigma = 0.5
-    num_annotate = st.number_input("⚙️ How many highest peaks to annotate (by intensity):", min_value=0, max_value=30, value=5,
+    num_annotate = st.number_input("⚙️ How many highest peaks to annotate (by intensity):", min_value=0, max_value=30,
+                                   value=5,
                                    step=1)
 
     if "calc_xrd" not in st.session_state:
@@ -918,14 +1229,12 @@ with col_settings:
             st.session_state.calc_xrd = True
 
 with col_divider:
-        st.write("")
+    st.write("")
 
 # --- XRD Calculation ---
 with col_plot:
     if not st.session_state.calc_xrd:
         st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
-
-
 
 if st.session_state.calc_xrd and uploaded_files:
     include_in_combined = {}
@@ -935,10 +1244,9 @@ if st.session_state.calc_xrd and uploaded_files:
 
     with col_plot:
         st.subheader("📊 OUTPUT → Diffraction Patterns")
-        st.markdown("### Structures to have in the Diffraction Plot:")
-       # include_in_combined = {}
-       # for file in uploaded_files:
-       #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
+        # include_in_combined = {}
+        # for file in uploaded_files:
+        #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
         if diffraction_choice == "ND (Neutron)":
             diff_calc = NDCalculator(wavelength=wavelength_A)
         else:
@@ -951,6 +1259,7 @@ if st.session_state.calc_xrd and uploaded_files:
         for idx, file in enumerate(uploaded_files):
             structure = read(file.name)
             mg_structure = load_structure(file)
+            mg_structure=get_full_conventional_structure(mg_structure)
             diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
             filtered_x = []
             filtered_y = []
@@ -985,9 +1294,9 @@ if st.session_state.calc_xrd and uploaded_files:
                     idx_closest = np.argmin(np.abs(x_dense_full - peak))
                     y_dense[idx_closest] += intensity
             norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
-            #norm_factor_curve = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
-            #scaling_factor = norm_factor_raw / norm_factor_curve
-            #y_dense = y_dense * scaling_factor
+            # norm_factor_curve = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
+            # scaling_factor = norm_factor_raw / norm_factor_curve
+            # y_dense = y_dense * scaling_factor
             max_gaussian_peak = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
 
             if intensity_scale_option == "Normalized":
@@ -1011,24 +1320,28 @@ if st.session_state.calc_xrd and uploaded_files:
             }
             if include_in_combined[file.name]:
                 color = colors[idx % len(colors)]
-                mask = (x_dense_full >= st.session_state.two_theta_min) & (x_dense_full <= st.session_state.two_theta_max)
+                mask = (x_dense_full >= st.session_state.two_theta_min) & (
+                            x_dense_full <= st.session_state.two_theta_max)
                 x_dense_plot = twotheta_to_metric(x_dense_full[mask], x_axis_metric, wavelength_A, wavelength_nm,
                                                   diffraction_choice)
                 ax_combined.plot(x_dense_plot, y_dense[mask], label=f"{file.name}", color=color)
                 for i, (peak, hkl_group) in enumerate(zip(peak_vals, filtered_hkls)):
-                    peak_twotheta = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                    peak_twotheta = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                       diffraction_choice)
                     if st.session_state.two_theta_min <= peak_twotheta <= st.session_state.two_theta_max:
                         closest_index = np.abs(x_dense_full - peak_twotheta).argmin()
                         actual_intensity = y_dense[closest_index]
                         if i in annotate_indices:
                             if len(hkl_group[0]['hkl']) == 3:
                                 hkl_str = ", ".join(
-                                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                                     for h in hkl_group])
+                                    [
+                                        f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
+                                        for h in hkl_group])
                             else:
                                 hkl_str = ", ".join(
-                                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                                     for h in hkl_group])
+                                    [
+                                        f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
+                                        for h in hkl_group])
                             ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                                  textcoords='offset points', fontsize=8, rotation=90,
                                                  ha='center', va='bottom', color=color, )
@@ -1038,11 +1351,11 @@ if st.session_state.calc_xrd and uploaded_files:
         else:
             ax_combined.set_ylabel("Intensity (Absolute, a.u.)")
         if diffraction_choice == "ND (Neutron)":
-            #ax_combined.set_title("Powder ND Patterns")
+            # ax_combined.set_title("Powder ND Patterns")
             pass
         else:
             pass
-           # ax_combined.set_title("Powder XRD Patterns")
+        # ax_combined.set_title("Powder XRD Patterns")
         if ax_combined.get_lines():
             max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
             ax_combined.set_ylim(0, max_intensity * 1.2)
@@ -1058,28 +1371,26 @@ if st.session_state.calc_xrd and uploaded_files:
         st.session_state.fig_combined = fig_combined
         st.session_state.placeholder_static.pyplot(st.session_state.fig_combined)
 
-
-
-
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
             🎯 <strong>Results Section 1 / 2:</strong> See the Resulted Diffraction Patterns in Interactive Plot Below ⬇️ or in the Static Plot Above ⬆️.<br>
-            🪧 <strong>Step 4 / 4</strong> If Needed, Upload Your Own Diffraction Patterns For Comparison: ⬇️
+            🪧 <strong>Step 4 / 4</strong> If Needed, Upload Your Own Diffraction Patterns For Comparison: 
+            <br><span style="font-size: 28px;">⬇️</span>
          </div>
         """, unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
 
-
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
 
     fig_interactive = go.Figure()
-
 
     # Loop over each structure's pattern details
     for idx, (file_name, details) in enumerate(pattern_details.items()):
@@ -1089,11 +1400,8 @@ if st.session_state.calc_xrd and uploaded_files:
         color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         # Filter the continuous curve to the user-specified x-axis range
 
-
-
-
         mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
-                    details["x_dense_full"] <= st.session_state.two_theta_max)
+                details["x_dense_full"] <= st.session_state.two_theta_max)
         x_dense_range = twotheta_to_metric(details["x_dense_full"][mask], x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
         y_dense_range = details["y_dense"][mask]
@@ -1145,11 +1453,11 @@ if st.session_state.calc_xrd and uploaded_files:
                 mode='lines',
                 name=f"{file_name}",
                 showlegend=True,
-                line=dict(color=color, width=2),
+                line=dict(color=color, width=4),
                 hoverinfo='text',
                 text=vertical_hover,
                 hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                hoverlabel = dict(bgcolor=color, font=dict(color="white", size=20))
+                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
             ))
         else:
             # For Gaussian peak representation, use markers as before.
@@ -1206,24 +1514,18 @@ if st.session_state.calc_xrd and uploaded_files:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
 
-
-
-
     st.subheader("Append Your XRD Pattern Data")
-    show_user_pattern = st.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     user_pattern_file = st.file_uploader(
         "Upload additional XRD pattern (2 columns: X-values and Intensity)",
         type=["csv", "txt"],
         key="user_xrd", accept_multiple_files=True
     )
 
-
-      #  st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
-       #                                                       use_container_width=True, )
-
+    #  st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
+    #                                                       use_container_width=True, )
 
     # if user_pattern_file is not None and show_user_pattern:
-
 
     if user_pattern_file and show_user_pattern:
         # Check if multiple files were uploaded:
@@ -1240,9 +1542,9 @@ if st.session_state.calc_xrd and uploaded_files:
             interactive_colors = user_colorss
             for idx, file in enumerate(user_pattern_file):
                 try:
-                    df = pd.read_csv(file, delim_whitespace=True, header=None)
+                    df = pd.read_csv(file, delim_whitespace=True, header=0)
                     if df.shape[1] < 2:
-                        df = pd.read_csv(file, sep=",", header=None)
+                        df = pd.read_csv(file, sep=",", header=0)
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
@@ -1323,12 +1625,14 @@ if st.session_state.calc_xrd and uploaded_files:
     )
 
     if mode == "Basic":
+        st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
         st.markdown("""
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
         st.markdown("""
         <div style='text-align: center; font-size: 24px;'>
-            🎯 <strong>Results Section 2 / 2:</strong>  👉 Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: ⬇️ ️
+            🎯 <strong>Results Section 2 / 2:</strong>  👉 Extract the Quantitative Data Below. Interactive Table Which Allows Sorting Is Also Available: 
+            <br><span style="font-size: 28px;">⬇️</span> ️
          </div>
         """, unsafe_allow_html=True)
         st.markdown("""
@@ -1336,7 +1640,8 @@ if st.session_state.calc_xrd and uploaded_files:
                 """, unsafe_allow_html=True)
 
     # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
-    st.divider()
+    st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+    st.subheader("Quantitative Data for Calculated Diffraction Patterns")
     for file in uploaded_files:
         details = pattern_details[file.name]
         peak_vals = details["peak_vals"]
@@ -1423,13 +1728,10 @@ if st.session_state.calc_xrd and uploaded_files:
         combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
         st.dataframe(combined_df)
 
-
-
-
 # --- RDF (PRDF) Settings and Calculation ---
 st.divider()
 left_rdf, right_rdf = st.columns(2)
-left_rdf,col_divider_rdf, right_rdf = st.columns([1, 0.05, 1])
+left_rdf, col_divider_rdf, right_rdf = st.columns([1, 0.05, 1])
 
 with left_rdf:
     st.subheader("⚙️ (P)RDF Settings")
@@ -1539,5 +1841,5 @@ with right_rdf:
             st.code(table_str, language="text")
 st.divider()
 st.markdown("""
-This application was built using open-source libraries that are distributed under free licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**
+This application was built using open-source libraries that are distributed under free public licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**, **Materials Project**.
 """)
