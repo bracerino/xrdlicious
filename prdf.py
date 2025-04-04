@@ -989,6 +989,7 @@ with col_settings:
         elif metric == "θ (°)":
             result = twotheta_deg / 2.0
         elif metric == "θ (rad)":
+            result = np.deg2rad(twotheta_deg / 2.0)
         elif metric == "q (1/Å)":
             result = (4 * np.pi / wavelength_A) * np.sin(theta)
         elif metric == "q (1/nm)":
