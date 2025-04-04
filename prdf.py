@@ -984,6 +984,11 @@ with col_settings:
             result = twotheta_deg
         elif metric == "2θ (rad)":
             result = np.deg2rad(twotheta_deg)
+        elif metric == "2θ (rad)":
+            result = np.deg2rad(twotheta_deg)
+        elif metric == "θ (°)":
+            result = twotheta_deg / 2.0
+        elif metric == "θ (rad)":
         elif metric == "q (1/Å)":
             result = (4 * np.pi / wavelength_A) * np.sin(theta)
         elif metric == "q (1/nm)":
@@ -1015,6 +1020,10 @@ with col_settings:
         elif metric == "q (1/Å)":
             theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
             return np.rad2deg(2 * theta)
+        elif metric == "θ (°)":
+            return 2 * metric_value
+        elif metric == "θ (rad)":
+            return 2 * np.rad2deg(metric_value)
         elif metric == "q (1/nm)":
             theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
             return np.rad2deg(2 * theta)
@@ -1047,6 +1056,8 @@ with col_settings:
     conversion_info = {
         "2θ (°)": "Identity: 2θ in degrees.",
         "2θ (rad)": "Conversion: radians = degrees * (π/180).",
+        "θ (°)": "Identity: 2θ in degrees.",
+        "θ (rad)": "Conversion: radians = degrees * (π/180).",
         "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
         "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
         "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
