@@ -181,8 +181,8 @@ if mode == "Basic":
     # st.divider()
 
 st.info(
-"💡[📺 Quick tutorial for this application HERE. ](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
-"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials). \nUpload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
+"💡[📺 Quick tutorial for this application HERE. ](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
+"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe). \n\nUpload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Total RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
     "Below, you can change the settings for the diffraction calculation or PRDF."
