@@ -1212,10 +1212,17 @@ with col_settings:
 
     col1, col2 = st.columns(2)
 
-    min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                key=f"min_val_{x_axis_metric}")
-    max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                key=f"max_val_{x_axis_metric}")
+    if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
+
+        min_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
+    else:
+        min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
 
     # --- Update the canonical two_theta values based on current inputs ---
     st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
