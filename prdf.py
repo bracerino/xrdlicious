@@ -1159,7 +1159,7 @@ with col_settings:
         "energy (keV)", "frequency (PHz)"
     ]
     x_axis_options_neutron = [
-        "2θ (°)", "2θ (rad)",
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
         "q (1/Å)", "q (1/nm)",
         "d (Å)", "d (nm)",
     ]
