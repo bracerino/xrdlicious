@@ -31,6 +31,12 @@ import io
 import re
 import spglib
 from pymatgen.core import Structure
+from aflow import search, K
+from aflow import search  # ensure your file is not named aflow.py!
+import aflow.keywords as AFLOW_K
+import requests
+#import aflow.keywords as K
+
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
@@ -45,7 +51,6 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 def get_full_conventional_structure(structure, symprec=1e-3):
     """
     Returns the full conventional cell for a given pymatgen Structure.
-    This uses spglib to standardize the cell.
     """
     # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
     cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
@@ -201,6 +206,9 @@ st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
 
+if 'full_structures' not in st.session_state:
+    st.session_state.full_structures = {}
+
 st.sidebar.subheader("📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
         "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...):",
@@ -208,6 +216,18 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
         accept_multiple_files=True,
     key="sidebar_uploader"
     )
+
+if uploaded_files_user_sidebar:
+    for file in uploaded_files_user_sidebar:
+        # Only add the file if it hasn't been processed before.
+        if file.name not in st.session_state.full_structures:
+            try:
+                # Replace load_structure with your structure-parsing function.
+                structure = load_structure(file)
+                st.session_state.full_structures[file.name] = structure
+            except Exception as e:
+                st.error(f"Failed to parse {file.name}: {e}")
+
 
 # Column 1: Search for structures.
 with col1:
@@ -218,13 +238,361 @@ with col1:
         type=None,
         accept_multiple_files=True
     )
+
+if uploaded_files_user:
+    for file in uploaded_files_user:
+        # Only add the file if it hasn't been processed before.
+        if file.name not in st.session_state.full_structures:
+            try:
+                # Replace load_structure with your structure-parsing function.
+                structure = load_structure(file)
+                st.session_state.full_structures[file.name] = structure
+            except Exception as e:
+                st.error(f"Failed to parse {file.name}: {e}")
+
+
 with col2:
-    st.subheader("🔍 or Search for Structures in Materials Project Database")
-    search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2",
-                                 value="Sr Ti O")
-    if st.button("Search Materials Project", key="search_btn") and search_query:
-        with st.spinner("Searching for structures in database..."):
-            elements_list = sorted(set(search_query.split()))
+    st.subheader("🔍 or Search for Structures in the MP or AFLOW Databases")
+    db_choice = st.radio(
+        "Select Database",
+        options=["Materials Project", "AFLOW"],
+        index=0,
+        help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries) or in the AFLOW database (about 60 000 ICSD Entries)."
+    )
+
+    if db_choice == "Materials Project":
+        mp_search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
+        if st.button("Search Materials Project"):
+            with st.spinner("Searching Materials Project database..."):
+                elements_list = sorted(set(mp_search_query.split()))
+                with MPRester(MP_API_KEY) as mpr:
+                    docs = mpr.materials.summary.search(
+                        elements=elements_list,
+                        num_elements=len(elements_list),
+                        fields=["material_id", "formula_pretty", "symmetry"]
+                    )
+                    if docs:
+                        st.session_state.mp_options = []
+                        st.session_state.full_structures_see = {}  # store full pymatgen Structures
+                        for doc in docs:
+                            # Retrieve the full structure
+                            full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                            # (Optionally, convert to conventional cell here)
+                            # Retrieve the full structure (including lattice parameters)
+                            if convert_to_conventional:
+                                # analyzer = SpacegroupAnalyzer(full_structure)
+                                # structure_to_use = analyzer.get_conventional_standard_structure()
+                                structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                            elif pymatgen_prim_cell_lll:
+                                analyzer = SpacegroupAnalyzer(full_structure)
+                                structure_to_use = analyzer.get_primitive_standard_structure()
+                                structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                            elif pymatgen_prim_cell_no_reduce:
+                                analyzer = SpacegroupAnalyzer(full_structure)
+                                structure_to_use = analyzer.get_primitive_standard_structure()
+                            else:
+                                structure_to_use = full_structure
+                            st.session_state.full_structures_see[doc.material_id] = structure_to_use
+                            lattice = structure_to_use.lattice
+                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                           f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                            st.session_state.mp_options.append(
+                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
+                            )
+                        st.success(f"Found {len(st.session_state.mp_options)} structures.")
+                    else:
+                        st.session_state.mp_options = []
+                        st.warning("No matching structures found in Materials Project.")
+    if db_choice == "AFLOW": # AFLOW branch
+        aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Ti O):", value="Ti O")
+
+        # Process user input:
+        if aflow_elements_input:
+            import re
+
+            # Replace commas with spaces, then split on whitespace.
+            elements = re.split(r'[\s,]+', aflow_elements_input.strip())
+            elements = [el for el in elements if el]  # Remove any empty strings.
+
+            # Order elements alphabetically.
+            ordered_elements = sorted(elements)
+
+            # Create a comma-separated string for the inner search.
+            ordered_str = ",".join(ordered_elements)
+            # Automatically calculate number of species.
+            aflow_nspecies = len(ordered_elements)
+        else:
+            ordered_str = ""
+            aflow_nspecies = 0
+
+        if st.button("Search AFLOW"):
+            with st.spinner("Searching AFLOW database..."):
+                try:
+                    results = list(
+                        search(catalog="icsd")
+                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                        .select(
+                            AFLOW_K.auid,
+                            AFLOW_K.compound,
+                            AFLOW_K.geometry,
+                            AFLOW_K.spacegroup_relax,
+                            AFLOW_K.aurl,
+                            AFLOW_K.files,
+                        )
+                    )
+                    st.session_state.entrys = {}
+
+                    if results:
+                        st.session_state.aflow_options = []
+                        st.session_state.entrys = {}  # store full AFLOW entry objects
+                        for entry in results:
+                            # Save the full entry object in session state.
+                            st.session_state.entrys[entry.auid] = entry
+                            # Use the provided geometry string from AFLOW for display.
+                            st.session_state.aflow_options.append(
+                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
+                            )
+                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                    else:
+                        st.session_state.aflow_options = []
+                        st.warning("No matching structures found in AFLOW.")
+                except Exception as e:
+                    st.warning("No matching structures found in AFLOW.")
+
+
+# Import AFLOW search functions and keywords
+
+# Column 2: Select structure and add/download CIF.
+with col3:
+    if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
+        st.subheader("Structures Found in Materials Project")
+        selected_structure = st.selectbox("Select a structure from MP:", st.session_state.mp_options)
+        selected_id = selected_structure.split(":")[0].strip()
+        composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+        file_name = f"{selected_id}_{composition}.cif"
+        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+        # Retrieve the corresponding MP structure from session state.
+        if selected_id in st.session_state.full_structures_see:
+            selected_entry = st.session_state.full_structures_see[selected_id]
+
+            #st.write("### Selected Structure Details")
+            st.write(f"**Material ID:** {selected_id}")
+            st.write(f"**Formula:** {composition}")
+
+            # Display original lattice parameters
+           # lattice = selected_entry.lattice
+           # st.write(f"**Primitive Cell Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+           # st.write(f"**Primitive Cell Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+
+            if convert_to_conventional:
+                # analyzer = SpacegroupAnalyzer(full_structure)
+                # structure_to_use = analyzer.get_conventional_standard_structure()
+               converted_structure = get_full_conventional_structure(selected_entry, symprec=0.1)
+               conv_lattice = converted_structure.lattice
+               st.write(
+                    f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+               st.write(
+                    f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(selected_entry)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_no_reduce:
+                analyzer = SpacegroupAnalyzer(selected_entry)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                conv_lattice = converted_structure.lattice
+                st.write(
+                    f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                st.write(
+                    f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_niggli:
+                analyzer = SpacegroupAnalyzer(selected_entry)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                conv_lattice = converted_structure.lattice
+                st.write(
+                    f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                st.write(
+                    f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+
+
+            # Optionally, convert to the conventional cell using your defined function.
+
+
+
+            # Optionally, show space group using pymatgen's SpacegroupAnalyzer.
+            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+            analyzer = SpacegroupAnalyzer(selected_entry)
+            st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+            mp_url = f"https://materialsproject.org/materials/{selected_id}"
+            st.write(f"**Link:** {mp_url}")
+
+        if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
+            pmg_structure = st.session_state.full_structures_see[selected_id]
+            st.session_state.full_structures[file_name] = pmg_structure
+            cif_writer = CifWriter(pmg_structure)
+            cif_content = cif_writer.__str__()
+            cif_file = io.BytesIO(cif_content.encode('utf-8'))
+            cif_file.name = file_name
+            if 'uploaded_files' not in st.session_state:
+                st.session_state.uploaded_files = []
+            if all(f.name != file_name for f in st.session_state.uploaded_files):
+                st.session_state.uploaded_files.append(cif_file)
+            st.success("Structure added from Materials Project!")
+        st.download_button(
+            label="Download CIF File",
+            data=st.session_state.full_structures_see[selected_id].__str__(),
+            file_name=file_name,
+            type="primary",
+            mime="chemical/x-cif"
+        )
+
+
+    elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
+        st.subheader("Structures Found in AFLOW")
+        selected_structure = st.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options)
+        selected_auid = selected_structure.split(": ")[0].strip()
+        # Retrieve the corresponding AFLOW entry from session state.
+        selected_entry = next(
+            (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
+        if selected_entry:
+           # st.write("### Selected Structure Details")
+            st.write(f"**AUID:** {selected_entry.auid}")
+            st.write(f"**Formula:** {selected_entry.compound}")
+            #st.write(f"**Space Group:** ({selected_entry.spacegroup_relax})")
+
+
+
+
+            # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
+
+            cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+            if cif_files:
+
+                cif_filename = cif_files[0]
+
+                # Correct the AURL: replace the first ':' with '/'
+
+                host_part, path_part = selected_entry.aurl.split(":", 1)
+
+                corrected_aurl = f"{host_part}/{path_part}"
+
+                file_url = f"http://{corrected_aurl}/{cif_filename}"
+
+
+                # Fetch the CIF file once.
+
+                response = requests.get(file_url)
+                cif_content = response.content
+
+
+                # "Add" button: store the CIF file in session state.
+                structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+                if convert_to_conventional:
+                    converted_structure = get_full_conventional_structure(structure_from_aflow, symprec=0.1)
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_no_reduce:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_niggli:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                else:
+                    # If no conversion flag is set, display the original lattice.
+                    lattice = structure_from_aflow.lattice
+                    st.write(
+                        f"**Original Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+                    st.write(
+                        f"**Original Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+                linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
+                st.write("**Link:**", linnk)
+
+                if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                    if 'uploaded_files' not in st.session_state:
+                        st.session_state.uploaded_files = []
+                    cif_file = io.BytesIO(cif_content)
+                    cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                    st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                    if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                        st.session_state.uploaded_files.append(cif_file)
+                    st.success("Structure added from AFLOW!")
+
+
+                st.download_button(
+                    label="Download CIF File",
+                    data=cif_content,
+                    file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                    type="primary",
+                    mime="chemical/x-cif"
+                )
+            else:
+                st.warning("No CIF file found for this AFLOW entry.")
+
+#
+
+# Column 2: Select structure and add/download CIF.
+
+
+
+
+
+
+
+
+
+
+
+
+#SIDEBAR SEARCH
+
+db_choice = st.sidebar.radio(
+        "Select Database",
+        options=["Materials Project", "AFLOW"],
+        index=0,
+        help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries) or in the AFLOW database (about 60 000 ICSD Entries).", key ="sidebar_database"
+    )
+
+if db_choice == "Materials Project":
+    mp_search_query = st.sidebar.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O", key='sidebar_input_mp')
+    if st.sidebar.button("Search Materials Project", key='sidebar_mp_butt'):
+        with st.spinner("Searching Materials Project database..."):
+            elements_list = sorted(set(mp_search_query.split()))
             with MPRester(MP_API_KEY) as mpr:
                 docs = mpr.materials.summary.search(
                     elements=elements_list,
@@ -232,11 +600,13 @@ with col2:
                     fields=["material_id", "formula_pretty", "symmetry"]
                 )
                 if docs:
-                    st.session_state['mp_options'] = []
-                    st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
+                    st.session_state.mp_options = []
+                    st.session_state.full_structures_see = {}  # store full pymatgen Structures
                     for doc in docs:
-                        # Retrieve the full structure (including lattice parameters)
+                        # Retrieve the full structure
                         full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                        # (Optionally, convert to conventional cell here)
+                        # Retrieve the full structure (including lattice parameters)
                         if convert_to_conventional:
                             # analyzer = SpacegroupAnalyzer(full_structure)
                             # structure_to_use = analyzer.get_conventional_standard_structure()
@@ -250,177 +620,153 @@ with col2:
                             structure_to_use = analyzer.get_primitive_standard_structure()
                         else:
                             structure_to_use = full_structure
-                        st.session_state['full_structures'][doc.material_id] = structure_to_use
+                        st.session_state.full_structures_see[doc.material_id] = structure_to_use
                         lattice = structure_to_use.lattice
-                        lattice_str = (
-                            f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                            f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
+                        lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                       f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                        st.session_state.mp_options.append(
+                            f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
                         )
-                        st.session_state['mp_options'].append(
-                            f"{doc.material_id}: {doc.formula_pretty} "
-                            f"({doc.symmetry.symbol}, {lattice_str})"
-                        )
+                    st.success(f"Found {len(st.session_state.mp_options)} structures.")
                 else:
-                    st.session_state['mp_options'] = []
-                    st.warning("No matching structures found in Materials Project.")
-        st.success("Finished searching for structures.")
+                    st.session_state.mp_options = []
+                    st.sidebar.warning("No matching structures found in Materials Project.")
+if db_choice == "AFLOW":
+    aflow_elements_input = st.sidebar.text_input("Enter elements separated by spaces (e.g., Ti O):", value="Ti O", key='sidebar_AFLOW')
 
-# Column 2: Select structure and add/download CIF.
-with col3:
-    st.subheader("🧪 Structures Found in Materials Project")
-    if st.session_state['mp_options'] is None:
-        st.info("Please press the 'Search Materials Project' button to view the available structures.")
-    elif st.session_state['mp_options']:
-        selected_mp_structure = st.selectbox(
-            "Select a structure from Materials Project:",
-            st.session_state['mp_options']
-        )
-        # Extract material ID and composition (ignore space group).
-        selected_id = selected_mp_structure.split(":")[0].strip()
-        composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
-        file_name = f"{selected_id}_{composition}.cif"
-        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+    # Process user input:
+    if aflow_elements_input:
+        import re
 
-        if st.button("Add Selected Structure", key="add_btn"):
-            # Use the pre-stored structure from session state
-            pmg_structure = st.session_state['full_structures'][selected_id]
-            cif_writer = CifWriter(pmg_structure)
-            cif_content = cif_writer.__str__()
-            cif_file = io.BytesIO(cif_content.encode('utf-8'))
-            cif_file.name = file_name
-            if all(f.name != file_name for f in st.session_state['uploaded_files']):
-                st.session_state['uploaded_files'].append(cif_file)
-            st.session_state['selected_structure'] = selected_mp_structure
-            st.success("Structure added!")
+        # Replace commas with spaces, then split on whitespace.
+        elements = re.split(r'[\s,]+', aflow_elements_input.strip())
+        elements = [el for el in elements if el]  # Remove any empty strings.
 
-        # Use the stored structure for the download button.
-        pmg_structure = st.session_state['full_structures'][selected_id]
+        # Order elements alphabetically.
+        ordered_elements = sorted(elements)
+
+        # Create a comma-separated string for the inner search.
+        ordered_str = ",".join(ordered_elements)
+        # Automatically calculate number of species.
+        aflow_nspecies = len(ordered_elements)
+    else:
+        ordered_str = ""
+        aflow_nspecies = 0
+
+    if st.sidebar.button("Search AFLOW", key='aflow_but'):
+        with st.spinner("Searching AFLOW database..."):
+            try:
+                results = list(
+                    search(catalog="icsd")
+                    .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                    .select(
+                        AFLOW_K.auid,
+                        AFLOW_K.compound,
+                        AFLOW_K.geometry,
+                        AFLOW_K.spacegroup_relax,
+                        AFLOW_K.aurl,
+                        AFLOW_K.files,
+                    )
+                )
+                st.session_state.entrys = {}
+
+                if results:
+                    st.session_state.aflow_options = []
+                    st.session_state.entrys = {}  # store full AFLOW entry objects
+                    for entry in results:
+                        # Save the full entry object in session state.
+                        st.session_state.entrys[entry.auid] = entry
+                        # Use the provided geometry string from AFLOW for display.
+                        st.session_state.aflow_options.append(
+                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
+                        )
+                    st.sidebar.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                else:
+                    st.session_state.aflow_options = []
+                    st.sidebar.warning("No matching structures found in AFLOW.")
+            except Exception as e:
+                st.sidebar.warning("No matching structures found in AFLOW.")
+
+if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
+    selected_structure = st.sidebar.selectbox("Select a structure from MP:", st.session_state.mp_options,
+                                              key='sidebar_select_mp')
+    selected_id = selected_structure.split(":")[0].strip()
+    composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+    file_name = f"{selected_id}_{composition}.cif"
+    file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+    # Retrieve the corresponding MP structure from session state.
+    if selected_id in st.session_state.full_structures_see:
+        selected_entry = st.session_state.full_structures_see[selected_id]
+
+    if st.sidebar.button("Add Selected Structure (MP)", key="sid_add_btn_mp"):
+        pmg_structure = st.session_state.full_structures_see[selected_id]
+        st.session_state.full_structures[file_name] = pmg_structure
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
-        col_d, col_url = st.columns(2)
-        with col_d:
-            st.download_button(
-                label="Download CIF File",
-                data=cif_content,
-                file_name=file_name,
-                type="primary",
-                mime="chemical/x-cif"
-            )
-        with col_url:
-            # Create the URL for the Materials Project page using the selected material ID.
-            mp_url = f"https://materialsproject.org/materials/{selected_id}"
-
-            # Add a hyperlink styled as a button.
-            st.markdown(
-                f"""
-                <a href="{mp_url}" target="_blank" style="
-                    display: inline-block;
-                    margin-top: 0px;
-                    padding: 0.5em 1em;
-                    background-color: #66bb66;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    font-weight: normal;
-                    font-size: 16px;">
-                    View Structure {selected_id} on Materials Project
-                </a>
-                """,
-                unsafe_allow_html=True,
-            )
+        cif_file = io.BytesIO(cif_content.encode('utf-8'))
+        cif_file.name = file_name
+        if 'uploaded_files' not in st.session_state:
+            st.session_state.uploaded_files = []
+        if all(f.name != file_name for f in st.session_state.uploaded_files):
+            st.session_state.uploaded_files.append(cif_file)
+        st.sidebar.success("Structure added from Materials Project!")
 
 
+elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
+    selected_structure = st.sidebar.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options,
+                                              key='option_aflow_sid')
+    selected_auid = selected_structure.split(": ")[0].strip()
+    # Retrieve the corresponding AFLOW entry from session state.
+    selected_entry = next(
+        (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
+    if selected_entry:
+
+        # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
+
+        cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+        if cif_files:
+
+            cif_filename = cif_files[0]
+
+            # Correct the AURL: replace the first ':' with '/'
+
+            host_part, path_part = selected_entry.aurl.split(":", 1)
+
+            corrected_aurl = f"{host_part}/{path_part}"
+
+            file_url = f"http://{corrected_aurl}/{cif_filename}"
+
+            # Fetch the CIF file once.
+
+            response = requests.get(file_url)
+            cif_content = response.content
+
+            # "Add" button: store the CIF file in session state.
+            structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+
+            if st.sidebar.button("Add Selected Structure (AFLOW)", key="sid_add_btn_aflow"):
+                if 'uploaded_files' not in st.session_state:
+                    st.session_state.uploaded_files = []
+                cif_file = io.BytesIO(cif_content)
+                cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                    st.session_state.uploaded_files.append(cif_file)
+                st.sidebar.success("Structure added from AFLOW!")
+
+        else:
+            st.warning("No CIF file found for this AFLOW entry.")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-
-# Column 2: Select structure and add/download CIF.
-search_query = st.sidebar.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2_sidebar",
-                             value="Sr Ti O", )
-if st.sidebar.button("Search Materials Project", key="sidebar_search_btn") and search_query:
-    with st.spinner("Searching for structures in database..."):
-        elements_list = sorted(set(search_query.split()))
-        with MPRester(MP_API_KEY) as mpr:
-            docs = mpr.materials.summary.search(
-                elements=elements_list,
-                num_elements=len(elements_list),
-                fields=["material_id", "formula_pretty", "symmetry"]
-            )
-            if docs:
-                st.session_state['mp_options'] = []
-                st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
-                for doc in docs:
-                    # Retrieve the full structure (including lattice parameters)
-                    full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                    if convert_to_conventional:
-                        # analyzer = SpacegroupAnalyzer(full_structure)
-                        # structure_to_use = analyzer.get_conventional_standard_structure()
-                        structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
-                    elif pymatgen_prim_cell_lll:
-                        analyzer = SpacegroupAnalyzer(full_structure)
-                        structure_to_use = analyzer.get_primitive_standard_structure()
-                        structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
-                    elif pymatgen_prim_cell_no_reduce:
-                        analyzer = SpacegroupAnalyzer(full_structure)
-                        structure_to_use = analyzer.get_primitive_standard_structure()
-                    else:
-                        structure_to_use = full_structure
-                    st.session_state['full_structures'][doc.material_id] = structure_to_use
-                    lattice = structure_to_use.lattice
-                    lattice_str = (
-                        f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                        f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
-                    )
-                    st.session_state['mp_options'].append(
-                        f"{doc.material_id}: {doc.formula_pretty} "
-                        f"({doc.symmetry.symbol}, {lattice_str})"
-                    )
-            else:
-                st.session_state['mp_options'] = []
-                st.warning("No matching structures found in Materials Project.")
-    st.sidebar.success("Finished searching for structures.")
 
 
 
 if st.session_state['mp_options'] is None:
     st.info("Please press the 'Search Materials Project' button to view the available structures.")
-elif st.session_state['mp_options']:
-    selected_mp_structure = st.sidebar.selectbox(
-        "Select a structure from Materials Project:",
-        st.session_state['mp_options'], key='selected_sidebar'
-    )
-    # Extract material ID and composition (ignore space group).
-    selected_id = selected_mp_structure.split(":")[0].strip()
-    composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
-    file_name = f"{selected_id}_{composition}.cif"
-    file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
-
-    if st.sidebar.button("Add Selected Structure", key="add_btn_sidebar"):
-        # Use the pre-stored structure from session state
-        pmg_structure = st.session_state['full_structures'][selected_id]
-        cif_writer = CifWriter(pmg_structure)
-        cif_content = cif_writer.__str__()
-        cif_file = io.BytesIO(cif_content.encode('utf-8'))
-        cif_file.name = file_name
-        if all(f.name != file_name for f in st.session_state['uploaded_files']):
-            st.session_state['uploaded_files'].append(cif_file)
-        st.session_state['selected_structure'] = selected_mp_structure
-        st.sidebar.success("Structure added!")
 
 
 
@@ -432,6 +778,15 @@ st.markdown("---")
 
 if uploaded_files_user or uploaded_files_user_sidebar:
     uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user + uploaded_files_user_sidebar
+    if 'full_structures' not in st.session_state:
+        st.session_state.full_structures = {}
+    for file in uploaded_files_user:
+        try:
+            structure = load_structure(file)
+            # Use file.name as the key (or modify to a unique identifier if needed)
+            st.session_state['full_structures'][file.name] = structure
+        except Exception as e:
+            st.error(f"Failed to parse {file.name}: {e}")
 else:
     uploaded_files = st.session_state['uploaded_files']
 
@@ -477,8 +832,8 @@ if uploaded_files:
                 for sp in atom.species:
                     species_set.add(sp.symbol)
     species_list = sorted(species_set)
-    st.subheader("📊 Detected Atomic Species")
-    st.write(", ".join(species_list))
+    #st.subheader("📊 Detected Atomic Species")
+    #st.write(", ".join(species_list))
 else:
     species_list = []
 
@@ -686,7 +1041,11 @@ if uploaded_files:
         structure = read(selected_file)
 
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
-        mp_struct = st.session_state.get('full_structures', {}).get(selected_id)
+        #print(st.session_state.get('full_structures', {}))
+        #if 'full_structures' in st.session_state:
+        mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
+
+        #mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
 
         if mp_struct:
             if convert_to_conventional:
@@ -725,7 +1084,8 @@ if uploaded_files:
         else:
             visual_pmg_structure = load_structure(selected_file)
         for site in visual_pmg_structure.sites:
-            print(site.species)  # This will show occupancy info
+            pass
+            #print(site.species)  # This will show occupancy info
             # Write CIF content directly using pymatgen:
             # Otherwise, use the chosen conversion
         if convert_to_conventional:
@@ -967,7 +1327,7 @@ with col_settings:
     def format_index(index, first=False, last=False):
         s = str(index)
 
- 
+
         if s.startswith("-") and len(s) == 2:
             return s
 
