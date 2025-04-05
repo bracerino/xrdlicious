@@ -48,17 +48,41 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 #    st.write(f"{package}=={version}")
 
 
-def get_full_conventional_structure(structure, symprec=1e-3):
+def get_full_conventional_structure_diffra(structure, symprec=1e-3):
     """
-    Returns the full conventional cell for a given pymatgen Structure.
-    """
-    # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
-    cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
+    cell = (
+        structure.lattice.matrix,
+        structure.frac_coords,
+        [max(site.species.items(), key=lambda x: x[1])[0].Z for site in structure]
+    )
+
     # Get the symmetry dataset from spglib
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
+
+    # Build the conventional cell as a new Structure object, but keep the original species
+    conv_structure = Structure(
+        lattice=std_lattice,
+        species=[site.species for site in structure],
+        coords=std_positions,
+        coords_are_cartesian=False
+    )
+    return conv_structure
+
+
+def get_full_conventional_structure(structure, symprec=1e-3):
+    # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
+    cell = (structure.lattice.matrix, structure.frac_coords,
+            [max(site.species, key=site.species.get).number for site in structure])
+
+    # Get the symmetry dataset from spglib
+    dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+    std_lattice = dataset['std_lattice']
+    std_positions = dataset['std_positions']
+    std_types = dataset['std_types']
+
     # Build the conventional cell as a new Structure object
     conv_structure = Structure(std_lattice, std_types, std_positions)
     return conv_structure
@@ -1046,8 +1070,8 @@ if uploaded_files:
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
         #print(st.session_state.get('full_structures', {}))
         #if 'full_structures' in st.session_state:
-        mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
-
+        #mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
+        mp_struct = AseAtomsAdaptor.get_structure(structure)
         #mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
 
         if mp_struct:
@@ -1740,7 +1764,7 @@ if st.session_state.calc_xrd and uploaded_files:
         for idx, file in enumerate(uploaded_files):
             structure = read(file.name)
             mg_structure = load_structure(file)
-            mg_structure = get_full_conventional_structure(mg_structure)
+            mg_structure = get_full_conventional_structure_diffra(mg_structure)
 
             if is_multi_component:
                 # Create a common dense grid.
