@@ -265,44 +265,47 @@ with col2:
         if st.button("Search Materials Project"):
             with st.spinner("Searching Materials Project database..."):
                 elements_list = sorted(set(mp_search_query.split()))
-                with MPRester(MP_API_KEY) as mpr:
-                    docs = mpr.materials.summary.search(
-                        elements=elements_list,
-                        num_elements=len(elements_list),
-                        fields=["material_id", "formula_pretty", "symmetry"]
-                    )
-                    if docs:
-                        st.session_state.mp_options = []
-                        st.session_state.full_structures_see = {}  # store full pymatgen Structures
-                        for doc in docs:
-                            # Retrieve the full structure
-                            full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                            # (Optionally, convert to conventional cell here)
-                            # Retrieve the full structure (including lattice parameters)
-                            if convert_to_conventional:
-                                # analyzer = SpacegroupAnalyzer(full_structure)
-                                # structure_to_use = analyzer.get_conventional_standard_structure()
-                                structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
-                            elif pymatgen_prim_cell_lll:
-                                analyzer = SpacegroupAnalyzer(full_structure)
-                                structure_to_use = analyzer.get_primitive_standard_structure()
-                                structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
-                            elif pymatgen_prim_cell_no_reduce:
-                                analyzer = SpacegroupAnalyzer(full_structure)
-                                structure_to_use = analyzer.get_primitive_standard_structure()
-                            else:
-                                structure_to_use = full_structure
-                            st.session_state.full_structures_see[doc.material_id] = structure_to_use
-                            lattice = structure_to_use.lattice
-                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                           f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
-                            st.session_state.mp_options.append(
-                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
-                            )
-                        st.success(f"Found {len(st.session_state.mp_options)} structures.")
-                    else:
-                        st.session_state.mp_options = []
-                        st.warning("No matching structures found in Materials Project.")
+                try:
+                    with MPRester(MP_API_KEY) as mpr:
+                        docs = mpr.materials.summary.search(
+                            elements=elements_list,
+                            num_elements=len(elements_list),
+                            fields=["material_id", "formula_pretty", "symmetry"]
+                        )
+                        if docs:
+                            st.session_state.mp_options = []
+                            st.session_state.full_structures_see = {}  # store full pymatgen Structures
+                            for doc in docs:
+                                # Retrieve the full structure
+                                full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                                # (Optionally, convert to conventional cell here)
+                                # Retrieve the full structure (including lattice parameters)
+                                if convert_to_conventional:
+                                    # analyzer = SpacegroupAnalyzer(full_structure)
+                                    # structure_to_use = analyzer.get_conventional_standard_structure()
+                                    structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                                elif pymatgen_prim_cell_lll:
+                                    analyzer = SpacegroupAnalyzer(full_structure)
+                                    structure_to_use = analyzer.get_primitive_standard_structure()
+                                    structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                                elif pymatgen_prim_cell_no_reduce:
+                                    analyzer = SpacegroupAnalyzer(full_structure)
+                                    structure_to_use = analyzer.get_primitive_standard_structure()
+                                else:
+                                    structure_to_use = full_structure
+                                st.session_state.full_structures_see[doc.material_id] = structure_to_use
+                                lattice = structure_to_use.lattice
+                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                               f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                                st.session_state.mp_options.append(
+                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
+                                )
+                            st.success(f"Found {len(st.session_state.mp_options)} structures.")
+                        else:
+                            st.session_state.mp_options = []
+                            st.warning("No matching structures found in Materials Project.")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}.\nThis is likely due to the error within The Materials Project API. Please try again later.")
     if db_choice == "AFLOW": # AFLOW branch
         aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Ti O):", value="Ti O")
 
