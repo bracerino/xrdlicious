@@ -2013,7 +2013,7 @@ if st.session_state.calc_xrd and uploaded_files:
         if ax_combined.get_lines():
             max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
             ax_combined.set_ylim(0, max_intensity * 1.2)
-        ax_combined.legend(loc="upper center", bbox_to_anchor=(0.5, -0.35), ncol=2, fontsize=10)
+        ax_combined.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=10)
 
         if "placeholder_static" not in st.session_state:
             st.session_state.placeholder_static = st.empty()
