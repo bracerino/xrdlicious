@@ -481,7 +481,7 @@ with col3:
                 st.session_state.uploaded_files.append(cif_file)
             st.success("Structure added from Materials Project!")
         st.download_button(
-            label="Download CIF File",
+            label="Download MP CIF",
             data=st.session_state.full_structures_see[selected_id].__str__(),
             file_name=file_name,
             type="primary",
@@ -589,7 +589,7 @@ with col3:
 
 
                 st.download_button(
-                    label="Download CIF File",
+                    label="Download AFLOW CIF",
                     data=cif_content,
                     file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
                     type="primary",
@@ -1144,7 +1144,7 @@ if uploaded_files:
 
         with col_download:
             st.download_button(
-                label="Download CIF for Visualized Structure",
+                label="Download CIF for the Visualized Structure",
                 data=cif_content_visual,
                 file_name=download_file_name,
                 type="primary",
