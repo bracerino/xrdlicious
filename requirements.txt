@@ -9,3 +9,4 @@ plotly
 streamlit-plotly-events
 setuptools
 mp-api==0.45.3
+aflow
