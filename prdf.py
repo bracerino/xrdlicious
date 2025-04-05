@@ -55,16 +55,24 @@ def get_full_conventional_structure_diffra(structure, symprec=1e-3):
         [max(site.species.items(), key=lambda x: x[1])[0].Z for site in structure]
     )
 
-    # Get the symmetry dataset from spglib
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
 
-    # Build the conventional cell as a new Structure object, but keep the original species
+    # Map std_types to species dictionaries
+    original_species_list = [site.species for site in structure]
+    type_to_species = {
+        original_atomic_number: original_species
+        for original_atomic_number, original_species in zip(cell[2], original_species_list)
+    }
+
+    new_species_list = [type_to_species[t] for t in std_types]
+
+    # Build the conventional cell
     conv_structure = Structure(
         lattice=std_lattice,
-        species=[site.species for site in structure],
+        species=new_species_list,
         coords=std_positions,
         coords_are_cartesian=False
     )
