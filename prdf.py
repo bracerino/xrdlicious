@@ -49,7 +49,6 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
 
 def get_full_conventional_structure_diffra(structure, symprec=1e-3):
-    """
     cell = (
         structure.lattice.matrix,
         structure.frac_coords,
