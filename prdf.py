@@ -797,7 +797,7 @@ st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
 
-st.sidebar.markdown("### 🗑️ Remove Structure(s) from MP")
+st.sidebar.markdown("### 🗑️ Remove Structure(s) added from MP or AFLOW")
 
 files_to_remove = []
 for i, file in enumerate(st.session_state['uploaded_files']):
