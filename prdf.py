@@ -2334,7 +2334,7 @@ if st.session_state.calc_xrd and uploaded_files:
                     y=y_user_filtered,
                     mode='lines+markers',
                     name=user_pattern_file.name,
-                    line=dict(dash='dash', color=interactive_color),
+                    line=dict(dash='solid',width=1, color=interactive_color),
                     marker=dict(color=interactive_color, size = 6)
                 ))
     # Always update the interactive plot placeholder regardless
