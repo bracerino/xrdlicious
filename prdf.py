@@ -2295,7 +2295,7 @@ if st.session_state.calc_xrd and uploaded_files:
                         mode='lines+markers',
                         name=file.name,
                         line=dict(dash='solid', width=1, color=interactive_colors[idx]),
-                        marker=dict( color=interactive_colors[idx], size=6)
+                        marker=dict( color=interactive_colors[idx], size=5)
                     ))
         else:
             # Only one file was uploaded; use the first color from tab10
@@ -2335,7 +2335,7 @@ if st.session_state.calc_xrd and uploaded_files:
                     mode='lines+markers',
                     name=user_pattern_file.name,
                     line=dict(dash='solid',width=1, color=interactive_color),
-                    marker=dict(color=interactive_color, size = 6)
+                    marker=dict(color=interactive_color, size = 5)
                 ))
     # Always update the interactive plot placeholder regardless
     st.session_state.placeholder_interactive.plotly_chart(
