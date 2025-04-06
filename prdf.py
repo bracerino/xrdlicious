@@ -217,8 +217,8 @@ if mode == "Basic":
     # st.divider()
 
 st.info(
-"💡[📺 Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
-"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe). Developed by [IMPLANT team](https://implant.fs.cvut.cz/). \n\nUpload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
+"🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/).💡[📺 Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
+"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe). \n\nUpload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "powder X-ray or neutron diffraction (XRD or ND) patterns pr partial radial distribution function (PRDF) for each element combination, as well as the total RDF. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
     
@@ -849,6 +849,39 @@ else:
     st.warning("📌 Please upload at least one structure file.")
 
 if mode == "Basic" and not uploaded_files:
+    st.divider()
+    st.markdown("""
+    **This application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
+    """)
+    #If used in academic publications, please cite:
+    
+    st.markdown("""
+    ### Acknowledgments
+    
+    This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
+    
+    - **[Matminer](https://github.com/hackingmaterials/matminer)**  
+      Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
+    
+    - **[Pymatgen](https://github.com/materialsproject/pymatgen)**  
+      Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).  
+    
+    - **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)**  
+      Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER).  
+    
+    - **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)**  
+        Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt).
+    
+    - **[Materials Project](https://next-gen.materialsproject.org/)**  
+      Data from the Materials Project is made available under the  
+      [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).  
+    
+    - **[AFLOW](http://aflow.org)**  
+      Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).   
+      When using structures from AFLOW, please cite:  
+      Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
+      [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
+    """)
     st.stop()
 # --- Detect Atomic Species ---
 
