@@ -180,6 +180,9 @@ components.html(
 st.title(
     "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
 st.divider()
+st.info(
+"🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/).💡[📺 Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
+"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
 
 # Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
