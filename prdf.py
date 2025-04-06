@@ -234,7 +234,7 @@ if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'
     st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
 # Create two columns: one for search and one for structure selection and actions.
-st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+#st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
 
