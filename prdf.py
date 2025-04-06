@@ -2294,7 +2294,7 @@ if st.session_state.calc_xrd and uploaded_files:
                         y=y_user_filtered,
                         mode='lines+markers',
                         name=file.name,
-                        line=dict(dash='dash', color=interactive_colors[idx]),
+                        line=dict(dash='solid', width=1, color=interactive_colors[idx]),
                         marker=dict( color=interactive_colors[idx], size=6)
                     ))
         else:
