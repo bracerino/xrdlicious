@@ -179,10 +179,10 @@ components.html(
 
 st.title(
     "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
-st.divider()
 st.info(
 "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/).💡[📺 Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
 "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
+st.divider()
 
 # Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
@@ -220,11 +220,9 @@ if mode == "Basic":
     # st.divider()
 
 st.info(
-"🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/).💡[📺 Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) You can find crystal structures in CIF format at: [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
-"[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or [📖 AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe). \n\nUpload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
+"Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
     "powder X-ray or neutron diffraction (XRD or ND) patterns pr partial radial distribution function (PRDF) for each element combination, as well as the total RDF. "
-    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
-    
+    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure."
 )
 
 # Initialize session state keys if not already set.
