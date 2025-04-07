@@ -2193,11 +2193,22 @@ if st.session_state.calc_xrd and uploaded_files:
             peak_vals_in_range = []
             intensities_in_range = []
             peak_hover_texts = []
+            gaussian_max_intensities = []
             for i, peak in enumerate(details["peak_vals"]):
                 canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
                 if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
                     peak_vals_in_range.append(peak)
-                    intensities_in_range.append(details["intensities"][i])
+                    #intensities_in_range.append(details["intensities"][i])
+                    gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
+                    # Calculate the area under the Gaussian.
+                    area = np.sum(gauss) * dx
+                    # This is the Gaussian that is added to the continuous curve:
+                    scaled_gauss = (details["intensities"][i] / area) * gauss
+                    # Compute the maximum of the Gaussian.
+                    max_gauss = np.max(scaled_gauss)
+                    gaussian_max_intensities.append(max_gauss)
+
+                    
                     hkl_group = details["hkls"][i]
                     if len(hkl_group[0]['hkl']) == 3:
                         hkl_str = ", ".join(
@@ -2213,10 +2224,13 @@ if st.session_state.calc_xrd and uploaded_files:
                     else:
                         hover_text = f"(hkl): {hkl_str}"
                     peak_hover_texts.append(hover_text)
-
+                    
+            if intensity_scale_option == "Normalized" and gaussian_max_intensities:
+                norm_marker = max(gaussian_max_intensities)
+                gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
             fig_interactive.add_trace(go.Scatter(
                 x=peak_vals_in_range,
-                y=intensities_in_range,
+                y=gaussian_max_intensities,
                 mode='markers',
                 name=file_name,
                 showlegend=True,
