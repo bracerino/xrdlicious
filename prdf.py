@@ -2084,7 +2084,7 @@ if st.session_state.calc_xrd and uploaded_files:
     else:
         st.sidebar.subheader("Include Kα1 for hovering:")
         show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-
+    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
 
@@ -2306,7 +2306,7 @@ if st.session_state.calc_xrd and uploaded_files:
     st.session_state.fig_interactive = fig_interactive
     st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive, use_container_width=True)
     st.subheader("Append Your XRD Pattern Data")
-    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    #
     user_pattern_file = st.file_uploader(
         "Upload additional XRD pattern (2 columns: X-values and Intensity)",
         type=["csv", "txt", "xy"],
