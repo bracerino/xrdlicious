@@ -244,7 +244,7 @@ if mode == "Basic":
     # st.divider()
 
 st.info(
-"Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
+"Upload structure files (e.g., CIF, LMP, POSCAR, XSF format), and this tool will calculate either the "
     "powder X-ray or neutron diffraction (XRD or ND) patterns or partial radial distribution function (PRDF) for each element combination, as well as the total RDF. "
     "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure."
 )
