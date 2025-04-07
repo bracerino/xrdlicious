@@ -118,6 +118,13 @@ def load_structure(file_or_name):
             f.write(file_or_name.getbuffer())
     if filename.lower().endswith(".cif"):
         mg_structure = PmgStructure.from_file(filename)
+    elif filename.lower().endswith(".data"):
+        filename = filename.replace(".data", ".lmp")
+        from pymatgen.io.lammps.data import LammpsData
+        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
+    elif filename.lower().endswith(".lmp"):
+        from pymatgen.io.lammps.data import LammpsData
+        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
     else:
         atoms = read(filename)
         mg_structure = AseAtomsAdaptor.get_structure(atoms)
@@ -1123,13 +1130,18 @@ if uploaded_files:
             selected_file = st.selectbox("", file_options)
         else:
             selected_file = st.radio("", file_options)
-        structure = read(selected_file)
+            
+        try:
+            structure = read(selected_file)
+            mp_struct = AseAtomsAdaptor.get_structure(structure)
+        except Exception as e:
+            mp_struct = load_structure(selected_file)
 
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
         #print(st.session_state.get('full_structures', {}))
         #if 'full_structures' in st.session_state:
         #mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
-        mp_struct = AseAtomsAdaptor.get_structure(structure)
+        #mp_struct = AseAtomsAdaptor.get_structure(structure)
         #mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
 
         if mp_struct:
@@ -1820,7 +1832,6 @@ if st.session_state.calc_xrd and uploaded_files:
 
         # Loop over each uploaded file.
         for idx, file in enumerate(uploaded_files):
-            structure = read(file.name)
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
 
@@ -2572,8 +2583,14 @@ with right_rdf:
         all_distance_dict = {}
         global_rdf_list = []
         for file in uploaded_files:
-            structure = read(file.name)
-            mg_structure = AseAtomsAdaptor.get_structure(structure)
+            #structure = read(file.name)
+            #mg_structure = AseAtomsAdaptor.get_structure(structure)
+            try:
+                structure = read(file.name)
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+            except Exception as e:
+                mg_structure = load_structure(file.name)
+                
             prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
             prdf_featurizer.fit([mg_structure])
             prdf_data = prdf_featurizer.featurize(mg_structure)
