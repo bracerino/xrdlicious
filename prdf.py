@@ -1205,13 +1205,99 @@ if uploaded_files:
             download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
 
         with col_download:
-            st.download_button(
-                label="Download CIF for the Visualized Structure",
-                data=cif_content_visual,
-                file_name=download_file_name,
-                type="primary",
-                mime="chemical/x-cif"
-            )
+            with st.expander("Download Options"):
+                file_format = st.radio(
+                    "Select file format",
+                    ("CIF", "VASP", "LAMMPS", "XYZ",),
+                    horizontal=True
+                )
+                enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
+                if enable_supercell:
+                    st.markdown("**Optional: Create Supercell**")
+                    # Show how many atoms will be in the resulting supercell
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10, value=1, step=1)
+                    with col2:
+                        n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10, value=1, step=1)
+                    with col3:
+                        n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10, value=1, step=1)
+
+                    base_atoms = len(structure)
+                    supercell_multiplier = n_a * n_b * n_c
+                    total_atoms = base_atoms * supercell_multiplier
+                    st.info(f"Supercell will contain **{total_atoms} atoms**.")
+                    supercell_structure = structure.copy()  # ASE Atoms object
+                    supercell_pmg = visual_pmg_structure.copy()  # pymatgen Structure object
+
+                    if (n_a, n_b, n_c) != (1, 1, 1):
+                        supercell_structure = supercell_structure.repeat((n_a, n_b, n_c))
+                        from pymatgen.transformations.standard_transformations import SupercellTransformation
+
+                        supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+                        transformer = SupercellTransformation(supercell_matrix)
+                        supercell_pmg = transformer.apply_transformation(supercell_pmg)
+                else:
+                # If supercell not enabled, just use the original structure
+                    supercell_structure = structure.copy()
+                    supercell_pmg = visual_pmg_structure.copy()
+
+                file_content = None
+                download_file_name = None
+                mime = "text/plain"
+
+                try:
+                    if file_format == "CIF":
+                        # Use pymatgen's CifWriter for CIF output.
+                        from pymatgen.io.cif import CifWriter
+
+                        cif_writer_visual = CifWriter(supercell_pmg, symprec=0.1, refine_struct=False)
+                        file_content = str(cif_writer_visual)
+                        download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.cif'
+                        mime = "chemical/x-cif"
+                    elif file_format == "VASP":
+                        out = StringIO()
+                        use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
+                                                     key="poscar_fractional")
+                        write(out, supercell_structure, format="vasp", direct=use_fractional)
+                        file_content = out.getvalue()
+                        download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.poscar'
+                    elif file_format == "LAMMPS":
+                        st.markdown("**LAMMPS Export Options**")
+
+                        atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
+                        units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
+                        include_masses = st.checkbox("Include atomic masses", value=True)
+                        force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
+
+                        out = StringIO()
+                        write(
+                            out,
+                            supercell_structure,
+                            format="lammps-data",
+                            atom_style=atom_style,
+                            units=units,
+                            masses=include_masses,
+                            force_skew=force_skew
+                        )
+                        file_content = out.getvalue()
+                        download_file_name = selected_file.split('.')[0] + f'_lmp_{atom_style}_{units}.lmp'
+                    elif file_format == "XYZ":
+                        out = StringIO()
+                        write(out, supercell_structure, format="xyz")
+                        file_content = out.getvalue()
+                        download_file_name = selected_file.split('.')[0] +'_'+lattice_info+ '.xyz'
+                except Exception as e:
+                    st.error(f"Error generating {file_format} file: {e}")
+
+                if file_content is not None:
+                    st.download_button(
+                        label=f"Download {file_format} file",
+                        data=file_content,
+                        file_name=download_file_name,
+                        type="primary",
+                        mime=mime
+                    )
 
         atomic_info = []
         if show_atomic:
