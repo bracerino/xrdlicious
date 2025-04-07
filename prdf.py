@@ -2354,7 +2354,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
                     # Append to the static matplotlib figure with a unique color
                     ax = st.session_state.fig_combined.gca()
-                    ax.plot(x_user_filtered, y_user_filtered, label=file.name,linestyle='--', marker='o', linewidth=2, markersize=2,
+                    ax.plot(x_user_filtered, y_user_filtered, label=file.name,linestyle='--', marker='o', linewidth=1, markersize=2,
                             color=static_colors[idx])
                     ax.legend()
                     # Update y-axis range to include new data
@@ -2396,7 +2396,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 y_user_filtered = y_user[mask_user]
 
                 ax = st.session_state.fig_combined.gca()
-                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', marker='o',markersize=2,
+                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', marker='o',markersize=2,linewidth=1,
                         color=static_color)
                 ax.legend()
                 current_ylim = ax.get_ylim()
