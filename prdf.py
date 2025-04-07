@@ -859,7 +859,7 @@ if mode == "Basic" and not uploaded_files:
     st.markdown("""
     ### Acknowledgments
     
-    This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
+    This project utilizes several open-source materials science packages. We gratefully acknowledge their authors and maintainers:
     
     - **[Matminer](https://github.com/hackingmaterials/matminer)**  
       Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
