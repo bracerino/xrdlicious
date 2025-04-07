@@ -2102,18 +2102,19 @@ if st.session_state.calc_xrd and uploaded_files:
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
     show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
-    if preset_choice in multi_component_presets:
-        st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
-        num_components = len(multi_component_presets[preset_choice]["wavelengths"])
-        if num_components > 1:
+    if peak_representation != "Delta":
+        if preset_choice in multi_component_presets:
+            st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
+            num_components = len(multi_component_presets[preset_choice]["wavelengths"])
+            if num_components > 1:
+                show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+            if num_components >= 2:
+                show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
+            if num_components >= 3:
+                show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
+        else:
+            st.sidebar.subheader("Include Kα1 for hovering:")
             show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-        if num_components >= 2:
-            show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
-        if num_components >= 3:
-            show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
-    else:
-        st.sidebar.subheader("Include Kα1 for hovering:")
-        show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
     
     # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
