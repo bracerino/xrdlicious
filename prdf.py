@@ -202,7 +202,7 @@ with col1:
     "📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
 from PIL import Image
 with col2:
-    image = Image.open("images/ts3.png")
+    image = Image.open("images/ts4.png")
     st.image(image)
 
 
