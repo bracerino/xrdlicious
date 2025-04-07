@@ -1226,7 +1226,7 @@ if uploaded_files:
                     base_atoms = len(structure)
                     supercell_multiplier = n_a * n_b * n_c
                     total_atoms = base_atoms * supercell_multiplier
-                    st.info(f"Supercell will contain **{total_atoms} atoms**.")
+                    st.info(f"Structure will contain **{total_atoms} atoms**.")
                     supercell_structure = structure.copy()  # ASE Atoms object
                     supercell_pmg = visual_pmg_structure.copy()  # pymatgen Structure object
 
