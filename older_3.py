@@ -31,6 +31,12 @@ import io
 import re
 import spglib
 from pymatgen.core import Structure
+from aflow import search, K
+from aflow import search  # ensure your file is not named aflow.py!
+import aflow.keywords as AFLOW_K
+import requests
+#import aflow.keywords as K
+
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
@@ -42,18 +48,48 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 #    st.write(f"{package}=={version}")
 
 
+def get_full_conventional_structure_diffra(structure, symprec=1e-3):
+    cell = (
+        structure.lattice.matrix,
+        structure.frac_coords,
+        [max(site.species.items(), key=lambda x: x[1])[0].Z for site in structure]
+    )
+
+    dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+    std_lattice = dataset['std_lattice']
+    std_positions = dataset['std_positions']
+    std_types = dataset['std_types']
+
+    # Map std_types to species dictionaries
+    original_species_list = [site.species for site in structure]
+    type_to_species = {
+        original_atomic_number: original_species
+        for original_atomic_number, original_species in zip(cell[2], original_species_list)
+    }
+
+    new_species_list = [type_to_species[t] for t in std_types]
+
+    # Build the conventional cell
+    conv_structure = Structure(
+        lattice=std_lattice,
+        species=new_species_list,
+        coords=std_positions,
+        coords_are_cartesian=False
+    )
+    return conv_structure
+
+
 def get_full_conventional_structure(structure, symprec=1e-3):
-    """
-    Returns the full conventional cell for a given pymatgen Structure.
-    This uses spglib to standardize the cell.
-    """
     # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
-    cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
+    cell = (structure.lattice.matrix, structure.frac_coords,
+            [max(site.species, key=site.species.get).number for site in structure])
+
     # Get the symmetry dataset from spglib
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
+
     # Build the conventional cell as a new Structure object
     conv_structure = Structure(std_lattice, std_types, std_positions)
     return conv_structure
@@ -143,7 +179,10 @@ components.html(
 
 st.title(
     "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
-st.divider()
+st.info(
+"🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\nYou can find crystal structures in CIF format for example at: 📖 [Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
+"📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
+#st.divider()
 
 # Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
@@ -169,7 +208,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project Database: 
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
         <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
@@ -180,6 +219,12 @@ if mode == "Basic":
 
     # st.divider()
 
+st.info(
+"Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
+    "powder X-ray or neutron diffraction (XRD or ND) patterns or partial radial distribution function (PRDF) for each element combination, as well as the total RDF. "
+    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure."
+)
+
 # Initialize session state keys if not already set.
 if 'mp_options' not in st.session_state:
     st.session_state['mp_options'] = None
@@ -189,9 +234,12 @@ if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'
     st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
 # Create two columns: one for search and one for structure selection and actions.
-st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+#st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 
+
+if 'full_structures' not in st.session_state:
+    st.session_state.full_structures = {}
 
 st.sidebar.subheader("📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
@@ -200,6 +248,18 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
         accept_multiple_files=True,
     key="sidebar_uploader"
     )
+
+if uploaded_files_user_sidebar:
+    for file in uploaded_files_user_sidebar:
+        # Only add the file if it hasn't been processed before.
+        if file.name not in st.session_state.full_structures:
+            try:
+                # Replace load_structure with your structure-parsing function.
+                structure = load_structure(file)
+                st.session_state.full_structures[file.name] = structure
+            except Exception as e:
+                st.error(f"Failed to parse {file.name}: {e}")
+
 
 # Column 1: Search for structures.
 with col1:
@@ -210,13 +270,364 @@ with col1:
         type=None,
         accept_multiple_files=True
     )
+
+if uploaded_files_user:
+    for file in uploaded_files_user:
+        # Only add the file if it hasn't been processed before.
+        if file.name not in st.session_state.full_structures:
+            try:
+                # Replace load_structure with your structure-parsing function.
+                structure = load_structure(file)
+                st.session_state.full_structures[file.name] = structure
+            except Exception as e:
+                st.error(f"Failed to parse {file.name}: {e}")
+
+
 with col2:
-    st.subheader("🔍 or Search for Structures in Materials Project Database")
-    search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2",
-                                 value="Sr Ti O")
-    if st.button("Search Materials Project", key="search_btn") and search_query:
-        with st.spinner("Searching for structures in database..."):
-            elements_list = sorted(set(search_query.split()))
+    st.subheader("🔍 or Search for Structures in the MP or AFLOW Databases")
+    db_choice = st.radio(
+        "Select Database",
+        options=["Materials Project", "AFLOW"],
+        index=0,
+        help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries) or in the AFLOW database (about 60 000 ICSD Entries)."
+    )
+
+    if db_choice == "Materials Project":
+        mp_search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
+        if st.button("Search Materials Project"):
+            with st.spinner("Searching Materials Project database..."):
+                elements_list = sorted(set(mp_search_query.split()))
+                try:
+                    with MPRester(MP_API_KEY) as mpr:
+                        docs = mpr.materials.summary.search(
+                            elements=elements_list,
+                            num_elements=len(elements_list),
+                            fields=["material_id", "formula_pretty", "symmetry"]
+                        )
+                        if docs:
+                            st.session_state.mp_options = []
+                            st.session_state.full_structures_see = {}  # store full pymatgen Structures
+                            for doc in docs:
+                                # Retrieve the full structure
+                                full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                                # (Optionally, convert to conventional cell here)
+                                # Retrieve the full structure (including lattice parameters)
+                                if convert_to_conventional:
+                                    # analyzer = SpacegroupAnalyzer(full_structure)
+                                    # structure_to_use = analyzer.get_conventional_standard_structure()
+                                    structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                                elif pymatgen_prim_cell_lll:
+                                    analyzer = SpacegroupAnalyzer(full_structure)
+                                    structure_to_use = analyzer.get_primitive_standard_structure()
+                                    structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                                elif pymatgen_prim_cell_no_reduce:
+                                    analyzer = SpacegroupAnalyzer(full_structure)
+                                    structure_to_use = analyzer.get_primitive_standard_structure()
+                                else:
+                                    structure_to_use = full_structure
+                                st.session_state.full_structures_see[doc.material_id] = structure_to_use
+                                lattice = structure_to_use.lattice
+                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                               f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                                st.session_state.mp_options.append(
+                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
+                                )
+                            st.success(f"Found {len(st.session_state.mp_options)} structures.")
+                        else:
+                            st.session_state.mp_options = []
+                            st.warning("No matching structures found in Materials Project.")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}.\nThis is likely due to the error within The Materials Project API. Please try again later.")
+    if db_choice == "AFLOW": # AFLOW branch
+        aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Ti O):", value="Ti O")
+
+        # Process user input:
+        if aflow_elements_input:
+            import re
+
+            # Replace commas with spaces, then split on whitespace.
+            elements = re.split(r'[\s,]+', aflow_elements_input.strip())
+            elements = [el for el in elements if el]  # Remove any empty strings.
+
+            # Order elements alphabetically.
+            ordered_elements = sorted(elements)
+
+            # Create a comma-separated string for the inner search.
+            ordered_str = ",".join(ordered_elements)
+            # Automatically calculate number of species.
+            aflow_nspecies = len(ordered_elements)
+        else:
+            ordered_str = ""
+            aflow_nspecies = 0
+
+        if st.button("Search AFLOW"):
+            with st.spinner("Searching AFLOW database..."):
+                try:
+                    results = list(
+                        search(catalog="icsd")
+                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                        .select(
+                            AFLOW_K.auid,
+                            AFLOW_K.compound,
+                            AFLOW_K.geometry,
+                            AFLOW_K.spacegroup_relax,
+                            AFLOW_K.aurl,
+                            AFLOW_K.files,
+                        )
+                    )
+                    st.session_state.entrys = {}
+
+                    if results:
+                        st.session_state.aflow_options = []
+                        st.session_state.entrys = {}  # store full AFLOW entry objects
+                        for entry in results:
+                            # Save the full entry object in session state.
+                            st.session_state.entrys[entry.auid] = entry
+                            # Use the provided geometry string from AFLOW for display.
+                            st.session_state.aflow_options.append(
+                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
+                            )
+                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                    else:
+                        st.session_state.aflow_options = []
+                        st.warning("No matching structures found in AFLOW.")
+                except Exception as e:
+                    st.warning("No matching structures found in AFLOW.")
+
+
+# Import AFLOW search functions and keywords
+
+# Column 2: Select structure and add/download CIF.
+with col3:
+    if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
+        st.subheader("Structures Found in Materials Project")
+        selected_structure = st.selectbox("Select a structure from MP:", st.session_state.mp_options)
+        selected_id = selected_structure.split(":")[0].strip()
+        composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+        file_name = f"{selected_id}_{composition}.cif"
+        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+        # Retrieve the corresponding MP structure from session state.
+        if selected_id in st.session_state.full_structures_see:
+            selected_entry = st.session_state.full_structures_see[selected_id]
+
+            #st.write("### Selected Structure Details")
+            st.write(f"**Material ID:** {selected_id}")
+            st.write(f"**Formula:** {composition}")
+
+            # Display original lattice parameters
+           # lattice = selected_entry.lattice
+           # st.write(f"**Primitive Cell Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+           # st.write(f"**Primitive Cell Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+
+            if convert_to_conventional:
+                # analyzer = SpacegroupAnalyzer(full_structure)
+                # structure_to_use = analyzer.get_conventional_standard_structure()
+               converted_structure = get_full_conventional_structure(selected_entry, symprec=0.1)
+               conv_lattice = converted_structure.lattice
+               st.write(
+                    f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+               st.write(
+                    f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(selected_entry)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_no_reduce:
+                analyzer = SpacegroupAnalyzer(selected_entry)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                conv_lattice = converted_structure.lattice
+                st.write(
+                    f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                st.write(
+                    f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+            elif pymatgen_prim_cell_niggli:
+                analyzer = SpacegroupAnalyzer(selected_entry)
+                converted_structure = analyzer.get_primitive_standard_structure()
+                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                conv_lattice = converted_structure.lattice
+                st.write(
+                    f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                st.write(
+                    f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+
+
+            # Optionally, convert to the conventional cell using your defined function.
+
+
+
+            # Optionally, show space group using pymatgen's SpacegroupAnalyzer.
+            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+            analyzer = SpacegroupAnalyzer(selected_entry)
+            st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+            mp_url = f"https://materialsproject.org/materials/{selected_id}"
+            st.write(f"**Link:** {mp_url}")
+
+        if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
+            pmg_structure = st.session_state.full_structures_see[selected_id]
+            st.session_state.full_structures[file_name] = pmg_structure
+            cif_writer = CifWriter(pmg_structure)
+            cif_content = cif_writer.__str__()
+            cif_file = io.BytesIO(cif_content.encode('utf-8'))
+            cif_file.name = file_name
+            if 'uploaded_files' not in st.session_state:
+                st.session_state.uploaded_files = []
+            if all(f.name != file_name for f in st.session_state.uploaded_files):
+                st.session_state.uploaded_files.append(cif_file)
+            st.success("Structure added from Materials Project!")
+        st.download_button(
+            label="Download MP CIF",
+            data=st.session_state.full_structures_see[selected_id].__str__(),
+            file_name=file_name,
+            type="primary",
+            mime="chemical/x-cif"
+        )
+
+
+    elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
+        st.subheader("Structures Found in AFLOW")
+        selected_structure = st.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options)
+        selected_auid = selected_structure.split(": ")[0].strip()
+        # Retrieve the corresponding AFLOW entry from session state.
+        selected_entry = next(
+            (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
+        if selected_entry:
+           # st.write("### Selected Structure Details")
+            st.write(f"**AUID:** {selected_entry.auid}")
+            st.write(f"**Formula:** {selected_entry.compound}")
+            #st.write(f"**Space Group:** ({selected_entry.spacegroup_relax})")
+
+
+
+
+            # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
+
+            cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+            if cif_files:
+
+                cif_filename = cif_files[0]
+
+                # Correct the AURL: replace the first ':' with '/'
+
+                host_part, path_part = selected_entry.aurl.split(":", 1)
+
+                corrected_aurl = f"{host_part}/{path_part}"
+
+                file_url = f"http://{corrected_aurl}/{cif_filename}"
+
+
+                # Fetch the CIF file once.
+
+                response = requests.get(file_url)
+                cif_content = response.content
+
+
+                # "Add" button: store the CIF file in session state.
+                structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+                if convert_to_conventional:
+                    converted_structure = get_full_conventional_structure(structure_from_aflow, symprec=0.1)
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_no_reduce:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                elif pymatgen_prim_cell_niggli:
+                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                    conv_lattice = converted_structure.lattice
+                    st.write(
+                        f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                    st.write(
+                        f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                else:
+                    # If no conversion flag is set, display the original lattice.
+                    lattice = structure_from_aflow.lattice
+                    st.write(
+                        f"**Original Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+                    st.write(
+                        f"**Original Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+                linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
+                st.write("**Link:**", linnk)
+
+                if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                    if 'uploaded_files' not in st.session_state:
+                        st.session_state.uploaded_files = []
+                    cif_file = io.BytesIO(cif_content)
+                    cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                    st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                    if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                        st.session_state.uploaded_files.append(cif_file)
+                    st.success("Structure added from AFLOW!")
+
+
+                st.download_button(
+                    label="Download AFLOW CIF",
+                    data=cif_content,
+                    file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                    type="primary",
+                    mime="chemical/x-cif"
+                )
+            else:
+                st.warning("No CIF file found for this AFLOW entry.")
+
+#
+
+# Column 2: Select structure and add/download CIF.
+
+
+
+
+
+
+
+
+
+
+
+
+#SIDEBAR SEARCH
+
+db_choice = st.sidebar.radio(
+        "Select Database",
+        options=["Materials Project", "AFLOW"],
+        index=0,
+        help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries) or in the AFLOW database (about 60 000 ICSD Entries).", key ="sidebar_database"
+    )
+
+if db_choice == "Materials Project":
+    mp_search_query = st.sidebar.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O", key='sidebar_input_mp')
+    if st.sidebar.button("Search Materials Project", key='sidebar_mp_butt'):
+        with st.spinner("Searching Materials Project database..."):
+            elements_list = sorted(set(mp_search_query.split()))
             with MPRester(MP_API_KEY) as mpr:
                 docs = mpr.materials.summary.search(
                     elements=elements_list,
@@ -224,11 +635,13 @@ with col2:
                     fields=["material_id", "formula_pretty", "symmetry"]
                 )
                 if docs:
-                    st.session_state['mp_options'] = []
-                    st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
+                    st.session_state.mp_options = []
+                    st.session_state.full_structures_see = {}  # store full pymatgen Structures
                     for doc in docs:
-                        # Retrieve the full structure (including lattice parameters)
+                        # Retrieve the full structure
                         full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                        # (Optionally, convert to conventional cell here)
+                        # Retrieve the full structure (including lattice parameters)
                         if convert_to_conventional:
                             # analyzer = SpacegroupAnalyzer(full_structure)
                             # structure_to_use = analyzer.get_conventional_standard_structure()
@@ -242,177 +655,153 @@ with col2:
                             structure_to_use = analyzer.get_primitive_standard_structure()
                         else:
                             structure_to_use = full_structure
-                        st.session_state['full_structures'][doc.material_id] = structure_to_use
+                        st.session_state.full_structures_see[doc.material_id] = structure_to_use
                         lattice = structure_to_use.lattice
-                        lattice_str = (
-                            f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                            f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
+                        lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                       f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                        st.session_state.mp_options.append(
+                            f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
                         )
-                        st.session_state['mp_options'].append(
-                            f"{doc.material_id}: {doc.formula_pretty} "
-                            f"({doc.symmetry.symbol}, {lattice_str})"
-                        )
+                    st.success(f"Found {len(st.session_state.mp_options)} structures.")
                 else:
-                    st.session_state['mp_options'] = []
-                    st.warning("No matching structures found in Materials Project.")
-        st.success("Finished searching for structures.")
+                    st.session_state.mp_options = []
+                    st.sidebar.warning("No matching structures found in Materials Project.")
+if db_choice == "AFLOW":
+    aflow_elements_input = st.sidebar.text_input("Enter elements separated by spaces (e.g., Ti O):", value="Ti O", key='sidebar_AFLOW')
 
-# Column 2: Select structure and add/download CIF.
-with col3:
-    st.subheader("🧪 Structures Found in Materials Project")
-    if st.session_state['mp_options'] is None:
-        st.info("Please press the 'Search Materials Project' button to view the available structures.")
-    elif st.session_state['mp_options']:
-        selected_mp_structure = st.selectbox(
-            "Select a structure from Materials Project:",
-            st.session_state['mp_options']
-        )
-        # Extract material ID and composition (ignore space group).
-        selected_id = selected_mp_structure.split(":")[0].strip()
-        composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
-        file_name = f"{selected_id}_{composition}.cif"
-        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+    # Process user input:
+    if aflow_elements_input:
+        import re
 
-        if st.button("Add Selected Structure", key="add_btn"):
-            # Use the pre-stored structure from session state
-            pmg_structure = st.session_state['full_structures'][selected_id]
-            cif_writer = CifWriter(pmg_structure)
-            cif_content = cif_writer.__str__()
-            cif_file = io.BytesIO(cif_content.encode('utf-8'))
-            cif_file.name = file_name
-            if all(f.name != file_name for f in st.session_state['uploaded_files']):
-                st.session_state['uploaded_files'].append(cif_file)
-            st.session_state['selected_structure'] = selected_mp_structure
-            st.success("Structure added!")
+        # Replace commas with spaces, then split on whitespace.
+        elements = re.split(r'[\s,]+', aflow_elements_input.strip())
+        elements = [el for el in elements if el]  # Remove any empty strings.
 
-        # Use the stored structure for the download button.
-        pmg_structure = st.session_state['full_structures'][selected_id]
+        # Order elements alphabetically.
+        ordered_elements = sorted(elements)
+
+        # Create a comma-separated string for the inner search.
+        ordered_str = ",".join(ordered_elements)
+        # Automatically calculate number of species.
+        aflow_nspecies = len(ordered_elements)
+    else:
+        ordered_str = ""
+        aflow_nspecies = 0
+
+    if st.sidebar.button("Search AFLOW", key='aflow_but'):
+        with st.spinner("Searching AFLOW database..."):
+            try:
+                results = list(
+                    search(catalog="icsd")
+                    .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                    .select(
+                        AFLOW_K.auid,
+                        AFLOW_K.compound,
+                        AFLOW_K.geometry,
+                        AFLOW_K.spacegroup_relax,
+                        AFLOW_K.aurl,
+                        AFLOW_K.files,
+                    )
+                )
+                st.session_state.entrys = {}
+
+                if results:
+                    st.session_state.aflow_options = []
+                    st.session_state.entrys = {}  # store full AFLOW entry objects
+                    for entry in results:
+                        # Save the full entry object in session state.
+                        st.session_state.entrys[entry.auid] = entry
+                        # Use the provided geometry string from AFLOW for display.
+                        st.session_state.aflow_options.append(
+                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
+                        )
+                    st.sidebar.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                else:
+                    st.session_state.aflow_options = []
+                    st.sidebar.warning("No matching structures found in AFLOW.")
+            except Exception as e:
+                st.sidebar.warning("No matching structures found in AFLOW.")
+
+if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
+    selected_structure = st.sidebar.selectbox("Select a structure from MP:", st.session_state.mp_options,
+                                              key='sidebar_select_mp')
+    selected_id = selected_structure.split(":")[0].strip()
+    composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+    file_name = f"{selected_id}_{composition}.cif"
+    file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+    # Retrieve the corresponding MP structure from session state.
+    if selected_id in st.session_state.full_structures_see:
+        selected_entry = st.session_state.full_structures_see[selected_id]
+
+    if st.sidebar.button("Add Selected Structure (MP)", key="sid_add_btn_mp"):
+        pmg_structure = st.session_state.full_structures_see[selected_id]
+        st.session_state.full_structures[file_name] = pmg_structure
         cif_writer = CifWriter(pmg_structure)
         cif_content = cif_writer.__str__()
-        col_d, col_url = st.columns(2)
-        with col_d:
-            st.download_button(
-                label="Download CIF File",
-                data=cif_content,
-                file_name=file_name,
-                type="primary",
-                mime="chemical/x-cif"
-            )
-        with col_url:
-            # Create the URL for the Materials Project page using the selected material ID.
-            mp_url = f"https://materialsproject.org/materials/{selected_id}"
-
-            # Add a hyperlink styled as a button.
-            st.markdown(
-                f"""
-                <a href="{mp_url}" target="_blank" style="
-                    display: inline-block;
-                    margin-top: 0px;
-                    padding: 0.5em 1em;
-                    background-color: #66bb66;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    font-weight: normal;
-                    font-size: 16px;">
-                    View Structure {selected_id} on Materials Project
-                </a>
-                """,
-                unsafe_allow_html=True,
-            )
+        cif_file = io.BytesIO(cif_content.encode('utf-8'))
+        cif_file.name = file_name
+        if 'uploaded_files' not in st.session_state:
+            st.session_state.uploaded_files = []
+        if all(f.name != file_name for f in st.session_state.uploaded_files):
+            st.session_state.uploaded_files.append(cif_file)
+        st.sidebar.success("Structure added from Materials Project!")
 
 
+elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
+    selected_structure = st.sidebar.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options,
+                                              key='option_aflow_sid')
+    selected_auid = selected_structure.split(": ")[0].strip()
+    # Retrieve the corresponding AFLOW entry from session state.
+    selected_entry = next(
+        (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
+    if selected_entry:
+
+        # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
+
+        cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+        if cif_files:
+
+            cif_filename = cif_files[0]
+
+            # Correct the AURL: replace the first ':' with '/'
+
+            host_part, path_part = selected_entry.aurl.split(":", 1)
+
+            corrected_aurl = f"{host_part}/{path_part}"
+
+            file_url = f"http://{corrected_aurl}/{cif_filename}"
+
+            # Fetch the CIF file once.
+
+            response = requests.get(file_url)
+            cif_content = response.content
+
+            # "Add" button: store the CIF file in session state.
+            structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+
+            if st.sidebar.button("Add Selected Structure (AFLOW)", key="sid_add_btn_aflow"):
+                if 'uploaded_files' not in st.session_state:
+                    st.session_state.uploaded_files = []
+                cif_file = io.BytesIO(cif_content)
+                cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                    st.session_state.uploaded_files.append(cif_file)
+                st.sidebar.success("Structure added from AFLOW!")
+
+        else:
+            st.warning("No CIF file found for this AFLOW entry.")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-
-# Column 2: Select structure and add/download CIF.
-search_query = st.sidebar.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", key="mp_search_query2_sidebar",
-                             value="Sr Ti O", )
-if st.sidebar.button("Search Materials Project", key="sidebar_search_btn") and search_query:
-    with st.spinner("Searching for structures in database..."):
-        elements_list = sorted(set(search_query.split()))
-        with MPRester(MP_API_KEY) as mpr:
-            docs = mpr.materials.summary.search(
-                elements=elements_list,
-                num_elements=len(elements_list),
-                fields=["material_id", "formula_pretty", "symmetry"]
-            )
-            if docs:
-                st.session_state['mp_options'] = []
-                st.session_state['full_structures'] = {}  # Dictionary to store full structure objects
-                for doc in docs:
-                    # Retrieve the full structure (including lattice parameters)
-                    full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                    if convert_to_conventional:
-                        # analyzer = SpacegroupAnalyzer(full_structure)
-                        # structure_to_use = analyzer.get_conventional_standard_structure()
-                        structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
-                    elif pymatgen_prim_cell_lll:
-                        analyzer = SpacegroupAnalyzer(full_structure)
-                        structure_to_use = analyzer.get_primitive_standard_structure()
-                        structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
-                    elif pymatgen_prim_cell_no_reduce:
-                        analyzer = SpacegroupAnalyzer(full_structure)
-                        structure_to_use = analyzer.get_primitive_standard_structure()
-                    else:
-                        structure_to_use = full_structure
-                    st.session_state['full_structures'][doc.material_id] = structure_to_use
-                    lattice = structure_to_use.lattice
-                    lattice_str = (
-                        f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                        f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °"
-                    )
-                    st.session_state['mp_options'].append(
-                        f"{doc.material_id}: {doc.formula_pretty} "
-                        f"({doc.symmetry.symbol}, {lattice_str})"
-                    )
-            else:
-                st.session_state['mp_options'] = []
-                st.warning("No matching structures found in Materials Project.")
-    st.sidebar.success("Finished searching for structures.")
 
 
 
 if st.session_state['mp_options'] is None:
     st.info("Please press the 'Search Materials Project' button to view the available structures.")
-elif st.session_state['mp_options']:
-    selected_mp_structure = st.sidebar.selectbox(
-        "Select a structure from Materials Project:",
-        st.session_state['mp_options'], key='selected_sidebar'
-    )
-    # Extract material ID and composition (ignore space group).
-    selected_id = selected_mp_structure.split(":")[0].strip()
-    composition = selected_mp_structure.split(":", 1)[1].split("(")[0].strip()
-    file_name = f"{selected_id}_{composition}.cif"
-    file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
-
-    if st.sidebar.button("Add Selected Structure", key="add_btn_sidebar"):
-        # Use the pre-stored structure from session state
-        pmg_structure = st.session_state['full_structures'][selected_id]
-        cif_writer = CifWriter(pmg_structure)
-        cif_content = cif_writer.__str__()
-        cif_file = io.BytesIO(cif_content.encode('utf-8'))
-        cif_file.name = file_name
-        if all(f.name != file_name for f in st.session_state['uploaded_files']):
-            st.session_state['uploaded_files'].append(cif_file)
-        st.session_state['selected_structure'] = selected_mp_structure
-        st.sidebar.success("Structure added!")
 
 
 
@@ -424,6 +813,15 @@ st.markdown("---")
 
 if uploaded_files_user or uploaded_files_user_sidebar:
     uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user + uploaded_files_user_sidebar
+    if 'full_structures' not in st.session_state:
+        st.session_state.full_structures = {}
+    for file in uploaded_files_user:
+        try:
+            structure = load_structure(file)
+            # Use file.name as the key (or modify to a unique identifier if needed)
+            st.session_state['full_structures'][file.name] = structure
+        except Exception as e:
+            st.error(f"Failed to parse {file.name}: {e}")
 else:
     uploaded_files = st.session_state['uploaded_files']
 
@@ -431,7 +829,7 @@ st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
 
-st.sidebar.markdown("### 🗑️ Remove Structure(s) from MP")
+st.sidebar.markdown("### 🗑️ Remove Structure(s) added from MP or AFLOW")
 
 files_to_remove = []
 for i, file in enumerate(st.session_state['uploaded_files']):
@@ -449,18 +847,42 @@ if files_to_remove:
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 else:
-    st.warning("📌 Please upload at least one structure file. [📺 Quick tutorial here](https://youtu.be/ZiRbcgS_cd0)")
-st.warning(
-    "💡 You can find crystal structures in CIF format at: \n\n [📖 Crystallography Open Database (COD)](https://www.crystallography.net/cod/) or "
-    "[📖 The Materials Project (MP)](https://next-gen.materialsproject.org/materials)"
-)
-st.info(
-    "ℹ️ Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "Partial Radial Distribution Function (PRDF) for each element combination, as well as the Total RDF, or the powder X-ray or neutron diffraction (XRD or ND) pattern. "
-    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure. "
-    "Below, you can change the settings for the diffraction calculation or PRDF."
-)
+    st.warning("📌 Please upload at least one structure file.")
+
 if mode == "Basic" and not uploaded_files:
+    st.divider()
+    st.markdown("""
+    **This application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
+    """)
+    #If used in academic publications, please cite:
+    
+    st.markdown("""
+    ### Acknowledgments
+    
+    This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
+    
+    - **[Matminer](https://github.com/hackingmaterials/matminer)**  
+      Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
+    
+    - **[Pymatgen](https://github.com/materialsproject/pymatgen)**  
+      Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).  
+    
+    - **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)**  
+      Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER).  
+    
+    - **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)**  
+        Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt).
+    
+    - **[Materials Project](https://next-gen.materialsproject.org/)**  
+      Data from the Materials Project is made available under the  
+      [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).  
+    
+    - **[AFLOW](http://aflow.org)**  
+      Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).   
+      When using structures from AFLOW, please cite:  
+      Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
+      [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
+    """)
     st.stop()
 # --- Detect Atomic Species ---
 
@@ -478,8 +900,8 @@ if uploaded_files:
                 for sp in atom.species:
                     species_set.add(sp.symbol)
     species_list = sorted(species_set)
-    st.subheader("📊 Detected Atomic Species")
-    st.write(", ".join(species_list))
+    #st.subheader("📊 Detected Atomic Species")
+    #st.write(", ".join(species_list))
 else:
     species_list = []
 
@@ -687,7 +1109,11 @@ if uploaded_files:
         structure = read(selected_file)
 
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
-        mp_struct = st.session_state.get('full_structures', {}).get(selected_id)
+        #print(st.session_state.get('full_structures', {}))
+        #if 'full_structures' in st.session_state:
+        #mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
+        mp_struct = AseAtomsAdaptor.get_structure(structure)
+        #mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
 
         if mp_struct:
             if convert_to_conventional:
@@ -726,7 +1152,8 @@ if uploaded_files:
         else:
             visual_pmg_structure = load_structure(selected_file)
         for site in visual_pmg_structure.sites:
-            print(site.species)  # This will show occupancy info
+            pass
+            #print(site.species)  # This will show occupancy info
             # Write CIF content directly using pymatgen:
             # Otherwise, use the chosen conversion
         if convert_to_conventional:
@@ -751,7 +1178,7 @@ if uploaded_files:
 
         with col_download:
             st.download_button(
-                label="Download CIF for Visualized Structure",
+                label="Download CIF for the Visualized Structure",
                 data=cif_content_visual,
                 file_name=download_file_name,
                 type="primary",
@@ -825,7 +1252,7 @@ if uploaded_files:
             f"Volume = {volume:.2f} Å³"
         )
 
-        left_col, right_col = st.columns(2)
+        left_col, right_col = st.columns([1, 2])
 
         with left_col:
             st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>",
@@ -868,7 +1295,7 @@ if uploaded_files:
             </div>
             """, unsafe_allow_html=True)
             st.markdown(f"""
-            <div style='text-align: center; font-size: 28px;'>
+            <div style='text-align: center; font-size: 22px;'>
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
                 <p><strong>Legend:</strong><br>{legend_html}</p>
                 <p><strong>Number of Atoms:</strong> {len(structure)}</p>
@@ -877,12 +1304,11 @@ if uploaded_files:
             """, unsafe_allow_html=True)
 
             # If atomic positions are to be shown, display them as a table.
-            if show_atomic:
-                import pandas as pd
+        if show_atomic:
 
-                df_atoms = pd.DataFrame(atomic_info)
-                st.subheader("Atomic Positions")
-                st.dataframe(df_atoms)
+            df_atoms = pd.DataFrame(atomic_info)
+            st.subheader("Atomic Positions")
+            st.dataframe(df_atoms)
 
         with right_col:
             st.components.v1.html(centered_html, height=600)
@@ -966,10 +1392,23 @@ with col_settings:
         )
 
 
-    def format_index(index):
+    def format_index(index, first=False, last=False):
         s = str(index)
-        if len(s) == 2:
+
+
+        if s.startswith("-") and len(s) == 2:
+            return s
+
+
+        elif first and len(s) == 2:
             return s + " "
+
+        elif last and len(s) == 2:
+            return " " + s + " "
+
+        elif len(s) >= 2:
+            return " " + s + " "
+
         return s
 
 
@@ -980,6 +1419,12 @@ with col_settings:
             result = twotheta_deg
         elif metric == "2θ (rad)":
             result = np.deg2rad(twotheta_deg)
+        elif metric == "2θ (rad)":
+            result = np.deg2rad(twotheta_deg)
+        elif metric == "θ (°)":
+            result = twotheta_deg / 2.0
+        elif metric == "θ (rad)":
+            result = np.deg2rad(twotheta_deg / 2.0)
         elif metric == "q (1/Å)":
             result = (4 * np.pi / wavelength_A) * np.sin(theta)
         elif metric == "q (1/nm)":
@@ -1011,6 +1456,10 @@ with col_settings:
         elif metric == "q (1/Å)":
             theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
             return np.rad2deg(2 * theta)
+        elif metric == "θ (°)":
+            return 2 * metric_value
+        elif metric == "θ (rad)":
+            return 2 * np.rad2deg(metric_value)
         elif metric == "q (1/nm)":
             theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
             return np.rad2deg(2 * theta)
@@ -1043,6 +1492,8 @@ with col_settings:
     conversion_info = {
         "2θ (°)": "Identity: 2θ in degrees.",
         "2θ (rad)": "Conversion: radians = degrees * (π/180).",
+        "θ (°)": "Identity: 2θ in degrees.",
+        "θ (rad)": "Conversion: radians = degrees * (π/180).",
         "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
         "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
         "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
@@ -1052,13 +1503,21 @@ with col_settings:
     }
 
     # --- Wavelength Selection ---
+    #preset_options = [
+    #    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)', 'CoKb1',
+    #    'MoKa1', 'MoKa2', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
+    #    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)', 'CuKb1',
+    #    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
+    #    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
+    #    'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
+    #]
     preset_options = [
-        'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)', 'CoKb1',
-        'MoKa1', 'MoKa2', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
-        'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)', 'CuKb1',
-        'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
-        'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
-        'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
+        'CoKa1', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
+        'MoKa1', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
+        'CuKa1',  'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
+        'CrKa1',  'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
+        'FeKa1',  'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
+        'AgKa1', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
     ]
     preset_wavelengths = {
         'Cu(Ka1+Ka2)': 0.154,
@@ -1087,7 +1546,7 @@ with col_settings:
         'Co(Ka1+Ka2+Kb1)': 0.1781100,
         'CoKb1': 0.163,
         'AgKa1': 0.0561,
-        'AgKa2': 0.0560,
+        'AgKa2': 0.05634,
         'Ag(Ka1+Ka2)': 0.0561,
         'AgKb1': 0.0496,
         'Ag(Ka1+Ka2+Kb1)': 0.0557006
@@ -1106,16 +1565,31 @@ with col_settings:
                 "Preset Wavelength",
                 options=preset_options,
                 index=0,
-                help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+                help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
             )
+
+        hide_input_for = [
+            'Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)',
+            'Mo(Ka1+Ka2+Kb1)','Mo(Ka1+Ka2)',
+            'Cr(Ka1+Ka2+Kb1)','Cr(Ka1+Ka2)',
+            'Fe(Ka1+Ka2+Kb1)','Fe(Ka1+Ka2)',
+            'Co(Ka1+Ka2+Kb1)','Co(Ka1+Ka2)',
+            'Ag(Ka1+Ka2+Kb1)','Ag(Ka1+Ka2)'
+        ]
+
         with col2:
-            wavelength_value = st.number_input(
-                "Wavelength (nm)",
-                value=preset_wavelengths[preset_choice],
-                min_value=0.001,
-                step=0.001,
-                format="%.5f"
-            )
+            if preset_choice not in hide_input_for:
+                wavelength_value = st.number_input(
+                    "Wavelength (nm)",
+                    value=preset_wavelengths[preset_choice],
+                    min_value=0.001,
+                    step=0.001,
+                    format="%.5f"
+                )
+            else:
+                wavelength_value = preset_wavelengths[preset_choice]
+
+
     elif diffraction_choice == "ND (Neutron)":
         with col1:
             preset_choice = st.selectbox(
@@ -1133,18 +1607,18 @@ with col_settings:
                 format="%.5f"
             )
 
-    st.write(f"**Using wavelength = {wavelength_value} nm**")
+
     wavelength_A = wavelength_value * 10  # Convert nm to Å
     wavelength_nm = wavelength_value
 
     x_axis_options = [
-        "2θ (°)", "2θ (rad)",
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
         "q (1/Å)", "q (1/nm)",
         "d (Å)", "d (nm)",
         "energy (keV)", "frequency (PHz)"
     ]
     x_axis_options_neutron = [
-        "2θ (°)", "2θ (rad)",
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
         "q (1/Å)", "q (1/nm)",
         "d (Å)", "d (nm)",
     ]
@@ -1197,10 +1671,17 @@ with col_settings:
 
     col1, col2 = st.columns(2)
 
-    min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                key=f"min_val_{x_axis_metric}")
-    max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                key=f"max_val_{x_axis_metric}")
+    if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
+
+        min_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
+    else:
+        min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
 
     # --- Update the canonical two_theta values based on current inputs ---
     st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
@@ -1242,129 +1723,331 @@ if st.session_state.calc_xrd and uploaded_files:
     for file in uploaded_files:
         include_in_combined[file.name] = st.sidebar.checkbox(f"Include {file.name}", value=True)
 
+    multi_component_presets = {
+        "Cu(Ka1+Ka2)": {
+            "wavelengths": [0.15406, 0.15444],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Cu(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.15406, 0.15444, 0.13922],
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        },
+        "Mo(Ka1+Ka2)": {
+            "wavelengths": [0.07093, 0.0711, ],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Mo(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.07093, 0.0711,  0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        },
+        "Cr(Ka1+Ka2)": {
+            "wavelengths": [0.22897, 0.22888, ],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Cr(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        },
+        "Fe(Ka1+Ka2)": {
+            "wavelengths": [0.19360, 0.194, ],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Fe(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.19360, 0.194,  0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        },
+        "Co(Ka1+Ka2)": {
+            "wavelengths": [0.17889, 0.17927, ],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Co(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        },
+        "Ag(Ka1+Ka2)": {
+            "wavelengths": [0.0561, 0.05634, ],
+            "factors": [1.0, 1 / 3.0]
+        },
+        "Ag(Ka1+Ka2+Kb1)": {
+            "wavelengths": [0.0561, 0.05634,0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+            "factors": [1.0, 1 / 2.0, 1 / 9.0]
+        }
+        # Extend with additional multi-component presets if needed.
+    }
+
+    # Check whether the user-selected preset is multi-component.
+    is_multi_component = preset_choice in multi_component_presets
+    if is_multi_component:
+        comp_info = multi_component_presets[preset_choice]
+        # Fallback: if "labels" key is missing, assign default labels based on number of wavelengths.
+        if "labels" not in comp_info:
+            n = len(comp_info["wavelengths"])
+            if n == 2:
+                comp_info["labels"] = ["Kα1", "Kα2"]
+            elif n == 3:
+                comp_info["labels"] = ["Kα1", "Kα2", "Kβ"]
+            else:
+                comp_info["labels"] = ["Kα1"] * n
+
     with col_plot:
         st.subheader("📊 OUTPUT → Diffraction Patterns")
-        # include_in_combined = {}
-        # for file in uploaded_files:
-        #     include_in_combined[file.name] = st.checkbox(f"Include {file.name} in combined XRD plot", value=True)
-        if diffraction_choice == "ND (Neutron)":
-            diff_calc = NDCalculator(wavelength=wavelength_A)
-        else:
-            diff_calc = XRDCalculator(wavelength=wavelength_A)
+
+        # For single-component, we already have wavelength_A (in Å) defined.
+        # For multi-component, each component’s wavelength (in nm) will be converted individually.
+
+        # Create the static matplotlib figure.
         fig_combined, ax_combined = plt.subplots(figsize=(6, 4))
         colors = plt.cm.tab10.colors
         pattern_details = {}
         full_range = (2.0, 165.0)
 
+        # Loop over each uploaded file.
         for idx, file in enumerate(uploaded_files):
             structure = read(file.name)
             mg_structure = load_structure(file)
-            mg_structure=get_full_conventional_structure(mg_structure)
-            diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
-            filtered_x = []
-            filtered_y = []
-            filtered_hkls = []
-            for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
-                if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
-                    continue
-                if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
-                    continue
-                filtered_x.append(x_val)
-                filtered_y.append(y_val)
-                filtered_hkls.append(hkl_group)
-            if sigma < 0.1:
-                num_points = int(20000 * (0.1 / sigma))
-            else:
+            mg_structure = get_full_conventional_structure_diffra(mg_structure)
+
+            if is_multi_component:
+                # Create a common dense grid.
                 num_points = 20000
+                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                dx = x_dense_full[1] - x_dense_full[0]
+                y_dense_total = np.zeros_like(x_dense_full)
 
-            x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
-            dx = x_dense_full[1] - x_dense_full[0]  # spacing of the grid
-            y_dense = np.zeros_like(x_dense_full)
+                # Lists to collect discrete peaks.
+                all_filtered_x = []
+                all_filtered_y = []
+                all_filtered_hkls = []
+                all_peak_types = []  # NEW: store the type of each peak
 
-            if peak_representation == "Gaussian":
-                for peak, intensity in zip(filtered_x, filtered_y):
-                    gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
-                    area = np.sum(gauss) * dx
-                    # Scale so that area = intensity
-                    y_temp = (intensity / area) * gauss
+                comp_info = multi_component_presets[preset_choice]
+                for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
+                    wavelength_A_comp = wl * 10  # convert nm to Å
+                    if diffraction_choice == "ND (Neutron)":
+                        diff_calc = NDCalculator(wavelength=wavelength_A_comp)
+                    else:
+                        diff_calc = XRDCalculator(wavelength=wavelength_A_comp)
+                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
 
-                    y_dense += y_temp
+                    # Process peaks for this component.
+                    filtered_x = []
+                    filtered_y = []
+                    filtered_hkls = []
+                    # Loop over peaks.
+                    for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
+                        if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                            continue
+                        if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                            continue
+                        filtered_x.append(x_val)
+                        filtered_y.append(y_val * factor)  # scale intensity
+                        filtered_hkls.append(hkl_group)
+                        # Append the corresponding label for this component.
+                        all_peak_types.append(comp_info["labels"][comp_index])
+
+                    # Create the dense curve for this component.
+                    y_dense_comp = np.zeros_like(x_dense_full)
+                    if peak_representation == "Gaussian":
+                        for peak, intensity in zip(filtered_x, filtered_y):
+                            gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
+                            area = np.sum(gauss) * dx
+                            y_dense_comp += (intensity / area) * gauss
+                    else:
+                        for peak, intensity in zip(filtered_x, filtered_y):
+                            idx_closest = np.argmin(np.abs(x_dense_full - peak))
+                            y_dense_comp[idx_closest] += intensity
+
+                    # Sum up contributions from this component.
+                    y_dense_total += y_dense_comp
+                    # Append discrete peaks from this component.
+                    all_filtered_x.extend(filtered_x)
+                    all_filtered_y.extend(filtered_y)
+                    all_filtered_hkls.extend(filtered_hkls)
             else:
-                for peak, intensity in zip(filtered_x, filtered_y):
-                    idx_closest = np.argmin(np.abs(x_dense_full - peak))
-                    y_dense[idx_closest] += intensity
-            norm_factor_raw = np.max(filtered_y) if np.max(filtered_y) > 0 else 1.0
-            # norm_factor_curve = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
-            # scaling_factor = norm_factor_raw / norm_factor_curve
-            # y_dense = y_dense * scaling_factor
-            max_gaussian_peak = np.max(y_dense) if np.max(y_dense) > 0 else 1.0
+                # Single-wavelength branch (as before).
+                if diffraction_choice == "ND (Neutron)":
+                    diff_calc = NDCalculator(wavelength=wavelength_A)
+                else:
+                    diff_calc = XRDCalculator(wavelength=wavelength_A)
+                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                filtered_x = []
+                filtered_y = []
+                filtered_hkls = []
+                for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
+                    if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                        continue
+                    if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                        continue
+                    filtered_x.append(x_val)
+                    filtered_y.append(y_val)
+                    filtered_hkls.append(hkl_group)
+                num_points = 20000
+                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                dx = x_dense_full[1] - x_dense_full[0]
+                y_dense_total = np.zeros_like(x_dense_full)
+                if peak_representation == "Gaussian":
+                    for peak, intensity in zip(filtered_x, filtered_y):
+                        gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
+                        area = np.sum(gauss) * dx
+                        y_dense_total += (intensity / area) * gauss
+                else:
+                    for peak, intensity in zip(filtered_x, filtered_y):
+                        idx_closest = np.argmin(np.abs(x_dense_full - peak))
+                        y_dense_total[idx_closest] += intensity
+                all_filtered_x = filtered_x
+                all_filtered_y = filtered_y
+                all_filtered_hkls = filtered_hkls
+                # For single-wavelength, assign all peaks as "Kα1".
+                all_peak_types = ["Kα1"] * len(filtered_x)
 
+            # Intensity scaling.
             if intensity_scale_option == "Normalized":
-                y_dense = (y_dense / max_gaussian_peak) * 100
-                displayed_intensity_array = (np.array(filtered_y) / max_gaussian_peak) * 100
+                norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
+                y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
+                displayed_intensity_array = (np.array(all_filtered_y) / norm_factor) * 100
             else:
-                displayed_intensity_array = np.array(filtered_y)
-            peak_vals = twotheta_to_metric(np.array(filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
+                displayed_intensity_array = np.array(all_filtered_y)
+
+            # Convert discrete peak positions.
+            peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
-            if len(displayed_intensity_array) > 0:
-                annotate_indices = set(np.argsort(displayed_intensity_array)[-num_annotate:])
+            ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
+            ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
+
+            if ka1_intensities:
+                sorted_ka1 = sorted(zip(ka1_indices, ka1_intensities), key=lambda x: x[1], reverse=True)
+                annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
             else:
                 annotate_indices = set()
+
+            # Save details (including new 'peak_types') for this file.
             pattern_details[file.name] = {
                 "peak_vals": peak_vals,
                 "intensities": displayed_intensity_array,
-                "hkls": filtered_hkls,
+                "hkls": all_filtered_hkls,
+                "peak_types": all_peak_types,  # NEW: discrete peak labels
                 "annotate_indices": annotate_indices,
                 "x_dense_full": x_dense_full,
-                "y_dense": y_dense
+                "y_dense": y_dense_total
             }
+            details = pattern_details[file.name]
+            # (Plot the static figure as before.)
             if include_in_combined[file.name]:
                 color = colors[idx % len(colors)]
                 mask = (x_dense_full >= st.session_state.two_theta_min) & (
                             x_dense_full <= st.session_state.two_theta_max)
                 x_dense_plot = twotheta_to_metric(x_dense_full[mask], x_axis_metric, wavelength_A, wavelength_nm,
                                                   diffraction_choice)
-                ax_combined.plot(x_dense_plot, y_dense[mask], label=f"{file.name}", color=color)
-                for i, (peak, hkl_group) in enumerate(zip(peak_vals, filtered_hkls)):
+
+                if peak_representation == "Delta":
+                    # GROUP BY PEAK TYPE AND PLOT WITH DIFFERENT LINE STYLES
+                    peak_groups = {}
+                    for i, pt in enumerate(all_peak_types):
+                        if pt not in peak_groups:
+                            peak_groups[pt] = {"x": [], "y": []}
+                        peak_groups[pt]["x"].append(peak_vals[i])
+                        peak_groups[pt]["y"].append(displayed_intensity_array[i])
+
+                    plotted_labels = set()  # To avoid legend spam
+
+                    shown_labels = set()
+
+                    shown_labels = set()
+
+                    for pt, data in peak_groups.items():
+                        if pt == "Kα1":
+                            linestyle = "solid"
+                            alpha = 1.0
+                        elif pt == "Kα2":
+                            linestyle = "dotted"
+                            alpha = 0.6
+                        elif pt == "Kβ":
+                            linestyle = "dashed"
+                            alpha = 0.4
+                        else:
+                            linestyle = "solid"
+                            alpha = 0.5
+
+                        # Filter to keep only peaks within range
+                        x_vals = []
+                        y_vals = []
+                        for x, y in zip(data["x"], data["y"]):
+                            canonical_twotheta = metric_to_twotheta(x, x_axis_metric, wavelength_A, wavelength_nm,
+                                                                    diffraction_choice)
+                            if st.session_state.two_theta_min <= canonical_twotheta <= st.session_state.two_theta_max:
+                                x_vals.append(x)
+                                y_vals.append(y)
+
+                        if not x_vals:
+                            continue  # skip if no valid peaks in range
+
+                        label = f"{file.name} - {pt}"
+                        label_to_use = label if label not in shown_labels else None
+                        shown_labels.add(label)
+
+                        # Now plot all vlines for this group at once (clean legend!)
+                        ax_combined.vlines(x_vals, [0] * len(y_vals), y_vals,
+                                           color=color,
+                                           linestyle=linestyle,
+                                           alpha=alpha,
+                                           linewidth=2,
+                                           label=label_to_use)
+                        #plotted_labels.add(label)
+                        # After all data has been plotted...
+                        current_ylim = ax_combined.get_ylim()
+                        new_max = 0
+
+                        # Go through all plotted lines to find the highest Y value
+                        for line in ax_combined.get_lines():
+                            if len(line.get_ydata()) > 0:
+                                new_max = max(new_max, max(line.get_ydata()))
+
+                        # Go through all vlines (they’re stored in ax.collections)
+                        for collection in ax_combined.collections:
+                            if hasattr(collection, 'get_segments'):
+                                for seg in collection.get_segments():
+                                    _, y1 = seg[1]  # top of the vertical line
+                                    new_max = max(new_max, y1)
+
+                        # Set Y axis limit with +10% buffer
+                        ax_combined.set_ylim(0, new_max * 1.2 if new_max > 0 else 1)
+
+
+
+                else:
+                    ax_combined.plot(x_dense_plot, y_dense_total[mask], label=f"{file.name}", color=color)
+
+
+                for i, (peak, hkl_group) in enumerate(zip(peak_vals, all_filtered_hkls)):
+                    # Convert the peak position to the appropriate metric for the x-axis
                     peak_twotheta = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
                                                        diffraction_choice)
                     if st.session_state.two_theta_min <= peak_twotheta <= st.session_state.two_theta_max:
                         closest_index = np.abs(x_dense_full - peak_twotheta).argmin()
-                        actual_intensity = y_dense[closest_index]
-                        if i in annotate_indices:
+                        actual_intensity = y_dense_total[closest_index]
+                        # Only annotate if the peak is of type "Kα1"
+                        if i in annotate_indices and details["peak_types"][i] == "Kα1":
                             if len(hkl_group[0]['hkl']) == 3:
-                                hkl_str = ", ".join(
-                                    [
-                                        f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})"
-                                        for h in hkl_group])
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkl_group])
                             else:
-                                hkl_str = ", ".join(
-                                    [
-                                        f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})"
-                                        for h in hkl_group])
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkl_group])
                             ax_combined.annotate(hkl_str, xy=(peak, actual_intensity), xytext=(0, 5),
                                                  textcoords='offset points', fontsize=8, rotation=90,
-                                                 ha='center', va='bottom', color=color, )
+                                                 ha='center', va='bottom', color=color)
+        # Set axis labels and legend.
         ax_combined.set_xlabel(x_axis_metric)
         if intensity_scale_option == "Normalized":
             ax_combined.set_ylabel("Intensity (Normalized, a.u.)")
         else:
             ax_combined.set_ylabel("Intensity (Absolute, a.u.)")
-        if diffraction_choice == "ND (Neutron)":
-            # ax_combined.set_title("Powder ND Patterns")
-            pass
-        else:
-            pass
-        # ax_combined.set_title("Powder XRD Patterns")
         if ax_combined.get_lines():
             max_intensity = max([np.max(line.get_ydata()) for line in ax_combined.get_lines()])
             ax_combined.set_ylim(0, max_intensity * 1.2)
-        ax_combined.legend(
-            loc="lower center",  # Positions legend at the bottom center
-            bbox_to_anchor=(0.5, -0.35),  # Adjust the y-coordinate to move it below the plot
-            ncol=2,  # Number of columns
-            fontsize=10  # Font size
-        )
+        ax_combined.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=10)
 
         if "placeholder_static" not in st.session_state:
             st.session_state.placeholder_static = st.empty()
@@ -1390,135 +2073,202 @@ if st.session_state.calc_xrd and uploaded_files:
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
 
+    # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
 
-    # Loop over each structure's pattern details
     for idx, (file_name, details) in enumerate(pattern_details.items()):
-        # Only add structure if it is selected in the static plot
         if not include_in_combined.get(file_name, False):
             continue
-        color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-        # Filter the continuous curve to the user-specified x-axis range
 
+        base_color = rgb_color(colors[idx % len(colors)], opacity=0.8)
         mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
                 details["x_dense_full"] <= st.session_state.two_theta_max)
-        x_dense_range = twotheta_to_metric(details["x_dense_full"][mask], x_axis_metric, wavelength_A, wavelength_nm,
-                                           diffraction_choice)
+        x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
+                                           x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
         y_dense_range = details["y_dense"][mask]
-        if peak_representation != "Delta":
+
+        if peak_representation == "Delta":
+            if "peak_types" in details:
+                groups = {}
+                for i, peak in enumerate(details["peak_vals"]):
+                    canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                    if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                        pt = details["peak_types"][i]
+                        groups.setdefault(pt, {"x": [], "y": [], "hover": []})
+                        groups[pt]["x"].append(details["peak_vals"][i])
+                        groups[pt]["y"].append(details["intensities"][i])
+                        hkl_group = details["hkls"][i]
+                        if len(hkl_group[0]['hkl']) == 3:
+                            hkl_str = ", ".join([
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                for h in hkl_group])
+                        else:
+                            hkl_str = ", ".join([
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                for h in hkl_group])
+                        groups[pt]["hover"].append(f"(hkl): {hkl_str}")
+                for pt, data in groups.items():
+                    # Determine color, dash style, and hover settings based on peak type.
+                    if pt == "Kα1":
+                        pt_color = base_color
+                        dash_type = "solid"
+                        hover_info = "text"
+                        hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+                    elif pt == "Kα2":
+                        pt_color = rgb_color(colors[idx % len(colors)], opacity=0.6)
+                        dash_type = "dot"
+                        hover_info = "skip"  # Remove hover info for Kα2
+                        hover_template = None
+                    elif pt == "Kβ":
+                        pt_color = rgb_color(colors[idx % len(colors)], opacity=0.4)
+                        dash_type = "dash"
+                        hover_info = "skip"  # Remove hover info for Kβ
+                        hover_template = None
+                    else:
+                        pt_color = base_color
+                        dash_type = "solid"
+                        hover_info = "text"
+                        hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+
+                    vertical_x = []
+                    vertical_y = []
+                    vertical_hover = []
+                    for j in range(len(data["x"])):
+                        vertical_x.extend([data["x"][j], data["x"][j], None])
+                        vertical_y.extend([0, data["y"][j], None])
+                        vertical_hover.extend([data["hover"][j], data["hover"][j], None])
+                    fig_interactive.add_trace(go.Scatter(
+                        x=vertical_x,
+                        y=vertical_y,
+                        mode='lines',
+                        name=f"{file_name} - {pt}",
+                        showlegend=True,
+                        line=dict(color=pt_color, width=4, dash=dash_type),
+                        hoverinfo=hover_info,
+                        text=vertical_hover,
+                        hovertemplate=hover_template,
+                        hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=20))
+                    ))
+            else:
+                # Fallback for when no peak_types are defined.
+                vertical_x = []
+                vertical_y = []
+                vertical_hover = []
+                for i, peak in enumerate(details["peak_vals"]):
+                    canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                    if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                        vertical_x.extend([peak, peak, None])
+                        vertical_y.extend([0, details["intensities"][i], None])
+                        hkl_group = details["hkls"][i]
+                        if len(hkl_group[0]['hkl']) == 3:
+                            hkl_str = ", ".join([
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                for h in hkl_group])
+                        else:
+                            hkl_str = ", ".join([
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                for h in hkl_group])
+                        vertical_hover.extend([f"(hkl): {hkl_str}", f"(hkl):: {hkl_str}", None])
+                fig_interactive.add_trace(go.Scatter(
+                    x=vertical_x,
+                    y=vertical_y,
+                    mode='lines',
+                    name=file_name,
+                    showlegend=True,
+                    line=dict(color=base_color, width=4, dash="solid"),
+                    hoverinfo="text",
+                    text=vertical_hover,
+                    hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
+                    hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
+                ))
+        else:
             fig_interactive.add_trace(go.Scatter(
                 x=x_dense_range,
                 y=y_dense_range,
                 mode='lines',
                 name=file_name,
-                line=dict(color=color, width=2),
+                line=dict(color=base_color, width=2),
                 hoverinfo='skip'
             ))
-        # Build hover texts for peaks
-        peak_hover_texts = []
-        for hkl_group in details["hkls"]:
-            if len(hkl_group[0]['hkl']) == 3:
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})" for h in
-                     hkl_group])
-            else:
-                hkl_str = ", ".join(
-                    [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})" for h in
-                     hkl_group])
-            peak_hover_texts.append(f"HKL: {hkl_str}")
-        # Filter peak markers to those in the display range
-        peak_vals_in_range = []
-        intensities_in_range = []
-        hover_texts_in_range = []
-        for i, peak in enumerate(details["peak_vals"]):
-            canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
-            if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                peak_vals_in_range.append(peak)
-                intensities_in_range.append(details["intensities"][i])
-                hover_texts_in_range.append(peak_hover_texts[i])
+            peak_vals_in_range = []
+            intensities_in_range = []
+            peak_hover_texts = []
+            for i, peak in enumerate(details["peak_vals"]):
+                canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                    peak_vals_in_range.append(peak)
+                    intensities_in_range.append(details["intensities"][i])
+                    hkl_group = details["hkls"][i]
+                    if len(hkl_group[0]['hkl']) == 3:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                             for h in hkl_group])
+                    else:
+                        hkl_str = ", ".join(
+                            [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                             for h in hkl_group])
+                    if "peak_types" in details:
+                       # hover_text = f"{details['peak_types'][i]}: {hkl_str}"
+                       hover_text = f"{'(hkl)'}: {hkl_str}"
+                    else:
+                        hover_text = f"(hkl): {hkl_str}"
+                    peak_hover_texts.append(hover_text)
 
-        if peak_representation == "Delta":
-            # Build vertical line segments: for each peak, draw a line from y=0 to the peak's intensity.
-            vertical_x = []
-            vertical_y = []
-            vertical_hover = []
-            for i, peak in enumerate(peak_vals_in_range):
-                vertical_x.extend([peak, peak, None])
-                vertical_y.extend([0, intensities_in_range[i], None])
-                # Optionally, add hover text only on the top of the line.
-                vertical_hover.extend([hover_texts_in_range[i], hover_texts_in_range[i], None])
-            fig_interactive.add_trace(go.Scatter(
-                x=vertical_x,
-                y=vertical_y,
-                mode='lines',
-                name=f"{file_name}",
-                showlegend=True,
-                line=dict(color=color, width=4),
-                hoverinfo='text',
-                text=vertical_hover,
-                hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
-            ))
-        else:
-            # For Gaussian peak representation, use markers as before.
             fig_interactive.add_trace(go.Scatter(
                 x=peak_vals_in_range,
                 y=intensities_in_range,
                 mode='markers',
-                name=f"{file_name}",
+                name=file_name,
                 showlegend=True,
-                marker=dict(color=color, size=8, opacity=0.5),
-                text=hover_texts_in_range,
+                marker=dict(color=base_color, size=8, opacity=0.5),
+                text=peak_hover_texts,
                 hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                hoverlabel=dict(bgcolor=color, font=dict(color="white", size=20))
+                hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
             ))
-        fig_interactive.update_layout(
-            height=1000,
-            margin=dict(t=80, b=80, l=60, r=30),
-            hovermode="x",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.1,
-                xanchor="center",
-                x=0.5,
-                font=dict(size=36)
-            ),
-            xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20, ),
-                tickfont=dict(size=36, color='black')
-            ),
-            yaxis=dict(
-                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black'), ),
-                tickfont=dict(size=36, color='black')
-            ),
-            hoverlabel=dict(font=dict(size=30)),
-            font=dict(size=18),
-            autosize=True
-        )
-        # --- USER UPLOAD SECTION TO APPEND DATA TO THE EXISTING FIGURES ---
+
     display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm,
                                             diffraction_choice)
     display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
                                             diffraction_choice)
     if x_axis_metric in ["d (Å)", "d (nm)"]:
-        # Reverse the range for d-spacing: higher d values should appear on the right.
-        fig_interactive.update_layout(
-            xaxis=dict(range=[display_metric_max, display_metric_min])
-        )
+        fig_interactive.update_layout(xaxis=dict(range=[display_metric_max, display_metric_min]))
     else:
-        fig_interactive.update_layout(
-            xaxis=dict(range=[display_metric_min, display_metric_max])
-        )
+        fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
+
+    fig_interactive.update_layout(
+        height=1000,
+        margin=dict(t=80, b=80, l=60, r=30),
+        hovermode="x",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.1,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=36)
+        ),
+        xaxis=dict(
+            title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+            tickfont=dict(size=36, color='black')
+        ),
+        yaxis=dict(
+            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+            tickfont=dict(size=36, color='black')
+        ),
+        hoverlabel=dict(font=dict(size=30)),
+        font=dict(size=18),
+        autosize=True
+    )
+
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
-
+    st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive, use_container_width=True)
     st.subheader("Append Your XRD Pattern Data")
     show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     user_pattern_file = st.file_uploader(
         "Upload additional XRD pattern (2 columns: X-values and Intensity)",
-        type=["csv", "txt"],
+        type=["csv", "txt", "xy"],
         key="user_xrd", accept_multiple_files=True
     )
 
@@ -1542,9 +2292,9 @@ if st.session_state.calc_xrd and uploaded_files:
             interactive_colors = user_colorss
             for idx, file in enumerate(user_pattern_file):
                 try:
-                    df = pd.read_csv(file, delim_whitespace=True, header=0)
+                    df = pd.read_csv(file, sep=r'[,\t; ]+', header=None, skiprows=1 )
                     if df.shape[1] < 2:
-                        df = pd.read_csv(file, sep=",", header=0)
+                        df = pd.read_csv(file, sep=r'[,\t; ]+', header=None, skiprows=1 )
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
@@ -1562,7 +2312,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
                     # Append to the static matplotlib figure with a unique color
                     ax = st.session_state.fig_combined.gca()
-                    ax.plot(x_user_filtered, y_user_filtered, label=file.name, linestyle='--', linewidth=2,
+                    ax.plot(x_user_filtered, y_user_filtered, label=file.name,linestyle='--', marker='o', linewidth=2, markersize=2,
                             color=static_colors[idx])
                     ax.legend()
                     # Update y-axis range to include new data
@@ -1576,9 +2326,10 @@ if st.session_state.calc_xrd and uploaded_files:
                     st.session_state.fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
-                        mode='lines',
+                        mode='lines+markers',
                         name=file.name,
-                        line=dict(dash='dash', color=interactive_colors[idx])
+                        line=dict(dash='solid', width=1, color=interactive_colors[idx]),
+                        marker=dict( color=interactive_colors[idx], size=5)
                     ))
         else:
             # Only one file was uploaded; use the first color from tab10
@@ -1603,7 +2354,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 y_user_filtered = y_user[mask_user]
 
                 ax = st.session_state.fig_combined.gca()
-                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', linewidth=2,
+                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', marker='o',markersize=2,
                         color=static_color)
                 ax.legend()
                 current_ylim = ax.get_ylim()
@@ -1615,9 +2366,10 @@ if st.session_state.calc_xrd and uploaded_files:
                 st.session_state.fig_interactive.add_trace(go.Scatter(
                     x=x_user_filtered,
                     y=y_user_filtered,
-                    mode='lines',
+                    mode='lines+markers',
                     name=user_pattern_file.name,
-                    line=dict(dash='dash', color=interactive_color)
+                    line=dict(dash='solid',width=1, color=interactive_color),
+                    marker=dict(color=interactive_color, size = 5)
                 ))
     # Always update the interactive plot placeholder regardless
     st.session_state.placeholder_interactive.plotly_chart(
@@ -1655,11 +2407,11 @@ if st.session_state.calc_xrd and uploaded_files:
             for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
                 if len(hkl_group[0]['hkl']) == 3:
                     hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})" for h in
+                        [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})" for h in
                          hkl_group])
                 else:
                     hkl_str = ", ".join(
-                        [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})" for h in
+                        [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})" for h in
                          hkl_group])
                 table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str, language="text")
@@ -1669,11 +2421,11 @@ if st.session_state.calc_xrd and uploaded_files:
                 if i in annotate_indices:
                     if len(hkl_group[0]['hkl']) == 3:
                         hkl_str = ", ".join(
-                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][2])})" for
+                            [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})" for
                              h in hkl_group])
                     else:
                         hkl_str = ", ".join(
-                            [f"({format_index(h['hkl'][0])}{format_index(h['hkl'][1])}{format_index(h['hkl'][3])})" for
+                            [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3],last=True)})" for
                              h in hkl_group])
                     table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
             st.code(table_str2, language="text")
@@ -1721,9 +2473,9 @@ if st.session_state.calc_xrd and uploaded_files:
                             if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
                                 continue
                     if len(hkl) == 3:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][2]})" for h in hkls[i]])
+                        hkl_str = ", ".join([f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})" for h in hkls[i]])
                     else:
-                        hkl_str = ", ".join([f"({h['hkl'][0]}{h['hkl'][1]}{h['hkl'][3]})" for h in hkls[i]])
+                        hkl_str = ", ".join([f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})" for h in hkls[i]])
                     data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
         combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
         st.dataframe(combined_df)
@@ -1840,6 +2592,37 @@ with right_rdf:
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
 st.divider()
+
 st.markdown("""
-This application was built using open-source libraries that are distributed under free public licenses, including **matminer**, **pymatgen**, **ASE**, **pymol3D**, **Materials Project**.
+**This application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
 """)
+#If used in academic publications, please cite:
+
+st.markdown("""
+### Acknowledgments
+
+This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
+
+- **[Matminer](https://github.com/hackingmaterials/matminer)**  
+  Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
+
+- **[Pymatgen](https://github.com/materialsproject/pymatgen)**  
+  Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).  
+
+- **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)**  
+  Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER).  
+
+- **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)**  
+    Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt).
+
+- **[Materials Project](https://next-gen.materialsproject.org/)**  
+  Data from the Materials Project is made available under the  
+  [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).  
+
+- **[AFLOW](http://aflow.org)**  
+  Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).   
+  When using structures from AFLOW, please cite:  
+  Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
+  [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
+""")
+
