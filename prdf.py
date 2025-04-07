@@ -1205,7 +1205,7 @@ if uploaded_files:
             download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
 
         with col_download:
-            with st.expander("Download Options"):
+            with st.expander("Download Options", expanded=True):
                 file_format = st.radio(
                     "Select file format",
                     ("CIF", "VASP", "LAMMPS", "XYZ",),
