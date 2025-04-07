@@ -2072,6 +2072,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
+    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
     if preset_choice in multi_component_presets:
         st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
         num_components = len(multi_component_presets[preset_choice]["wavelengths"])
@@ -2084,7 +2085,7 @@ if st.session_state.calc_xrd and uploaded_files:
     else:
         st.sidebar.subheader("Include Kα1 for hovering:")
         show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    
     # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
 
