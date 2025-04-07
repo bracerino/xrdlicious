@@ -1,9 +1,17 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)",
+    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)",
     layout="wide"
 )
+# Remove top padding
+st.markdown("""
+    <style>
+    .block-container {
+        padding-top: 0rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,6 +43,7 @@ from aflow import search, K
 from aflow import search  # ensure your file is not named aflow.py!
 import aflow.keywords as AFLOW_K
 import requests
+from PIL import Image
 #import aflow.keywords as K
 
 
@@ -171,14 +180,22 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
-st.title(
-    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
+col1, col2 = st.columns([1.25,1])
+with col1:
+    st.title(
+        "XRDlicious: Online Calculator for Powder XRD/ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
+from PIL import Image
+with col2:
+    image = Image.open("images/ts3.png")
+    st.image(image)
+
+
 st.info(
 "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\nYou can find crystal structures in CIF format for example at: 📖 [Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
 "📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
