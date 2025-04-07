@@ -1799,7 +1799,7 @@ if st.session_state.calc_xrd and uploaded_files:
         fig_combined, ax_combined = plt.subplots(figsize=(6, 4))
         colors = plt.cm.tab10.colors
         pattern_details = {}
-        full_range = (2.0, 165.0)
+        full_range = (0.01, 179.9)
 
         # Loop over each uploaded file.
         for idx, file in enumerate(uploaded_files):
@@ -2072,6 +2072,18 @@ if st.session_state.calc_xrd and uploaded_files:
 
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
+    if preset_choice in multi_component_presets:
+        st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
+        num_components = len(multi_component_presets[preset_choice]["wavelengths"])
+        if num_components > 1:
+            show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+        if num_components >= 2:
+            show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
+        if num_components >= 3:
+            show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
+    else:
+        st.sidebar.subheader("Include Kα1 for hovering:")
+        show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
 
     # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
@@ -2195,6 +2207,9 @@ if st.session_state.calc_xrd and uploaded_files:
             peak_hover_texts = []
             gaussian_max_intensities = []
             for i, peak in enumerate(details["peak_vals"]):
+                peak_type = details["peak_types"][i]
+                if (peak_type == "Kα1" and not show_Kalpha1_hover) or (peak_type == "Kα2" and not show_Kalpha2_hover) or (peak_type == "Kβ" and not show_Kbeta_hover):
+                    continue
                 canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
                 if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
                     peak_vals_in_range.append(peak)
@@ -2218,11 +2233,23 @@ if st.session_state.calc_xrd and uploaded_files:
                         hkl_str = ", ".join(
                             [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
                              for h in hkl_group])
-                    if "peak_types" in details:
-                       # hover_text = f"{details['peak_types'][i]}: {hkl_str}"
-                       hover_text = f"{'(hkl)'}: {hkl_str}"
+                    #  if "peak_types" in details:
+                        # hover_text = f"{details['peak_types'][i]}: {hkl_str}"
+                  #      hover_text = f"{'(hkl)'}: {hkl_str}"
+                  #  else:
+                  #      hover_text = f"(hkl): {hkl_str}"
+
+
+                    # Conditionally include hover text based on the checkboxes:
+                    if peak_type == "Kα1":
+                        hover_text = f"Kα1 (hkl): {hkl_str}"
+                    elif peak_type == "Kα2":
+                        hover_text = f"Kα2 (hkl): {hkl_str}"
+                    elif peak_type == "Kβ":
+                        hover_text = f"Kβ (hkl): {hkl_str}"
                     else:
-                        hover_text = f"(hkl): {hkl_str}"
+                        hover_text = f"Kα1 (hkl): {hkl_str}"
+                    #peak_hover_texts.append(hover_text)
                     peak_hover_texts.append(hover_text)
                     
             if intensity_scale_option == "Normalized" and gaussian_max_intensities:
