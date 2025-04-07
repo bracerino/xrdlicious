@@ -1289,15 +1289,15 @@ if uploaded_files:
                         )
                         file_content = out.getvalue()
                         if enable_supercell:
-                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ f'_{atom_style}_{units}.lmp'
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ f'_Supercell_{n_a}_{n_b}_{n_c}'+f'_{atom_style}_{units}.lmp'
                         else:
-                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ +f'_Supercell_{n_a}_{n_b}_{n_c}'+f'_{atom_style}_{units}.lmp'
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_{atom_style}_{units}.lmp'
                     elif file_format == "XYZ":
                         out = StringIO()
                         write(out, supercell_structure, format="xyz")
                         file_content = out.getvalue()
                         if enable_supercell:
-                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info++f'_Supercell_{n_a}_{n_b}_{n_c}.xyz'
+                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.xyz'
                         else:
                             download_file_name = selected_file.split('.')[0] +'_'+lattice_info+ '.xyz'
                 except Exception as e:
