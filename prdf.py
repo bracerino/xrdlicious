@@ -1756,7 +1756,7 @@ if st.session_state.calc_xrd and uploaded_files:
     multi_component_presets = {
         "Cu(Ka1+Ka2)": {
             "wavelengths": [0.15406, 0.15444],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Cu(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.15406, 0.15444, 0.13922],
@@ -1764,7 +1764,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Mo(Ka1+Ka2)": {
             "wavelengths": [0.07093, 0.0711, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Mo(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.07093, 0.0711,  0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1772,7 +1772,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Cr(Ka1+Ka2)": {
             "wavelengths": [0.22897, 0.22888, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Cr(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1780,7 +1780,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Fe(Ka1+Ka2)": {
             "wavelengths": [0.19360, 0.194, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Fe(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.19360, 0.194,  0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1788,7 +1788,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Co(Ka1+Ka2)": {
             "wavelengths": [0.17889, 0.17927, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Co(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1796,7 +1796,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Ag(Ka1+Ka2)": {
             "wavelengths": [0.0561, 0.05634, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Ag(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.0561, 0.05634,0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
