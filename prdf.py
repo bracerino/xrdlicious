@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)",
+    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)",
     layout="wide"
 )
 # Remove top padding
@@ -187,7 +187,7 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
@@ -196,7 +196,7 @@ components.html(
 col1, col2 = st.columns([1.25,1])
 with col1:
     st.title(
-        "XRDlicious: Online Calculator for Powder XRD/ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
+        "XRDlicious: Online Calculator for Powder XRD/ND Patterns, Partial and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)")
 from PIL import Image
 with col2:
     image = Image.open("images/ts3.png")
@@ -232,7 +232,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in .cif, .lmp (.data), POSCAR, .xsf, .pw, .cfg, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
         <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
