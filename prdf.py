@@ -1253,7 +1253,11 @@ if uploaded_files:
 
                         cif_writer_visual = CifWriter(supercell_pmg, symprec=0.1, refine_struct=False)
                         file_content = str(cif_writer_visual)
-                        download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.cif'
+
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.cif'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.cif'
                         mime = "chemical/x-cif"
                     elif file_format == "VASP":
                         out = StringIO()
@@ -1261,7 +1265,10 @@ if uploaded_files:
                                                      key="poscar_fractional")
                         write(out, supercell_structure, format="vasp", direct=use_fractional)
                         file_content = out.getvalue()
-                        download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.poscar'
+                        if enable_supercell:
+                             download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.poscar'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.poscar'
                     elif file_format == "LAMMPS":
                         st.markdown("**LAMMPS Export Options**")
 
@@ -1281,12 +1288,18 @@ if uploaded_files:
                             force_skew=force_skew
                         )
                         file_content = out.getvalue()
-                        download_file_name = selected_file.split('.')[0] + f'_lmp_{atom_style}_{units}.lmp'
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ f'_{atom_style}_{units}.lmp'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ +f'_Supercell_{n_a}_{n_b}_{n_c}'+f'_{atom_style}_{units}.lmp'
                     elif file_format == "XYZ":
                         out = StringIO()
                         write(out, supercell_structure, format="xyz")
                         file_content = out.getvalue()
-                        download_file_name = selected_file.split('.')[0] +'_'+lattice_info+ '.xyz'
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info++f'_Supercell_{n_a}_{n_b}_{n_c}.xyz'
+                        else:
+                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info+ '.xyz'
                 except Exception as e:
                     st.error(f"Error generating {file_format} file: {e}")
 
