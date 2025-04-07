@@ -1125,10 +1125,10 @@ if uploaded_files:
         with col_viz:
             file_options = [file.name for file in uploaded_files]
             st.subheader("Select Structure for Interactive Visualization:")
-        if len(file_options) > 3:
-            selected_file = st.selectbox("", file_options)
-        else:
-            selected_file = st.radio("", file_options)
+            if len(file_options) > 5:
+                selected_file = st.selectbox("", file_options)
+            else:
+                selected_file = st.radio("", file_options)
             
         try:
             structure = read(selected_file)
