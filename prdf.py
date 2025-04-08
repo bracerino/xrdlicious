@@ -58,35 +58,42 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
 
 def get_full_conventional_structure_diffra(structure, symprec=1e-3):
-    cell = (
-        structure.lattice.matrix,
-        structure.frac_coords,
-        [max(site.species.items(), key=lambda x: x[1])[0].Z for site in structure]
-    )
+    lattice = structure.lattice.matrix
+    positions = structure.frac_coords
+
+
+    species_list = [site.species for site in structure]
+    species_to_type = {}
+    type_to_species = {}
+    type_index = 1
+
+    types = []
+    for sp in species_list:
+        sp_tuple = tuple(sorted(sp.items()))  # make it hashable
+        if sp_tuple not in species_to_type:
+            species_to_type[sp_tuple] = type_index
+            type_to_species[type_index] = sp
+            type_index += 1
+        types.append(species_to_type[sp_tuple])
+
+    cell = (lattice, positions, types)
 
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
 
-    # Map std_types to species dictionaries
-    original_species_list = [site.species for site in structure]
-    type_to_species = {
-        original_atomic_number: original_species
-        for original_atomic_number, original_species in zip(cell[2], original_species_list)
-    }
-
     new_species_list = [type_to_species[t] for t in std_types]
 
-    # Build the conventional cell
     conv_structure = Structure(
         lattice=std_lattice,
         species=new_species_list,
         coords=std_positions,
         coords_are_cartesian=False
     )
-    return conv_structure
 
+    return conv_structure
 
 def get_full_conventional_structure(structure, symprec=1e-3):
     # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
