@@ -1319,29 +1319,102 @@ if uploaded_files:
                         mime=mime
                     )
 
+        offset_distance = 0.3  # distance to offset
+        overlay_radius = 0.15  # radius for the overlay spheres
+
+
+        # Create a new list to store atomic info for the table (labels with occupancy info)
         atomic_info = []
-        if show_atomic:
-            import numpy as np
+        inv_cell = np.linalg.inv(cell)
 
-            inv_cell = np.linalg.inv(cell)
-            for i, atom in enumerate(structure):
-                symbol = atom.symbol
-                x, y, z = atom.position
+        visual_pmg_structure_partial_check = load_structure(selected_file)
 
-                frac = np.dot(inv_cell, atom.position)
-                label_text = f"{symbol}{i}"
-                view.addLabel(label_text, {
-                    "position": {"x": x, "y": y, "z": z},
-                    "backgroundColor": "white",
-                    "fontColor": "black",
-                    "fontSize": 10,
-                    "borderThickness": 1,
-                    "borderColor": "black"
-                })
+        # Check whether any site in the structure has partial occupancy.
+        has_partial_occ = any(
+            (len(site.species) > 1) or any(occ < 1 for occ in site.species.values())
+            for site in visual_pmg_structure_partial_check.sites
+        )
+
+
+        # If partial occupancy is detected, notify the user and offer an enhanced visualization option.
+        if has_partial_occ:
+            st.info(f"Partial occupancy detected in the uploaded structure. Note that the conversion between cell representions will not be possible now.\n To continue ")
+            visualize_partial = st.checkbox("Enable enhanced partial occupancy visualization", value=True)
+        else:
+            visualize_partial = False
+
+
+        if visualize_partial:
+            visual_pmg_structure = load_structure(selected_file)
+            from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+
+            #try:
+            #    structure_with_oxi = visual_pmg_structure.add_oxidation_state_by_guess()
+            #except Exception as e:
+                # Optionally, handle the exception if oxidation states cannot be assigned.
+            #    raise ValueError(f"Could not assign oxidation states to the structure: {e}")
+
+            #Convert to ordered structure
+            #ordered_structure = OrderDisorderedStructureTransformation(no_oxi_states=True)
+            #ordered_structure = order_trans.apply_transformation(structure_with_oxi)
+
+            from pymatgen.core import Structure
+
+            # Get lattice from original structure
+            lattice = visual_pmg_structure.lattice
+
+            # Build new species list: choose the species with highest occupancy at each site
+            species = []
+            coords = []
+
+            for site in visual_pmg_structure.sites:
+                # Pick the species with the highest occupancy
+                dominant_specie = max(site.species.items(), key=lambda x: x[1])[0]
+                species.append(dominant_specie)
+                coords.append(site.frac_coords)
+
+            # Create a new ordered structure
+            ordrd = Structure(lattice, species, coords)
+            structure = AseAtomsAdaptor.get_atoms(ordrd)
+
+
+            xyz_io = StringIO()
+            write(xyz_io, structure, format="xyz")
+            xyz_str = xyz_io.getvalue()
+            view = py3Dmol.view(width=800, height=600)
+            view.addModel(xyz_str, "xyz")
+            view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
+            cell = structure.get_cell()  # 3x3 array of lattice vectors
+            add_box(view, cell, color='black', linewidth=4)
+            view.zoomTo()
+            view.zoom(1.2)
+            # Enhanced visualization: iterate over the pymatgen structure to use occupancy info.
+
+            for i, site in enumerate(visual_pmg_structure.sites):
+                # Get Cartesian coordinates.
+                x, y, z = site.coords
+
+                # Build a string for species and occupancy details.
+                species_info = []
+                for specie, occ in site.species.items():
+                    occ_str = f"({occ * 100:.0f}%)" if occ < 1 else ""
+                    species_info.append(f"{specie.symbol}{occ_str}")
+                label_text = f"{'/'.join(species_info)}{i}"
+                if show_atomic:
+                # Add a label with the occupancy info.
+                    view.addLabel(label_text, {
+                        "position": {"x": x, "y": y, "z": z},
+                        "backgroundColor": "white",
+                        "fontColor": "black",
+                        "fontSize": 10,
+                        "borderThickness": 1,
+                        "borderColor": "black"
+                    })
+
+                frac = np.dot(inv_cell, [x, y, z])
                 atomic_info.append({
                     "Atom": label_text,
-                    "Element": symbol,
-                    "Atomic Number": atom.number,
+                    "Elements": "/".join(species_info),
                     "X": round(x, 3),
                     "Y": round(y, 3),
                     "Z": round(z, 3),
@@ -1349,6 +1422,51 @@ if uploaded_files:
                     "Frac Y": round(frac[1], 3),
                     "Frac Z": round(frac[2], 3)
                 })
+
+                        # For sites with partial occupancy, overlay extra spheres.
+                species_dict = site.species
+                if (len(species_dict) > 1) or any(occ < 1 for occ in species_dict.values()):
+                    num_species = len(species_dict)
+                    # Distribute offsets around a circle (here in the xy-plane).
+                    angles = np.linspace(0, 2 * np.pi, num_species, endpoint=False)
+                    offset_distance = 0.3  # adjust as needed
+                    overlay_radius = 0.15  # adjust as needed
+                    for j, ((specie, occ), angle) in enumerate(zip(species_dict.items(), angles)):
+                        dx = offset_distance * np.cos(angle)
+                        dy = offset_distance * np.sin(angle)
+                        sphere_center = {"x": x + dx, "y": y + dy, "z": z}
+                        view.addSphere({
+                            "center": sphere_center,
+                            "radius": overlay_radius,
+                            "color": jmol_colors.get(specie.symbol, "gray"),
+                            "opacity": 1.0
+                        })
+        else:
+            if show_atomic:
+                # Basic visualization (as before): iterate over ASE atoms.
+                for i, atom in enumerate(structure):
+                    symbol = atom.symbol
+                    x, y, z = atom.position
+                    label_text = f"{symbol}{i}"
+                    view.addLabel(label_text, {
+                        "position": {"x": x, "y": y, "z": z},
+                        "backgroundColor": "white",
+                        "fontColor": "black",
+                        "fontSize": 10,
+                        "borderThickness": 1,
+                        "borderColor": "black"
+                    })
+                    frac = np.dot(inv_cell, atom.position)
+                    atomic_info.append({
+                        "Atom": label_text,
+                        "Elements": symbol,
+                        "X": round(x, 3),
+                        "Y": round(y, 3),
+                        "Z": round(z, 3),
+                        "Frac X": round(frac[0], 3),
+                        "Frac Y": round(frac[1], 3),
+                        "Frac Z": round(frac[2], 3)
+                    })
 
         html_str = view._make_html()
 
