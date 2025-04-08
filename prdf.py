@@ -2462,7 +2462,7 @@ if st.session_state.calc_xrd and uploaded_files:
     st.subheader("Append Your XRD Pattern Data")
     #
     user_pattern_file = st.file_uploader(
-        "Upload additional XRD pattern (2 columns: X-values and Intensity)",
+        "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line in the file is skipped, supposed it is a header.)",
         type=["csv", "txt", "xy"],
         key="user_xrd", accept_multiple_files=True
     )
