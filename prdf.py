@@ -2404,7 +2404,8 @@ if st.session_state.calc_xrd and uploaded_files:
     else:
         fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
 
-    fig_interactive.update_layout(
+    if peak_representation == "Delta":
+        fig_interactive.update_layout(
         height=1000,
         margin=dict(t=80, b=80, l=60, r=30),
         hovermode="x",
@@ -2422,12 +2423,37 @@ if st.session_state.calc_xrd and uploaded_files:
         ),
         yaxis=dict(
             title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
-            tickfont=dict(size=36, color='black')
+            tickfont=dict(size=36, color='black'), range=[0, 125]
         ),
         hoverlabel=dict(font=dict(size=30)),
         font=dict(size=18),
         autosize=True
-    )
+        )
+    else:
+        fig_interactive.update_layout(
+            height=1000,
+            margin=dict(t=80, b=80, l=60, r=30),
+            hovermode="x",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.1,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=36)
+            ),
+            xaxis=dict(
+                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                tickfont=dict(size=36, color='black')
+            ),
+            yaxis=dict(
+                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                tickfont=dict(size=36, color='black')
+            ),
+            hoverlabel=dict(font=dict(size=30)),
+            font=dict(size=18),
+            autosize=True
+            )
 
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
