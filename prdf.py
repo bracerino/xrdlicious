@@ -203,7 +203,7 @@ components.html(
 col1, col2 = st.columns([1.25,1])
 with col1:
     st.title(
-        "XRDlicious: Online Calculator for Powder XRD/ND Patterns and Partial RDF from Crystal Structures (CIF, LMP, POSCAR, ...)")
+        "🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns and Partial RDF from Crystal Structures (CIF, LMP, POSCAR, ...)")
     st.info(
     "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\nYou can find crystal structures in CIF format for example at: 📖 [Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
     "📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).\n\n"
