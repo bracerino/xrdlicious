@@ -216,7 +216,10 @@ with col2:
     image = Image.open("images/ts4.png")
     st.image(image)
 
-st.markdown("[Try also: 🍕 XRDlicious - Peak Matcher: Match XRD peaks using structures from Materials Project or AFLOW](https://xrdlicious-peak-match.streamlit.app/)")
+st.markdown(
+    '<a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank" style="font-size:24px;">🔗 Try also: 🍕 XRDlicious - Peak Matcher: Match XRD peaks using structures from Materials Project or AFLOW</a>',
+    unsafe_allow_html=True
+)
 
 #st.divider()
 
