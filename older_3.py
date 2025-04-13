@@ -1,9 +1,17 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Online Calculator for Powder XRD / ND patterns and (P)RDF from Crystal Structures (CIF, POSCAR, XSF, ...)",
+    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)",
     layout="wide"
 )
+# Remove top padding
+st.markdown("""
+    <style>
+    .block-container {
+        padding-top: 0rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,6 +43,7 @@ from aflow import search, K
 from aflow import search  # ensure your file is not named aflow.py!
 import aflow.keywords as AFLOW_K
 import requests
+from PIL import Image
 #import aflow.keywords as K
 
 
@@ -49,35 +58,42 @@ MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
 
 def get_full_conventional_structure_diffra(structure, symprec=1e-3):
-    cell = (
-        structure.lattice.matrix,
-        structure.frac_coords,
-        [max(site.species.items(), key=lambda x: x[1])[0].Z for site in structure]
-    )
+    lattice = structure.lattice.matrix
+    positions = structure.frac_coords
+
+
+    species_list = [site.species for site in structure]
+    species_to_type = {}
+    type_to_species = {}
+    type_index = 1
+
+    types = []
+    for sp in species_list:
+        sp_tuple = tuple(sorted(sp.items()))  # make it hashable
+        if sp_tuple not in species_to_type:
+            species_to_type[sp_tuple] = type_index
+            type_to_species[type_index] = sp
+            type_index += 1
+        types.append(species_to_type[sp_tuple])
+
+    cell = (lattice, positions, types)
 
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
+
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
 
-    # Map std_types to species dictionaries
-    original_species_list = [site.species for site in structure]
-    type_to_species = {
-        original_atomic_number: original_species
-        for original_atomic_number, original_species in zip(cell[2], original_species_list)
-    }
-
     new_species_list = [type_to_species[t] for t in std_types]
 
-    # Build the conventional cell
     conv_structure = Structure(
         lattice=std_lattice,
         species=new_species_list,
         coords=std_positions,
         coords_are_cartesian=False
     )
-    return conv_structure
 
+    return conv_structure
 
 def get_full_conventional_structure(structure, symprec=1e-3):
     # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
@@ -109,6 +125,13 @@ def load_structure(file_or_name):
             f.write(file_or_name.getbuffer())
     if filename.lower().endswith(".cif"):
         mg_structure = PmgStructure.from_file(filename)
+    elif filename.lower().endswith(".data"):
+        filename = filename.replace(".data", ".lmp")
+        from pymatgen.io.lammps.data import LammpsData
+        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
+    elif filename.lower().endswith(".lmp"):
+        from pymatgen.io.lammps.data import LammpsData
+        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
     else:
         atoms = read(filename)
         mg_structure = AseAtomsAdaptor.get_structure(atoms)
@@ -171,17 +194,33 @@ st.markdown(
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD / ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)">
     </head>
     """,
     height=0,
 )
 
-st.title(
-    "XRDlicious: Online Calculator for Powder XRD / ND Patterns, Partial and Total RDF from Crystal Structures (CIF, POSCAR, XSF, ...)")
-st.info(
-"🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\nYou can find crystal structures in CIF format for example at: 📖 [Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
-"📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).")
+col1, col2 = st.columns([1.25,1])
+with col1:
+    st.title(
+        "🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns and Partial RDF from Crystal Structures (CIF, LMP, POSCAR, ...)")
+    st.info(
+    "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\nYou can find crystal structures in CIF format for example at: 📖 [Crystallography Open Database (COD)](https://www.crystallography.net/cod/), "
+    "📖 [The Materials Project (MP)](https://next-gen.materialsproject.org/materials), or 📖 [AFLOW Database](http://aflowlib.duke.edu/search/ui/search/?search=Fe).\n\n"
+    "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
+    "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination** and **total RDF**. "
+    "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
+    )
+from PIL import Image
+with col2:
+    image = Image.open("images/ts4.png")
+    st.image(image)
+
+st.markdown(
+    '<a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank" style="font-size:24px;">🔗 Try also: 🍕 XRDlicious - Peak Matcher: Match XRD peaks using structures from Materials Project or AFLOW</a>',
+    unsafe_allow_html=True
+)
+
 #st.divider()
 
 # Add mode selection at the very beginning
@@ -208,7 +247,7 @@ if mode == "Basic":
         """, unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in CIF, POSCAR, XSF, PW, CFG, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
+        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in .cif, .lmp (.data), POSCAR, .xsf, .pw, .cfg, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
         <br><span style="font-size: 28px;">⬇️</span>
     </div>
     """, unsafe_allow_html=True)
@@ -218,12 +257,6 @@ if mode == "Basic":
     """, unsafe_allow_html=True)
 
     # st.divider()
-
-st.info(
-"Upload structure files (e.g., CIF, POSCAR, XSF format), and this tool will calculate either the "
-    "powder X-ray or neutron diffraction (XRD or ND) patterns or partial radial distribution function (PRDF) for each element combination, as well as the total RDF. "
-    "If multiple files are uploaded, the PRDF will be averaged for corresponding element combinations across the structures. For XRD / ND patterns, diffraction data from multiple structures can be combined into a single figure."
-)
 
 # Initialize session state keys if not already set.
 if 'mp_options' not in st.session_state:
@@ -859,7 +892,7 @@ if mode == "Basic" and not uploaded_files:
     st.markdown("""
     ### Acknowledgments
     
-    This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
+    This project utilizes several open-source materials science packages. We gratefully acknowledge their authors and maintainers:
     
     - **[Matminer](https://github.com/hackingmaterials/matminer)**  
       Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
@@ -1102,17 +1135,22 @@ if uploaded_files:
         with col_viz:
             file_options = [file.name for file in uploaded_files]
             st.subheader("Select Structure for Interactive Visualization:")
-        if len(file_options) > 3:
-            selected_file = st.selectbox("", file_options)
-        else:
-            selected_file = st.radio("", file_options)
-        structure = read(selected_file)
+            if len(file_options) > 5:
+                selected_file = st.selectbox("", file_options)
+            else:
+                selected_file = st.radio("", file_options)
+            
+        try:
+            structure = read(selected_file)
+            mp_struct = AseAtomsAdaptor.get_structure(structure)
+        except Exception as e:
+            mp_struct = load_structure(selected_file)
 
         selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
         #print(st.session_state.get('full_structures', {}))
         #if 'full_structures' in st.session_state:
         #mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
-        mp_struct = AseAtomsAdaptor.get_structure(structure)
+        #mp_struct = AseAtomsAdaptor.get_structure(structure)
         #mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
 
         if mp_struct:
@@ -1177,37 +1215,209 @@ if uploaded_files:
             download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
 
         with col_download:
-            st.download_button(
-                label="Download CIF for the Visualized Structure",
-                data=cif_content_visual,
-                file_name=download_file_name,
-                type="primary",
-                mime="chemical/x-cif"
-            )
+            with st.expander("Download Options", expanded=True):
+                file_format = st.radio(
+                    "Select file format",
+                    ("CIF", "VASP", "LAMMPS", "XYZ",),
+                    horizontal=True
+                )
+                enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
+                if enable_supercell:
+                    st.markdown("**Optional: Create Supercell**")
+                    # Show how many atoms will be in the resulting supercell
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10, value=1, step=1)
+                    with col2:
+                        n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10, value=1, step=1)
+                    with col3:
+                        n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10, value=1, step=1)
 
+                    base_atoms = len(structure)
+                    supercell_multiplier = n_a * n_b * n_c
+                    total_atoms = base_atoms * supercell_multiplier
+                    st.info(f"Structure will contain **{total_atoms} atoms**.")
+                    supercell_structure = structure.copy()  # ASE Atoms object
+                    supercell_pmg = visual_pmg_structure.copy()  # pymatgen Structure object
+
+                    if (n_a, n_b, n_c) != (1, 1, 1):
+                        supercell_structure = supercell_structure.repeat((n_a, n_b, n_c))
+                        from pymatgen.transformations.standard_transformations import SupercellTransformation
+
+                        supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+                        transformer = SupercellTransformation(supercell_matrix)
+                        supercell_pmg = transformer.apply_transformation(supercell_pmg)
+                else:
+                # If supercell not enabled, just use the original structure
+                    supercell_structure = structure.copy()
+                    supercell_pmg = visual_pmg_structure.copy()
+
+                file_content = None
+                download_file_name = None
+                mime = "text/plain"
+
+                try:
+                    if file_format == "CIF":
+                        # Use pymatgen's CifWriter for CIF output.
+                        from pymatgen.io.cif import CifWriter
+
+                        cif_writer_visual = CifWriter(supercell_pmg, symprec=0.1, refine_struct=False)
+                        file_content = str(cif_writer_visual)
+
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.cif'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.cif'
+                        mime = "chemical/x-cif"
+                    elif file_format == "VASP":
+                        out = StringIO()
+                        use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
+                                                     key="poscar_fractional")
+                        write(out, supercell_structure, format="vasp", direct=use_fractional)
+                        file_content = out.getvalue()
+                        if enable_supercell:
+                             download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.poscar'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+'.poscar'
+                    elif file_format == "LAMMPS":
+                        st.markdown("**LAMMPS Export Options**")
+
+                        atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
+                        units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
+                        include_masses = st.checkbox("Include atomic masses", value=True)
+                        force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
+
+                        out = StringIO()
+                        write(
+                            out,
+                            supercell_structure,
+                            format="lammps-data",
+                            atom_style=atom_style,
+                            units=units,
+                            masses=include_masses,
+                            force_skew=force_skew
+                        )
+                        file_content = out.getvalue()
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+ f'_Supercell_{n_a}_{n_b}_{n_c}'+f'_{atom_style}_{units}.lmp'
+                        else:
+                            download_file_name = selected_file.split('.')[0] + '_'+lattice_info+f'_{atom_style}_{units}.lmp'
+                    elif file_format == "XYZ":
+                        out = StringIO()
+                        write(out, supercell_structure, format="xyz")
+                        file_content = out.getvalue()
+                        if enable_supercell:
+                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info+f'_Supercell_{n_a}_{n_b}_{n_c}.xyz'
+                        else:
+                            download_file_name = selected_file.split('.')[0] +'_'+lattice_info+ '.xyz'
+                except Exception as e:
+                    st.error(f"Error generating {file_format} file: {e}")
+
+                if file_content is not None:
+                    st.download_button(
+                        label=f"Download {file_format} file",
+                        data=file_content,
+                        file_name=download_file_name,
+                        type="primary",
+                        mime=mime
+                    )
+
+        offset_distance = 0.3  # distance to offset
+        overlay_radius = 0.15  # radius for the overlay spheres
+
+
+        # Create a new list to store atomic info for the table (labels with occupancy info)
         atomic_info = []
-        if show_atomic:
-            import numpy as np
+        inv_cell = np.linalg.inv(cell)
 
-            inv_cell = np.linalg.inv(cell)
-            for i, atom in enumerate(structure):
-                symbol = atom.symbol
-                x, y, z = atom.position
+        visual_pmg_structure_partial_check = load_structure(selected_file)
 
-                frac = np.dot(inv_cell, atom.position)
-                label_text = f"{symbol}{i}"
-                view.addLabel(label_text, {
-                    "position": {"x": x, "y": y, "z": z},
-                    "backgroundColor": "white",
-                    "fontColor": "black",
-                    "fontSize": 10,
-                    "borderThickness": 1,
-                    "borderColor": "black"
-                })
+        # Check whether any site in the structure has partial occupancy.
+        has_partial_occ = any(
+            (len(site.species) > 1) or any(occ < 1 for occ in site.species.values())
+            for site in visual_pmg_structure_partial_check.sites
+        )
+
+
+        # If partial occupancy is detected, notify the user and offer an enhanced visualization option.
+        if has_partial_occ:
+            st.info(f"Partial occupancy detected in the uploaded structure. Note that the conversion between cell representions will not be possible now.\n To continue ")
+            visualize_partial = st.checkbox("Enable enhanced partial occupancy visualization", value=True)
+        else:
+            visualize_partial = False
+
+
+        if visualize_partial:
+            visual_pmg_structure = load_structure(selected_file)
+            from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+
+            #try:
+            #    structure_with_oxi = visual_pmg_structure.add_oxidation_state_by_guess()
+            #except Exception as e:
+                # Optionally, handle the exception if oxidation states cannot be assigned.
+            #    raise ValueError(f"Could not assign oxidation states to the structure: {e}")
+
+            #Convert to ordered structure
+            #ordered_structure = OrderDisorderedStructureTransformation(no_oxi_states=True)
+            #ordered_structure = order_trans.apply_transformation(structure_with_oxi)
+
+            from pymatgen.core import Structure
+
+            # Get lattice from original structure
+            lattice = visual_pmg_structure.lattice
+
+            # Build new species list: choose the species with highest occupancy at each site
+            species = []
+            coords = []
+
+            for site in visual_pmg_structure.sites:
+                # Pick the species with the highest occupancy
+                dominant_specie = max(site.species.items(), key=lambda x: x[1])[0]
+                species.append(dominant_specie)
+                coords.append(site.frac_coords)
+
+            # Create a new ordered structure
+            ordrd = Structure(lattice, species, coords)
+            structure = AseAtomsAdaptor.get_atoms(ordrd)
+
+
+            xyz_io = StringIO()
+            write(xyz_io, structure, format="xyz")
+            xyz_str = xyz_io.getvalue()
+            view = py3Dmol.view(width=800, height=600)
+            view.addModel(xyz_str, "xyz")
+            view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
+            cell = structure.get_cell()  # 3x3 array of lattice vectors
+            add_box(view, cell, color='black', linewidth=4)
+            view.zoomTo()
+            view.zoom(1.2)
+            # Enhanced visualization: iterate over the pymatgen structure to use occupancy info.
+
+            for i, site in enumerate(visual_pmg_structure.sites):
+                # Get Cartesian coordinates.
+                x, y, z = site.coords
+
+                # Build a string for species and occupancy details.
+                species_info = []
+                for specie, occ in site.species.items():
+                    occ_str = f"({occ * 100:.0f}%)" if occ < 1 else ""
+                    species_info.append(f"{specie.symbol}{occ_str}")
+                label_text = f"{'/'.join(species_info)}{i}"
+                if show_atomic:
+                # Add a label with the occupancy info.
+                    view.addLabel(label_text, {
+                        "position": {"x": x, "y": y, "z": z},
+                        "backgroundColor": "white",
+                        "fontColor": "black",
+                        "fontSize": 10,
+                        "borderThickness": 1,
+                        "borderColor": "black"
+                    })
+
+                frac = np.dot(inv_cell, [x, y, z])
                 atomic_info.append({
                     "Atom": label_text,
-                    "Element": symbol,
-                    "Atomic Number": atom.number,
+                    "Elements": "/".join(species_info),
                     "X": round(x, 3),
                     "Y": round(y, 3),
                     "Z": round(z, 3),
@@ -1215,6 +1425,51 @@ if uploaded_files:
                     "Frac Y": round(frac[1], 3),
                     "Frac Z": round(frac[2], 3)
                 })
+
+                        # For sites with partial occupancy, overlay extra spheres.
+                species_dict = site.species
+                if (len(species_dict) > 1) or any(occ < 1 for occ in species_dict.values()):
+                    num_species = len(species_dict)
+                    # Distribute offsets around a circle (here in the xy-plane).
+                    angles = np.linspace(0, 2 * np.pi, num_species, endpoint=False)
+                    offset_distance = 0.3  # adjust as needed
+                    overlay_radius = 0.15  # adjust as needed
+                    for j, ((specie, occ), angle) in enumerate(zip(species_dict.items(), angles)):
+                        dx = offset_distance * np.cos(angle)
+                        dy = offset_distance * np.sin(angle)
+                        sphere_center = {"x": x + dx, "y": y + dy, "z": z}
+                        view.addSphere({
+                            "center": sphere_center,
+                            "radius": overlay_radius,
+                            "color": jmol_colors.get(specie.symbol, "gray"),
+                            "opacity": 1.0
+                        })
+        else:
+            if show_atomic:
+                # Basic visualization (as before): iterate over ASE atoms.
+                for i, atom in enumerate(structure):
+                    symbol = atom.symbol
+                    x, y, z = atom.position
+                    label_text = f"{symbol}{i}"
+                    view.addLabel(label_text, {
+                        "position": {"x": x, "y": y, "z": z},
+                        "backgroundColor": "white",
+                        "fontColor": "black",
+                        "fontSize": 10,
+                        "borderThickness": 1,
+                        "borderColor": "black"
+                    })
+                    frac = np.dot(inv_cell, atom.position)
+                    atomic_info.append({
+                        "Atom": label_text,
+                        "Elements": symbol,
+                        "X": round(x, 3),
+                        "Y": round(y, 3),
+                        "Z": round(z, 3),
+                        "Frac X": round(frac[0], 3),
+                        "Frac Y": round(frac[1], 3),
+                        "Frac Z": round(frac[2], 3)
+                    })
 
         html_str = view._make_html()
 
@@ -1726,7 +1981,7 @@ if st.session_state.calc_xrd and uploaded_files:
     multi_component_presets = {
         "Cu(Ka1+Ka2)": {
             "wavelengths": [0.15406, 0.15444],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Cu(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.15406, 0.15444, 0.13922],
@@ -1734,7 +1989,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Mo(Ka1+Ka2)": {
             "wavelengths": [0.07093, 0.0711, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Mo(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.07093, 0.0711,  0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1742,7 +1997,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Cr(Ka1+Ka2)": {
             "wavelengths": [0.22897, 0.22888, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Cr(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1750,7 +2005,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Fe(Ka1+Ka2)": {
             "wavelengths": [0.19360, 0.194, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Fe(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.19360, 0.194,  0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1758,7 +2013,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Co(Ka1+Ka2)": {
             "wavelengths": [0.17889, 0.17927, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Co(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1766,7 +2021,7 @@ if st.session_state.calc_xrd and uploaded_files:
         },
         "Ag(Ka1+Ka2)": {
             "wavelengths": [0.0561, 0.05634, ],
-            "factors": [1.0, 1 / 3.0]
+            "factors": [1.0, 1 / 2.0]
         },
         "Ag(Ka1+Ka2+Kb1)": {
             "wavelengths": [0.0561, 0.05634,0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
@@ -1799,11 +2054,10 @@ if st.session_state.calc_xrd and uploaded_files:
         fig_combined, ax_combined = plt.subplots(figsize=(6, 4))
         colors = plt.cm.tab10.colors
         pattern_details = {}
-        full_range = (2.0, 165.0)
+        full_range = (0.01, 179.9)
 
         # Loop over each uploaded file.
         for idx, file in enumerate(uploaded_files):
-            structure = read(file.name)
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
 
@@ -2072,7 +2326,21 @@ if st.session_state.calc_xrd and uploaded_files:
 
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Interactive Peak Identification and Indexing")
-
+    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    if peak_representation != "Delta":
+        if preset_choice in multi_component_presets:
+            st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
+            num_components = len(multi_component_presets[preset_choice]["wavelengths"])
+            if num_components > 1:
+                show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+            if num_components >= 2:
+                show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
+            if num_components >= 3:
+                show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
+        else:
+            st.sidebar.subheader("Include Kα1 for hovering:")
+            show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+    
     # Interactive Plotly figure for peak identification and indexing.
     fig_interactive = go.Figure()
 
@@ -2193,11 +2461,25 @@ if st.session_state.calc_xrd and uploaded_files:
             peak_vals_in_range = []
             intensities_in_range = []
             peak_hover_texts = []
+            gaussian_max_intensities = []
             for i, peak in enumerate(details["peak_vals"]):
+                peak_type = details["peak_types"][i]
+                if (peak_type == "Kα1" and not show_Kalpha1_hover) or (peak_type == "Kα2" and not show_Kalpha2_hover) or (peak_type == "Kβ" and not show_Kbeta_hover):
+                    continue
                 canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
                 if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
                     peak_vals_in_range.append(peak)
-                    intensities_in_range.append(details["intensities"][i])
+                    #intensities_in_range.append(details["intensities"][i])
+                    gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
+                    # Calculate the area under the Gaussian.
+                    area = np.sum(gauss) * dx
+                    # This is the Gaussian that is added to the continuous curve:
+                    scaled_gauss = (details["intensities"][i] / area) * gauss
+                    # Compute the maximum of the Gaussian.
+                    max_gauss = np.max(scaled_gauss)
+                    gaussian_max_intensities.append(max_gauss)
+
+                    
                     hkl_group = details["hkls"][i]
                     if len(hkl_group[0]['hkl']) == 3:
                         hkl_str = ", ".join(
@@ -2207,16 +2489,31 @@ if st.session_state.calc_xrd and uploaded_files:
                         hkl_str = ", ".join(
                             [f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
                              for h in hkl_group])
-                    if "peak_types" in details:
-                       # hover_text = f"{details['peak_types'][i]}: {hkl_str}"
-                       hover_text = f"{'(hkl)'}: {hkl_str}"
-                    else:
-                        hover_text = f"(hkl): {hkl_str}"
-                    peak_hover_texts.append(hover_text)
+                    #  if "peak_types" in details:
+                        # hover_text = f"{details['peak_types'][i]}: {hkl_str}"
+                  #      hover_text = f"{'(hkl)'}: {hkl_str}"
+                  #  else:
+                  #      hover_text = f"(hkl): {hkl_str}"
 
+
+                    # Conditionally include hover text based on the checkboxes:
+                    if peak_type == "Kα1":
+                        hover_text = f"Kα1 (hkl): {hkl_str}"
+                    elif peak_type == "Kα2":
+                        hover_text = f"Kα2 (hkl): {hkl_str}"
+                    elif peak_type == "Kβ":
+                        hover_text = f"Kβ (hkl): {hkl_str}"
+                    else:
+                        hover_text = f"Kα1 (hkl): {hkl_str}"
+                    #peak_hover_texts.append(hover_text)
+                    peak_hover_texts.append(hover_text)
+                    
+            if intensity_scale_option == "Normalized" and gaussian_max_intensities:
+                norm_marker = max(gaussian_max_intensities)
+                gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
             fig_interactive.add_trace(go.Scatter(
                 x=peak_vals_in_range,
-                y=intensities_in_range,
+                y=gaussian_max_intensities,
                 mode='markers',
                 name=file_name,
                 showlegend=True,
@@ -2235,7 +2532,8 @@ if st.session_state.calc_xrd and uploaded_files:
     else:
         fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
 
-    fig_interactive.update_layout(
+    if peak_representation == "Delta":
+        fig_interactive.update_layout(
         height=1000,
         margin=dict(t=80, b=80, l=60, r=30),
         hovermode="x",
@@ -2253,21 +2551,46 @@ if st.session_state.calc_xrd and uploaded_files:
         ),
         yaxis=dict(
             title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
-            tickfont=dict(size=36, color='black')
+            tickfont=dict(size=36, color='black'), range=[0, 125]
         ),
         hoverlabel=dict(font=dict(size=30)),
         font=dict(size=18),
         autosize=True
-    )
+        )
+    else:
+        fig_interactive.update_layout(
+            height=1000,
+            margin=dict(t=80, b=80, l=60, r=30),
+            hovermode="x",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.1,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=36)
+            ),
+            xaxis=dict(
+                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                tickfont=dict(size=36, color='black')
+            ),
+            yaxis=dict(
+                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                tickfont=dict(size=36, color='black')
+            ),
+            hoverlabel=dict(font=dict(size=30)),
+            font=dict(size=18),
+            autosize=True
+            )
 
     if "placeholder_interactive" not in st.session_state:
         st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
     st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive, use_container_width=True)
     st.subheader("Append Your XRD Pattern Data")
-    show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+    #
     user_pattern_file = st.file_uploader(
-        "Upload additional XRD pattern (2 columns: X-values and Intensity)",
+        "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line in the file is skipped, supposed it is a header.)",
         type=["csv", "txt", "xy"],
         key="user_xrd", accept_multiple_files=True
     )
@@ -2312,7 +2635,7 @@ if st.session_state.calc_xrd and uploaded_files:
 
                     # Append to the static matplotlib figure with a unique color
                     ax = st.session_state.fig_combined.gca()
-                    ax.plot(x_user_filtered, y_user_filtered, label=file.name,linestyle='--', marker='o', linewidth=2, markersize=2,
+                    ax.plot(x_user_filtered, y_user_filtered, label=file.name,linestyle='--', marker='o', linewidth=0.5, markersize=1,
                             color=static_colors[idx])
                     ax.legend()
                     # Update y-axis range to include new data
@@ -2354,7 +2677,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 y_user_filtered = y_user[mask_user]
 
                 ax = st.session_state.fig_combined.gca()
-                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', marker='o',markersize=2,
+                ax.plot(x_user_filtered, y_user_filtered, label=user_pattern_file.name, linestyle='--', marker='o',markersize=1,linewidth=0.5,
                         color=static_color)
                 ax.legend()
                 current_ylim = ax.get_ylim()
@@ -2391,7 +2714,7 @@ if st.session_state.calc_xrd and uploaded_files:
                 <hr style="height:3px;border:none;color:#333;background-color:#333;" />
                 """, unsafe_allow_html=True)
 
-    # (The rest of the code for viewing peak data tables and RDF plots remains unchanged)
+
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     st.subheader("Quantitative Data for Calculated Diffraction Patterns")
     for file in uploaded_files:
@@ -2513,8 +2836,14 @@ with right_rdf:
         all_distance_dict = {}
         global_rdf_list = []
         for file in uploaded_files:
-            structure = read(file.name)
-            mg_structure = AseAtomsAdaptor.get_structure(structure)
+            #structure = read(file.name)
+            #mg_structure = AseAtomsAdaptor.get_structure(structure)
+            try:
+                structure = read(file.name)
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+            except Exception as e:
+                mg_structure = load_structure(file.name)
+                
             prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
             prdf_featurizer.fit([mg_structure])
             prdf_data = prdf_featurizer.featurize(mg_structure)
@@ -2625,4 +2954,3 @@ This project uses several open-source tools and datasets. We gratefully acknowle
   Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
   [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
 """)
-
