@@ -46,6 +46,47 @@ import requests
 from PIL import Image
 #import aflow.keywords as K
 
+from pymatgen.io.cif import CifWriter
+def get_cod_entries(params):
+    response = requests.get('https://www.crystallography.net/cod/result', params=params)
+    if response.status_code == 200:
+        results = response.json()
+        return results  # Returns a list of entries
+    else:
+        st.error(f"COD search error: {response.status_code}")
+        return []
+
+
+def get_cif_from_cod(entry):
+    file_url = entry.get('file')
+    if file_url:
+        response = requests.get(f"https://www.crystallography.net/cod/{file_url}.cif")
+        if response.status_code == 200:
+            return response.text
+    return None
+
+
+def get_structure_from_mp(mp_id):
+    with MPRester(MP_API_KEY) as mpr:
+        structure = mpr.get_structure_by_material_id(mp_id)
+        return structure
+
+from pymatgen.io.cif import CifParser
+def get_structure_from_cif_url(cif_url):
+    response = requests.get(f"https://www.crystallography.net/cod/{cif_url}.cif")
+    if response.status_code == 200:
+        #  writer = CifWriter(response.text, symprec=0.01)
+        #  parser = CifParser.from_string(writer)
+        #  structure = parser.get_structures(primitive=False)[0]
+        return response.text
+    else:
+        raise ValueError(f"Failed to fetch CIF from URL: {cif_url}")
+
+
+def get_cod_str(cif_content):
+    parser = CifParser.from_str(cif_content)
+    structure = parser.get_structures(primitive=False)[0]
+    return structure
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
@@ -317,14 +358,110 @@ if uploaded_files_user:
 
 
 with col2:
-    st.subheader("🔍 or Search for Structures in the MP or AFLOW Databases")
+    st.subheader("🔍 or Search for Structures in Databases")
     db_choice = st.radio(
         "Select Database",
-        options=["Materials Project", "AFLOW"],
+         options=["Materials Project", "AFLOW", "COD"],
         index=0,
         help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries) or in the AFLOW database (about 60 000 ICSD Entries)."
     )
+    if db_choice == "COD":
+        # Get COD search query string from sidebar
+        cod_search_query = st.text_input(
+            "Enter elements separated by spaces (e.g., Sr Ti O):",
+            value="Sr Ti O", key='input_cod'
+        )
 
+        if st.button("Search COD", key='sidebar_cod_butt'):
+            with st.spinner("Searching COD database..."):
+                elements = [el.strip() for el in cod_search_query.split() if el.strip()]
+                if elements:
+                    params = {'format': 'json', 'detail': '1'}
+                    for i, el in enumerate(elements, start=1):
+                        params[f'el{i}'] = el
+                    params['strictmin'] = str(len(elements))
+                    params['strictmax'] = str(len(elements))
+                    cod_entries = get_cod_entries(params)
+                    if cod_entries:
+                        st.session_state.cod_options = []
+                        st.session_state.full_structures_see_cod = {}
+                        for entry in cod_entries:
+                            print(entry)
+                            cif_content = get_cif_from_cod(entry)
+                            if cif_content:
+                                try:
+                                    structure = get_full_conventional_structure(get_cod_str(cif_content))
+                                    cod_id = f"cod_{entry.get('file')}"
+                                    st.session_state.full_structures_see_cod[cod_id] = structure
+                                    spcs =  entry.get("sg")
+                                    st.session_state.cod_options.append(
+                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs}) {structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} {structure.lattice.alpha:.2f}"
+                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}"
+                                    )
+                                except Exception as e:
+                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+                        if st.session_state.cod_options:
+                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                        else:
+                            st.warning("COD: No matching structures found.")
+                    else:
+                        st.session_state.cod_options = []
+                else:
+                    st.error("Please enter at least one element for the COD search.")
+
+        # Display search results if available.
+        if 'cod_options' in st.session_state and st.session_state.cod_options:
+            selected_cod_structure = st.selectbox(
+                "Select a structure from COD:",
+                st.session_state.cod_options,
+                key='sidebar_select_cod'
+            )
+            cod_id = selected_cod_structure.split(":")[0].strip()
+            if cod_id in st.session_state.full_structures_see_cod:
+                selected_entry = st.session_state.full_structures_see_cod[cod_id]
+                lattice = selected_entry.lattice
+                st.write(f"**COD ID:** {cod_id}")
+                st.write(f"**Formula:** {selected_entry.composition.reduced_formula}")
+
+
+                lattice_str = (f"a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
+                               f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                st.write(f"**Lattice Parameters:** {lattice_str}")
+
+                # Create a link to the COD website using the file id (remove the 'cod_' prefix).
+                cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
+                st.write(f"**Link:** {cod_url}")
+
+                # Define file_name now, so it is available for both adding and downloading.
+                file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
+
+                # "Add" structure button
+                if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
+                    from pymatgen.io.cif import CifWriter
+
+                    cif_writer = CifWriter(selected_entry, symprec=0.01)
+                    cif_data = str(cif_writer)
+                    st.session_state.full_structures[file_name] = selected_entry
+                    import io
+
+                    cif_file = io.BytesIO(cif_data.encode('utf-8'))
+                    cif_file.name = file_name
+                    if 'uploaded_files' not in st.session_state:
+                        st.session_state.uploaded_files = []
+                    if all(f.name != file_name for f in st.session_state.uploaded_files):
+                        st.session_state.uploaded_files.append(cif_file)
+                    st.success("Structure added from COD!")
+
+                # Download button using the defined file_name
+                from pymatgen.io.cif import CifWriter
+
+                st.download_button(
+                    label="Download COD CIF",
+                    data=str(CifWriter(selected_entry, symprec=0.01)),
+                    file_name=file_name,
+                    mime="chemical/x-cif", type="primary",
+                )
+    
     if db_choice == "Materials Project":
         mp_search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
         if st.button("Search Materials Project"):
