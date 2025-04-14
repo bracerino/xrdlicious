@@ -171,7 +171,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-col1, col2, col3 = st.columns(3)
+col3, col1, col2  = st.columns(3)
 
 if 'full_structures' not in st.session_state:
     st.session_state.full_structures = {}
