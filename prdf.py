@@ -1124,7 +1124,7 @@ if calc_mode == "🔬 Structure Visualization":
                                         indices = [i for i, site in enumerate(structure.sites) if site.specie.symbol == orig_el]
                                         n_sites = len(indices)
                                         n_substitute = int(round(n_sites * perc / 100.0))
-                                        st.write(f"🧠 Substituted {n_substitute} atoms of {sub_el} instead of {orig_el}.")
+                                        st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
 
 
                                         if n_substitute < 1:
