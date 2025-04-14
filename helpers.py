@@ -146,7 +146,7 @@ def get_cod_entries(params):
             st.error(f"COD search error: {response.status_code}")
             return []
     except Exception as e:
-        st.warning("Error during connection to COD. It is likely that the COD database server is currently down.")
+        st.warning("Error during connection to COD. It is likely that the COD database server is currently down. Please try it again later or use MP or AFLOW databases.")
 
 
 def get_cif_from_cod(entry):
