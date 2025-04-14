@@ -1048,7 +1048,7 @@ if calc_mode == "🔬 Structure Visualization":
                                         label = classify_interstitial_site(structure, interstitial.site.frac_coords)
 
                                         st.write(
-                                            f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {interstitial.site.frac_coords}, {label}")
+                                            f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {interstitial.site.frac_coords}, {label} (#{len(interstitial.equivalent_sites) sites)")
                                         for site in interstitial.equivalent_sites:
                                             frac_coords.append(site.frac_coords)
                                             frac_coords_dict[idx].append(site.frac_coords)
@@ -1150,7 +1150,7 @@ if calc_mode == "🔬 Structure Visualization":
 
                         # Choose among the three operation modes.
                         operation_mode = st.selectbox("Choose Operation Mode",
-                                                      ["Insert Interstitials", "Create Vacancies", "Substitute Atoms"], help ="""
+                                                      ["Insert Interstitials (Voronoi method)", "Create Vacancies", "Substitute Atoms"], help ="""
                     #Interstitials settings
                     - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
                     - **# to Insert**: The number of interstitial atoms to insert into the structure.
@@ -1193,7 +1193,7 @@ if calc_mode == "🔬 Structure Visualization":
                       Leave blank or set substitution % to 0 to skip substitution for that element.
                             """)
 
-                        if operation_mode == "Insert Interstitials":
+                        if operation_mode == "Insert Interstitials (Voronoi method)":
                             st.markdown("""
                             **Insert Interstitials Settings**
                             """)
@@ -1262,7 +1262,7 @@ if calc_mode == "🔬 Structure Visualization":
                             if st.button("🔄 Reset to Original Structure"):
                                 st.session_state["reset_requested"] = True
                                 st.rerun()
-                        if operation_mode == "Insert Interstitials":
+                        if operation_mode == "Insert Interstitials (Voronoi method)":
                             if st.button("Insert Interstitials"):
                                 updated_structure = insert_interstitials_into_structure(mp_struct,
                                                                                         interstitial_element_to_place,
