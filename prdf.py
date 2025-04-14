@@ -1185,7 +1185,7 @@ if calc_mode == "🔬 Structure Visualization":
                             with col1:
                                 interstitial_element_to_place = st.text_input("Element", value="N")
                             with col2:
-                                number_of_interstitials_to_insert = st.number_input("# to Insert", value=5, min_value=1)
+                                number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
                             with col3:
                                 which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
                                                                             min_value=0)
