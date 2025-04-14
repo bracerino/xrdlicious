@@ -116,7 +116,7 @@ with col2:
     image = Image.open("images/ts4.png")
     st.image(image)
 
-
+pattern_details = None
 
 
 # st.divider()
@@ -2225,104 +2225,105 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                                                           use_container_width=True)
 
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
-    st.subheader("Quantitative Data for Calculated Diffraction Patterns")
-    for file in uploaded_files:
-        details = pattern_details[file.name]
-        peak_vals = details["peak_vals"]
-        intensities = details["intensities"]
-        hkls = details["hkls"]
-        annotate_indices = details["annotate_indices"]
-        x_dense_full = details["x_dense_full"]
-        y_dense = details["y_dense"]
-        with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
-            table_str = "#X-axis    Intensity    hkl\n"
-            for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
-                if len(hkl_group[0]['hkl']) == 3:
-                    hkl_str = ", ".join(
-                        [
-                            f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                            for h in
-                            hkl_group])
-                else:
-                    hkl_str = ", ".join(
-                        [
-                            f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                            for h in
-                            hkl_group])
-                table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
-            st.code(table_str, language="text")
-        with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
-            table_str2 = "#X-axis    Intensity    hkl\n"
-            for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
-                if i in annotate_indices:
+    if pattern_details is not None:
+        st.subheader("Quantitative Data for Calculated Diffraction Patterns")
+        for file in uploaded_files:
+            details = pattern_details[file.name]
+            peak_vals = details["peak_vals"]
+            intensities = details["intensities"]
+            hkls = details["hkls"]
+            annotate_indices = details["annotate_indices"]
+            x_dense_full = details["x_dense_full"]
+            y_dense = details["y_dense"]
+            with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
+                table_str = "#X-axis    Intensity    hkl\n"
+                for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
                     if len(hkl_group[0]['hkl']) == 3:
                         hkl_str = ", ".join(
                             [
                                 f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                for
-                                h in hkl_group])
+                                for h in
+                                hkl_group])
                     else:
                         hkl_str = ", ".join(
                             [
                                 f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                for
-                                h in hkl_group])
-                    table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
-            st.code(table_str2, language="text")
-        with st.expander(f"View Continuous Curve Data for XRD Pattern: {file.name}"):
-            table_str3 = "#X-axis    Y-value\n"
-            for x_val, y_val in zip(x_dense_full, y_dense):
-                table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
-            st.code(table_str3, language="text")
-
-    combined_data = {}
-    for file in uploaded_files:
-        file_name = file.name
-        details = pattern_details[file_name]
-        combined_data[file_name] = {
-            "Peak Vals": details["peak_vals"],
-            "Intensities": details["intensities"],
-            "HKLs": details["hkls"]
-        }
-    selected_metric = st.session_state.x_axis_metric
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stDataFrameContainer"] table td {
-             font-size: 22px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-        combined_df = pd.DataFrame()
-        data_list = []
+                                for h in
+                                hkl_group])
+                    table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
+                st.code(table_str, language="text")
+            with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
+                table_str2 = "#X-axis    Intensity    hkl\n"
+                for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
+                    if i in annotate_indices:
+                        if len(hkl_group[0]['hkl']) == 3:
+                            hkl_str = ", ".join(
+                                [
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for
+                                    h in hkl_group])
+                        else:
+                            hkl_str = ", ".join(
+                                [
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for
+                                    h in hkl_group])
+                        table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
+                st.code(table_str2, language="text")
+            with st.expander(f"View Continuous Curve Data for XRD Pattern: {file.name}"):
+                table_str3 = "#X-axis    Y-value\n"
+                for x_val, y_val in zip(x_dense_full, y_dense):
+                    table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
+                st.code(table_str3, language="text")
+    
+        combined_data = {}
         for file in uploaded_files:
             file_name = file.name
-            if file_name in combined_data:
-                peak_vals = combined_data[file_name]["Peak Vals"]
-                intensities = combined_data[file_name]["Intensities"]
-                hkls = combined_data[file_name]["HKLs"]
-                for i in range(len(peak_vals)):
-                    for group in hkls:
-                        for item in group:
-                            hkl = item['hkl']
-                            if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                continue
-                            if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                continue
-                    if len(hkl) == 3:
-                        hkl_str = ", ".join([
-                                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                                for h in hkls[i]])
-                    else:
-                        hkl_str = ", ".join([
-                                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                                for h in hkls[i]])
-                    data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-        combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-        st.dataframe(combined_df)
+            details = pattern_details[file_name]
+            combined_data[file_name] = {
+                "Peak Vals": details["peak_vals"],
+                "Intensities": details["intensities"],
+                "HKLs": details["hkls"]
+            }
+        selected_metric = st.session_state.x_axis_metric
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stDataFrameContainer"] table td {
+                 font-size: 22px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+            combined_df = pd.DataFrame()
+            data_list = []
+            for file in uploaded_files:
+                file_name = file.name
+                if file_name in combined_data:
+                    peak_vals = combined_data[file_name]["Peak Vals"]
+                    intensities = combined_data[file_name]["Intensities"]
+                    hkls = combined_data[file_name]["HKLs"]
+                    for i in range(len(peak_vals)):
+                        for group in hkls:
+                            for item in group:
+                                hkl = item['hkl']
+                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                    continue
+                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                    continue
+                        if len(hkl) == 3:
+                            hkl_str = ", ".join([
+                                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                                    for h in hkls[i]])
+                        else:
+                            hkl_str = ", ".join([
+                                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                                    for h in hkls[i]])
+                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+            st.dataframe(combined_df)
 
 
 
