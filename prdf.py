@@ -758,6 +758,10 @@ else:
 
 if "current_structure" not in st.session_state:
     st.session_state["current_structure"] = None
+
+if "original_structures" not in st.session_state:
+    st.session_state["original_structures"] = {}
+    
 if calc_mode == "🔬 Structure Visualization":
     # show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
     show_structure = True
@@ -812,10 +816,23 @@ if calc_mode == "🔬 Structure Visualization":
 
                 # Save to session state
                 st.session_state["current_structure"] = mp_struct
-                st.session_state["original_structure"] = mp_struct.copy()
+                st.session_state["original_structures"][selected_file] = mp_struct.copy()
             else:
                 # Use the stored structure
                 mp_struct = st.session_state["current_structure"]
+            selected_file = st.session_state.get("selected_file")
+            original_structures = st.session_state["original_structures"]
+            if st.session_state.get("reset_requested", False):
+                if selected_file in original_structures:
+                    st.session_state["current_structure"] = original_structures[selected_file].copy()
+                    st.session_state["supercell_n_a"] = 1
+                    st.session_state["supercell_n_b"] = 1
+                    st.session_state["supercell_n_c"] = 1
+                    st.session_state["last_multiplier"] = (1, 1, 1)
+                    st.session_state["helpful"] = False
+
+                st.session_state["reset_requested"] = False
+                st.rerun()
 
             selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
             # print(st.session_state.get('full_structures', {}))
@@ -860,7 +877,7 @@ if calc_mode == "🔬 Structure Visualization":
 
                     # Save both the current (working) and the pristine original structures.
                     st.session_state["current_structure"] = mp_struct
-                    st.session_state["original_structure"] = mp_struct.copy()
+                    st.session_state["original_structures"][selected_file] = mp_struct.copy()
 
                     # Reset the supercell parameters in session state.
                     st.session_state["supercell_n_a"] = 1
@@ -1241,7 +1258,10 @@ if calc_mode == "🔬 Structure Visualization":
                                 substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
 
                         # ==================== Execute Operation ====================
-
+                        with colb1:
+                            if st.button("🔄 Reset to Original Structure"):
+                                st.session_state["reset_requested"] = True
+                                st.rerun()
                         if operation_mode == "Insert Interstitials":
                             if st.button("Insert Interstitials"):
                                 updated_structure = insert_interstitials_into_structure(mp_struct,
@@ -1621,7 +1641,7 @@ if calc_mode == "🔬 Structure Visualization":
             left_col, right_col = st.columns([1, 3])
 
             with left_col:
-                st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>",
+                st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization ({structure_cell_choice}) </h3>",
                             unsafe_allow_html=True)
 
                 try:
