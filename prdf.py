@@ -1361,6 +1361,19 @@ if calc_mode == "🔬 Structure Visualization":
                                 current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
                                 use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
                                                              key="poscar_fractional")
+
+                                colsss, colyyy = st.columns([1,1])
+                                with colsss:
+                                    use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
+                                                                 key="poscar_fractional")
+
+                                with colyyy:
+                                    from ase.constraints import FixAtoms
+                                    use_selective_dynamics = st.checkbox("Include Selective dynamics (all atoms free)",
+                                                                        value=False, key="poscar_sd")
+                                    if use_selective_dynamics:
+                                        constraint = FixAtoms(indices=[])  # No atoms are fixed, so all will be T T T
+                                        current_ase_structure.set_constraint(constraint)
                                 write(out, current_ase_structure, format="vasp", direct=use_fractional, sort=True)
                                 file_content = out.getvalue()
                                 download_file_name = selected_file.split('.')[
