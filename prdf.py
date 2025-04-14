@@ -1292,7 +1292,7 @@ if calc_mode == "🔬 Structure Visualization":
                 structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
             write(xyz_io, structure, format="xyz")
             xyz_str = xyz_io.getvalue()
-            view = py3Dmol.view(width=800, height=600)
+            view = py3Dmol.view(width=1000, height=800)
             view.addModel(xyz_str, "xyz")
             view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
             cell = structure.get_cell()  # 3x3 array of lattice vectors
@@ -1479,7 +1479,7 @@ if calc_mode == "🔬 Structure Visualization":
                 xyz_io = StringIO()
                 write(xyz_io, structure, format="xyz")
                 xyz_str = xyz_io.getvalue()
-                view = py3Dmol.view(width=800, height=600)
+                view = py3Dmol.view(width=1000, height=800)
                 view.addModel(xyz_str, "xyz")
                 view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
                 cell = structure.get_cell()  # 3x3 array of lattice vectors
@@ -1568,7 +1568,23 @@ if calc_mode == "🔬 Structure Visualization":
 
             html_str = view._make_html()
 
-            centered_html = f"<div style='display: flex; justify-content: center; position: relative;'>{html_str}</div>"
+            centered_html = f"""
+            <div style="
+                display: flex;
+                justify-content: center;
+            ">
+                <div style="
+                    border: 3px solid black;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    padding: 0;
+                    margin: 0;
+                    display: inline-block;
+                ">
+                    {html_str}
+                </div>
+            </div>
+            """
 
             unique_elements = sorted(set(structure.get_chemical_symbols()))
             legend_html = "<div style='display: flex; flex-wrap: wrap; align-items: center;justify-content: center;'>"
@@ -1602,7 +1618,7 @@ if calc_mode == "🔬 Structure Visualization":
                 f"Volume = {volume:.2f} Å³"
             )
 
-            left_col, right_col = st.columns([1, 2])
+            left_col, right_col = st.columns([1, 3])
 
             with left_col:
                 st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization</h3>",
