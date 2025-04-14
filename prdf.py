@@ -2776,171 +2776,164 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
 
 if calc_mode == "📈 (P)RDF Calculation":
     # --- RDF (PRDF) Settings and Calculation ---
-
-    left_rdf, right_rdf = st.columns(2)
-    left_rdf, col_divider_rdf, right_rdf = st.columns([1, 0.05, 4])
-
-    with left_rdf:
-        st.subheader("⚙️ (P)RDF Settings")
-        st.info(
-            "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
-            "providing insight into **local environments** and **structural disorder**. "
-            "It is commonly used in **diffusion studies** to track atomic movement and ion transport, "
-            "as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
-            "Additionally, PRDF/RDF can be employed as one of the **structural descriptors in machine learning**. "
-            "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. "
-            "Peak width = disorder. Height = relative likelihood."
-        )
-        cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
-        bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05,
-                                   format="%.2f")
-        if "calc_rdf" not in st.session_state:
-            st.session_state.calc_rdf = False
-        if st.button("Calculate RDF"):
-            st.session_state.calc_rdf = True
-
-    with col_divider_rdf:
-        st.write("")
-
-    with right_rdf:
-        if not st.session_state.calc_rdf:
-            st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
-        if st.session_state.calc_rdf and uploaded_files:
-            st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
-            species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
-            all_prdf_dict = defaultdict(list)
-            all_distance_dict = {}
-            global_rdf_list = []
-
-            for file in uploaded_files:
-                try:
-                    structure = read(file.name)
-                    mg_structure = AseAtomsAdaptor.get_structure(structure)
-                except Exception as e:
-                    mg_structure = load_structure(file.name)
-
-                prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
-                prdf_featurizer.fit([mg_structure])
-                prdf_data = prdf_featurizer.featurize(mg_structure)
-                feature_labels = prdf_featurizer.feature_labels()
-                prdf_dict = defaultdict(list)
-                distance_dict = {}
-                global_dict = {}
-                for i, label in enumerate(feature_labels):
-                    parts = label.split(" PRDF r=")
-                    element_pair = tuple(parts[0].split("-"))
-                    distance_range = parts[1].split("-")
-                    bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                    prdf_dict[element_pair].append(prdf_data[i])
-                    if element_pair not in distance_dict:
-                        distance_dict[element_pair] = []
-                    distance_dict[element_pair].append(bin_center)
-                    global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
-                for pair, values in prdf_dict.items():
-                    if pair not in all_distance_dict:
-                        all_distance_dict[pair] = distance_dict[pair]
-                    if isinstance(values, float):
-                        values = [values]
-                    all_prdf_dict[pair].append(values)
-                global_rdf_list.append(global_dict)
-
-            multi_structures = len(uploaded_files) > 1
-
-            # Import Plotly and a helper function to convert Matplotlib colors to hex
-            import plotly.graph_objects as go
-            import matplotlib.pyplot as plt
-
-            colors = plt.cm.tab10.colors
+    st.subheader("⚙️ (P)RDF Settings")
+    st.info(
+        "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
+        "providing insight into **local environments** and **structural disorder**. "
+        "It is commonly used in **diffusion studies** to track atomic movement and ion transport, "
+        "as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
+        "Additionally, PRDF/RDF can be employed as one of the **structural descriptors in machine learning**. "
+        "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. "
+        "Peak width = disorder. Height = relative likelihood."
+    )
+    cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
+    bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05,
+                               format="%.2f")
+    if "calc_rdf" not in st.session_state:
+        st.session_state.calc_rdf = False
+    if st.button("Calculate RDF"):
+        st.session_state.calc_rdf = True
 
 
-            def rgb_to_hex(color):
-                return '#%02x%02x%02x' % (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+
+    if not st.session_state.calc_rdf:
+        st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
+    if st.session_state.calc_rdf and uploaded_files:
+        st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
+        species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
+        all_prdf_dict = defaultdict(list)
+        all_distance_dict = {}
+        global_rdf_list = []
+
+        for file in uploaded_files:
+            try:
+                structure = read(file.name)
+                mg_structure = AseAtomsAdaptor.get_structure(structure)
+            except Exception as e:
+                mg_structure = load_structure(file.name)
+
+            prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+            prdf_featurizer.fit([mg_structure])
+            prdf_data = prdf_featurizer.featurize(mg_structure)
+            feature_labels = prdf_featurizer.feature_labels()
+            prdf_dict = defaultdict(list)
+            distance_dict = {}
+            global_dict = {}
+            for i, label in enumerate(feature_labels):
+                parts = label.split(" PRDF r=")
+                element_pair = tuple(parts[0].split("-"))
+                distance_range = parts[1].split("-")
+                bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
+                prdf_dict[element_pair].append(prdf_data[i])
+                if element_pair not in distance_dict:
+                    distance_dict[element_pair] = []
+                distance_dict[element_pair].append(bin_center)
+                global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
+            for pair, values in prdf_dict.items():
+                if pair not in all_distance_dict:
+                    all_distance_dict[pair] = distance_dict[pair]
+                if isinstance(values, float):
+                    values = [values]
+                all_prdf_dict[pair].append(values)
+            global_rdf_list.append(global_dict)
+
+        multi_structures = len(uploaded_files) > 1
+
+        # Import Plotly and a helper function to convert Matplotlib colors to hex
+        import plotly.graph_objects as go
+        import matplotlib.pyplot as plt
+
+        colors = plt.cm.tab10.colors
 
 
-            # Set font size and color without changing the font family
-            font_dict = dict(size=24, color="black")
+        def rgb_to_hex(color):
+            return '#%02x%02x%02x' % (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
 
-            st.divider()
-            st.subheader("PRDF Plots:")
-            for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
-                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
-                if valid_prdf:
-                    prdf_array = np.vstack(valid_prdf)
-                    prdf_avg = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
-                else:
-                    prdf_avg = np.zeros_like(all_distance_dict[comb])
-                title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
-                hex_color = rgb_to_hex(colors[idx % len(colors)])
 
-                # Create interactive Plotly figure with markers and custom font color
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=prdf_avg,
-                    mode='lines+markers',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color),
-                    marker=dict(size=10)
-                ))
-                fig.update_layout(
-                    title={'text': title_str, 'font': font_dict},
-                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                    hovermode='x',
-                    font=font_dict,
-                    xaxis=dict(tickfont=font_dict),
-                    yaxis=dict(tickfont=font_dict, range=[0, None]),
-                    hoverlabel=dict(font=font_dict)
-                )
-                st.plotly_chart(fig, use_container_width=True)
+        # Set font size and color without changing the font family
+        font_dict = dict(size=24, color="black")
 
-                with st.expander(f"View Data for {comb[0]}-{comb[1]}"):
-                    table_str = "#Distance (Å)    PRDF\n"
-                    for x, y in zip(all_distance_dict[comb], prdf_avg):
-                        table_str += f"{x:<12.3f} {y:<12.3f}\n"
-                    st.code(table_str, language="text")
+        st.divider()
+        st.subheader("PRDF Plots:")
+        for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+            valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
+            if valid_prdf:
+                prdf_array = np.vstack(valid_prdf)
+                prdf_avg = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
+            else:
+                prdf_avg = np.zeros_like(all_distance_dict[comb])
+            title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+            hex_color = rgb_to_hex(colors[idx % len(colors)])
 
-            st.subheader("Total RDF Plot:")
-            global_bins_set = set()
-            for gd in global_rdf_list:
-                global_bins_set.update(gd.keys())
-            global_bins = sorted(list(global_bins_set))
-            global_rdf_avg = []
-            for b in global_bins:
-                vals = []
-                for gd in global_rdf_list:
-                    vals.append(gd.get(b, 0))
-                global_rdf_avg.append(np.mean(vals))
-            hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
-
-            # Create interactive Plotly figure for the Total RDF with markers and custom font color
-            fig_global = go.Figure()
-            fig_global.add_trace(go.Scatter(
-                x=global_bins,
-                y=global_rdf_avg,
+            # Create interactive Plotly figure with markers and custom font color
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=all_distance_dict[comb],
+                y=prdf_avg,
                 mode='lines+markers',
-                name="Global RDF",
-                line=dict(color=hex_color_global),
+                name=f"{comb[0]}-{comb[1]}",
+                line=dict(color=hex_color),
                 marker=dict(size=10)
             ))
-            title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
-            fig_global.update_layout(
-                title={'text': title_global, 'font': font_dict},
+            fig.update_layout(
+                title={'text': title_str, 'font': font_dict},
                 xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                yaxis_title={'text': "Total RDF Intensity", 'font': font_dict},
+                yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
                 hovermode='x',
                 font=font_dict,
                 xaxis=dict(tickfont=font_dict),
                 yaxis=dict(tickfont=font_dict, range=[0, None]),
                 hoverlabel=dict(font=font_dict)
             )
-            st.plotly_chart(fig_global, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-            with st.expander("View Data for Total RDF"):
-                table_str = "#Distance (Å)    Total RDF\n"
-                for x, y in zip(global_bins, global_rdf_avg):
+            with st.expander(f"View Data for {comb[0]}-{comb[1]}"):
+                table_str = "#Distance (Å)    PRDF\n"
+                for x, y in zip(all_distance_dict[comb], prdf_avg):
                     table_str += f"{x:<12.3f} {y:<12.3f}\n"
                 st.code(table_str, language="text")
+
+        st.subheader("Total RDF Plot:")
+        global_bins_set = set()
+        for gd in global_rdf_list:
+            global_bins_set.update(gd.keys())
+        global_bins = sorted(list(global_bins_set))
+        global_rdf_avg = []
+        for b in global_bins:
+            vals = []
+            for gd in global_rdf_list:
+                vals.append(gd.get(b, 0))
+            global_rdf_avg.append(np.mean(vals))
+        hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
+
+        # Create interactive Plotly figure for the Total RDF with markers and custom font color
+        fig_global = go.Figure()
+        fig_global.add_trace(go.Scatter(
+            x=global_bins,
+            y=global_rdf_avg,
+            mode='lines+markers',
+            name="Global RDF",
+            line=dict(color=hex_color_global),
+            marker=dict(size=10)
+        ))
+        title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
+        fig_global.update_layout(
+            title={'text': title_global, 'font': font_dict},
+            xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+            yaxis_title={'text': "Total RDF Intensity", 'font': font_dict},
+            hovermode='x',
+            font=font_dict,
+            xaxis=dict(tickfont=font_dict),
+            yaxis=dict(tickfont=font_dict, range=[0, None]),
+            hoverlabel=dict(font=font_dict)
+        )
+        st.plotly_chart(fig_global, use_container_width=True)
+
+        with st.expander("View Data for Total RDF"):
+            table_str = "#Distance (Å)    Total RDF\n"
+            for x, y in zip(global_bins, global_rdf_avg):
+                table_str += f"{x:<12.3f} {y:<12.3f}\n"
+            st.code(table_str, language="text")
 
 st.markdown(
     """
