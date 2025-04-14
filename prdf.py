@@ -2087,7 +2087,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 for file in user_pattern_file:
                     try:
                         # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
-                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
+                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
@@ -2143,7 +2143,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                     )
             else:
                 try:
-                    df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
@@ -2544,7 +2544,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 for file in user_pattern_file:
                     try:
                         # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
-                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
+                        pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
@@ -2576,7 +2576,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                     ))
             else:
                 try:
-                    df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
