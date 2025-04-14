@@ -1641,7 +1641,7 @@ if calc_mode == "🔬 Structure Visualization":
             left_col, right_col = st.columns([1, 3])
 
             with left_col:
-                st.markdown("<h3 style='text-align: center;'>Interactive Structure Visualization ({structure_cell_choice}) </h3>",
+                st.markdown(f"<h3 style='text-align: center;'>Interactive Structure Visualization ({structure_cell_choice}) </h3>",
                             unsafe_allow_html=True)
 
                 try:
