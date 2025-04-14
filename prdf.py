@@ -2076,7 +2076,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
             st.session_state.calc_xrd = True
 
     # --- XRD Calculation ---
-
+    colors = ["black", "brown", "grey", "purple"]
     if not st.session_state.calc_xrd:
         st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
         if user_pattern_file:
@@ -2084,7 +2084,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
 
             # Process the experimental files:
             if isinstance(user_pattern_file, list):
-                for file in user_pattern_file:
+                for i, file in enumerate(user_pattern_file):
                     try:
                         # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
                         df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
@@ -2105,15 +2105,16 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
 
+                    color = colors[i % len(colors)] 
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=file.name,
-                        line=dict(dash='solid', width=1, color="green"),
-                        marker=dict(color="green", size=5),
+                        line=dict(dash='solid', width=1, color=color),
+                        marker=dict(color=color, size=5),
                         hovertemplate=(
-                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            f"<span style='color::{color};'><b>User XRD Data:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
