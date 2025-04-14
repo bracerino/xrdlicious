@@ -1270,7 +1270,7 @@ if calc_mode == "🔬 Structure Visualization":
                                 with colb3:
                                     st.success("Vacancies created and structure updated!")
                                 st.session_state["helpful"] = True
-                                st.rerun()
+                               # st.rerun()
                         elif operation_mode == "Substitute Atoms":
                             if st.button("Substitute Atoms"):
                                 updated_structure = substitute_atoms_in_structure(mp_struct,
@@ -1283,7 +1283,7 @@ if calc_mode == "🔬 Structure Visualization":
                                 with colb3:
                                     st.success("Substitutions applied and structure updated!")
                                 st.session_state["helpful"] = True
-                                st.rerun()
+                              #  st.rerun()
 
             # Checkbox option to show atomic positions (labels on structure and list in table)
             show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
@@ -1359,8 +1359,6 @@ if calc_mode == "🔬 Structure Visualization":
                             elif file_format == "VASP":
                                 out = StringIO()
                                 current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
-                                use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
-                                                             key="poscar_fractional")
 
                                 colsss, colyyy = st.columns([1,1])
                                 with colsss:
