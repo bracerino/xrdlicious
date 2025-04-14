@@ -2112,7 +2112,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         mode="lines+markers",
                         name=file.name,
                         line=dict(dash='solid', width=1, color=color),
-                        marker=dict(color=color, size=5),
+                        marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color::{color};'><b>User XRD Data:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
@@ -2138,7 +2138,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                             title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
                             tickfont=dict(size=36, color='black')
                         ),
-                        hoverlabel=dict(font=dict(size=30)),
+                        hoverlabel=dict(font=dict(size=24)),
                         font=dict(size=18),
                         autosize=True
                     )
@@ -2545,7 +2545,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 for file in user_pattern_file:
                     try:
                         # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
-                        pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
