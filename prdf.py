@@ -49,11 +49,7 @@ from PIL import Image
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
-
-
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
-
-
 
 # Inject custom CSS for buttons.
 st.markdown(
@@ -106,18 +102,18 @@ with col1:
     st.title(
         "🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns and Partial RDF from Crystal Structures (CIF, LMP, POSCAR, ...)")
     st.info(
-    "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\n "
-    "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
-    "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination** and **total RDF**. "
-    "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\n "
+        "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
+        "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination** and **total RDF**. "
+        "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
     )
 from PIL import Image
+
 with col2:
     image = Image.open("images/ts4.png")
     st.image(image)
 
 pattern_details = None
-
 
 # st.divider()
 
@@ -137,7 +133,6 @@ convert_to_conventional = structure_cell_choice == "Conventional Cell"
 pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
 pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
 pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
-
 
 if mode == "Basic":
     # st.divider()
@@ -175,7 +170,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 col1, col2, col3 = st.columns(3)
 
 if 'full_structures' not in st.session_state:
@@ -189,15 +183,12 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
     key="sidebar_uploader"
 )
 
-
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
     type=["csv", "txt", "xy"],
     key="user_xrd", accept_multiple_files=True
 )
-
-
 
 if uploaded_files_user_sidebar:
     for file in uploaded_files_user_sidebar:
@@ -211,7 +202,6 @@ if uploaded_files_user_sidebar:
                 st.error(f"Failed to parse {file.name}: {e}")
 
 # Column 1: Search for structures.
-
 
 
 with col1:
@@ -255,7 +245,7 @@ with col1:
                                     structure = get_full_conventional_structure(get_cod_str(cif_content))
                                     cod_id = f"cod_{entry.get('file')}"
                                     st.session_state.full_structures_see_cod[cod_id] = structure
-                                    spcs =  entry.get("sg")
+                                    spcs = entry.get("sg")
                                     st.session_state.cod_options.append(
                                         f"{cod_id}: {structure.composition.reduced_formula} ({spcs}) {structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å {structure.lattice.alpha:.2f} "
                                         f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f} °"
@@ -264,7 +254,6 @@ with col1:
                                         f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
                                 except Exception as e:
                                     st.error(f"Error processing COD entry {entry.get('file')}: {e}")
-
 
                         if st.session_state.cod_options:
                             st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
@@ -290,10 +279,8 @@ with col1:
                     selected_entry = st.session_state.full_structures_see_cod[cod_id]
                     lattice = selected_entry.lattice
 
-
                     st.write(f"**COD ID:** {cod_id}")
                     st.write(f"**Formula:** {selected_entry.composition.reduced_formula}")
-
 
                     lattice_str = (f"a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
                                    f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
@@ -332,7 +319,6 @@ with col1:
                         file_name=file_name,
                         mime="chemical/x-cif", type="primary",
                     )
-
 
     if db_choice == "Materials Project":
         with col1:
@@ -390,7 +376,8 @@ with col1:
     if db_choice == "AFLOW":  # AFLOW branch
         with col1:
             with cols2:
-                aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
+                aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):",
+                                                     value="Sr Ti O")
 
         # Process user input:
         if aflow_elements_input:
@@ -649,7 +636,10 @@ with col2:
 with col3:
     st.subheader("🧮 Choose Type of Calculation/Analysis ")
     calc_mode = st.radio("Select Calculation Mode",
-                         options=["🔬 Structure Visualization", "💥 Diffraction Pattern Calculation", "📈 (P)RDF Calculation", "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)"], label_visibility="hidden",
+                         options=["🔬 Structure Visualization", "💥 Diffraction Pattern Calculation",
+                                  "📈 (P)RDF Calculation",
+                                  "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)"],
+                         label_visibility="hidden",
                          index=1)
     if calc_mode == "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)":
         st.subheader("For the Online Peak Matching Subtool, Please visit: ")
@@ -657,8 +647,6 @@ with col3:
             '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
             unsafe_allow_html=True
         )
-
-
 
 if st.session_state['mp_options'] is None:
     st.info("Please press the 'Search Materials Project' button to view the available structures.")
@@ -679,7 +667,6 @@ if uploaded_files_user_sidebar:
 else:
     uploaded_files = st.session_state['uploaded_files']
 
-
 # Column 2: Select structure and add/download CIF.
 with col3:
     st.warning(
@@ -693,8 +680,9 @@ if uploaded_files:
 
 else:
     with col1:
-        st.warning(f"🪧 **Step 1**:  📁 From the Sidebar, Upload Your Structure File or Experimental Patterns, or Search Here in Online Databases."
-"💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
+        st.warning(
+            f"🪧 **Step 1**:  📁 From the Sidebar, Upload Your Structure File or Experimental Patterns, or Search Here in Online Databases."
+            "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
@@ -711,8 +699,6 @@ if files_to_remove:
     for f in files_to_remove:
         st.session_state['uploaded_files'].remove(f)
     st.rerun()  # 🔁 Force Streamlit to rerun and refresh UI
-
-
 
 if mode == "Basic" and not uploaded_files:
     st.divider()
@@ -748,7 +734,7 @@ if mode == "Basic" and not uploaded_files:
       Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
       [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
     """)
-    #st.stop()
+    # st.stop()
 # --- Detect Atomic Species ---
 
 
@@ -770,11 +756,14 @@ if uploaded_files:
 else:
     species_list = []
 
-
+if "current_structure" not in st.session_state:
+    st.session_state["current_structure"] = None
 if calc_mode == "🔬 Structure Visualization":
     # show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
     show_structure = True
     if uploaded_files:
+        if "helpful" not in st.session_state:
+            st.session_state["helpful"] = False
         if show_structure:
             if mode == "Basic":
                 st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
@@ -794,6 +783,12 @@ if calc_mode == "🔬 Structure Visualization":
             st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
             col_viz, col_download = st.columns(2)
 
+            # Initialize session state keys if not set
+            if "current_structure" not in st.session_state:
+                st.session_state["current_structure"] = None
+            if "selected_file" not in st.session_state:
+                st.session_state["selected_file"] = None
+
             with col_viz:
                 file_options = [file.name for file in uploaded_files]
                 st.subheader("Select Structure for Interactive Visualization:")
@@ -801,12 +796,26 @@ if calc_mode == "🔬 Structure Visualization":
                     selected_file = st.selectbox("", file_options)
                 else:
                     selected_file = st.radio("", file_options)
+            visualize_partial = st.checkbox("Enable enhanced partial occupancy visualization", value=False)
+            # Check if selection changed
+            if selected_file != st.session_state["selected_file"]:
+                st.session_state["current_structure"] = None
+                # Update the session state
+                st.session_state["selected_file"] = selected_file
 
-            try:
-                structure = read(selected_file)
-                mp_struct = AseAtomsAdaptor.get_structure(structure)
-            except Exception as e:
-                mp_struct = load_structure(selected_file)
+                # Read the new structure
+                try:
+                    structure = read(selected_file)
+                    mp_struct = AseAtomsAdaptor.get_structure(structure)
+                except Exception as e:
+                    mp_struct = load_structure(selected_file)
+
+                # Save to session state
+                st.session_state["current_structure"] = mp_struct
+                st.session_state["original_structure"] = mp_struct.copy()
+            else:
+                # Use the stored structure
+                mp_struct = st.session_state["current_structure"]
 
             selected_id = selected_file.split("_")[0]  # assumes filename like "mp-1234_FORMULA.cif"
             # print(st.session_state.get('full_structures', {}))
@@ -814,7 +823,11 @@ if calc_mode == "🔬 Structure Visualization":
             # mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
             # mp_struct = AseAtomsAdaptor.get_structure(structure)
             # mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
-
+            #enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
+           # if st.session_state["current_structure"] is not None:
+           #     mp_struct = st.session_state["current_structure"]
+            #if "original_structure" in st.session_state:
+            #    mp_struct = st.session_state["original_structure"].copy()
             if mp_struct:
                 if convert_to_conventional:
                     # analyzer = SpacegroupAnalyzer(mp_struct)
@@ -833,9 +846,450 @@ if calc_mode == "🔬 Structure Visualization":
                     converted_structure = analyzer.get_primitive_standard_structure()
                 structure = AseAtomsAdaptor.get_atoms(converted_structure)
 
+                structure = AseAtomsAdaptor.get_atoms(converted_structure)
+                colb1, colb2, colb3 = st.columns(3)
+
+                if "selected_file" not in st.session_state or selected_file != st.session_state["selected_file"]:
+                    # Update the selected file in session state.
+                    st.session_state["selected_file"] = selected_file
+                    try:
+                        structure = read(selected_file)
+                        mp_struct = AseAtomsAdaptor.get_structure(structure)
+                    except Exception as e:
+                        mp_struct = load_structure(selected_file)
+
+                    # Save both the current (working) and the pristine original structures.
+                    st.session_state["current_structure"] = mp_struct
+                    st.session_state["original_structure"] = mp_struct.copy()
+
+                    # Reset the supercell parameters in session state.
+                    st.session_state["supercell_n_a"] = 1
+                    st.session_state["supercell_n_b"] = 1
+                    st.session_state["supercell_n_c"] = 1
+
+                    # Also reset the last_multiplier (if you're tracking changes)
+                    st.session_state["last_multiplier"] = (1, 1, 1)
+
+                # Later in your code, when drawing the supercell creation UI:
+                if visualize_partial == False:
+                    with colb1:
+                        col1, col2, col3 = st.columns(3)
+                        st.markdown("**Optional: Create Supercell**")
+
+                        # Use session state keys so that these inputs can be reset when a new structure is selected.
+
+                        if st.session_state["helpful"] != True:
+                            with col1:
+                                n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10,
+                                                      value=st.session_state.get("supercell_n_a", 1), step=1, key="supercell_n_a")
+                            with col2:
+                                n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10,
+                                                      value=st.session_state.get("supercell_n_b", 1), step=1, key="supercell_n_b")
+                            with col3:
+                                n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10,
+                                                      value=st.session_state.get("supercell_n_c", 1), step=1, key="supercell_n_c")
+                        else:
+                            with col1:
+                                n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10,
+                                                      value=1, step=1, key="supercell_n_a")
+                            with col2:
+                                n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10,
+                                                      value=1, step=1, key="supercell_n_b")
+                            with col3:
+                                n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10,
+                                                      value=1, step=1, key="supercell_n_c")
+                        base_atoms = len(structure)
+                        supercell_multiplier = n_a * n_b * n_c
+                        total_atoms = base_atoms * supercell_multiplier
+                        st.info(f"Structure will contain **{total_atoms} atoms**.")
+                        supercell_structure = structure.copy()  # ASE Atoms object
+                        supercell_pmg = converted_structure.copy()  # pymatgen Structure object
+
+                    current_multiplier = (n_a, n_b, n_c)
+                    if "last_multiplier" not in st.session_state:
+                        st.session_state["last_multiplier"] = current_multiplier
+                        update_supercell = True
+                    elif st.session_state["last_multiplier"] != current_multiplier:
+                        st.session_state["last_multiplier"] = current_multiplier
+                        update_supercell = True
+                    else:
+                        update_supercell = False
+
+
+                    #if (n_a, n_b, n_c) != (8, 1, 1):
+                    if st.session_state["helpful"] != True:
+                            from pymatgen.transformations.standard_transformations import SupercellTransformation
+                        #if update_supercell == True:
+
+                            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+                            transformer = SupercellTransformation(supercell_matrix)
+                            supercell_pmg = transformer.apply_transformation(supercell_pmg)
+                            mp_struct = supercell_pmg
+                            structure = AseAtomsAdaptor.get_atoms(mp_struct)
+                            st.session_state["current_structure"] = mp_struct
+                        #if update_supercell == False:
+                         #   mp_struct = supercell_pmg
+                         #   structure = AseAtomsAdaptor.get_atoms(mp_struct)
+                         #   st.session_state["current_structure"] = mp_struct
+                    else:
+                        # If supercell not enabled, just use the original structure
+                        supercell_structure = structure.copy()
+                        supercell_pmg = converted_structure.copy()
+                        mp_struct = supercell_pmg
+                        structure = AseAtomsAdaptor.get_atoms(mp_struct)
+                        st.session_state["helpful"]= False
+
+                    from pymatgen.core import Structure, Element
+                    with colb2:
+                        def wrap_coordinates(frac_coords):
+                            """Wrap fractional coordinates into [0,1)."""
+                            coords = np.array(frac_coords)
+                            return coords % 1
+
+
+                        def compute_periodic_distance_matrix(frac_coords):
+                            """Compute pairwise distances considering periodic boundary conditions."""
+                            n = len(frac_coords)
+                            dist_matrix = np.zeros((n, n))
+                            for i in range(n):
+                                for j in range(i, n):
+                                    delta = frac_coords[i] - frac_coords[j]
+                                    delta = delta - np.round(delta)
+                                    dist = np.linalg.norm(delta)
+                                    dist_matrix[i, j] = dist_matrix[j, i] = dist
+                            return dist_matrix
+
+
+                        def select_spaced_points(frac_coords, n_points, mode, target_value=0.5):
+                            coords_wrapped = wrap_coordinates(frac_coords)
+                            dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
+                            import random
+                            selected_indices = [random.randrange(len(coords_wrapped))]
+                            #selected_indices = [0]  # Always select the first candidate as the start.
+                            for _ in range(1, n_points):
+                                remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
+                                if mode == "farthest":
+                                    next_index = max(remaining,
+                                                     key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                                elif mode == "nearest":
+                                    next_index = min(remaining,
+                                                     key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                                elif mode == "moderate":
+                                    next_index = min(remaining, key=lambda i: abs(
+                                        sum(dist_matrix[i, j] for j in selected_indices) / len(
+                                            selected_indices) - target_value))
+                                else:
+                                    raise ValueError("Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
+                                selected_indices.append(next_index)
+                            # Return both the selected coordinates and their local indices.
+                            selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
+                            return selected_coords, selected_indices
+
+
+                        # ---------- Interstitial Functions ----------
+
+                        def classify_interstitial_site(structure, frac_coords, dummy_element="H"):
+                            from pymatgen.analysis.local_env import CrystalNN
+                            temp_struct = structure.copy()
+                            temp_struct.append(dummy_element, frac_coords, coords_are_cartesian=False)
+                            cnn = CrystalNN()
+                            try:
+                                nn_info = cnn.get_nn_info(temp_struct, len(temp_struct) - 1)
+                            except Exception as e:
+                                st.write("CrystalNN error:", e)
+                                nn_info = []
+                            cn = len(nn_info)
+
+                            if cn == 4:
+                                return f"CN = {cn} **(Tetrahedral)**"
+                            elif cn == 6:
+                                return f"CN = {cn} **(Octahedral)**"
+                            elif cn == 3:
+                                return f"CN = {cn} (Trigonal Planar)"
+                            elif cn == 5:
+                                return f"CN = {cn} (Trigonal Bipyramidal)"
+                            else:
+                                return f"CN = {cn}"
+
+
+                        def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
+                                                                which_interstitial=0, mode="farthest", clustering_tol=0.75,
+                                                                min_dist=0.5):
+                            from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
+                            with colb3:
+                                with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
+                                    generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol, min_dist=min_dist)
+
+                                    frac_coords = []
+                                    frac_coords_dict = {}
+                                    unique_int = []
+                                    idx = 0
+                                    # Collect candidate sites from the generator.
+                                    for interstitial in generator.generate(structure, "H"):
+                                        frac_coords_dict[idx] = []
+                                        unique_int.append(interstitial.site.frac_coords)
+                                        label = classify_interstitial_site(structure, interstitial.site.frac_coords)
+
+                                        st.write(
+                                            f"Unique interstitial site (**Type {idx + 1}**)  at {interstitial.site.frac_coords}, {label}")
+                                        for site in interstitial.equivalent_sites:
+                                            frac_coords.append(site.frac_coords)
+                                            frac_coords_dict[idx].append(site.frac_coords)
+                                        idx += 1
+
+                                    st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+
+                                    if which_interstitial == 0:
+                                        frac_coords_use = frac_coords
+                                    else:
+                                        frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
+
+                                    # Select the desired number of points.
+                                    selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials, mode=mode)
+                                    new_structure = structure.copy()
+                                    for point in selected_points:
+                                        new_structure.append(
+                                            species=Element(interstitial_element),
+                                            coords=point,
+                                            coords_are_cartesian=False  # Input is fractional.
+                                        )
+                                return new_structure
+
+
+                        # ---------- Vacancy Functions ----------
+
+                        def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
+                                                            target_value=0.5):
+                            with colb3:
+                                with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                    new_structure = structure.copy()
+                                    indices_to_remove = []
+                                    for el, perc in vacancy_percentages.items():
+                                        # Get indices of sites for the element.
+                                        el_indices = [i for i, site in enumerate(new_structure.sites) if site.specie.symbol == el]
+                                        n_sites = len(el_indices)
+                                        n_remove = int(round(n_sites * perc / 100.0))
+                                        st.write(f"🧠 Removed {n_remove} atoms of {el}.")
+                                        if n_remove < 1:
+                                            continue
+                                        # Get the fractional coordinates of these sites.
+                                        el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
+                                        # If fewer removals than available sites, use the selection function.
+                                        if n_remove < len(el_coords):
+                                            _, selected_local_indices = select_spaced_points(el_coords, n_points=n_remove,
+                                                                                             mode=selection_mode,
+                                                                                             target_value=target_value)
+                                            # Map the selected local indices back to global indices.
+                                            selected_global_indices = [el_indices[i] for i in selected_local_indices]
+                                        else:
+                                            selected_global_indices = el_indices
+                                        indices_to_remove.extend(selected_global_indices)
+                                    # Remove sites in descending order (so that indices remain valid).
+                                    for i in sorted(indices_to_remove, reverse=True):
+                                        new_structure.remove_sites([i])
+                            return new_structure
+
+
+                        # ==================== Substitute Functions ====================
+                        with colb3:
+                            st.markdown(f"### Log output:")
+                        def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
+                                                          target_value=0.5):
+                            with colb3:
+                                with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                    new_species = [site.species_string for site in structure.sites]
+                                    new_coords = [site.frac_coords for site in structure.sites]
+                                    for orig_el, settings in substitution_dict.items():
+                                        perc = settings.get("percentage", 0)
+                                        sub_el = settings.get("substitute", "").strip()
+                                        if perc <= 0 or not sub_el:
+                                            continue
+                                        indices = [i for i, site in enumerate(structure.sites) if site.specie.symbol == orig_el]
+                                        n_sites = len(indices)
+                                        n_substitute = int(round(n_sites * perc / 100.0))
+                                        st.write(f"🧠 Substituted {n_substitute} atoms of {sub_el} instead of {orig_el}.")
+
+
+                                        if n_substitute < 1:
+                                            continue
+                                        el_coords = [new_coords[i] for i in indices]
+                                        if n_substitute < len(el_coords):
+                                            _, selected_local_indices = select_spaced_points(el_coords, n_points=n_substitute,
+                                                                                             mode=selection_mode,
+                                                                                             target_value=target_value)
+                                            selected_global_indices = [indices[i] for i in selected_local_indices]
+                                        else:
+                                            selected_global_indices = indices
+                                        for i in selected_global_indices:
+                                            new_species[i] = sub_el
+                                    # Rebuild the structure using the original lattice, updated species, and coordinates.
+                                    new_structure = Structure(structure.lattice, new_species, new_coords,
+                                                              coords_are_cartesian=False)
+                            return new_structure
+
+
+                        # ==================== Streamlit UI ====================
+
+
+                        # Choose among the three operation modes.
+                        operation_mode = st.selectbox("Choose Operation Mode",
+                                                      ["Insert Interstitials", "Create Vacancies", "Substitute Atoms"], help ="""
+                    #Interstitials settings
+                    - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
+                    - **# to Insert**: The number of interstitial atoms to insert into the structure.
+                    - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
+                      - `0` uses all detected interstitial sites.  
+                      - `1` uses only the first unique type, `2` for second, etc.
+    
+                    - **Selection Mode**: How to choose which interstitial sites to use:  
+                      - `farthest`: picks sites farthest apart from each other.  
+                      - `nearest`: picks sites closest together.  
+                      - `moderate`: balances distances around a target value.
+    
+                    - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
+                    - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
+                    
+                    #Vacancy settings
+                    - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
+                      - `farthest`: removes atoms that are farthest apart, to maximize spacing.
+                      - `nearest`: removes atoms closest together, forming local vacancy clusters.
+                      - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
+    
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      This value defines the average spacing (in fractional coordinates) between vacancies.
+    
+                    - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
+                      For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
+                      
+                    #Substitution settings
+                    - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
+                      - `farthest`: substitutes atoms spaced far apart from each other.
+                      - `nearest`: substitutes atoms that are close together.
+                      - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
+    
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
+    
+                    - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
+    
+                    - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
+                      Leave blank or set substitution % to 0 to skip substitution for that element.
+                            """)
+
+                        if operation_mode == "Insert Interstitials":
+                            st.markdown("""
+                            **Insert Interstitials Settings**
+                            """)
+
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                interstitial_element_to_place = st.text_input("Element", value="N")
+                            with col2:
+                                number_of_interstitials_to_insert = st.number_input("# to Insert", value=5, min_value=1)
+                            with col3:
+                                which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
+                                                                            min_value=0)
+
+                            col4, col5, col6 = st.columns(3)
+                            with col4:
+                                selection_mode = st.selectbox("Selection Mode", options=["farthest", "nearest", "moderate"],
+                                                              index=0)
+                            with col5:
+                                clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
+                            with col6:
+                                min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
+
+                        elif operation_mode == "Create Vacancies":
+                            st.markdown("""
+    
+                            """)
+                            # Row 1: Two columns for vacancy mode and target value
+                            col1, col2 = st.columns(2)
+                            vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
+                                                                    ["farthest", "nearest", "moderate"], index=0)
+                            vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                     format="%.2f")
+
+                            # Row 2: One column per element for vacancy percentage input
+                            elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                            cols = st.columns(len(elements))
+                            vacancy_percentages = {
+                                el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0, max_value=100.0,
+                                                         step=1.0, format="%.1f")
+                                for i, el in enumerate(elements)}
+
+                        elif operation_mode == "Substitute Atoms":
+                            st.markdown("""
+                            **Substitution Settings**
+                            """)
+                            # Row 1: Substitution mode and target value
+                            col1, col2 = st.columns(2)
+                            substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
+                                                                         ["farthest", "nearest", "moderate"], index=0)
+                            substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                          format="%.2f")
+                            # Row 2: One column per element (each showing two inputs: percentage and target)
+                            elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                            cols = st.columns(len(elements))
+                            substitution_settings = {}
+                            for i, el in enumerate(elements):
+                                with cols[i]:
+                                    sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
+                                                               max_value=100.0, step=1.0, format="%.1f",
+                                                               key=f"sub_perc_{el}")
+                                    sub_target = st.text_input(f"Substitute {el} with", value="", key=f"sub_target_{el}")
+                                substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
+
+                        # ==================== Execute Operation ====================
+
+                        if operation_mode == "Insert Interstitials":
+                            if st.button("Insert Interstitials"):
+                                updated_structure = insert_interstitials_into_structure(mp_struct,
+                                                                                        interstitial_element_to_place,
+                                                                                        number_of_interstitials_to_insert,
+                                                                                        which_interstitial_to_use,
+                                                                                        mode=selection_mode,
+                                                                                        clustering_tol=clustering_tol,
+                                                                                        min_dist=min_dist)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                with colb3:
+                                    st.success("Interstitials inserted and structure updated!")
+                                st.session_state["helpful"] = True
+
+                        elif operation_mode == "Create Vacancies":
+                            if st.button("Create Vacancies"):
+                                updated_structure = remove_vacancies_from_structure(mp_struct,
+                                                                                    vacancy_percentages,
+                                                                                    selection_mode=vacancy_selection_mode,
+                                                                                    target_value=vacancy_target_value)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                with colb3:
+                                    st.success("Vacancies created and structure updated!")
+                                st.session_state["helpful"] = True
+                                st.rerun()
+                        elif operation_mode == "Substitute Atoms":
+                            if st.button("Substitute Atoms"):
+                                updated_structure = substitute_atoms_in_structure(mp_struct,
+                                                                                  substitution_settings,
+                                                                                  selection_mode=substitution_selection_mode,
+                                                                                  target_value=substitution_target_value)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                with colb3:
+                                    st.success("Substitutions applied and structure updated!")
+                                st.session_state["helpful"] = True
+                                st.rerun()
+
             # Checkbox option to show atomic positions (labels on structure and list in table)
             show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
             xyz_io = StringIO()
+            if st.session_state["current_structure"] is not None:
+                structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
             write(xyz_io, structure, format="xyz")
             xyz_str = xyz_io.getvalue()
             view = py3Dmol.view(width=800, height=600)
@@ -875,119 +1329,85 @@ if calc_mode == "🔬 Structure Visualization":
             download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
             if not download_file_name.lower().endswith('.cif'):
                 download_file_name = selected_file.split('.')[0] + '_{}'.format(lattice_info) + '.cif'
+            if visualize_partial == False:
+                with col_download:
+                    with st.expander("Download Options", expanded=True):
+                        file_format = st.radio(
+                            "Select file format",
+                            ("CIF", "VASP", "LAMMPS", "XYZ",),
+                            horizontal=True
+                        )
 
-            with col_download:
-                with st.expander("Download Options", expanded=True):
-                    file_format = st.radio(
-                        "Select file format",
-                        ("CIF", "VASP", "LAMMPS", "XYZ",),
-                        horizontal=True
-                    )
-                    enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
-                    if enable_supercell:
-                        st.markdown("**Optional: Create Supercell**")
-                        # Show how many atoms will be in the resulting supercell
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10, value=1, step=1)
-                        with col2:
-                            n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10, value=1, step=1)
-                        with col3:
-                            n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10, value=1, step=1)
 
-                        base_atoms = len(structure)
-                        supercell_multiplier = n_a * n_b * n_c
-                        total_atoms = base_atoms * supercell_multiplier
-                        st.info(f"Structure will contain **{total_atoms} atoms**.")
-                        supercell_structure = structure.copy()  # ASE Atoms object
-                        supercell_pmg = visual_pmg_structure.copy()  # pymatgen Structure object
+                        file_content = None
+                        download_file_name = None
+                        mime = "text/plain"
 
-                        if (n_a, n_b, n_c) != (1, 1, 1):
-                            supercell_structure = supercell_structure.repeat((n_a, n_b, n_c))
-                            from pymatgen.transformations.standard_transformations import SupercellTransformation
+                        try:
+                            if file_format == "CIF":
+                                # Use pymatgen's CifWriter for CIF output.
+                                from pymatgen.io.cif import CifWriter
 
-                            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
-                            transformer = SupercellTransformation(supercell_matrix)
-                            supercell_pmg = transformer.apply_transformation(supercell_pmg)
-                    else:
-                        # If supercell not enabled, just use the original structure
-                        supercell_structure = structure.copy()
-                        supercell_pmg = visual_pmg_structure.copy()
+                                cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1, refine_struct=False)
+                                file_content = str(cif_writer_visual)
 
-                    file_content = None
-                    download_file_name = None
-                    mime = "text/plain"
 
-                    try:
-                        if file_format == "CIF":
-                            # Use pymatgen's CifWriter for CIF output.
-                            from pymatgen.io.cif import CifWriter
-
-                            cif_writer_visual = CifWriter(supercell_pmg, symprec=0.1, refine_struct=False)
-                            file_content = str(cif_writer_visual)
-
-                            if enable_supercell:
                                 download_file_name = selected_file.split('.')[
                                                          0] + '_' + lattice_info + f'_Supercell_{n_a}_{n_b}_{n_c}.cif'
-                            else:
-                                download_file_name = selected_file.split('.')[0] + '_' + lattice_info + '.cif'
-                            mime = "chemical/x-cif"
-                        elif file_format == "VASP":
-                            out = StringIO()
-                            use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
-                                                         key="poscar_fractional")
-                            write(out, supercell_structure, format="vasp", direct=use_fractional, sort=True)
-                            file_content = out.getvalue()
-                            if enable_supercell:
+
+                                mime = "chemical/x-cif"
+                            elif file_format == "VASP":
+                                out = StringIO()
+                                current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
+                                use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
+                                                             key="poscar_fractional")
+                                write(out, current_ase_structure, format="vasp", direct=use_fractional, sort=True)
+                                file_content = out.getvalue()
                                 download_file_name = selected_file.split('.')[
                                                          0] + '_' + lattice_info + f'_Supercell_{n_a}_{n_b}_{n_c}.poscar'
-                            else:
-                                download_file_name = selected_file.split('.')[0] + '_' + lattice_info + '.poscar'
-                        elif file_format == "LAMMPS":
-                            st.markdown("**LAMMPS Export Options**")
 
-                            atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
-                            units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
-                            include_masses = st.checkbox("Include atomic masses", value=True)
-                            force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
+                            elif file_format == "LAMMPS":
+                                st.markdown("**LAMMPS Export Options**")
 
-                            out = StringIO()
-                            write(
-                                out,
-                                supercell_structure,
-                                format="lammps-data",
-                                atom_style=atom_style,
-                                units=units,
-                                masses=include_masses,
-                                force_skew=force_skew
-                            )
-                            file_content = out.getvalue()
-                            if enable_supercell:
+                                atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
+                                units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
+                                include_masses = st.checkbox("Include atomic masses", value=True)
+                                force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
+                                current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
+                                out = StringIO()
+                                write(
+                                    out,
+                                    current_ase_structure,
+                                    format="lammps-data",
+                                    atom_style=atom_style,
+                                    units=units,
+                                    masses=include_masses,
+                                    force_skew=force_skew
+                                )
+                                file_content = out.getvalue()
+
                                 download_file_name = selected_file.split('.')[
                                                          0] + '_' + lattice_info + f'_Supercell_{n_a}_{n_b}_{n_c}' + f'_{atom_style}_{units}.lmp'
-                            else:
-                                download_file_name = selected_file.split('.')[
-                                                         0] + '_' + lattice_info + f'_{atom_style}_{units}.lmp'
-                        elif file_format == "XYZ":
-                            out = StringIO()
-                            write(out, supercell_structure, format="xyz")
-                            file_content = out.getvalue()
-                            if enable_supercell:
+
+                            elif file_format == "XYZ":
+                                current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
+                                out = StringIO()
+                                write(out, current_ase_structure, format="xyz")
+                                file_content = out.getvalue()
                                 download_file_name = selected_file.split('.')[
                                                          0] + '_' + lattice_info + f'_Supercell_{n_a}_{n_b}_{n_c}.xyz'
-                            else:
-                                download_file_name = selected_file.split('.')[0] + '_' + lattice_info + '.xyz'
-                    except Exception as e:
-                        st.error(f"Error generating {file_format} file: {e}")
 
-                    if file_content is not None:
-                        st.download_button(
-                            label=f"Download {file_format} file",
-                            data=file_content,
-                            file_name=download_file_name,
-                            type="primary",
-                            mime=mime
-                        )
+                        except Exception as e:
+                            st.error(f"Error generating {file_format} file: {e}")
+
+                        if file_content is not None:
+                            st.download_button(
+                                label=f"Download {file_format} file",
+                                data=file_content,
+                                file_name=download_file_name,
+                                type="primary",
+                                mime=mime
+                            )
 
             offset_distance = 0.3  # distance to offset
             overlay_radius = 0.15  # radius for the overlay spheres
@@ -1008,7 +1428,7 @@ if calc_mode == "🔬 Structure Visualization":
             if has_partial_occ:
                 st.info(
                     f"Partial occupancy detected in the uploaded structure. Note that the conversion between cell representions will not be possible now.\n To continue ")
-                visualize_partial = st.checkbox("Enable enhanced partial occupancy visualization", value=True)
+
             else:
                 visualize_partial = False
 
@@ -1223,6 +1643,7 @@ if calc_mode == "🔬 Structure Visualization":
                 """, unsafe_allow_html=True)
 
                 # If atomic positions are to be shown, display them as a table.
+
             if show_atomic:
                 df_atoms = pd.DataFrame(atomic_info)
                 st.subheader("Atomic Positions")
@@ -1249,297 +1670,293 @@ if mode == "Basic":
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
 
-
-
-
-
-
-#with col_settings:
+# with col_settings:
 
 if calc_mode == "💥 Diffraction Pattern Calculation":
-
-    col_settings,  col_plot = st.columns([1, 4])
-
-
-    with col_settings:
-        st.subheader(
-            "⚙️ Diffraction Settings",
-            help=(
-                "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
-                "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
-                "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
-                "factors. The atomic scattering factor is given by:\n\n"
-                "  f(s) = Z − 41.78214·s²·Σᵢ aᵢ exp(−bᵢ s²)  with s = sinθ/λ\n\n"
-                "Here:\n"
-                " • f(s) is the atomic scattering factor.\n"
-                " • Z is the atomic number.\n"
-                " • aᵢ and bᵢ are tabulated fitted parameters that describe the decay of f(s) with increasing s.\n\n"
-                "The intensity is then computed as Iₕₖₗ = |Fₕₖₗ|², and a Lorentz-polarization correction P(θ) = "
-                "(1+cos²(2θ))/(sin²θ cosθ) is applied."
-            )
+    st.subheader(
+        "⚙️ Diffraction Settings",
+        help=(
+            "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
+            "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
+            "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
+            "factors. The atomic scattering factor is given by:\n\n"
+            "  f(s) = Z − 41.78214·s²·Σᵢ aᵢ exp(−bᵢ s²)  with s = sinθ/λ\n\n"
+            "Here:\n"
+            " • f(s) is the atomic scattering factor.\n"
+            " • Z is the atomic number.\n"
+            " • aᵢ and bᵢ are tabulated fitted parameters that describe the decay of f(s) with increasing s.\n\n"
+            "The intensity is then computed as Iₕₖₗ = |Fₕₖₗ|², and a Lorentz-polarization correction P(θ) = "
+            "(1+cos²(2θ))/(sin²θ cosθ) is applied."
         )
+    )
 
-        # --- Diffraction Calculator Selection ---
-        col2, col3 = st.columns(2)
+    # --- Diffraction Calculator Selection ---
+    col2, col3, col4 = st.columns(3)
+
+    with col2:
+        peak_representation = st.radio(
+            "Peak Representation",
+            ["Delta", "Gaussian"],
+            index=0,
+            key="peak_representation",
+            help=("Choose whether to represent each diffraction peak as a delta function "
+                  "or as a Gaussian. When using Gaussian, the area under each peak equals "
+                  "the calculated intensity, and overlapping Gaussians are summed.")
+        )
+    with col3:
+        intensity_scale_option = st.radio(
+            "Select intensity scale",
+            options=["Normalized", "Absolute"],
+            index=0,
+            help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
+        )
+    with col4:
         diffraction_choice = st.radio(
             "Select Diffraction Calculator",
             ["XRD (X-ray)", "ND (Neutron)"],
-            index=0, help = "🔬 The X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
-            "The calculator applies the **Lorentz-polarization correction**: `LP(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not account for other corrections, such as preferred orientation, absorption, "
-            "instrumental broadening, or temperature effects (Debye-Waller factors). 🔬 The neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
-            "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
-            "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
-            " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
+            index=0,
+            help="🔬 The X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+                 "The calculator applies the **Lorentz-polarization correction**: `LP(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not account for other corrections, such as preferred orientation, absorption, "
+                 "instrumental broadening, or temperature effects (Debye-Waller factors). 🔬 The neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
+                 "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
+                 "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
+                 " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
         )
-        with col2:
-            peak_representation = st.radio(
-                "Peak Representation",
-                ["Delta", "Gaussian"],
-                index=0,
-                key="peak_representation",
-                help=("Choose whether to represent each diffraction peak as a delta function "
-                      "or as a Gaussian. When using Gaussian, the area under each peak equals "
-                      "the calculated intensity, and overlapping Gaussians are summed.")
-            )
-        with col3:
-            intensity_scale_option = st.radio(
-                "Select intensity scale",
-                options=["Normalized", "Absolute"],
-                index=0,
-                help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
-            )
 
+    def format_index(index, first=False, last=False):
+        s = str(index)
 
-        def format_index(index, first=False, last=False):
-            s = str(index)
-
-            if s.startswith("-") and len(s) == 2:
-                return s
-
-
-            elif first and len(s) == 2:
-                return s + " "
-
-            elif last and len(s) == 2:
-                return " " + s + " "
-
-            elif len(s) >= 2:
-                return " " + s + " "
-
+        if s.startswith("-") and len(s) == 2:
             return s
 
-        fig_interactive = go.Figure()
 
-        def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffraction_choice):
-            twotheta_deg = np.asarray(twotheta_deg)
-            theta = np.deg2rad(twotheta_deg / 2)
-            if metric == "2θ (°)":
-                result = twotheta_deg
-            elif metric == "2θ (rad)":
-                result = np.deg2rad(twotheta_deg)
-            elif metric == "2θ (rad)":
-                result = np.deg2rad(twotheta_deg)
-            elif metric == "θ (°)":
-                result = twotheta_deg / 2.0
-            elif metric == "θ (rad)":
-                result = np.deg2rad(twotheta_deg / 2.0)
-            elif metric == "q (1/Å)":
-                result = (4 * np.pi / wavelength_A) * np.sin(theta)
-            elif metric == "q (1/nm)":
-                result = (4 * np.pi / wavelength_nm) * np.sin(theta)
-            elif metric == "d (Å)":
-                result = np.where(np.sin(theta) == 0, np.inf, wavelength_A / (2 * np.sin(theta)))
-            elif metric == "d (nm)":
-                result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
-            elif metric == "energy (keV)":
-                if diffraction_choice == "ND (Neutron)":
-                    return 0.003956 / (wavelength_nm ** 2)
-                else:
-                    return (24.796 * np.sin(theta)) / wavelength_A
-            elif metric == "frequency (PHz)":
-                f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
-                result = f_Hz / 1e15
+        elif first and len(s) == 2:
+            return s + " "
+
+        elif last and len(s) == 2:
+            return " " + s + " "
+
+        elif len(s) >= 2:
+            return " " + s + " "
+
+        return s
+
+
+    fig_interactive = go.Figure()
+
+
+    def twotheta_to_metric(twotheta_deg, metric, wavelength_A, wavelength_nm, diffraction_choice):
+        twotheta_deg = np.asarray(twotheta_deg)
+        theta = np.deg2rad(twotheta_deg / 2)
+        if metric == "2θ (°)":
+            result = twotheta_deg
+        elif metric == "2θ (rad)":
+            result = np.deg2rad(twotheta_deg)
+        elif metric == "2θ (rad)":
+            result = np.deg2rad(twotheta_deg)
+        elif metric == "θ (°)":
+            result = twotheta_deg / 2.0
+        elif metric == "θ (rad)":
+            result = np.deg2rad(twotheta_deg / 2.0)
+        elif metric == "q (1/Å)":
+            result = (4 * np.pi / wavelength_A) * np.sin(theta)
+        elif metric == "q (1/nm)":
+            result = (4 * np.pi / wavelength_nm) * np.sin(theta)
+        elif metric == "d (Å)":
+            result = np.where(np.sin(theta) == 0, np.inf, wavelength_A / (2 * np.sin(theta)))
+        elif metric == "d (nm)":
+            result = np.where(np.sin(theta) == 0, np.inf, wavelength_nm / (2 * np.sin(theta)))
+        elif metric == "energy (keV)":
+            if diffraction_choice == "ND (Neutron)":
+                return 0.003956 / (wavelength_nm ** 2)
             else:
-                result = twotheta_deg
-            if np.ndim(twotheta_deg) == 0:
-                return float(result)
-            return result
+                return (24.796 * np.sin(theta)) / wavelength_A
+        elif metric == "frequency (PHz)":
+            f_Hz = (24.796 * np.sin(theta)) / wavelength_A * 2.418e17
+            result = f_Hz / 1e15
+        else:
+            result = twotheta_deg
+        if np.ndim(twotheta_deg) == 0:
+            return float(result)
+        return result
 
 
-        def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm, diffraction_choice):
-            if metric == "2θ (°)":
-                return metric_value
-            elif metric == "2θ (rad)":
-                return np.rad2deg(metric_value)
-            elif metric == "q (1/Å)":
-                theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
-                return np.rad2deg(2 * theta)
-            elif metric == "θ (°)":
-                return 2 * metric_value
-            elif metric == "θ (rad)":
-                return 2 * np.rad2deg(metric_value)
-            elif metric == "q (1/nm)":
-                theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
-                return np.rad2deg(2 * theta)
-            elif metric == "d (Å)":
-                sin_theta = np.clip(wavelength_A / (2 * metric_value), 0, 1)
-                theta = np.arcsin(sin_theta)
-                return np.rad2deg(2 * theta)
-            elif metric == "d (nm)":
-                sin_theta = np.clip(wavelength_nm / (2 * metric_value), 0, 1)
-                theta = np.arcsin(sin_theta)
-                return np.rad2deg(2 * theta)
-            elif metric == "energy (keV)":
-                if diffraction_choice == "ND (Neutron)":
-                    λ_nm = np.sqrt(0.003956 / metric_value)
-                    sin_theta = λ_nm / (2 * wavelength_nm)
-                    theta = np.arcsin(np.clip(sin_theta, 0, 1))
-                else:
-                    sin_theta = np.clip(metric_value * wavelength_A / 24.796, 0, 1)
-                    theta = np.arcsin(np.clip(sin_theta, 0, 1))
-                return np.rad2deg(2 * theta)
-            elif metric == "frequency (PHz)":
-                f_Hz = metric_value * 1e15
-                E_keV = f_Hz / 2.418e17
-                theta = np.arcsin(np.clip(E_keV * wavelength_A / 24.796, 0, 1))
-                return np.rad2deg(2 * theta)
+    def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm, diffraction_choice):
+        if metric == "2θ (°)":
+            return metric_value
+        elif metric == "2θ (rad)":
+            return np.rad2deg(metric_value)
+        elif metric == "q (1/Å)":
+            theta = np.arcsin(np.clip(metric_value * wavelength_A / (4 * np.pi), 0, 1))
+            return np.rad2deg(2 * theta)
+        elif metric == "θ (°)":
+            return 2 * metric_value
+        elif metric == "θ (rad)":
+            return 2 * np.rad2deg(metric_value)
+        elif metric == "q (1/nm)":
+            theta = np.arcsin(np.clip(metric_value * wavelength_nm / (4 * np.pi), 0, 1))
+            return np.rad2deg(2 * theta)
+        elif metric == "d (Å)":
+            sin_theta = np.clip(wavelength_A / (2 * metric_value), 0, 1)
+            theta = np.arcsin(sin_theta)
+            return np.rad2deg(2 * theta)
+        elif metric == "d (nm)":
+            sin_theta = np.clip(wavelength_nm / (2 * metric_value), 0, 1)
+            theta = np.arcsin(sin_theta)
+            return np.rad2deg(2 * theta)
+        elif metric == "energy (keV)":
+            if diffraction_choice == "ND (Neutron)":
+                λ_nm = np.sqrt(0.003956 / metric_value)
+                sin_theta = λ_nm / (2 * wavelength_nm)
+                theta = np.arcsin(np.clip(sin_theta, 0, 1))
             else:
-                return metric_value
+                sin_theta = np.clip(metric_value * wavelength_A / 24.796, 0, 1)
+                theta = np.arcsin(np.clip(sin_theta, 0, 1))
+            return np.rad2deg(2 * theta)
+        elif metric == "frequency (PHz)":
+            f_Hz = metric_value * 1e15
+            E_keV = f_Hz / 2.418e17
+            theta = np.arcsin(np.clip(E_keV * wavelength_A / 24.796, 0, 1))
+            return np.rad2deg(2 * theta)
+        else:
+            return metric_value
 
 
-        conversion_info = {
-            "2θ (°)": "Identity: 2θ in degrees.",
-            "2θ (rad)": "Conversion: radians = degrees * (π/180).",
-            "θ (°)": "Identity: 2θ in degrees.",
-            "θ (rad)": "Conversion: radians = degrees * (π/180).",
-            "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
-            "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
-            "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
-            "d (nm)": "d = λ / (2 sin(θ)), with λ in nm.",
-            "energy (keV)": "E = (24.796 * sin(θ)) / λ, with λ in Å.",
-            "frequency (PHz)": "f = [(24.796 * sin(θ))/λ * 2.418e17] / 1e15, with λ in Å."
-        }
+    conversion_info = {
+        "2θ (°)": "Identity: 2θ in degrees.",
+        "2θ (rad)": "Conversion: radians = degrees * (π/180).",
+        "θ (°)": "Identity: 2θ in degrees.",
+        "θ (rad)": "Conversion: radians = degrees * (π/180).",
+        "q (1/Å)": "q = (4π/λ) * sin(θ), with λ in Å.",
+        "q (1/nm)": "q = (4π/λ) * sin(θ), with λ in nm.",
+        "d (Å)": "d = λ / (2 sin(θ)), with λ in Å.",
+        "d (nm)": "d = λ / (2 sin(θ)), with λ in nm.",
+        "energy (keV)": "E = (24.796 * sin(θ)) / λ, with λ in Å.",
+        "frequency (PHz)": "f = [(24.796 * sin(θ))/λ * 2.418e17] / 1e15, with λ in Å."
+    }
 
-        # --- Wavelength Selection ---
-        # preset_options = [
-        #    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)', 'CoKb1',
-        #    'MoKa1', 'MoKa2', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
-        #    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)', 'CuKb1',
-        #    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
-        #    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
-        #    'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
-        # ]
-        preset_options = [
-            'CoKa1', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
-            'MoKa1', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
-            'CuKa1', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
-            'CrKa1', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
-            'FeKa1', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
-            'AgKa1', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
+    # --- Wavelength Selection ---
+    # preset_options = [
+    #    'CoKa1', 'CoKa2', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)', 'CoKb1',
+    #    'MoKa1', 'MoKa2', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)', 'MoKb1',
+    #    'CuKa1', 'CuKa2', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)', 'CuKb1',
+    #    'CrKa1', 'CrKa2', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)', 'CrKb1',
+    #    'FeKa1', 'FeKa2', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)', 'FeKb1',
+    #    'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
+    # ]
+    preset_options = [
+        'CoKa1', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
+        'MoKa1', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
+        'CuKa1', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
+        'CrKa1', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
+        'FeKa1', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
+        'AgKa1', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
+    ]
+    preset_wavelengths = {
+        'Cu(Ka1+Ka2)': 0.154,
+        'CuKa2': 0.15444,
+        'CuKa1': 0.15406,
+        'Cu(Ka1+Ka2+Kb1)': 0.153339,
+        'CuKb1': 0.13922,
+        'Mo(Ka1+Ka2)': 0.071,
+        'MoKa2': 0.0711,
+        'MoKa1': 0.07093,
+        'Mo(Ka1+Ka2+Kb1)': 0.07059119,
+        'MoKb1': 0.064,
+        'Cr(Ka1+Ka2)': 0.229,
+        'CrKa2': 0.22888,
+        'CrKa1': 0.22897,
+        'Cr(Ka1+Ka2+Kb1)': 0.22775471,
+        'CrKb1': 0.208,
+        'Fe(Ka1+Ka2)': 0.194,
+        'FeKa2': 0.194,
+        'FeKa1': 0.19360,
+        'Fe(Ka1+Ka2+Kb1)': 0.1927295,
+        'FeKb1': 0.176,
+        'Co(Ka1+Ka2)': 0.179,
+        'CoKa2': 0.17927,
+        'CoKa1': 0.17889,
+        'Co(Ka1+Ka2+Kb1)': 0.1781100,
+        'CoKb1': 0.163,
+        'AgKa1': 0.0561,
+        'AgKa2': 0.05634,
+        'Ag(Ka1+Ka2)': 0.0561,
+        'AgKb1': 0.0496,
+        'Ag(Ka1+Ka2+Kb1)': 0.0557006
+    }
+    col1, col2, col3h = st.columns(3)
+    preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
+    preset_wavelengths_neutrons = {
+        'Thermal Neutrons': 0.154,
+        'Cold Neutrons': 0.475,
+        'Hot Neutrons': 0.087
+    }
+
+    if diffraction_choice == "XRD (X-ray)":
+        with col1:
+            preset_choice = st.selectbox(
+                "Preset Wavelength",
+                options=preset_options,
+                index=0,
+                help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
+            )
+
+        hide_input_for = [
+            'Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)',
+            'Mo(Ka1+Ka2+Kb1)', 'Mo(Ka1+Ka2)',
+            'Cr(Ka1+Ka2+Kb1)', 'Cr(Ka1+Ka2)',
+            'Fe(Ka1+Ka2+Kb1)', 'Fe(Ka1+Ka2)',
+            'Co(Ka1+Ka2+Kb1)', 'Co(Ka1+Ka2)',
+            'Ag(Ka1+Ka2+Kb1)', 'Ag(Ka1+Ka2)'
         ]
-        preset_wavelengths = {
-            'Cu(Ka1+Ka2)': 0.154,
-            'CuKa2': 0.15444,
-            'CuKa1': 0.15406,
-            'Cu(Ka1+Ka2+Kb1)': 0.153339,
-            'CuKb1': 0.13922,
-            'Mo(Ka1+Ka2)': 0.071,
-            'MoKa2': 0.0711,
-            'MoKa1': 0.07093,
-            'Mo(Ka1+Ka2+Kb1)': 0.07059119,
-            'MoKb1': 0.064,
-            'Cr(Ka1+Ka2)': 0.229,
-            'CrKa2': 0.22888,
-            'CrKa1': 0.22897,
-            'Cr(Ka1+Ka2+Kb1)': 0.22775471,
-            'CrKb1': 0.208,
-            'Fe(Ka1+Ka2)': 0.194,
-            'FeKa2': 0.194,
-            'FeKa1': 0.19360,
-            'Fe(Ka1+Ka2+Kb1)': 0.1927295,
-            'FeKb1': 0.176,
-            'Co(Ka1+Ka2)': 0.179,
-            'CoKa2': 0.17927,
-            'CoKa1': 0.17889,
-            'Co(Ka1+Ka2+Kb1)': 0.1781100,
-            'CoKb1': 0.163,
-            'AgKa1': 0.0561,
-            'AgKa2': 0.05634,
-            'Ag(Ka1+Ka2)': 0.0561,
-            'AgKb1': 0.0496,
-            'Ag(Ka1+Ka2+Kb1)': 0.0557006
-        }
-        col1, col2 = st.columns(2)
-        preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
-        preset_wavelengths_neutrons = {
-            'Thermal Neutrons': 0.154,
-            'Cold Neutrons': 0.475,
-            'Hot Neutrons': 0.087
-        }
 
-        if diffraction_choice == "XRD (X-ray)":
-            with col1:
-                preset_choice = st.selectbox(
-                    "Preset Wavelength",
-                    options=preset_options,
-                    index=0,
-                    help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
-                )
-
-            hide_input_for = [
-                'Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)',
-                'Mo(Ka1+Ka2+Kb1)', 'Mo(Ka1+Ka2)',
-                'Cr(Ka1+Ka2+Kb1)', 'Cr(Ka1+Ka2)',
-                'Fe(Ka1+Ka2+Kb1)', 'Fe(Ka1+Ka2)',
-                'Co(Ka1+Ka2+Kb1)', 'Co(Ka1+Ka2)',
-                'Ag(Ka1+Ka2+Kb1)', 'Ag(Ka1+Ka2)'
-            ]
-
-            with col2:
-                if preset_choice not in hide_input_for:
-                    wavelength_value = st.number_input(
-                        "Wavelength (nm)",
-                        value=preset_wavelengths[preset_choice],
-                        min_value=0.001,
-                        step=0.001,
-                        format="%.5f"
-                    )
-                else:
-                    wavelength_value = preset_wavelengths[preset_choice]
-
-
-        elif diffraction_choice == "ND (Neutron)":
-            with col1:
-                preset_choice = st.selectbox(
-                    "Preset Wavelength",
-                    options=preset_options_neutron,
-                    index=0,
-                    help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
-                )
-            with col2:
+        with col2:
+            if preset_choice not in hide_input_for:
                 wavelength_value = st.number_input(
                     "Wavelength (nm)",
-                    value=preset_wavelengths_neutrons[preset_choice],
+                    value=preset_wavelengths[preset_choice],
                     min_value=0.001,
                     step=0.001,
                     format="%.5f"
                 )
+            else:
+                wavelength_value = preset_wavelengths[preset_choice]
 
-        wavelength_A = wavelength_value * 10  # Convert nm to Å
-        wavelength_nm = wavelength_value
 
-        x_axis_options = [
-            "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
-            "q (1/Å)", "q (1/nm)",
-            "d (Å)", "d (nm)",
-            "energy (keV)", "frequency (PHz)"
-        ]
-        x_axis_options_neutron = [
-            "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
-            "q (1/Å)", "q (1/nm)",
-            "d (Å)", "d (nm)",
-        ]
-        # --- X-axis Metric Selection ---
+    elif diffraction_choice == "ND (Neutron)":
+        with col1:
+            preset_choice = st.selectbox(
+                "Preset Wavelength",
+                options=preset_options_neutron,
+                index=0,
+                help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
+            )
+        with col2:
+            wavelength_value = st.number_input(
+                "Wavelength (nm)",
+                value=preset_wavelengths_neutrons[preset_choice],
+                min_value=0.001,
+                step=0.001,
+                format="%.5f"
+            )
+
+    wavelength_A = wavelength_value * 10  # Convert nm to Å
+    wavelength_nm = wavelength_value
+
+    x_axis_options = [
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
+        "q (1/Å)", "q (1/nm)",
+        "d (Å)", "d (nm)",
+        "energy (keV)", "frequency (PHz)"
+    ]
+    x_axis_options_neutron = [
+        "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
+        "q (1/Å)", "q (1/nm)",
+        "d (Å)", "d (nm)",
+    ]
+    # --- X-axis Metric Selection ---
+    colx, colx2, colx3 = st.columns([1,1,1])
+    with colx:
         if diffraction_choice == "ND (Neutron)":
             if "x_axis_metric" not in st.session_state:
                 st.session_state.x_axis_metric = x_axis_options_neutron[0]
@@ -1562,279 +1979,251 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 help=conversion_info[st.session_state.x_axis_metric]
             )
 
-        # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
-        if "two_theta_min" not in st.session_state:
-            if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
-                st.session_state.two_theta_min = 5.0
-            elif x_axis_metric in ["d (Å)", "d (nm)"]:
-                st.session_state.two_theta_min = 20.0
-            else:
-                st.session_state.two_theta_min = 5.0
-        if "two_theta_max" not in st.session_state:
-            st.session_state.two_theta_max = 165.0
-
-        # --- Compute display values by converting canonical two_theta values to current unit ---
-        display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A, wavelength_nm,
-                                                diffraction_choice)
-        display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A, wavelength_nm,
-                                                diffraction_choice)
-
-        if x_axis_metric == "2θ (°)":
-            step_val = 1.0
-        elif x_axis_metric == "2θ (rad)":
-            step_val = 0.0174533
+    # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
+    if "two_theta_min" not in st.session_state:
+        if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
+            st.session_state.two_theta_min = 5.0
+        elif x_axis_metric in ["d (Å)", "d (nm)"]:
+            st.session_state.two_theta_min = 20.0
         else:
-            step_val = 0.1
+            st.session_state.two_theta_min = 5.0
+    if "two_theta_max" not in st.session_state:
+        st.session_state.two_theta_max = 165.0
 
-        col1, col2 = st.columns(2)
+    # --- Compute display values by converting canonical two_theta values to current unit ---
+    display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A,
+                                            wavelength_nm,
+                                            diffraction_choice)
+    display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
+                                            wavelength_nm,
+                                            diffraction_choice)
 
-        if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
+    if x_axis_metric == "2θ (°)":
+        step_val = 1.0
+    elif x_axis_metric == "2θ (rad)":
+        step_val = 0.0174533
+    else:
+        step_val = 0.1
 
-            min_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                        key=f"min_val_{x_axis_metric}")
-            max_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                        key=f"max_val_{x_axis_metric}")
-        else:
-            min_val = col1.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                        key=f"min_val_{x_axis_metric}")
-            max_val = col2.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                        key=f"max_val_{x_axis_metric}")
+    #col1, col2 = st.columns(2)
 
-        # --- Update the canonical two_theta values based on current inputs ---
-        st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
-                                                            diffraction_choice)
-        st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm,
-                                                            diffraction_choice)
-        two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
+    if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
 
-        if peak_representation != "Delta":
-            sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)", min_value=0.01,
-                                    max_value=1.5, value=0.5, step=0.01)
-        else:
-            sigma = 0.5
-        num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table (by intensity):", min_value=0, max_value=30,
+        min_val = colx3.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = colx2.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
+    else:
+        min_val = colx2.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
+                                    key=f"min_val_{x_axis_metric}")
+        max_val = colx3.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
+                                    key=f"max_val_{x_axis_metric}")
+
+    # --- Update the canonical two_theta values based on current inputs ---
+    st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
+                                                        diffraction_choice)
+    st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm,
+                                                        diffraction_choice)
+    two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
+
+    if peak_representation != "Delta":
+        sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
+                                min_value=0.01,
+                                max_value=1.5, value=0.5, step=0.01)
+    else:
+        sigma = 0.5
+    with col3h:
+        num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table (by intensity):", min_value=0,
+                                       max_value=30,
                                        value=5,
                                        step=1)
 
-        if "calc_xrd" not in st.session_state:
-            st.session_state.calc_xrd = False
+    if "calc_xrd" not in st.session_state:
+        st.session_state.calc_xrd = False
 
-        if diffraction_choice == "ND (Neutron)":
-            if st.button("Calculate ND"):
-                st.session_state.calc_xrd = True
-        else:
-            if st.button("Calculate XRD"):
-                st.session_state.calc_xrd = True
-
+    if diffraction_choice == "ND (Neutron)":
+        if st.button("Calculate ND"):
+            st.session_state.calc_xrd = True
+    else:
+        if st.button("Calculate XRD"):
+            st.session_state.calc_xrd = True
 
     # --- XRD Calculation ---
 
-    with col_plot:
-        if not st.session_state.calc_xrd:
-            st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
-            if user_pattern_file:
-                # Create a separate Plotly figure for experimental data
+    if not st.session_state.calc_xrd:
+        st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
+        if user_pattern_file:
+            # Create a separate Plotly figure for experimental data
 
-                # Process the experimental files:
-                if isinstance(user_pattern_file, list):
-                    for file in user_pattern_file:
-                        try:
-                            # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
-                            df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
-
-                            x_user = df.iloc[:, 0].values
-                            y_user = df.iloc[:, 1].values
-                        except Exception as e:
-                            st.error(f"Error processing experimental file {file.name}: {e}")
-                            continue
-
-                        # If using 'Normalized' intensity scale, normalize the experimental intensities.
-                        if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
-                            y_user = (y_user / np.max(y_user)) * 100
-
-                        # Optional: filter data to only include points within your current two-theta range.
-                        mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
-                        x_user_filtered = x_user[mask_user]
-                        y_user_filtered = y_user[mask_user]
-
-                        fig_interactive.add_trace(go.Scatter(
-                            x=x_user_filtered,
-                            y=y_user_filtered,
-                            mode="lines+markers",
-                            name=file.name,
-                            line=dict(dash='solid', width=1, color="green"),
-                            marker=dict(color="green", size=5),
-                            hovertemplate=(
-                                "<span style='color:green;'><b>User XRD Data:</b><br>"
-                                "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
-                            )
-                        ))
-                        fig_interactive.update_layout(
-                            height=800,
-                            margin=dict(t=80, b=80, l=60, r=30),
-                            hovermode="x",
-                            legend=dict(
-                                orientation="h",
-                                yanchor="top",
-                                y=-0.2,
-                                xanchor="center",
-                                x=0.5,
-                                font=dict(size=24)
-                            ),
-                            xaxis=dict(
-                                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                                tickfont=dict(size=36, color='black')
-                            ),
-                            yaxis=dict(
-                                title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
-                                tickfont=dict(size=36, color='black')
-                            ),
-                            hoverlabel=dict(font=dict(size=30)),
-                            font=dict(size=18),
-                            autosize=True
-                        )
-                else:
+            # Process the experimental files:
+            if isinstance(user_pattern_file, list):
+                for file in user_pattern_file:
                     try:
-                        df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                        # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
+                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
+
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
-                        x_user, y_user = None, None
+                        st.error(f"Error processing experimental file {file.name}: {e}")
+                        continue
 
-        if st.session_state.calc_xrd and uploaded_files:
-            # Sidebar: Let the user select which structures to include in the diffraction plot
+                    # If using 'Normalized' intensity scale, normalize the experimental intensities.
+                    if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                        y_user = (y_user / np.max(y_user)) * 100
 
-            multi_component_presets = {
-                "Cu(Ka1+Ka2)": {
-                    "wavelengths": [0.15406, 0.15444],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Cu(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.15406, 0.15444, 0.13922],
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                },
-                "Mo(Ka1+Ka2)": {
-                    "wavelengths": [0.07093, 0.0711],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Mo(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.07093, 0.0711, 0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                },
-                "Cr(Ka1+Ka2)": {
-                    "wavelengths": [0.22897, 0.22888],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Cr(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                },
-                "Fe(Ka1+Ka2)": {
-                    "wavelengths": [0.19360, 0.194],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Fe(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.19360, 0.194, 0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                },
-                "Co(Ka1+Ka2)": {
-                    "wavelengths": [0.17889, 0.17927],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Co(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                },
-                "Ag(Ka1+Ka2)": {
-                    "wavelengths": [0.0561, 0.05634],
-                    "factors": [1.0, 1 / 2.0]
-                },
-                "Ag(Ka1+Ka2+Kb1)": {
-                    "wavelengths": [0.0561, 0.05634, 0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
-                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
-                }
-                # Extend with additional multi-component presets if needed.
+                    # Optional: filter data to only include points within your current two-theta range.
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                x_user <= st.session_state.two_theta_max)
+                    x_user_filtered = x_user[mask_user]
+                    y_user_filtered = y_user[mask_user]
+
+                    fig_interactive.add_trace(go.Scatter(
+                        x=x_user_filtered,
+                        y=y_user_filtered,
+                        mode="lines+markers",
+                        name=file.name,
+                        line=dict(dash='solid', width=1, color="green"),
+                        marker=dict(color="green", size=5),
+                        hovertemplate=(
+                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                        )
+                    ))
+                    fig_interactive.update_layout(
+                        height=800,
+                        margin=dict(t=80, b=80, l=60, r=30),
+                        hovermode="x",
+                        legend=dict(
+                            orientation="h",
+                            yanchor="top",
+                            y=-0.2,
+                            xanchor="center",
+                            x=0.5,
+                            font=dict(size=24)
+                        ),
+                        xaxis=dict(
+                            title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                            tickfont=dict(size=36, color='black')
+                        ),
+                        yaxis=dict(
+                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            tickfont=dict(size=36, color='black')
+                        ),
+                        hoverlabel=dict(font=dict(size=30)),
+                        font=dict(size=18),
+                        autosize=True
+                    )
+            else:
+                try:
+                    df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                    x_user = df.iloc[:, 0].values
+                    y_user = df.iloc[:, 1].values
+                except Exception as e:
+                    st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                    x_user, y_user = None, None
+
+    if st.session_state.calc_xrd and uploaded_files:
+        # Sidebar: Let the user select which structures to include in the diffraction plot
+
+        multi_component_presets = {
+            "Cu(Ka1+Ka2)": {
+                "wavelengths": [0.15406, 0.15444],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Cu(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.15406, 0.15444, 0.13922],
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            },
+            "Mo(Ka1+Ka2)": {
+                "wavelengths": [0.07093, 0.0711],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Mo(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.07093, 0.0711, 0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            },
+            "Cr(Ka1+Ka2)": {
+                "wavelengths": [0.22897, 0.22888],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Cr(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            },
+            "Fe(Ka1+Ka2)": {
+                "wavelengths": [0.19360, 0.194],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Fe(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.19360, 0.194, 0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            },
+            "Co(Ka1+Ka2)": {
+                "wavelengths": [0.17889, 0.17927],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Co(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            },
+            "Ag(Ka1+Ka2)": {
+                "wavelengths": [0.0561, 0.05634],
+                "factors": [1.0, 1 / 2.0]
+            },
+            "Ag(Ka1+Ka2+Kb1)": {
+                "wavelengths": [0.0561, 0.05634, 0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "factors": [1.0, 1 / 2.0, 1 / 9.0]
             }
+            # Extend with additional multi-component presets if needed.
+        }
 
-            # Check whether the user-selected preset is multi-component.
-            is_multi_component = preset_choice in multi_component_presets
-            if is_multi_component:
-                comp_info = multi_component_presets[preset_choice]
-                # Fallback: if "labels" key is missing, assign default labels based on number of wavelengths.
-                if "labels" not in comp_info:
-                    n = len(comp_info["wavelengths"])
-                    if n == 2:
-                        comp_info["labels"] = ["Kα1", "Kα2"]
-                    elif n == 3:
-                        comp_info["labels"] = ["Kα1", "Kα2", "Kβ"]
-                    else:
-                        comp_info["labels"] = ["Kα1"] * n
-
-            st.subheader("📊 OUTPUT → Diffraction Patterns")
-
-            # =====================================================================
-            # NOTE: The block below computes the diffraction pattern details but
-            # DOES NOT create any static (matplotlib) plot.
-            # =====================================================================
-            colors = plt.cm.tab10.colors
-            pattern_details = {}
-            full_range = (0.01, 179.9)
-
-            for idx, file in enumerate(uploaded_files):
-                mg_structure = load_structure(file)
-                mg_structure = get_full_conventional_structure_diffra(mg_structure)
-
-                if is_multi_component:
-                    num_points = 20000
-                    x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
-                    dx = x_dense_full[1] - x_dense_full[0]
-                    y_dense_total = np.zeros_like(x_dense_full)
-                    all_filtered_x = []
-                    all_filtered_y = []
-                    all_filtered_hkls = []
-                    all_peak_types = []
-                    comp_info = multi_component_presets[preset_choice]
-                    for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
-                        wavelength_A_comp = wl * 10  # convert nm to Å
-                        if diffraction_choice == "ND (Neutron)":
-                            diff_calc = NDCalculator(wavelength=wavelength_A_comp)
-                        else:
-                            diff_calc = XRDCalculator(wavelength=wavelength_A_comp)
-                        diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
-
-                        filtered_x = []
-                        filtered_y = []
-                        filtered_hkls = []
-                        for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
-                            if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
-                                continue
-                            if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
-                                continue
-                            filtered_x.append(x_val)
-                            filtered_y.append(y_val * factor)  # scale intensity
-                            filtered_hkls.append(hkl_group)
-                            all_peak_types.append(comp_info["labels"][comp_index])
-                        y_dense_comp = np.zeros_like(x_dense_full)
-                        if peak_representation == "Gaussian":
-                            for peak, intensity in zip(filtered_x, filtered_y):
-                                gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
-                                area = np.sum(gauss) * dx
-                                y_dense_comp += (intensity / area) * gauss
-                        else:
-                            for peak, intensity in zip(filtered_x, filtered_y):
-                                idx_closest = np.argmin(np.abs(x_dense_full - peak))
-                                y_dense_comp[idx_closest] += intensity
-                        y_dense_total += y_dense_comp
-                        all_filtered_x.extend(filtered_x)
-                        all_filtered_y.extend(filtered_y)
-                        all_filtered_hkls.extend(filtered_hkls)
+        # Check whether the user-selected preset is multi-component.
+        is_multi_component = preset_choice in multi_component_presets
+        if is_multi_component:
+            comp_info = multi_component_presets[preset_choice]
+            # Fallback: if "labels" key is missing, assign default labels based on number of wavelengths.
+            if "labels" not in comp_info:
+                n = len(comp_info["wavelengths"])
+                if n == 2:
+                    comp_info["labels"] = ["Kα1", "Kα2"]
+                elif n == 3:
+                    comp_info["labels"] = ["Kα1", "Kα2", "Kβ"]
                 else:
+                    comp_info["labels"] = ["Kα1"] * n
+
+       # st.subheader("📊 OUTPUT → Diffraction Patterns")
+
+        # =====================================================================
+        # NOTE: The block below computes the diffraction pattern details but
+        # DOES NOT create any static (matplotlib) plot.
+        # =====================================================================
+        colors = plt.cm.tab10.colors
+        pattern_details = {}
+        full_range = (0.01, 179.9)
+
+        for idx, file in enumerate(uploaded_files):
+            mg_structure = load_structure(file)
+            mg_structure = get_full_conventional_structure_diffra(mg_structure)
+
+            if is_multi_component:
+                num_points = 20000
+                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                dx = x_dense_full[1] - x_dense_full[0]
+                y_dense_total = np.zeros_like(x_dense_full)
+                all_filtered_x = []
+                all_filtered_y = []
+                all_filtered_hkls = []
+                all_peak_types = []
+                comp_info = multi_component_presets[preset_choice]
+                for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
+                    wavelength_A_comp = wl * 10  # convert nm to Å
                     if diffraction_choice == "ND (Neutron)":
-                        diff_calc = NDCalculator(wavelength=wavelength_A)
+                        diff_calc = NDCalculator(wavelength=wavelength_A_comp)
                     else:
-                        diff_calc = XRDCalculator(wavelength=wavelength_A)
+                        diff_calc = XRDCalculator(wavelength=wavelength_A_comp)
                     diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+
                     filtered_x = []
                     filtered_y = []
                     filtered_hkls = []
@@ -1844,384 +2233,417 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
                             continue
                         filtered_x.append(x_val)
-                        filtered_y.append(y_val)
+                        filtered_y.append(y_val * factor)  # scale intensity
                         filtered_hkls.append(hkl_group)
-                    num_points = 20000
-                    x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
-                    dx = x_dense_full[1] - x_dense_full[0]
-                    y_dense_total = np.zeros_like(x_dense_full)
+                        all_peak_types.append(comp_info["labels"][comp_index])
+                    y_dense_comp = np.zeros_like(x_dense_full)
                     if peak_representation == "Gaussian":
                         for peak, intensity in zip(filtered_x, filtered_y):
                             gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
                             area = np.sum(gauss) * dx
-                            y_dense_total += (intensity / area) * gauss
+                            y_dense_comp += (intensity / area) * gauss
                     else:
                         for peak, intensity in zip(filtered_x, filtered_y):
                             idx_closest = np.argmin(np.abs(x_dense_full - peak))
-                            y_dense_total[idx_closest] += intensity
-                    all_filtered_x = filtered_x
-                    all_filtered_y = filtered_y
-                    all_filtered_hkls = filtered_hkls
-                    all_peak_types = ["Kα1"] * len(filtered_x)
-
-                # Intensity scaling.
-                if intensity_scale_option == "Normalized":
-                    norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
-                    y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
-                    displayed_intensity_array = (np.array(all_filtered_y) / norm_factor) * 100
+                            y_dense_comp[idx_closest] += intensity
+                    y_dense_total += y_dense_comp
+                    all_filtered_x.extend(filtered_x)
+                    all_filtered_y.extend(filtered_y)
+                    all_filtered_hkls.extend(filtered_hkls)
+            else:
+                if diffraction_choice == "ND (Neutron)":
+                    diff_calc = NDCalculator(wavelength=wavelength_A)
                 else:
-                    displayed_intensity_array = np.array(all_filtered_y)
-
-                # Convert discrete peak positions.
-                peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
-                                               diffraction_choice)
-                ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
-                ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
-                if ka1_intensities:
-                    sorted_ka1 = sorted(zip(ka1_indices, ka1_intensities), key=lambda x: x[1], reverse=True)
-                    annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
+                    diff_calc = XRDCalculator(wavelength=wavelength_A)
+                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                filtered_x = []
+                filtered_y = []
+                filtered_hkls = []
+                for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
+                    if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                        continue
+                    if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                        continue
+                    filtered_x.append(x_val)
+                    filtered_y.append(y_val)
+                    filtered_hkls.append(hkl_group)
+                num_points = 20000
+                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                dx = x_dense_full[1] - x_dense_full[0]
+                y_dense_total = np.zeros_like(x_dense_full)
+                if peak_representation == "Gaussian":
+                    for peak, intensity in zip(filtered_x, filtered_y):
+                        gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
+                        area = np.sum(gauss) * dx
+                        y_dense_total += (intensity / area) * gauss
                 else:
-                    annotate_indices = set()
+                    for peak, intensity in zip(filtered_x, filtered_y):
+                        idx_closest = np.argmin(np.abs(x_dense_full - peak))
+                        y_dense_total[idx_closest] += intensity
+                all_filtered_x = filtered_x
+                all_filtered_y = filtered_y
+                all_filtered_hkls = filtered_hkls
+                all_peak_types = ["Kα1"] * len(filtered_x)
 
-                # Save the diffraction pattern details for later use in the interactive plot.
-                pattern_details[file.name] = {
-                    "peak_vals": peak_vals,
-                    "intensities": displayed_intensity_array,
-                    "hkls": all_filtered_hkls,
-                    "peak_types": all_peak_types,
-                    "annotate_indices": annotate_indices,
-                    "x_dense_full": x_dense_full,
-                    "y_dense": y_dense_total
-                }
-            # End of diffraction pattern calculations.
-            # (Note: The entire static matplotlib plotting block has been removed.)
+            # Intensity scaling.
+            if intensity_scale_option == "Normalized":
+                norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
+                y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
+                displayed_intensity_array = (np.array(all_filtered_y) / norm_factor) * 100
+            else:
+                displayed_intensity_array = np.array(all_filtered_y)
 
-            # ---------------------------------------------------------------------------
-            # NEW: Place the file uploader widget for user XRD pattern ABOVE the interactive plot.
-            # -----------------------------------       ----------------------------------------
+            # Convert discrete peak positions.
+            peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
+                                           diffraction_choice)
+            ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
+            ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
+            if ka1_intensities:
+                sorted_ka1 = sorted(zip(ka1_indices, ka1_intensities), key=lambda x: x[1], reverse=True)
+                annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
+            else:
+                annotate_indices = set()
 
+            # Save the diffraction pattern details for later use in the interactive plot.
+            pattern_details[file.name] = {
+                "peak_vals": peak_vals,
+                "intensities": displayed_intensity_array,
+                "hkls": all_filtered_hkls,
+                "peak_types": all_peak_types,
+                "annotate_indices": annotate_indices,
+                "x_dense_full": x_dense_full,
+                "y_dense": y_dense_total
+            }
+        # End of diffraction pattern calculations.
+        # (Note: The entire static matplotlib plotting block has been removed.)
 
-            # Now create the interactive Plotly figur       e for peak identification and indexing.
-            show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
-            if peak_representation != "Delta":
-                if preset_choice in multi_component_presets:
-                    st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
-                    num_components = len(multi_component_presets[preset_choice]["wavelengths"])
-                    if num_components > 1:
-                        show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-                    if num_components >= 2:
-                        show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
-                    if num_components >= 3:
-                        show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
-                else:
-                    st.sidebar.subheader("Include Kα1 for hovering:")
+        # ---------------------------------------------------------------------------
+        # NEW: Place the file uploader widget for user XRD pattern ABOVE the interactive plot.
+        # -----------------------------------       ----------------------------------------
+
+        # Now create the interactive Plotly figur       e for peak identification and indexing.
+        show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
+        if peak_representation != "Delta":
+            if preset_choice in multi_component_presets:
+                st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
+                num_components = len(multi_component_presets[preset_choice]["wavelengths"])
+                if num_components > 1:
                     show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+                if num_components >= 2:
+                    show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
+                if num_components >= 3:
+                    show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
+            else:
+                st.sidebar.subheader("Include Kα1 for hovering:")
+                show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
 
-           # fig_interactive = go.Figure()
+        # fig_interactive = go.Figure()
 
+        for idx, (file_name, details) in enumerate(pattern_details.items()):
 
-            for idx, (file_name, details) in enumerate(pattern_details.items()):
+            base_color = rgb_color(colors[idx % len(colors)], opacity=0.8)
+            mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
+                    details["x_dense_full"] <= st.session_state.two_theta_max)
+            x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
+                                               x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+            y_dense_range = details["y_dense"][mask]
 
-                base_color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-                mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
-                        details["x_dense_full"] <= st.session_state.two_theta_max)
-                x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
-                                                   x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
-                y_dense_range = details["y_dense"][mask]
-
-                if peak_representation == "Delta":
-                    if "peak_types" in details:
-                        groups = {}
-                        for i, peak in enumerate(details["peak_vals"]):
-                            canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
-                                                           diffraction_choice)
-                            if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                                pt = details["peak_types"][i]
-                                groups.setdefault(pt, {"x": [], "y": [], "hover": []})
-                                groups[pt]["x"].append(details["peak_vals"][i])
-                                groups[pt]["y"].append(details["intensities"][i])
-                                hkl_group = details["hkls"][i]
-                                if len(hkl_group[0]['hkl']) == 3:
-                                    hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for h in hkl_group])
-                                else:
-                                    hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for h in hkl_group])
-                                groups[pt]["hover"].append(f"(hkl): {hkl_str}")
-                        for pt, data in groups.items():
-                            if pt == "Kα1":
-                                pt_color = base_color
-                                dash_type = "solid"
-                                hover_info = "text"
-                                hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
-                            elif pt == "Kα2":
-                                pt_color = rgb_color(colors[idx % len(colors)], opacity=0.6)
-                                dash_type = "dot"
-                                hover_info = "skip"
-                                hover_template = None
-                            elif pt == "Kβ":
-                                pt_color = rgb_color(colors[idx % len(colors)], opacity=0.4)
-                                dash_type = "dash"
-                                hover_info = "skip"
-                                hover_template = None
+            if peak_representation == "Delta":
+                if "peak_types" in details:
+                    groups = {}
+                    for i, peak in enumerate(details["peak_vals"]):
+                        canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                       diffraction_choice)
+                        if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                            pt = details["peak_types"][i]
+                            groups.setdefault(pt, {"x": [], "y": [], "hover": []})
+                            groups[pt]["x"].append(details["peak_vals"][i])
+                            groups[pt]["y"].append(details["intensities"][i])
+                            hkl_group = details["hkls"][i]
+                            if len(hkl_group[0]['hkl']) == 3:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkl_group])
                             else:
-                                pt_color = base_color
-                                dash_type = "solid"
-                                hover_info = "text"
-                                hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkl_group])
+                            groups[pt]["hover"].append(f"(hkl): {hkl_str}")
+                    for pt, data in groups.items():
+                        if pt == "Kα1":
+                            pt_color = base_color
+                            dash_type = "solid"
+                            hover_info = "text"
+                            hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+                        elif pt == "Kα2":
+                            pt_color = rgb_color(colors[idx % len(colors)], opacity=0.6)
+                            dash_type = "dot"
+                            hover_info = "skip"
+                            hover_template = None
+                        elif pt == "Kβ":
+                            pt_color = rgb_color(colors[idx % len(colors)], opacity=0.4)
+                            dash_type = "dash"
+                            hover_info = "skip"
+                            hover_template = None
+                        else:
+                            pt_color = base_color
+                            dash_type = "solid"
+                            hover_info = "text"
+                            hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
 
-                            vertical_x = []
-                            vertical_y = []
-                            vertical_hover = []
-                            for j in range(len(data["x"])):
-                                vertical_x.extend([data["x"][j], data["x"][j], None])
-                                vertical_y.extend([0, data["y"][j], None])
-                                vertical_hover.extend([data["hover"][j], data["hover"][j], None])
-                            fig_interactive.add_trace(go.Scatter(
-                                x=vertical_x,
-                                y=vertical_y,
-                                mode='lines',
-                                name=f"{file_name} - {pt}",
-                                showlegend=True,
-                                line=dict(color=pt_color, width=4, dash=dash_type),
-                                hoverinfo=hover_info,
-                                text=vertical_hover,
-                                hovertemplate=hover_template,
-                                hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=20))
-                            ))
-                    else:
                         vertical_x = []
                         vertical_y = []
                         vertical_hover = []
-                        for i, peak in enumerate(details["peak_vals"]):
-                            canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
-                                                           diffraction_choice)
-                            if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                                vertical_x.extend([peak, peak, None])
-                                vertical_y.extend([0, details["intensities"][i], None])
-                                hkl_group = details["hkls"][i]
-                                if len(hkl_group[0]['hkl']) == 3:
-                                    hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for h in hkl_group])
-                                else:
-                                    hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for h in hkl_group])
-                                vertical_hover.extend([f"(hkl): {hkl_str}", f"(hkl): {hkl_str}", None])
+                        for j in range(len(data["x"])):
+                            vertical_x.extend([data["x"][j], data["x"][j], None])
+                            vertical_y.extend([0, data["y"][j], None])
+                            vertical_hover.extend([data["hover"][j], data["hover"][j], None])
                         fig_interactive.add_trace(go.Scatter(
                             x=vertical_x,
                             y=vertical_y,
                             mode='lines',
-                            name=file_name,
+                            name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=base_color, width=3, dash="solid"),
-                            hoverinfo="text",
+                            line=dict(color=pt_color, width=4, dash=dash_type),
+                            hoverinfo=hover_info,
                             text=vertical_hover,
-                            hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                            hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
+                            hovertemplate=hover_template,
+                            hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=20))
                         ))
                 else:
-                    fig_interactive.add_trace(go.Scatter(
-                        x=x_dense_range,
-                        y=y_dense_range,
-                        mode='lines',
-                        name=file_name,
-                        line=dict(color=base_color, width=2),
-                        hoverinfo='skip'
-                    ))
-                    peak_vals_in_range = []
-                    intensities_in_range = []
-                    peak_hover_texts = []
-                    gaussian_max_intensities = []
+                    vertical_x = []
+                    vertical_y = []
+                    vertical_hover = []
                     for i, peak in enumerate(details["peak_vals"]):
-                        peak_type = details["peak_types"][i]
-                        if (peak_type == "Kα1" and not show_Kalpha1_hover) or (
-                                peak_type == "Kα2" and not show_Kalpha2_hover) or (
-                                peak_type == "Kβ" and not show_Kbeta_hover):
-                            continue
-                        canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                        canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                       diffraction_choice)
                         if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                            peak_vals_in_range.append(peak)
-                            gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
-                            area = np.sum(gauss) * dx
-                            scaled_gauss = (details["intensities"][i] / area) * gauss
-                            max_gauss = np.max(scaled_gauss)
-                            gaussian_max_intensities.append(max_gauss)
+                            vertical_x.extend([peak, peak, None])
+                            vertical_y.extend([0, details["intensities"][i], None])
                             hkl_group = details["hkls"][i]
                             if len(hkl_group[0]['hkl']) == 3:
-                                hkl_str = ", ".join(
-                                    [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for h in hkl_group])
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkl_group])
                             else:
-                                hkl_str = ", ".join(
-                                    [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for h in hkl_group])
-                            if peak_type == "Kα1":
-                                hover_text = f"Kα1 (hkl): {hkl_str}"
-                            elif peak_type == "Kα2":
-                                hover_text = f"Kα2 (hkl): {hkl_str}"
-                            elif peak_type == "Kβ":
-                                hover_text = f"Kβ (hkl): {hkl_str}"
-                            else:
-                                hover_text = f"Kα1 (hkl): {hkl_str}"
-                            peak_hover_texts.append(hover_text)
-                    if intensity_scale_option == "Normalized" and gaussian_max_intensities:
-                        norm_marker = max(gaussian_max_intensities)
-                        gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkl_group])
+                            vertical_hover.extend([f"(hkl): {hkl_str}", f"(hkl): {hkl_str}", None])
                     fig_interactive.add_trace(go.Scatter(
-                        x=peak_vals_in_range,
-                        y=gaussian_max_intensities,
-                        mode='markers',
+                        x=vertical_x,
+                        y=vertical_y,
+                        mode='lines',
                         name=file_name,
                         showlegend=True,
-                        marker=dict(color=base_color, size=8, opacity=0.5),
-                        text=peak_hover_texts,
+                        line=dict(color=base_color, width=3, dash="solid"),
+                        hoverinfo="text",
+                        text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
                         hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
                     ))
+            else:
+                fig_interactive.add_trace(go.Scatter(
+                    x=x_dense_range,
+                    y=y_dense_range,
+                    mode='lines',
+                    name=file_name,
+                    line=dict(color=base_color, width=2),
+                    hoverinfo='skip'
+                ))
+                peak_vals_in_range = []
+                intensities_in_range = []
+                peak_hover_texts = []
+                gaussian_max_intensities = []
+                for i, peak in enumerate(details["peak_vals"]):
+                    peak_type = details["peak_types"][i]
+                    if (peak_type == "Kα1" and not show_Kalpha1_hover) or (
+                            peak_type == "Kα2" and not show_Kalpha2_hover) or (
+                            peak_type == "Kβ" and not show_Kbeta_hover):
+                        continue
+                    canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                   diffraction_choice)
+                    if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                        peak_vals_in_range.append(peak)
+                        gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
+                        area = np.sum(gauss) * dx
+                        scaled_gauss = (details["intensities"][i] / area) * gauss
+                        max_gauss = np.max(scaled_gauss)
+                        gaussian_max_intensities.append(max_gauss)
+                        hkl_group = details["hkls"][i]
+                        if len(hkl_group[0]['hkl']) == 3:
+                            hkl_str = ", ".join(
+                                [
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkl_group])
+                        else:
+                            hkl_str = ", ".join(
+                                [
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkl_group])
+                        if peak_type == "Kα1":
+                            hover_text = f"Kα1 (hkl): {hkl_str}"
+                        elif peak_type == "Kα2":
+                            hover_text = f"Kα2 (hkl): {hkl_str}"
+                        elif peak_type == "Kβ":
+                            hover_text = f"Kβ (hkl): {hkl_str}"
+                        else:
+                            hover_text = f"Kα1 (hkl): {hkl_str}"
+                        peak_hover_texts.append(hover_text)
+                if intensity_scale_option == "Normalized" and gaussian_max_intensities:
+                    norm_marker = max(gaussian_max_intensities)
+                    gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
+                fig_interactive.add_trace(go.Scatter(
+                    x=peak_vals_in_range,
+                    y=gaussian_max_intensities,
+                    mode='markers',
+                    name=file_name,
+                    showlegend=True,
+                    marker=dict(color=base_color, size=8, opacity=0.5),
+                    text=peak_hover_texts,
+                    hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
+                    hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
+                ))
 
-            display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A,
-                                                    wavelength_nm, diffraction_choice)
-            display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
-                                                    wavelength_nm, diffraction_choice)
-            if user_pattern_file:
-                # Create a separate Plotly figure for experimental data
+        display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A,
+                                                wavelength_nm, diffraction_choice)
+        display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
+                                                wavelength_nm, diffraction_choice)
+        if user_pattern_file:
+            # Create a separate Plotly figure for experimental data
 
-                # Process the experimental files:
-                if isinstance(user_pattern_file, list):
-                    for file in user_pattern_file:
-                        try:
-                            # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
-                            df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
-
-                            x_user = df.iloc[:, 0].values
-                            y_user = df.iloc[:, 1].values
-                        except Exception as e:
-                            st.error(f"Error processing experimental file {file.name}: {e}")
-                            continue
-
-                        # If using 'Normalized' intensity scale, normalize the experimental intensities.
-                        if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
-                            y_user = (y_user / np.max(y_user)) * 100
-
-                        # Optional: filter data to only include points within your current two-theta range.
-                        mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
-                        x_user_filtered = x_user[mask_user]
-                        y_user_filtered = y_user[mask_user]
-
-                        fig_interactive.add_trace(go.Scatter(
-                            x=x_user_filtered,
-                            y=y_user_filtered,
-                            mode="lines+markers",
-                            name=file.name,
-                            line=dict(dash='solid', width=1, color="green"),
-                            marker=dict(color="green", size=5),
-                            hovertemplate=(
-                                "<span style='color:green;'><b>User XRD Data:</b><br>"
-                                "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
-                            )
-                        ))
-                else:
+            # Process the experimental files:
+            if isinstance(user_pattern_file, list):
+                for file in user_pattern_file:
                     try:
-                        df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                        # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
+                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
+
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
-                        x_user, y_user = None, None
+                        st.error(f"Error processing experimental file {file.name}: {e}")
+                        continue
 
-                    if x_user is not None and y_user is not None:
-                        if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
-                            y_user = (y_user / np.max(y_user)) * 100
+                    # If using 'Normalized' intensity scale, normalize the experimental intensities.
+                    if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                        y_user = (y_user / np.max(y_user)) * 100
 
-                        mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
-                        x_user_filtered = x_user[mask_user]
-                        y_user_filtered = y_user[mask_user]
+                    # Optional: filter data to only include points within your current two-theta range.
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                x_user <= st.session_state.two_theta_max)
+                    x_user_filtered = x_user[mask_user]
+                    y_user_filtered = y_user[mask_user]
 
-                        fig_interactive.add_trace(go.Scatter(
-                            x=x_user_filtered,
-                            y=y_user_filtered,
-                            mode="lines+markers",
-                            name=user_pattern_file.name,
-                            line=dict(dash='solid', width=1, color="green"),
-                            marker=dict(color="green", size=5),
-                            hovertemplate=(
-                                "<span style='color:green;'><b>User XRD Data:</b><br>"
-                                "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
-                            )
-                        ))
-
-                # Optionally, set the layout of this experimental figure:
-                fig_interactive.update_layout(
-                    xaxis_title="2θ (°)",
-                    yaxis_title="Intensity",
-                    autosize=True,
-                    height=500
-                )
-            if x_axis_metric in ["d (Å)", "d (nm)"]:
-                fig_interactive.update_layout(xaxis=dict(range=[display_metric_max, display_metric_min]))
+                    fig_interactive.add_trace(go.Scatter(
+                        x=x_user_filtered,
+                        y=y_user_filtered,
+                        mode="lines+markers",
+                        name=file.name,
+                        line=dict(dash='solid', width=1, color="green"),
+                        marker=dict(color="green", size=5),
+                        hovertemplate=(
+                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                        )
+                    ))
             else:
-                fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
+                try:
+                    df = pd.read_csv(user_pattern_file, sep=r'\s+|,|;', engine='python', header=0)
+                    x_user = df.iloc[:, 0].values
+                    y_user = df.iloc[:, 1].values
+                except Exception as e:
+                    st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                    x_user, y_user = None, None
 
-            if peak_representation == "Delta" and intensity_scale_option != "Absolute":
-                fig_interactive.update_layout(
-                    height=800,
-                    margin=dict(t=80, b=80, l=60, r=30),
-                    hovermode="x",
-                    legend=dict(
-                        orientation="h",
-                        yanchor="top",
-                        y=-0.2,
-                        xanchor="center",
-                        x=0.5,
-                        font=dict(size=24)
-                    ),
-                    xaxis=dict(
-                        title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                        tickfont=dict(size=36, color='black')
-                    ),
-                    yaxis=dict(
-                        title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
-                        tickfont=dict(size=36, color='black'), range=[0, 125]
-                    ),
-                    hoverlabel=dict(font=dict(size=30)),
-                    font=dict(size=18),
-                    autosize=True
-                )
-            else:
-                fig_interactive.update_layout(
-                    height=1000,
-                    margin=dict(t=80, b=80, l=60, r=30),
-                    hovermode="x",
-                    legend=dict(
-                        orientation="h",
-                        yanchor="top",
-                        y=-0.2,
-                        xanchor="center",
-                        x=0.5,
-                        font=dict(size=24)
-                    ),
-                    xaxis=dict(
-                        title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                        tickfont=dict(size=36, color='black')
-                    ),
-                    yaxis=dict(
-                        title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
-                        tickfont=dict(size=36, color='black')
-                    ),
-                    hoverlabel=dict(font=dict(size=30)),
-                    font=dict(size=18),
-                    autosize=True
-                )
-    with col_plot:
-        st.session_state.placeholder_interactive = st.empty()
-        st.session_state.fig_interactive = fig_interactive
-        st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
+                if x_user is not None and y_user is not None:
+                    if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                        y_user = (y_user / np.max(y_user)) * 100
+
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                x_user <= st.session_state.two_theta_max)
+                    x_user_filtered = x_user[mask_user]
+                    y_user_filtered = y_user[mask_user]
+
+                    fig_interactive.add_trace(go.Scatter(
+                        x=x_user_filtered,
+                        y=y_user_filtered,
+                        mode="lines+markers",
+                        name=user_pattern_file.name,
+                        line=dict(dash='solid', width=1, color="green"),
+                        marker=dict(color="green", size=5),
+                        hovertemplate=(
+                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                        )
+                    ))
+
+            # Optionally, set the layout of this experimental figure:
+            fig_interactive.update_layout(
+                xaxis_title="2θ (°)",
+                yaxis_title="Intensity",
+                autosize=True,
+                height=500
+            )
+        if x_axis_metric in ["d (Å)", "d (nm)"]:
+            fig_interactive.update_layout(xaxis=dict(range=[display_metric_max, display_metric_min]))
+        else:
+            fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
+
+        if peak_representation == "Delta" and intensity_scale_option != "Absolute":
+            fig_interactive.update_layout(
+                height=800,
+                margin=dict(t=80, b=80, l=60, r=30),
+                hovermode="x",
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.2,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=24)
+                ),
+                xaxis=dict(
+                    title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                    tickfont=dict(size=36, color='black')
+                ),
+                yaxis=dict(
+                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    tickfont=dict(size=36, color='black'), range=[0, 125]
+                ),
+                hoverlabel=dict(font=dict(size=30)),
+                font=dict(size=18),
+                autosize=True
+            )
+        else:
+            fig_interactive.update_layout(
+                height=1000,
+                margin=dict(t=80, b=80, l=60, r=30),
+                hovermode="x",
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.2,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=24)
+                ),
+                xaxis=dict(
+                    title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                    tickfont=dict(size=36, color='black')
+                ),
+                yaxis=dict(
+                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    tickfont=dict(size=36, color='black')
+                ),
+                hoverlabel=dict(font=dict(size=30)),
+                font=dict(size=18),
+                autosize=True
+            )
+
+    st.session_state.placeholder_interactive = st.empty()
+    st.session_state.fig_interactive = fig_interactive
+    st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
                                                           use_container_width=True)
 
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
@@ -2275,7 +2697,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 for x_val, y_val in zip(x_dense_full, y_dense):
                     table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
                 st.code(table_str3, language="text")
-    
+
         combined_data = {}
         for file in uploaded_files:
             file_name = file.name
@@ -2315,17 +2737,15 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                                     continue
                         if len(hkl) == 3:
                             hkl_str = ", ".join([
-                                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                                    for h in hkls[i]])
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                for h in hkls[i]])
                         else:
                             hkl_str = ", ".join([
-                                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                                    for h in hkls[i]])
+                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                for h in hkls[i]])
                         data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
-
-
 
 if calc_mode == "📈 (P)RDF Calculation":
     # --- RDF (PRDF) Settings and Calculation ---
@@ -2494,8 +2914,6 @@ if calc_mode == "📈 (P)RDF Calculation":
                 for x, y in zip(global_bins, global_rdf_avg):
                     table_str += f"{x:<12.3f} {y:<12.3f}\n"
                 st.code(table_str, language="text")
-
-
 
 st.markdown(
     """
