@@ -137,13 +137,16 @@ def lattice_same_conventional_vs_primitive(structure):
         return None  # Could not determine
 
 def get_cod_entries(params):
-    response = requests.get('https://www.crystallography.net/cod/result', params=params)
-    if response.status_code == 200:
-        results = response.json()
-        return results  # Returns a list of entries
-    else:
-        st.error(f"COD search error: {response.status_code}")
-        return []
+    try:
+        response = requests.get('https://www.crystallography.net/cod/result', params=params)
+        if response.status_code == 200:
+            results = response.json()
+            return results  # Returns a list of entries
+        else:
+            st.error(f"COD search error: {response.status_code}")
+            return []
+    except Exception as e:
+        st.warning("Error during connection to COD. It is likely that the COD database server is currently down.")
 
 
 def get_cif_from_cod(entry):
