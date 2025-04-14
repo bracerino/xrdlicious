@@ -2537,6 +2537,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                                                 wavelength_nm, diffraction_choice)
         display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
                                                 wavelength_nm, diffraction_choice)
+        colors = ["black", "brown", "grey", "purple"]
         if user_pattern_file:
             # Create a separate Plotly figure for experimental data
 
@@ -2562,20 +2563,21 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                                 x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
-
+                    color = colors[i % len(colors)] 
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=file.name,
-                        line=dict(dash='solid', width=1, color="green"),
-                        marker=dict(color="green", size=5),
+                        line=dict(dash='solid', width=1, color=color),
+                        marker=dict(color=color, size=3),
                         hovertemplate=(
-                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            f"<span style='color:{color};'><b>User XRD Data:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
             else:
+                color = colors[i % len(colors)] 
                 try:
                     df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                     x_user = df.iloc[:, 0].values
@@ -2598,10 +2600,10 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=user_pattern_file.name,
-                        line=dict(dash='solid', width=1, color="green"),
-                        marker=dict(color="green", size=5),
+                        line=dict(dash='solid', width=1, color=color),
+                        marker=dict(color=color, size=3),
                         hovertemplate=(
-                            "<span style='color:green;'><b>User XRD Data:</b><br>"
+                            f"<span style='color:{color};'><b>User XRD Data:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
@@ -2639,7 +2641,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                     title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black'), range=[0, 125]
                 ),
-                hoverlabel=dict(font=dict(size=30)),
+                hoverlabel=dict(font=dict(size=24)),
                 font=dict(size=18),
                 autosize=True
             )
@@ -2664,7 +2666,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                     title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black')
                 ),
-                hoverlabel=dict(font=dict(size=30)),
+                hoverlabel=dict(font=dict(size=24)),
                 font=dict(size=18),
                 autosize=True
             )
