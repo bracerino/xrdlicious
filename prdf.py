@@ -679,11 +679,10 @@ with col3:
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 
-else:
-    with col1:
-        st.warning(
-            f"🪧 **Step 1**:  📁 From the Sidebar, Upload Your Structure File or Experimental Patterns, or Search Here in Online Databases."
-            "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
+with col1:
+    st.warning(
+        f"🪧 **Step 1**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
+        "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
