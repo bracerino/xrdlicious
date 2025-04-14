@@ -1046,7 +1046,8 @@ if calc_mode == "🔬 Structure Visualization":
                                         frac_coords_dict[idx] = []
                                         unique_int.append(interstitial.site.frac_coords)
                                         label = classify_interstitial_site(structure, interstitial.site.frac_coords)
-                                        rounded_coords = [round(x, 3) for x in interstitial.site.frac_coords]
+                                        rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
+                                     
                                         st.write(
                                             f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
                                         for site in interstitial.equivalent_sites:
