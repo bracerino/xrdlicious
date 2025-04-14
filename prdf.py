@@ -671,7 +671,7 @@ else:
 # Column 2: Select structure and add/download CIF.
 with col3:
     st.warning(
-        "🪧 **Step 2**: 📁 Choose an action. "
+        "🪧 **Step 1**: 📁 Choose an action. "
         "**Structure Visualization** lets you view, convert (primitive ⇄ conventional), and download structures (**CIF, POSCAR, LMP, XYZ**), including **supercell creation**. "
         "**Diffraction** computes patterns or shows **experimental data**. "
         "**PRDF** calculates **partial and total RDF** for all element pairs."
@@ -681,7 +681,7 @@ if uploaded_files:
 
 with col1:
     st.warning(
-        f"🪧 **Step 1**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
+        f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
         "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
