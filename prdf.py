@@ -2436,7 +2436,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
-                            hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=20))
+                            hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=24))
                         ))
                 else:
                     vertical_x = []
@@ -2468,7 +2468,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         hoverinfo="text",
                         text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                        hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
+                        hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=24))
                     ))
             else:
                 fig_interactive.add_trace(go.Scatter(
