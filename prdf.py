@@ -2543,7 +2543,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
 
             # Process the experimental files:
             if isinstance(user_pattern_file, list):
-                for file in user_pattern_file:
+                for i, file in enumerate(user_pattern_file):
                     try:
                         # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
                         df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
@@ -2577,7 +2577,6 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         )
                     ))
             else:
-                color = colors[i % len(colors)] 
                 try:
                     df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                     x_user = df.iloc[:, 0].values
