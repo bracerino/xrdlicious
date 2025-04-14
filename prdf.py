@@ -1292,7 +1292,7 @@ if calc_mode == "🔬 Structure Visualization":
                 structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
             write(xyz_io, structure, format="xyz")
             xyz_str = xyz_io.getvalue()
-            view = py3Dmol.view(width=1000, height=800)
+            view = py3Dmol.view(width=1200, height=800)
             view.addModel(xyz_str, "xyz")
             view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
             cell = structure.get_cell()  # 3x3 array of lattice vectors
@@ -1479,7 +1479,7 @@ if calc_mode == "🔬 Structure Visualization":
                 xyz_io = StringIO()
                 write(xyz_io, structure, format="xyz")
                 xyz_str = xyz_io.getvalue()
-                view = py3Dmol.view(width=1000, height=800)
+                view = py3Dmol.view(width=1200, height=800)
                 view.addModel(xyz_str, "xyz")
                 view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
                 cell = structure.get_cell()  # 3x3 array of lattice vectors
