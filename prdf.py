@@ -1205,7 +1205,7 @@ if calc_mode == "🔬 Structure Visualization":
                                 vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
                                                                          format="%.2f")
                             else:
-                                substitution_target_value = 0.5
+                                vacancy_target_value = 0.5
 
                             # Row 2: One column per element for vacancy percentage input
                             elements = sorted({site.specie.symbol for site in mp_struct.sites})
