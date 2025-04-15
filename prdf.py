@@ -3104,7 +3104,7 @@ if calc_mode =="📈 Interactive Data Plot":
         fig_interactive.update_xaxes(type="linear")
         fig_interactive.update_yaxes(type="linear")
         fig_interactive.update_layout(
-            height=1100,
+            height=800,
             margin=dict(t=80, b=80, l=60, r=30),
             hovermode="closest",
             showlegend=True,
