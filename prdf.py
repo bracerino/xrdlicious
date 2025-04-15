@@ -87,6 +87,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 components.html(
     """
     <head>
@@ -96,25 +105,44 @@ components.html(
     height=0,
 )
 
+st.markdown(
+    "#### XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 col1, col2 = st.columns([1.25, 1])
 
-with col1:
-    st.title(
-        "🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns and Partial RDF from Crystal Structures (CIF, LMP, POSCAR, ...)")
-    st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)\n\n "
-        "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
-        "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
-        "between primitive and conventional crystal structure representations and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
-        "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
-    )
-from PIL import Image
-
 with col2:
-    image = Image.open("images/ts4.png")
-    st.image(image)
+
+    st.info(
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)"
+    )
+with col1:
+    with st.expander("Read here about this appllication.", icon="📖"):
+
+            st.info(
+                "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
+                "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
+                "between primitive and conventional crystal structure representations and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
+                "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
+            )
+            st.warning(
+                "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
+                "**Structure Visualization** lets you view, convert (primitive ⇄ conventional), create **supercell and point defects**, and download structures (**CIF, POSCAR, LMP, XYZ**).\n\n "
+                "**Diffraction** computes patterns on uploaded structures or shows **experimental data**.\n\n "
+                "**PRDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
+                "**Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
+                f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
+                "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy)."
+            )
+
+            from PIL import Image
+            image = Image.open("images/ts4.png")
+            st.image(image)
+
+
+
 
 pattern_details = None
+
+
 
 # st.divider()
 
@@ -122,36 +150,24 @@ pattern_details = None
 st.sidebar.markdown("## 🍕 XRDlicious")
 # mode = st.sidebar.radio("Select Mode", ["Basic", "Advanced"], index=0)
 mode = "Advanced"
-structure_cell_choice = st.sidebar.radio(
-    "Structure Cell Type:",
-    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
-    index=1,  # default to Conventional
-    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
-         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
-)
 
-convert_to_conventional = structure_cell_choice == "Conventional Cell"
-pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
-pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
-pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
-if mode == "Basic":
-    # st.divider()
-    st.markdown("""
-        <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-        """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style='text-align: center; font-size: 24px;'>
-        🪧 <strong>Step 1 / 4</strong> Upload Your Crystal Structures (in .cif, .lmp (.data), POSCAR, .xsf, .pw, .cfg, ... Formats) or Fetch Structures from Materials Project/AFLOW Database: 
-        <br><span style="font-size: 28px;">⬇️</span>
-    </div>
-    """, unsafe_allow_html=True)
-    # Custom thick black divider
-    st.markdown("""
-    <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-    """, unsafe_allow_html=True)
+calc_mode = st.sidebar.radio("Choose Type of Calculation/Analysis",
+                     options=["🔬 Structure Visualization", "💥 Diffraction Pattern Calculation",
+                              "📊 (P)RDF Calculation",
+                              "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)",
+                              "📈 Interactive Data Plot"
+                              ],
 
-    # st.divider()
+                     index=1)
+if calc_mode == "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)":
+    st.subheader("For the Online Peak Matching Subtool, Please visit: ")
+    st.markdown(
+        '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
+        unsafe_allow_html=True
+    )
+
+
 
 # Initialize session state keys if not already set.
 if 'mp_options' not in st.session_state:
@@ -171,7 +187,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-col3, col1, col2  = st.columns(3)
+col3, col1, col2 = st.columns(3)
 
 if 'full_structures' not in st.session_state:
     st.session_state.full_structures = {}
@@ -203,456 +219,452 @@ if uploaded_files_user_sidebar:
                 st.error(f"Failed to parse {file.name}: {e}")
 
 # Column 1: Search for structures.
+structure_cell_choice = st.sidebar.radio(
+    "Structure Cell Type:",
+    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
+    index=1,  # default to Conventional
+    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
+         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
+)
+convert_to_conventional = structure_cell_choice == "Conventional Cell"
+pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
 
-with col1:
-    st.subheader("🔍 Search for Structures Online in Databases")
-    cols, cols2 = st.columns([1, 1])
-    with cols:
-        db_choice = st.radio(
-            "Select Database",
-            options=["Materials Project", "AFLOW", "COD"],
-            index=0,
-            help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries), Crystallographic Open Database (COD), or in the AFLOW database with ICSD catalog (about 60 000 ICSD Entries)."
-        )
-    if db_choice == "COD":
-        # Get COD search query string from sidebar
-        with col1:
-            with cols2:
-                cod_search_query = st.text_input(
-                    "Enter elements separated by spaces (e.g., Sr Ti O):",
-                    value="Sr Ti O"
-                )
+if calc_mode != "📈 Interactive Data Plot":
+    with st.expander("Search for Structures Online in Databases", icon="🔍"):
+        cols, cols2, cols3 = st.columns([1, 1,3])
+        with cols:
+            db_choice = st.radio(
+                "Select Database",
+                options=["Materials Project", "AFLOW", "COD"],
+                index=0,
+                help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries), Crystallographic Open Database (COD), or in the AFLOW database with ICSD catalog (about 60 000 ICSD Entries)."
+            )
+        if db_choice == "COD":
+            # Get COD search query string from sidebar
+            with col1:
+                with cols2:
+                    cod_search_query = st.text_input(
+                        "Enter elements separated by spaces (e.g., Sr Ti O):",
+                        value="Sr Ti O"
+                    )
 
-        if st.button("Search COD", key='sidebar_cod_butt'):
-            with st.spinner(f"Searching **the COD database**, please wait. 😊"):
-                elements = [el.strip() for el in cod_search_query.split() if el.strip()]
-                if elements:
-                    params = {'format': 'json', 'detail': '1'}
-                    for i, el in enumerate(elements, start=1):
-                        params[f'el{i}'] = el
-                    params['strictmin'] = str(len(elements))
-                    params['strictmax'] = str(len(elements))
-                    cod_entries = get_cod_entries(params)
-                    if cod_entries:
-                        status_placeholder = st.empty()
-                        st.session_state.cod_options = []
-                        st.session_state.full_structures_see_cod = {}
-                        for entry in cod_entries:
-                            print(entry)
-                            cif_content = get_cif_from_cod(entry)
-                            if cif_content:
-                                try:
-                                    structure = get_full_conventional_structure(get_cod_str(cif_content))
-                                    cod_id = f"cod_{entry.get('file')}"
-                                    st.session_state.full_structures_see_cod[cod_id] = structure
-                                    spcs = entry.get("sg")
-                                    st.session_state.cod_options.append(
-                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs}) {structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å {structure.lattice.alpha:.2f} "
-                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f} °"
-                                    )
-                                    status_placeholder.markdown(
-                                        f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                except Exception as e:
-                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+            if st.button("Search COD", key='sidebar_cod_butt'):
+                with st.spinner(f"Searching **the COD database**, please wait. 😊"):
+                    elements = [el.strip() for el in cod_search_query.split() if el.strip()]
+                    if elements:
+                        params = {'format': 'json', 'detail': '1'}
+                        for i, el in enumerate(elements, start=1):
+                            params[f'el{i}'] = el
+                        params['strictmin'] = str(len(elements))
+                        params['strictmax'] = str(len(elements))
+                        cod_entries = get_cod_entries(params)
+                        if cod_entries:
+                            status_placeholder = st.empty()
+                            st.session_state.cod_options = []
+                            st.session_state.full_structures_see_cod = {}
+                            for entry in cod_entries:
+                                print(entry)
+                                cif_content = get_cif_from_cod(entry)
+                                if cif_content:
+                                    try:
+                                        structure = get_full_conventional_structure(get_cod_str(cif_content))
+                                        cod_id = f"cod_{entry.get('file')}"
+                                        st.session_state.full_structures_see_cod[cod_id] = structure
+                                        spcs = entry.get("sg")
+                                        st.session_state.cod_options.append(
+                                            f"{cod_id}: {structure.composition.reduced_formula} ({spcs}) {structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å {structure.lattice.alpha:.2f} "
+                                            f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f} °"
+                                        )
+                                        status_placeholder.markdown(
+                                            f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
+                                    except Exception as e:
+                                        st.error(f"Error processing COD entry {entry.get('file')}: {e}")
 
-                        if st.session_state.cod_options:
-                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                            if st.session_state.cod_options:
+                                st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                            else:
+                                st.warning("COD: No matching structures found.")
                         else:
+                            st.session_state.cod_options = []
                             st.warning("COD: No matching structures found.")
                     else:
-                        st.session_state.cod_options = []
-                        st.warning("COD: No matching structures found.")
-                else:
-                    st.error("Please enter at least one element for the COD search.")
+                        st.error("Please enter at least one element for the COD search.")
 
-        # Display search results if available.
-        with col2:
-            st.subheader("Structures Found in COD")
-            if 'cod_options' in st.session_state and st.session_state.cod_options:
-                selected_cod_structure = st.selectbox(
-                    "Select a structure from COD:",
-                    st.session_state.cod_options,
-                    key='sidebar_select_cod'
-                )
-                cod_id = selected_cod_structure.split(":")[0].strip()
-                if cod_id in st.session_state.full_structures_see_cod:
-                    selected_entry = st.session_state.full_structures_see_cod[cod_id]
-                    lattice = selected_entry.lattice
+            # Display search results if available.
+            with col2:
+                st.subheader("Structures Found in COD")
+                if 'cod_options' in st.session_state and st.session_state.cod_options:
+                    selected_cod_structure = st.selectbox(
+                        "Select a structure from COD:",
+                        st.session_state.cod_options,
+                        key='sidebar_select_cod'
+                    )
+                    cod_id = selected_cod_structure.split(":")[0].strip()
+                    if cod_id in st.session_state.full_structures_see_cod:
+                        selected_entry = st.session_state.full_structures_see_cod[cod_id]
+                        lattice = selected_entry.lattice
 
-                    st.write(f"**COD ID:** {cod_id}")
-                    st.write(f"**Formula:** {selected_entry.composition.reduced_formula}")
+                        st.write(f"**COD ID:** {cod_id}")
+                        st.write(f"**Formula:** {selected_entry.composition.reduced_formula}")
 
-                    lattice_str = (f"a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
-                                   f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
-                    st.write(f"**Lattice Parameters:** {lattice_str}")
+                        lattice_str = (f"a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
+                                       f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                        st.write(f"**Lattice Parameters:** {lattice_str}")
 
-                    # Create a link to the COD website using the file id (remove the 'cod_' prefix).
-                    cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
-                    st.write(f"**Link:** {cod_url}")
+                        # Create a link to the COD website using the file id (remove the 'cod_' prefix).
+                        cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
+                        st.write(f"**Link:** {cod_url}")
 
-                    # Define file_name now, so it is available for both adding and downloading.
-                    file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
+                        # Define file_name now, so it is available for both adding and downloading.
+                        file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
 
-                    # "Add" structure button
-                    if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
+                        # "Add" structure button
+                        if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
+                            from pymatgen.io.cif import CifWriter
+
+                            cif_writer = CifWriter(selected_entry, symprec=0.01)
+                            cif_data = str(cif_writer)
+                            st.session_state.full_structures[file_name] = selected_entry
+                            import io
+
+                            cif_file = io.BytesIO(cif_data.encode('utf-8'))
+                            cif_file.name = file_name
+                            if 'uploaded_files' not in st.session_state:
+                                st.session_state.uploaded_files = []
+                            if all(f.name != file_name for f in st.session_state.uploaded_files):
+                                st.session_state.uploaded_files.append(cif_file)
+                            st.success("Structure added from COD!")
+
+                        # Download button using the defined file_name
                         from pymatgen.io.cif import CifWriter
 
-                        cif_writer = CifWriter(selected_entry, symprec=0.01)
-                        cif_data = str(cif_writer)
-                        st.session_state.full_structures[file_name] = selected_entry
-                        import io
-
-                        cif_file = io.BytesIO(cif_data.encode('utf-8'))
-                        cif_file.name = file_name
-                        if 'uploaded_files' not in st.session_state:
-                            st.session_state.uploaded_files = []
-                        if all(f.name != file_name for f in st.session_state.uploaded_files):
-                            st.session_state.uploaded_files.append(cif_file)
-                        st.success("Structure added from COD!")
-
-                    # Download button using the defined file_name
-                    from pymatgen.io.cif import CifWriter
-
-                    st.download_button(
-                        label="Download COD CIF",
-                        data=str(CifWriter(selected_entry, symprec=0.01)),
-                        file_name=file_name,
-                        mime="chemical/x-cif", type="primary",
-                    )
-
-    if db_choice == "Materials Project":
-        with col1:
-            with cols2:
-                mp_search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
-        if st.button("Search Materials Project"):
-            with st.spinner(f"Searching **the MP database**, please wait. 😊"):
-                elements_list = sorted(set(mp_search_query.split()))
-                try:
-                    with MPRester(MP_API_KEY) as mpr:
-                        docs = mpr.materials.summary.search(
-                            elements=elements_list,
-                            num_elements=len(elements_list),
-                            fields=["material_id", "formula_pretty", "symmetry"]
+                        st.download_button(
+                            label="Download COD CIF",
+                            data=str(CifWriter(selected_entry, symprec=0.01)),
+                            file_name=file_name,
+                            mime="chemical/x-cif", type="primary",
                         )
-                        if docs:
+
+        if db_choice == "Materials Project":
+            with col1:
+                with cols2:
+                    mp_search_query = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):", value="Sr Ti O")
+            if st.button("Search Materials Project"):
+                with st.spinner(f"Searching **the MP database**, please wait. 😊"):
+                    elements_list = sorted(set(mp_search_query.split()))
+                    try:
+                        with MPRester(MP_API_KEY) as mpr:
+                            docs = mpr.materials.summary.search(
+                                elements=elements_list,
+                                num_elements=len(elements_list),
+                                fields=["material_id", "formula_pretty", "symmetry"]
+                            )
+                            if docs:
+                                status_placeholder = st.empty()
+                                st.session_state.mp_options = []
+                                st.session_state.full_structures_see = {}  # store full pymatgen Structures
+                                for doc in docs:
+                                    # Retrieve the full structure
+                                    full_structure = mpr.get_structure_by_material_id(doc.material_id)
+                                    # (Optionally, convert to conventional cell here)
+                                    # Retrieve the full structure (including lattice parameters)
+                                    if convert_to_conventional:
+                                        # analyzer = SpacegroupAnalyzer(full_structure)
+                                        # structure_to_use = analyzer.get_conventional_standard_structure()
+                                        structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
+                                    elif pymatgen_prim_cell_lll:
+                                        analyzer = SpacegroupAnalyzer(full_structure)
+                                        structure_to_use = analyzer.get_primitive_standard_structure()
+                                        structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
+                                    elif pymatgen_prim_cell_no_reduce:
+                                        analyzer = SpacegroupAnalyzer(full_structure)
+                                        structure_to_use = analyzer.get_primitive_standard_structure()
+                                    else:
+                                        structure_to_use = full_structure
+                                    st.session_state.full_structures_see[doc.material_id] = structure_to_use
+                                    lattice = structure_to_use.lattice
+                                    lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                                   f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
+                                    st.session_state.mp_options.append(
+                                        f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
+                                    )
+                                    status_placeholder.markdown(
+                                        f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
+                                    )
+                                st.success(f"Found {len(st.session_state.mp_options)} structures.")
+                            else:
+                                st.session_state.mp_options = []
+                                st.warning("No matching structures found in Materials Project.")
+                    except Exception as e:
+                        st.error(
+                            f"An error occurred: {e}.\nThis is likely due to the error within The Materials Project API. Please try again later.")
+        if db_choice == "AFLOW":  # AFLOW branch
+            with col1:
+                with cols2:
+                    aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):",
+                                                         value="Sr Ti O")
+
+            # Process user input:
+            if aflow_elements_input:
+                import re
+
+                # Replace commas with spaces, then split on whitespace.
+                elements = re.split(r'[\s,]+', aflow_elements_input.strip())
+                elements = [el for el in elements if el]  # Remove any empty strings.
+
+                # Order elements alphabetically.
+                ordered_elements = sorted(elements)
+
+                # Create a comma-separated string for the inner search.
+                ordered_str = ",".join(ordered_elements)
+                # Automatically calculate number of species.
+                aflow_nspecies = len(ordered_elements)
+            else:
+                ordered_str = ""
+                aflow_nspecies = 0
+
+            if st.button("Search AFLOW"):
+                with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
+                    try:
+                        results = list(
+                            search(catalog="icsd")
+                            .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                            .select(
+                                AFLOW_K.auid,
+                                AFLOW_K.compound,
+                                AFLOW_K.geometry,
+                                AFLOW_K.spacegroup_relax,
+                                AFLOW_K.aurl,
+                                AFLOW_K.files,
+                            )
+                        )
+                        st.session_state.entrys = {}
+
+                        if results:
                             status_placeholder = st.empty()
-                            st.session_state.mp_options = []
-                            st.session_state.full_structures_see = {}  # store full pymatgen Structures
-                            for doc in docs:
-                                # Retrieve the full structure
-                                full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                                # (Optionally, convert to conventional cell here)
-                                # Retrieve the full structure (including lattice parameters)
-                                if convert_to_conventional:
-                                    # analyzer = SpacegroupAnalyzer(full_structure)
-                                    # structure_to_use = analyzer.get_conventional_standard_structure()
-                                    structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
-                                elif pymatgen_prim_cell_lll:
-                                    analyzer = SpacegroupAnalyzer(full_structure)
-                                    structure_to_use = analyzer.get_primitive_standard_structure()
-                                    structure_to_use = structure_to_use.get_reduced_structure(reduction_algo="LLL")
-                                elif pymatgen_prim_cell_no_reduce:
-                                    analyzer = SpacegroupAnalyzer(full_structure)
-                                    structure_to_use = analyzer.get_primitive_standard_structure()
-                                else:
-                                    structure_to_use = full_structure
-                                st.session_state.full_structures_see[doc.material_id] = structure_to_use
-                                lattice = structure_to_use.lattice
-                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                               f"{lattice.alpha:.2f}, {lattice.beta:.2f}, {lattice.gamma:.2f} °")
-                                st.session_state.mp_options.append(
-                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol}, {lattice_str})"
+                            st.session_state.aflow_options = []
+                            st.session_state.entrys = {}  # store full AFLOW entry objects
+                            for entry in results:
+                                # Save the full entry object in session state.
+                                st.session_state.entrys[entry.auid] = entry
+                                # Use the provided geometry string from AFLOW for display.
+                                st.session_state.aflow_options.append(
+                                    f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
                                 )
                                 status_placeholder.markdown(
-                                    f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
+                                    f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
                                 )
-                            st.success(f"Found {len(st.session_state.mp_options)} structures.")
+                            st.success(f"Found {len(st.session_state.aflow_options)} structures.")
                         else:
-                            st.session_state.mp_options = []
-                            st.warning("No matching structures found in Materials Project.")
-                except Exception as e:
-                    st.error(
-                        f"An error occurred: {e}.\nThis is likely due to the error within The Materials Project API. Please try again later.")
-    if db_choice == "AFLOW":  # AFLOW branch
-        with col1:
-            with cols2:
-                aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):",
-                                                     value="Sr Ti O")
-
-        # Process user input:
-        if aflow_elements_input:
-            import re
-
-            # Replace commas with spaces, then split on whitespace.
-            elements = re.split(r'[\s,]+', aflow_elements_input.strip())
-            elements = [el for el in elements if el]  # Remove any empty strings.
-
-            # Order elements alphabetically.
-            ordered_elements = sorted(elements)
-
-            # Create a comma-separated string for the inner search.
-            ordered_str = ",".join(ordered_elements)
-            # Automatically calculate number of species.
-            aflow_nspecies = len(ordered_elements)
-        else:
-            ordered_str = ""
-            aflow_nspecies = 0
-
-        if st.button("Search AFLOW"):
-            with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
-                try:
-                    results = list(
-                        search(catalog="icsd")
-                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
-                        .select(
-                            AFLOW_K.auid,
-                            AFLOW_K.compound,
-                            AFLOW_K.geometry,
-                            AFLOW_K.spacegroup_relax,
-                            AFLOW_K.aurl,
-                            AFLOW_K.files,
-                        )
-                    )
-                    st.session_state.entrys = {}
-
-                    if results:
-                        status_placeholder = st.empty()
-                        st.session_state.aflow_options = []
-                        st.session_state.entrys = {}  # store full AFLOW entry objects
-                        for entry in results:
-                            # Save the full entry object in session state.
-                            st.session_state.entrys[entry.auid] = entry
-                            # Use the provided geometry string from AFLOW for display.
-                            st.session_state.aflow_options.append(
-                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
-                            )
-                            status_placeholder.markdown(
-                                f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
-                            )
-                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
-                    else:
-                        st.session_state.aflow_options = []
+                            st.session_state.aflow_options = []
+                            st.warning("No matching structures found in AFLOW.")
+                    except Exception as e:
                         st.warning("No matching structures found in AFLOW.")
-                except Exception as e:
-                    st.warning("No matching structures found in AFLOW.")
 
-# Import AFLOW search functions and keywords
+        with cols3:
+            if db_choice == "Materials Project":
+                st.subheader("🧬 Structures Found in Materials Project")
+            if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
+                selected_structure = st.selectbox("Select a structure from MP:", st.session_state.mp_options)
+                selected_id = selected_structure.split(":")[0].strip()
+                composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+                file_name = f"{selected_id}_{composition}.cif"
+                file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
+                # Retrieve the corresponding MP structure from session state.
+                if selected_id in st.session_state.full_structures_see:
+                    selected_entry = st.session_state.full_structures_see[selected_id]
 
-# Column 2: Select structure and add/download CIF.
-with col2:
-    if db_choice == "Materials Project":
-        st.subheader("🧬 Structures Found in Materials Project")
-    if db_choice == "Materials Project" and "mp_options" in st.session_state and st.session_state.mp_options:
-        selected_structure = st.selectbox("Select a structure from MP:", st.session_state.mp_options)
-        selected_id = selected_structure.split(":")[0].strip()
-        composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
-        file_name = f"{selected_id}_{composition}.cif"
-        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+                    # st.write("### Selected Structure Details")
+                    st.write(f"**Material ID:** {selected_id}")
+                    st.write(f"**Formula:** {composition}")
 
-        # Retrieve the corresponding MP structure from session state.
-        if selected_id in st.session_state.full_structures_see:
-            selected_entry = st.session_state.full_structures_see[selected_id]
+                    # Display original lattice parameters
+                    # lattice = selected_entry.lattice
+                    # st.write(f"**Primitive Cell Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+                    # st.write(f"**Primitive Cell Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
 
-            # st.write("### Selected Structure Details")
-            st.write(f"**Material ID:** {selected_id}")
-            st.write(f"**Formula:** {composition}")
+                    if convert_to_conventional:
+                        # analyzer = SpacegroupAnalyzer(full_structure)
+                        # structure_to_use = analyzer.get_conventional_standard_structure()
+                        converted_structure = get_full_conventional_structure(selected_entry, symprec=0.1)
+                        conv_lattice = converted_structure.lattice
+                        st.write(
+                            f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                        st.write(
+                            f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                    elif pymatgen_prim_cell_lll:
+                        analyzer = SpacegroupAnalyzer(selected_entry)
+                        converted_structure = analyzer.get_primitive_standard_structure()
+                        converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                        conv_lattice = converted_structure.lattice
+                        st.write(
+                            f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                        st.write(
+                            f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                    elif pymatgen_prim_cell_no_reduce:
+                        analyzer = SpacegroupAnalyzer(selected_entry)
+                        converted_structure = analyzer.get_primitive_standard_structure()
+                        conv_lattice = converted_structure.lattice
+                        st.write(
+                            f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                        st.write(
+                            f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                    elif pymatgen_prim_cell_niggli:
+                        analyzer = SpacegroupAnalyzer(selected_entry)
+                        converted_structure = analyzer.get_primitive_standard_structure()
+                        converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                        conv_lattice = converted_structure.lattice
+                        st.write(
+                            f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                        st.write(
+                            f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
 
-            # Display original lattice parameters
-            # lattice = selected_entry.lattice
-            # st.write(f"**Primitive Cell Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
-            # st.write(f"**Primitive Cell Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                    # Optionally, convert to the conventional cell using your defined function.
 
-            if convert_to_conventional:
-                # analyzer = SpacegroupAnalyzer(full_structure)
-                # structure_to_use = analyzer.get_conventional_standard_structure()
-                converted_structure = get_full_conventional_structure(selected_entry, symprec=0.1)
-                conv_lattice = converted_structure.lattice
-                st.write(
-                    f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                st.write(
-                    f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-            elif pymatgen_prim_cell_lll:
-                analyzer = SpacegroupAnalyzer(selected_entry)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
-                conv_lattice = converted_structure.lattice
-                st.write(
-                    f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                st.write(
-                    f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-            elif pymatgen_prim_cell_no_reduce:
-                analyzer = SpacegroupAnalyzer(selected_entry)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                conv_lattice = converted_structure.lattice
-                st.write(
-                    f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                st.write(
-                    f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-            elif pymatgen_prim_cell_niggli:
-                analyzer = SpacegroupAnalyzer(selected_entry)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-                conv_lattice = converted_structure.lattice
-                st.write(
-                    f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                st.write(
-                    f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                    # Optionally, show space group using pymatgen's SpacegroupAnalyzer.
+                    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-            # Optionally, convert to the conventional cell using your defined function.
+                    analyzer = SpacegroupAnalyzer(selected_entry)
+                    st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+                    mp_url = f"https://materialsproject.org/materials/{selected_id}"
+                    st.write(f"**Link:** {mp_url}")
 
-            # Optionally, show space group using pymatgen's SpacegroupAnalyzer.
-            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-
-            analyzer = SpacegroupAnalyzer(selected_entry)
-            st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-            mp_url = f"https://materialsproject.org/materials/{selected_id}"
-            st.write(f"**Link:** {mp_url}")
-
-        if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
-            pmg_structure = st.session_state.full_structures_see[selected_id]
-            st.session_state.full_structures[file_name] = pmg_structure
-            cif_writer = CifWriter(pmg_structure)
-            cif_content = cif_writer.__str__()
-            cif_file = io.BytesIO(cif_content.encode('utf-8'))
-            cif_file.name = file_name
-            if 'uploaded_files' not in st.session_state:
-                st.session_state.uploaded_files = []
-            if all(f.name != file_name for f in st.session_state.uploaded_files):
-                st.session_state.uploaded_files.append(cif_file)
-            st.success("Structure added from Materials Project!")
-        st.download_button(
-            label="Download MP CIF",
-            data=st.session_state.full_structures_see[selected_id].__str__(),
-            file_name=file_name,
-            type="primary",
-            mime="chemical/x-cif"
-        )
-
-    elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
-        st.subheader("Structures Found in AFLOW")
-        selected_structure = st.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options)
-        selected_auid = selected_structure.split(": ")[0].strip()
-        # Retrieve the corresponding AFLOW entry from session state.
-        selected_entry = next(
-            (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
-        if selected_entry:
-            # st.write("### Selected Structure Details")
-            st.write(f"**AUID:** {selected_entry.auid}")
-            st.write(f"**Formula:** {selected_entry.compound}")
-            # st.write(f"**Space Group:** ({selected_entry.spacegroup_relax})")
-
-            # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
-
-            cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
-
-            if cif_files:
-
-                cif_filename = cif_files[0]
-
-                # Correct the AURL: replace the first ':' with '/'
-
-                host_part, path_part = selected_entry.aurl.split(":", 1)
-
-                corrected_aurl = f"{host_part}/{path_part}"
-
-                file_url = f"http://{corrected_aurl}/{cif_filename}"
-
-                # Fetch the CIF file once.
-
-                response = requests.get(file_url)
-                cif_content = response.content
-
-                # "Add" button: store the CIF file in session state.
-                structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
-                if convert_to_conventional:
-                    converted_structure = get_full_conventional_structure(structure_from_aflow, symprec=0.1)
-                    conv_lattice = converted_structure.lattice
-                    st.write(
-                        f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                    st.write(
-                        f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-                elif pymatgen_prim_cell_lll:
-                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
-                    conv_lattice = converted_structure.lattice
-                    st.write(
-                        f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                    st.write(
-                        f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-                elif pymatgen_prim_cell_no_reduce:
-                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    conv_lattice = converted_structure.lattice
-                    st.write(
-                        f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                    st.write(
-                        f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-                elif pymatgen_prim_cell_niggli:
-                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-                    conv_lattice = converted_structure.lattice
-                    st.write(
-                        f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
-                    st.write(
-                        f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-                else:
-                    # If no conversion flag is set, display the original lattice.
-                    lattice = structure_from_aflow.lattice
-                    st.write(
-                        f"**Original Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
-                    st.write(
-                        f"**Original Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
-                analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
-                st.write("**Link:**", linnk)
-
-                if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
+                    pmg_structure = st.session_state.full_structures_see[selected_id]
+                    st.session_state.full_structures[file_name] = pmg_structure
+                    cif_writer = CifWriter(pmg_structure)
+                    cif_content = cif_writer.__str__()
+                    cif_file = io.BytesIO(cif_content.encode('utf-8'))
+                    cif_file.name = file_name
                     if 'uploaded_files' not in st.session_state:
                         st.session_state.uploaded_files = []
-                    cif_file = io.BytesIO(cif_content)
-                    cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
-
-                    st.session_state.full_structures[cif_file.name] = structure_from_aflow
-                    if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                    if all(f.name != file_name for f in st.session_state.uploaded_files):
                         st.session_state.uploaded_files.append(cif_file)
-                    st.success("Structure added from AFLOW!")
-
+                    st.success("Structure added from Materials Project!")
                 st.download_button(
-                    label="Download AFLOW CIF",
-                    data=cif_content,
-                    file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                    label="Download MP CIF",
+                    data=st.session_state.full_structures_see[selected_id].__str__(),
+                    file_name=file_name,
                     type="primary",
                     mime="chemical/x-cif"
                 )
-            else:
-                st.warning("No CIF file found for this AFLOW entry.")
 
-#
-with col3:
-    st.subheader("🧮 Choose Type of Calculation/Analysis ")
-    calc_mode = st.radio("Select Calculation Mode",
-                         options=["🔬 Structure Visualization", "💥 Diffraction Pattern Calculation",
-                                  "📈 (P)RDF Calculation",
-                                  "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)"],
-                         label_visibility="hidden",
-                         index=1)
-    if calc_mode == "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)":
-        st.subheader("For the Online Peak Matching Subtool, Please visit: ")
-        st.markdown(
-            '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
-            unsafe_allow_html=True
-        )
+            elif db_choice == "AFLOW" and "aflow_options" in st.session_state and st.session_state.aflow_options:
+                st.subheader("Structures Found in AFLOW")
+                selected_structure = st.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options)
+                selected_auid = selected_structure.split(": ")[0].strip()
+                # Retrieve the corresponding AFLOW entry from session state.
+                selected_entry = next(
+                    (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
+                if selected_entry:
+                    # st.write("### Selected Structure Details")
+                    st.write(f"**AUID:** {selected_entry.auid}")
+                    st.write(f"**Formula:** {selected_entry.compound}")
+                    # st.write(f"**Space Group:** ({selected_entry.spacegroup_relax})")
 
-if st.session_state['mp_options'] is None:
-    st.info("Please press the 'Search Materials Project' button to view the available structures.")
+                    # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
 
-st.markdown("---")
+                    cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+                    if cif_files:
+
+                        cif_filename = cif_files[0]
+
+                        # Correct the AURL: replace the first ':' with '/'
+
+                        host_part, path_part = selected_entry.aurl.split(":", 1)
+
+                        corrected_aurl = f"{host_part}/{path_part}"
+
+                        file_url = f"http://{corrected_aurl}/{cif_filename}"
+
+                        # Fetch the CIF file once.
+
+                        response = requests.get(file_url)
+                        cif_content = response.content
+
+                        # "Add" button: store the CIF file in session state.
+                        structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+                        if convert_to_conventional:
+                            converted_structure = get_full_conventional_structure(structure_from_aflow, symprec=0.1)
+                            conv_lattice = converted_structure.lattice
+                            st.write(
+                                f"**Conventional Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                            st.write(
+                                f"**Conventional Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                        elif pymatgen_prim_cell_lll:
+                            analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                            converted_structure = analyzer.get_primitive_standard_structure()
+                            converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                            conv_lattice = converted_structure.lattice
+                            st.write(
+                                f"**Primitive Cell (LLL) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                            st.write(
+                                f"**Primitive Cell (LLL) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                        elif pymatgen_prim_cell_no_reduce:
+                            analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                            converted_structure = analyzer.get_primitive_standard_structure()
+                            conv_lattice = converted_structure.lattice
+                            st.write(
+                                f"**Primitive Cell (No-reduction) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                            st.write(
+                                f"**Primitive Cell (No-reduction) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                        elif pymatgen_prim_cell_niggli:
+                            analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                            converted_structure = analyzer.get_primitive_standard_structure()
+                            converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                            conv_lattice = converted_structure.lattice
+                            st.write(
+                                f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å")
+                            st.write(
+                                f"**Primitive Cell (Niggli) Angles:** α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
+                        else:
+                            # If no conversion flag is set, display the original lattice.
+                            lattice = structure_from_aflow.lattice
+                            st.write(
+                                f"**Original Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
+                            st.write(
+                                f"**Original Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
+                        analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                        st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+                        linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
+                        st.write("**Link:**", linnk)
+
+                        if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                            if 'uploaded_files' not in st.session_state:
+                                st.session_state.uploaded_files = []
+                            cif_file = io.BytesIO(cif_content)
+                            cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                            st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                            if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                                st.session_state.uploaded_files.append(cif_file)
+                            st.success("Structure added from AFLOW!")
+
+                        st.download_button(
+                            label="Download AFLOW CIF",
+                            data=cif_content,
+                            file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                            type="primary",
+                            mime="chemical/x-cif"
+                        )
+                    else:
+                        st.warning("No CIF file found for this AFLOW entry.")
+
+            #
+
+
+
+
+
+
+
+
 
 if uploaded_files_user_sidebar:
     uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
@@ -669,20 +681,13 @@ else:
     uploaded_files = st.session_state['uploaded_files']
 
 # Column 2: Select structure and add/download CIF.
-with col3:
-    st.warning(
-        "🪧 **Step 1**: 📁 Choose an action. "
-        "**Structure Visualization** lets you view, convert (primitive ⇄ conventional), and download structures (**CIF, POSCAR, LMP, XYZ**), including **supercell creation**. "
-        "**Diffraction** computes patterns or shows **experimental data**. "
-        "**PRDF** calculates **partial and total RDF** for all element pairs."
-    )
+
+
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 
-with col1:
-    st.warning(
-        f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
-        "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy).")
+
+
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
@@ -699,44 +704,6 @@ if files_to_remove:
     for f in files_to_remove:
         st.session_state['uploaded_files'].remove(f)
     st.rerun()  # 🔁 Force Streamlit to rerun and refresh UI
-
-if mode == "Basic" and not uploaded_files:
-    st.divider()
-    st.markdown("""
-    **This application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
-    """)
-    # If used in academic publications, please cite:
-
-    st.markdown("""
-    ### Acknowledgments
-
-    This project utilizes several open-source materials science packages. We gratefully acknowledge their authors and maintainers:
-
-    - **[Matminer](https://github.com/hackingmaterials/matminer)**  
-      Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).  
-
-    - **[Pymatgen](https://github.com/materialsproject/pymatgen)**  
-      Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).  
-
-    - **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)**  
-      Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER).  
-
-    - **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)**  
-        Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt).
-
-    - **[Materials Project](https://next-gen.materialsproject.org/)**  
-      Data from the Materials Project is made available under the  
-      [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).  
-
-    - **[AFLOW](http://aflow.org)**  
-      Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).   
-      When using structures from AFLOW, please cite:  
-      Curtarolo et al., *Computational Materials Science*, 58 (2012) 218-226.  
-      [DOI: 10.1016/j.commatsci.2012.02.005](https://doi.org/10.1016/j.commatsci.2012.02.005)
-    """)
-    # st.stop()
-# --- Detect Atomic Species ---
-
 
 if uploaded_files:
     species_set = set()
@@ -761,7 +728,10 @@ if "current_structure" not in st.session_state:
 
 if "original_structures" not in st.session_state:
     st.session_state["original_structures"] = {}
-    
+
+if "base_modified_structure" not in st.session_state:
+     st.session_state["base_modified_structure"] = None
+
 if calc_mode == "🔬 Structure Visualization":
     # show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
     show_structure = True
@@ -769,22 +739,6 @@ if calc_mode == "🔬 Structure Visualization":
         if "helpful" not in st.session_state:
             st.session_state["helpful"] = False
         if show_structure:
-            if mode == "Basic":
-                st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
-                st.markdown("""
-                    <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-                    """, unsafe_allow_html=True)
-                st.markdown("""
-                <div style='text-align: center; font-size: 24px;'>
-                    🪧 <strong>Step 2 / 4 (OPTIONAL):</strong> Visually Inspect Your Crystal Structures and Download CIF File for the Visualized Structure in either Conventional or Primitive Cell Representation, if Needed: 
-                    <br><span style="font-size: 28px;">⬇️</span>
-                </div>
-                """, unsafe_allow_html=True)
-                st.markdown("""
-                    <hr style="height:3px;border:none;color:#333;background-color:#333;" />
-                    """, unsafe_allow_html=True)
-
-            st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
             col_viz, col_download = st.columns(2)
 
             # Initialize session state keys if not set
@@ -840,30 +794,38 @@ if calc_mode == "🔬 Structure Visualization":
             # mp_struct = st.session_state.get('full_structures', {}).get(selected_file)
             # mp_struct = AseAtomsAdaptor.get_structure(structure)
             # mp_struct = st.session_state.get('uploaded_files', {}).get(selected_file.name)
-            #enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
-           # if st.session_state["current_structure"] is not None:
-           #     mp_struct = st.session_state["current_structure"]
-            #if "original_structure" in st.session_state:
+            # enable_supercell = st.checkbox("Wish to Create Supercell?", value=False)
+            # if st.session_state["current_structure"] is not None:
+            #     mp_struct = st.session_state["current_structure"]
+            # if "original_structure" in st.session_state:
             #    mp_struct = st.session_state["original_structure"].copy()
+            apply_symmetry_ops = st.checkbox("🔁 Apply symmetry-based standardization", value=True)
+            show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
             if mp_struct:
-                if convert_to_conventional:
-                    # analyzer = SpacegroupAnalyzer(mp_struct)
-                    # converted_structure = analyzer.get_conventional_standard_structure()
-                    converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-                elif pymatgen_prim_cell_niggli:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-                elif pymatgen_prim_cell_lll:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                if apply_symmetry_ops:
+                    if convert_to_conventional:
+                        # analyzer = SpacegroupAnalyzer(mp_struct)
+                        # converted_structure = analyzer.get_conventional_standard_structure()
+                        converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+                    elif pymatgen_prim_cell_niggli:
+                        analyzer = SpacegroupAnalyzer(mp_struct)
+                        converted_structure = analyzer.get_primitive_standard_structure()
+                        converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                    elif pymatgen_prim_cell_lll:
+                        analyzer = SpacegroupAnalyzer(mp_struct)
+                        converted_structure = analyzer.get_primitive_standard_structure()
+                        converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    else:
+                        analyzer = SpacegroupAnalyzer(mp_struct)
+                        converted_structure = analyzer.get_primitive_standard_structure()
                 else:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
+                  #  if "base_modified_structure" not in st.session_state:
+                        # Initially, set the base to the current modified structure.
+                  #      st.session_state["base_modified_structure"] = mp_struct.copy()
+                    converted_structure = mp_struct
                 structure = AseAtomsAdaptor.get_atoms(converted_structure)
+                base_for_supercell = st.session_state["base_modified_structure"]
 
-                structure = AseAtomsAdaptor.get_atoms(converted_structure)
                 colb1, colb2, colb3 = st.columns(3)
 
                 if "selected_file" not in st.session_state or selected_file != st.session_state["selected_file"]:
@@ -898,13 +860,16 @@ if calc_mode == "🔬 Structure Visualization":
                         if st.session_state["helpful"] != True:
                             with col1:
                                 n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10,
-                                                      value=st.session_state.get("supercell_n_a", 1), step=1, key="supercell_n_a")
+                                                      value=st.session_state.get("supercell_n_a", 1), step=1,
+                                                      key="supercell_n_a")
                             with col2:
                                 n_b = st.number_input("Repeat along b-axis", min_value=1, max_value=10,
-                                                      value=st.session_state.get("supercell_n_b", 1), step=1, key="supercell_n_b")
+                                                      value=st.session_state.get("supercell_n_b", 1), step=1,
+                                                      key="supercell_n_b")
                             with col3:
                                 n_c = st.number_input("Repeat along c-axis", min_value=1, max_value=10,
-                                                      value=st.session_state.get("supercell_n_c", 1), step=1, key="supercell_n_c")
+                                                      value=st.session_state.get("supercell_n_c", 1), step=1,
+                                                      key="supercell_n_c")
                         else:
                             with col1:
                                 n_a = st.number_input("Repeat along a-axis", min_value=1, max_value=10,
@@ -932,31 +897,32 @@ if calc_mode == "🔬 Structure Visualization":
                     else:
                         update_supercell = False
 
-
-                    #if (n_a, n_b, n_c) != (8, 1, 1):
+                    # if (n_a, n_b, n_c) != (8, 1, 1):
                     if st.session_state["helpful"] != True:
-                            from pymatgen.transformations.standard_transformations import SupercellTransformation
-                        #if update_supercell == True:
+                        from pymatgen.transformations.standard_transformations import SupercellTransformation
 
-                            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
-                            transformer = SupercellTransformation(supercell_matrix)
-                            supercell_pmg = transformer.apply_transformation(supercell_pmg)
-                            mp_struct = supercell_pmg
-                            structure = AseAtomsAdaptor.get_atoms(mp_struct)
-                            st.session_state["current_structure"] = mp_struct
-                        #if update_supercell == False:
-                         #   mp_struct = supercell_pmg
-                         #   structure = AseAtomsAdaptor.get_atoms(mp_struct)
-                         #   st.session_state["current_structure"] = mp_struct
+                        # if update_supercell == True:
+
+                        supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+                        transformer = SupercellTransformation(supercell_matrix)
+                        supercell_pmg = transformer.apply_transformation(supercell_pmg)
+                        mp_struct = supercell_pmg
+                        structure = AseAtomsAdaptor.get_atoms(mp_struct)
+                        st.session_state["current_structure"] = mp_struct
+                    # if update_supercell == False:
+                    #   mp_struct = supercell_pmg
+                    #   structure = AseAtomsAdaptor.get_atoms(mp_struct)
+                    #   st.session_state["current_structure"] = mp_struct
                     else:
                         # If supercell not enabled, just use the original structure
                         supercell_structure = structure.copy()
                         supercell_pmg = converted_structure.copy()
                         mp_struct = supercell_pmg
                         structure = AseAtomsAdaptor.get_atoms(mp_struct)
-                        st.session_state["helpful"]= False
+                        st.session_state["helpful"] = False
 
                     from pymatgen.core import Structure, Element
+
                     with colb2:
                         def wrap_coordinates(frac_coords):
                             """Wrap fractional coordinates into [0,1)."""
@@ -982,7 +948,7 @@ if calc_mode == "🔬 Structure Visualization":
                             dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
                             import random
                             selected_indices = [random.randrange(len(coords_wrapped))]
-                            #selected_indices = [0]  # Always select the first candidate as the start.
+                            # selected_indices = [0]  # Always select the first candidate as the start.
                             for _ in range(1, n_points):
                                 remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
                                 if mode == "farthest":
@@ -996,7 +962,8 @@ if calc_mode == "🔬 Structure Visualization":
                                         sum(dist_matrix[i, j] for j in selected_indices) / len(
                                             selected_indices) - target_value))
                                 else:
-                                    raise ValueError("Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
+                                    raise ValueError(
+                                        "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
                                 selected_indices.append(next_index)
                             # Return both the selected coordinates and their local indices.
                             selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
@@ -1030,30 +997,32 @@ if calc_mode == "🔬 Structure Visualization":
 
 
                         def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
-                                                                which_interstitial=0, mode="farthest", clustering_tol=0.75,
+                                                                which_interstitial=0, mode="farthest",
+                                                                clustering_tol=0.75,
                                                                 min_dist=0.5):
                             from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
                             with colb3:
                                 with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
-                                    generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol, min_dist=min_dist)
+                                    generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
+                                                                             min_dist=min_dist)
 
                                     frac_coords = []
                                     frac_coords_dict = {}
                                     unique_int = []
                                     idx = 0
                                     # Collect candidate sites from the generator.
-                                    for interstitial in generator.generate(structure, "H"):
-                                        frac_coords_dict[idx] = []
-                                        unique_int.append(interstitial.site.frac_coords)
-                                        label = classify_interstitial_site(structure, interstitial.site.frac_coords)
-                                        rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                                     
-                                        st.write(
-                                            f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
-                                        for site in interstitial.equivalent_sites:
-                                            frac_coords.append(site.frac_coords)
-                                            frac_coords_dict[idx].append(site.frac_coords)
-                                        idx += 1
+                                    with st.expander("See the unique interstitial positions", icon="🧠"):
+                                        for interstitial in generator.generate(structure, "H"):
+                                            frac_coords_dict[idx] = []
+                                            unique_int.append(interstitial.site.frac_coords)
+                                            label = classify_interstitial_site(structure, interstitial.site.frac_coords)
+                                            rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
+                                            st.write(
+                                                f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+                                            for site in interstitial.equivalent_sites:
+                                                frac_coords.append(site.frac_coords)
+                                                frac_coords_dict[idx].append(site.frac_coords)
+                                            idx += 1
 
                                     st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
 
@@ -1063,7 +1032,8 @@ if calc_mode == "🔬 Structure Visualization":
                                         frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
 
                                     # Select the desired number of points.
-                                    selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials, mode=mode)
+                                    selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
+                                                                              mode=mode)
                                     new_structure = structure.copy()
                                     for point in selected_points:
                                         new_structure.append(
@@ -1084,7 +1054,8 @@ if calc_mode == "🔬 Structure Visualization":
                                     indices_to_remove = []
                                     for el, perc in vacancy_percentages.items():
                                         # Get indices of sites for the element.
-                                        el_indices = [i for i, site in enumerate(new_structure.sites) if site.specie.symbol == el]
+                                        el_indices = [i for i, site in enumerate(new_structure.sites) if
+                                                      site.specie.symbol == el]
                                         n_sites = len(el_indices)
                                         n_remove = int(round(n_sites * perc / 100.0))
                                         st.write(f"🧠 Removed {n_remove} atoms of {el}.")
@@ -1094,7 +1065,8 @@ if calc_mode == "🔬 Structure Visualization":
                                         el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
                                         # If fewer removals than available sites, use the selection function.
                                         if n_remove < len(el_coords):
-                                            _, selected_local_indices = select_spaced_points(el_coords, n_points=n_remove,
+                                            _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                             n_points=n_remove,
                                                                                              mode=selection_mode,
                                                                                              target_value=target_value)
                                             # Map the selected local indices back to global indices.
@@ -1111,6 +1083,8 @@ if calc_mode == "🔬 Structure Visualization":
                         # ==================== Substitute Functions ====================
                         with colb3:
                             st.markdown(f"### Log output:")
+
+
                         def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
                                                           target_value=0.5):
                             with colb3:
@@ -1122,17 +1096,18 @@ if calc_mode == "🔬 Structure Visualization":
                                         sub_el = settings.get("substitute", "").strip()
                                         if perc <= 0 or not sub_el:
                                             continue
-                                        indices = [i for i, site in enumerate(structure.sites) if site.specie.symbol == orig_el]
+                                        indices = [i for i, site in enumerate(structure.sites) if
+                                                   site.specie.symbol == orig_el]
                                         n_sites = len(indices)
                                         n_substitute = int(round(n_sites * perc / 100.0))
                                         st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
-
 
                                         if n_substitute < 1:
                                             continue
                                         el_coords = [new_coords[i] for i in indices]
                                         if n_substitute < len(el_coords):
-                                            _, selected_local_indices = select_spaced_points(el_coords, n_points=n_substitute,
+                                            _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                             n_points=n_substitute,
                                                                                              mode=selection_mode,
                                                                                              target_value=target_value)
                                             selected_global_indices = [indices[i] for i in selected_local_indices]
@@ -1148,48 +1123,48 @@ if calc_mode == "🔬 Structure Visualization":
 
                         # ==================== Streamlit UI ====================
 
-
                         # Choose among the three operation modes.
                         operation_mode = st.selectbox("Choose Operation Mode",
-                                                      ["Insert Interstitials (Voronoi method)", "Create Vacancies", "Substitute Atoms"], help ="""
+                                                      ["Insert Interstitials (Voronoi method)", "Create Vacancies",
+                                                       "Substitute Atoms"], help="""
                     #Interstitials settings
                     - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
                     - **# to Insert**: The number of interstitial atoms to insert into the structure.
                     - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
                       - `0` uses all detected interstitial sites.  
                       - `1` uses only the first unique type, `2` for second, etc.
-    
+
                     - **Selection Mode**: How to choose which interstitial sites to use:  
                       - `farthest`: picks sites farthest apart from each other.  
                       - `nearest`: picks sites closest together.  
                       - `moderate`: balances distances around a target value.
-    
+
                     - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
                     - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
-                    
+
                     #Vacancy settings
                     - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
                       - `farthest`: removes atoms that are farthest apart, to maximize spacing.
                       - `nearest`: removes atoms closest together, forming local vacancy clusters.
                       - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
-    
+
                     - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
                       This value defines the average spacing (in fractional coordinates) between vacancies.
-    
+
                     - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
                       For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
-                      
+
                     #Substitution settings
                     - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
                       - `farthest`: substitutes atoms spaced far apart from each other.
                       - `nearest`: substitutes atoms that are close together.
                       - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
-    
+
                     - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
                       It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
-    
+
                     - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
-    
+
                     - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
                       Leave blank or set substitution % to 0 to skip substitution for that element.
                             """)
@@ -1210,7 +1185,8 @@ if calc_mode == "🔬 Structure Visualization":
 
                             col4, col5, col6 = st.columns(3)
                             with col4:
-                                selection_mode = st.selectbox("Selection Mode", options=["farthest", "nearest", "moderate"],
+                                selection_mode = st.selectbox("Selection Mode",
+                                                              options=["farthest", "nearest", "moderate"],
                                                               index=0)
                             with col5:
                                 clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
@@ -1219,20 +1195,24 @@ if calc_mode == "🔬 Structure Visualization":
 
                         elif operation_mode == "Create Vacancies":
                             st.markdown("""
-    
+
                             """)
                             # Row 1: Two columns for vacancy mode and target value
                             col1, col2 = st.columns(2)
                             vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
                                                                     ["farthest", "nearest", "moderate"], index=0)
-                            vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
-                                                                     format="%.2f")
+                            if vacancy_selection_mode == "moderate":
+                                vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                         format="%.2f")
+                            else:
+                                substitution_target_value = 0.5
 
                             # Row 2: One column per element for vacancy percentage input
                             elements = sorted({site.specie.symbol for site in mp_struct.sites})
                             cols = st.columns(len(elements))
                             vacancy_percentages = {
-                                el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0, max_value=100.0,
+                                el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
+                                                         max_value=100.0,
                                                          step=1.0, format="%.1f")
                                 for i, el in enumerate(elements)}
 
@@ -1244,8 +1224,12 @@ if calc_mode == "🔬 Structure Visualization":
                             col1, col2 = st.columns(2)
                             substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
                                                                          ["farthest", "nearest", "moderate"], index=0)
-                            substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
-                                                                          format="%.2f")
+                            if substitution_selection_mode == "moderate":
+                                substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
+                                                                              step=0.05,
+                                                                              format="%.2f")
+                            else:
+                                substitution_target_value = 0.5
                             # Row 2: One column per element (each showing two inputs: percentage and target)
                             elements = sorted({site.specie.symbol for site in mp_struct.sites})
                             cols = st.columns(len(elements))
@@ -1255,7 +1239,8 @@ if calc_mode == "🔬 Structure Visualization":
                                     sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
                                                                max_value=100.0, step=1.0, format="%.1f",
                                                                key=f"sub_perc_{el}")
-                                    sub_target = st.text_input(f"Substitute {el} with", value="", key=f"sub_target_{el}")
+                                    sub_target = st.text_input(f"Substitute {el} with", value="",
+                                                               key=f"sub_target_{el}")
                                 substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
 
                         # ==================== Execute Operation ====================
@@ -1275,6 +1260,7 @@ if calc_mode == "🔬 Structure Visualization":
 
                                 mp_struct = updated_structure
                                 st.session_state["current_structure"] = updated_structure
+                                #base_for_supercell = st.session_state["base_modified_structure"]
                                 with colb3:
                                     st.success("Interstitials inserted and structure updated!")
                                 st.session_state["helpful"] = True
@@ -1288,10 +1274,12 @@ if calc_mode == "🔬 Structure Visualization":
 
                                 mp_struct = updated_structure
                                 st.session_state["current_structure"] = updated_structure
+                                #base_for_supercell = st.session_state["base_modified_structure"]
+                                st.session_state["last_multiplier"] = (1, 1, 1)
                                 with colb3:
                                     st.success("Vacancies created and structure updated!")
                                 st.session_state["helpful"] = True
-                               # st.rerun()
+                            # st.rerun()
                         elif operation_mode == "Substitute Atoms":
                             if st.button("Substitute Atoms"):
                                 updated_structure = substitute_atoms_in_structure(mp_struct,
@@ -1301,13 +1289,15 @@ if calc_mode == "🔬 Structure Visualization":
 
                                 mp_struct = updated_structure
                                 st.session_state["current_structure"] = updated_structure
+                                #base_for_supercell = st.session_state["base_modified_structure"]
                                 with colb3:
                                     st.success("Substitutions applied and structure updated!")
                                 st.session_state["helpful"] = True
-                              #  st.rerun()
+                            #  st.rerun()
 
             # Checkbox option to show atomic positions (labels on structure and list in table)
-            show_atomic = st.checkbox("Show atomic positions (labels on structure and list in table)", value=True)
+
+
             xyz_io = StringIO()
             if st.session_state["current_structure"] is not None:
                 structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
@@ -1316,6 +1306,7 @@ if calc_mode == "🔬 Structure Visualization":
             view = py3Dmol.view(width=1200, height=800)
             view.addModel(xyz_str, "xyz")
             view.setStyle({'model': 0}, {"sphere": {"radius": 0.3, "colorscheme": "Jmol"}})
+            #view.setStyle({'model': 0}, {"line": {}})
             cell = structure.get_cell()  # 3x3 array of lattice vectors
             add_box(view, cell, color='black', linewidth=4)
             view.zoomTo()
@@ -1359,7 +1350,6 @@ if calc_mode == "🔬 Structure Visualization":
                             horizontal=True
                         )
 
-
                         file_content = None
                         download_file_name = None
                         mime = "text/plain"
@@ -1369,9 +1359,9 @@ if calc_mode == "🔬 Structure Visualization":
                                 # Use pymatgen's CifWriter for CIF output.
                                 from pymatgen.io.cif import CifWriter
 
-                                cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1, refine_struct=False)
+                                cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1,
+                                                              refine_struct=False)
                                 file_content = str(cif_writer_visual)
-
 
                                 download_file_name = selected_file.split('.')[
                                                          0] + '_' + lattice_info + f'_Supercell_{n_a}_{n_b}_{n_c}.cif'
@@ -1381,15 +1371,17 @@ if calc_mode == "🔬 Structure Visualization":
                                 out = StringIO()
                                 current_ase_structure = AseAtomsAdaptor.get_atoms(st.session_state["current_structure"])
 
-                                colsss, colyyy = st.columns([1,1])
+                                colsss, colyyy = st.columns([1, 1])
                                 with colsss:
-                                    use_fractional = st.checkbox("Output POSCAR with fractional coordinates", value=True,
+                                    use_fractional = st.checkbox("Output POSCAR with fractional coordinates",
+                                                                 value=True,
                                                                  key="poscar_fractional")
 
                                 with colyyy:
                                     from ase.constraints import FixAtoms
+
                                     use_selective_dynamics = st.checkbox("Include Selective dynamics (all atoms free)",
-                                                                        value=False, key="poscar_sd")
+                                                                         value=False, key="poscar_sd")
                                     if use_selective_dynamics:
                                         constraint = FixAtoms(indices=[])  # No atoms are fixed, so all will be T T T
                                         current_ase_structure.set_constraint(constraint)
@@ -1642,8 +1634,9 @@ if calc_mode == "🔬 Structure Visualization":
             left_col, right_col = st.columns([1, 3])
 
             with left_col:
-                st.markdown(f"<h3 style='text-align: center;'>Interactive Structure Visualization ({structure_cell_choice}) </h3>",
-                            unsafe_allow_html=True)
+                st.markdown(
+                    f"<h3 style='text-align: center;'>Interactive Structure Visualization ({structure_cell_choice}) </h3>",
+                    unsafe_allow_html=True)
 
                 try:
                     mg_structure = AseAtomsAdaptor.get_structure(structure)
@@ -1771,6 +1764,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                  " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
         )
 
+
     def format_index(index, first=False, last=False):
         s = str(index)
 
@@ -1893,7 +1887,8 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
     #    'AgKa1', 'AgKa2', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)', 'AgKb1'
     # ]
     preset_options = [
-        'Cobalt (CoKa1)', 'Copper (CuKa1)', 'Molybdenum (MoKa1)', 'Chromium (CrKa1)', 'Iron (FeKa1)', 'Silver (AgKa1)', 'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
+        'Cobalt (CoKa1)', 'Copper (CuKa1)', 'Molybdenum (MoKa1)', 'Chromium (CrKa1)', 'Iron (FeKa1)', 'Silver (AgKa1)',
+        'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
         'MoKa1', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
         'CuKa1', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
         'CrKa1', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
@@ -2003,7 +1998,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
         "d (Å)", "d (nm)",
     ]
     # --- X-axis Metric Selection ---
-    colx, colx2, colx3 = st.columns([1,1,1])
+    colx, colx2, colx3 = st.columns([1, 1, 1])
     with colx:
         if diffraction_choice == "ND (Neutron)":
             if "x_axis_metric" not in st.session_state:
@@ -2053,19 +2048,19 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
     else:
         step_val = 0.1
 
-    #col1, col2 = st.columns(2)
+    # col1, col2 = st.columns(2)
 
     if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
 
         min_val = colx3.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                    key=f"min_val_{x_axis_metric}")
+                                     key=f"min_val_{x_axis_metric}")
         max_val = colx2.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                    key=f"max_val_{x_axis_metric}")
+                                     key=f"max_val_{x_axis_metric}")
     else:
         min_val = colx2.number_input(f"⚙️ Minimum {x_axis_metric}", value=display_metric_min, step=step_val,
-                                    key=f"min_val_{x_axis_metric}")
+                                     key=f"min_val_{x_axis_metric}")
         max_val = colx3.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_max, step=step_val,
-                                    key=f"max_val_{x_axis_metric}")
+                                     key=f"max_val_{x_axis_metric}")
 
     # --- Update the canonical two_theta values based on current inputs ---
     st.session_state.two_theta_min = metric_to_twotheta(min_val, x_axis_metric, wavelength_A, wavelength_nm,
@@ -2122,11 +2117,11 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
 
                     # Optional: filter data to only include points within your current two-theta range.
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                x_user <= st.session_state.two_theta_max)
+                            x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
 
-                    color = colors[i % len(colors)] 
+                    color = colors[i % len(colors)]
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
@@ -2135,7 +2130,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
-                            f"<span style='color::{color};'><b>User XRD Data:</b><br>"
+                            f"<span style='color::{color};'><b>{file.name}:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
@@ -2241,7 +2236,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                 else:
                     comp_info["labels"] = ["Kα1"] * n
 
-       # st.subheader("📊 OUTPUT → Diffraction Patterns")
+        # st.subheader("📊 OUTPUT → Diffraction Patterns")
 
         # =====================================================================
         # NOTE: The block below computes the diffraction pattern details but
@@ -2581,10 +2576,10 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
 
                     # Optional: filter data to only include points within your current two-theta range.
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                x_user <= st.session_state.two_theta_max)
+                            x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
-                    color = colors[i % len(colors)] 
+                    color = colors[i % len(colors)]
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
@@ -2593,7 +2588,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
-                            f"<span style='color:{color};'><b>User XRD Data:</b><br>"
+                            f"<span style='color:{color};'><b>{file.name}:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
@@ -2611,7 +2606,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
                         y_user = (y_user / np.max(y_user)) * 100
 
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                x_user <= st.session_state.two_theta_max)
+                            x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
 
@@ -2797,18 +2792,16 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
-if calc_mode == "📈 (P)RDF Calculation":
+if calc_mode == "📊 (P)RDF Calculation":
     # --- RDF (PRDF) Settings and Calculation ---
-    st.subheader("⚙️ (P)RDF Settings")
-    st.info(
-        "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
+    st.subheader("⚙️ (P)RDF Settings", help = "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
         "providing insight into **local environments** and **structural disorder**. "
         "It is commonly used in **diffusion studies** to track atomic movement and ion transport, "
         "as well as in **phase transition analysis**, revealing changes in atomic ordering during melting or crystallization. "
         "Additionally, PRDF/RDF can be employed as one of the **structural descriptors in machine learning**. "
         "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. "
-        "Peak width = disorder. Height = relative likelihood."
-    )
+        "Peak width = disorder. Height = relative likelihood.")
+
     cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
     bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.05, max_value=5.0, value=0.1, step=0.05,
                                format="%.2f")
@@ -2816,8 +2809,6 @@ if calc_mode == "📈 (P)RDF Calculation":
         st.session_state.calc_rdf = False
     if st.button("Calculate RDF"):
         st.session_state.calc_rdf = True
-
-
 
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
@@ -2958,19 +2949,200 @@ if calc_mode == "📈 (P)RDF Calculation":
                 table_str += f"{x:<12.3f} {y:<12.3f}\n"
             st.code(table_str, language="text")
 
-st.markdown(
-    """
-    <hr style="border: none; height: 6px; background-color: #3399ff; border-radius: 8px; margin: 20px 0;">
-    """,
-    unsafe_allow_html=True
-)
 
-st.markdown("""
-**This application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
-""")
+if calc_mode =="📈 Interactive Data Plot":
+
+
+
+
+    # Define a list of colors (adjust as needed)
+    colors = ['blue', 'red', 'green', 'orange', 'purple', 'black', 'grey']
+
+    st.markdown(
+        "#### 📂 Upload your two-column data files in the sidebar to see them in an interactive plot. Multiple files are supported, and your columns can be separated by spaces, tabs, commas, or semicolons. 👍"
+    )
+
+    colss, colzz, colx, colc, cold = st.columns([1, 1, 1, 1, 1])
+    has_header = colss.checkbox("Files contain a header row", value=False)
+    skip_header = colzz.checkbox("Skip header row", value=True)
+    normalized_intensity = colx.checkbox("Normalized intensity", value=False)
+    x_axis_log = colc.checkbox("Logarithmic X-axis", value=False)
+    y_axis_log = cold.checkbox("Logarithmic Y-axis", value=False)
+
+    col_line, col_marker = st.columns([1, 1])
+    show_lines = col_line.checkbox("Show Lines", value=True)
+    show_markers = col_marker.checkbox("Show Markers", value=True)
+
+    col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([1, 1, 1, 1,1])
+    fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
+    if fix_x_axis == True:
+        x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
+        x_axis_max = col_xmax.number_input("X-axis Maximum", value=10.0)
+    line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0, step=0.3)
+    marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0, step=1.0)
+
+
+    if user_pattern_file:
+        files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
+
+        if has_header:
+            try:
+                sample_file = files[0]
+                sample_file.seek(0)
+                df_sample = pd.read_csv(
+                    sample_file,
+                    sep=r'\s+|,|;',
+                    engine='python',
+                    header=0
+                )
+                x_axis_metric = df_sample.columns[0]
+                y_axis_metric = df_sample.columns[1]
+            except Exception as e:
+                st.error(f"Error reading header from file {sample_file.name}: {e}")
+                x_axis_metric = "X-data"
+                y_axis_metric = "Y-data"
+        else:
+            x_axis_metric = "X-data"
+            y_axis_metric = "Y-data"
+
+        offset_cols = st.columns(len(files))
+        y_offsets = []
+        for i, file in enumerate(files):
+            offset_val = offset_cols[i].number_input(
+                f"Y offset for {file.name}",
+                value=0.0,
+                key=f"y_offset_{i}"
+            )
+            y_offsets.append(offset_val)
+
+        fig_interactive = go.Figure()
+        for i, file in enumerate(files):
+            try:
+                file.seek(0)
+                if has_header:
+                    df = pd.read_csv(
+                        file,
+                        sep=r'\s+|,|;',
+                        engine='python',
+                        header=0
+                    )
+                else:
+                    if skip_header:
+                        df = pd.read_csv(
+                            file,
+                            sep=r'\s+|,|;',
+                            engine='python',
+                            header=None,
+                            skiprows=1
+                        )
+                    else:
+                        df = pd.read_csv(
+                            file,
+                            sep=r'\s+|,|;',
+                            engine='python',
+                            header=None
+                        )
+                    df.columns = [f"Column {j + 1}" for j in range(len(df.columns))]
+
+                x_data = df.iloc[:, 0].values
+                y_data = df.iloc[:, 1].values
+
+            except Exception as e:
+                st.error(f"Error processing file {file.name}: {e}")
+                continue
+
+            try:
+                if normalized_intensity and np.max(y_data) > 0:
+                    y_data = (y_data / np.max(y_data)) * 100
+                y_data = y_data + y_offsets[i]
+
+                mask = np.ones_like(x_data, dtype=bool)
+                if x_axis_log:
+                    mask &= (x_data > 0)
+                if y_axis_log:
+                    mask &= (y_data > 0)
+                if not np.all(mask):
+                    st.warning(
+                        f"In file '{file.name}', some data points were omitted because they are not positive and are required for logarithmic scaling.")
+                x_data = x_data[mask]
+                y_data = y_data[mask]
+
+                if x_axis_log:
+                    x_data = np.log10(x_data)
+                if y_axis_log:
+                    y_data = np.log10(y_data)
+
+                color = colors[i % len(colors)]
+                mode_str = ""
+                if show_lines:
+                    mode_str += "lines"
+                if show_markers:
+                    if mode_str:
+                        mode_str += "+markers"
+                    else:
+                        mode_str = "markers"
+                if not mode_str:
+                    mode_str = "markers"
+
+                fig_interactive.add_trace(go.Scatter(
+                    x=x_data,
+                    y=y_data,
+                    mode=mode_str,
+                    name=file.name,
+                    line=dict(dash='solid', width=line_thickness, color=color),
+                    marker=dict(color=color, size=marker_size),
+                    hovertemplate=(
+                        f"<span style='color:{color};'><b>{file.name}</b><br>"
+                        "x = %{x:.2f}<br>y = %{y:.2f}</span><extra></extra>"
+                    )
+                ))
+
+            except Exception as e:
+                st.error(
+                    f"Error occurred in file processing. Please check whether your uploaded files are consistent: {e}")
+
+        fig_interactive.update_xaxes(type="linear")
+        fig_interactive.update_yaxes(type="linear")
+        fig_interactive.update_layout(
+            height=1100,
+            margin=dict(t=80, b=80, l=60, r=30),
+            hovermode="closest",
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=28),
+                title="Legend Title"
+            ),
+            xaxis=dict(
+                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                tickfont=dict(size=36, color='black')
+            ),
+            yaxis=dict(
+                title=dict(text=y_axis_metric, font=dict(size=36, color='black')),
+                tickfont=dict(size=36, color='black')
+            ),
+            hoverlabel=dict(font=dict(size=24)),
+            font=dict(size=18),
+            autosize=True
+        )
+
+        # Apply x-axis range from user input
+        if fix_x_axis == True:
+            fig_interactive.update_xaxes(range=[x_axis_min, x_axis_max])
+
+        st.plotly_chart(fig_interactive)
 # If used in academic publications, please cite:
 
+st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 st.markdown("""
+**The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
+""")
+st.markdown("""
+
 ### Acknowledgments
 
 This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers:
