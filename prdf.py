@@ -153,14 +153,14 @@ mode = "Advanced"
 
 
 calc_mode = st.sidebar.radio("Choose Type of Calculation/Analysis",
-                     options=[f"**🔬 Structure Visualization**", "💥 Diffraction Pattern Calculation",
-                              "📊 (P)RDF Calculation",
-                              "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)",
-                              "📈 Interactive Data Plot"
+                     options=[f"**🔬 Structure Visualization**", "**💥 Diffraction Pattern Calculation**",
+                              "**📊 (P)RDF Calculation**",
+                              "**🛠️ Online Peak Matching** (UNDER TESTING, being regularly upgraded 😊)",
+                              "**📈 Interactive Data Plot**"
                               ],
 
                      index=1)
-if calc_mode == "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)":
+if calc_mode == "**🛠️ Online Peak Matching** (UNDER TESTING, being regularly upgraded 😊)":
     st.subheader("For the Online Peak Matching Subtool, Please visit: ")
     st.markdown(
         '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
@@ -232,7 +232,7 @@ pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
 pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
 
-if calc_mode != "📈 Interactive Data Plot":
+if calc_mode != "**📈 Interactive Data Plot**":
     with st.expander("Search for Structures Online in Databases", icon="🔍"):
         cols, cols2, cols3 = st.columns([1, 1,3])
         with cols:
@@ -732,7 +732,7 @@ if "original_structures" not in st.session_state:
 if "base_modified_structure" not in st.session_state:
      st.session_state["base_modified_structure"] = None
 
-if calc_mode == "🔬 Structure Visualization":
+if calc_mode == "**🔬 Structure Visualization**":
     # show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
     show_structure = True
     if uploaded_files:
@@ -1713,7 +1713,7 @@ if mode == "Basic":
 
 # with col_settings:
 
-if calc_mode == "💥 Diffraction Pattern Calculation":
+if calc_mode == "**💥 Diffraction Pattern Calculation**":
     st.subheader(
         "⚙️ Diffraction Settings",
         help=(
@@ -2792,7 +2792,7 @@ if calc_mode == "💥 Diffraction Pattern Calculation":
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
-if calc_mode == "📊 (P)RDF Calculation":
+if calc_mode == "**📊 (P)RDF Calculation**":
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings", help = "🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
         "providing insight into **local environments** and **structural disorder**. "
@@ -2950,7 +2950,7 @@ if calc_mode == "📊 (P)RDF Calculation":
             st.code(table_str, language="text")
 
 
-if calc_mode =="📈 Interactive Data Plot":
+if calc_mode =="**📈 Interactive Data Plot**":
 
 
 
