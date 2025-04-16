@@ -153,7 +153,7 @@ mode = "Advanced"
 
 
 calc_mode = st.sidebar.radio("Choose Type of Calculation/Analysis",
-                     options=["🔬 Structure Visualization", "💥 Diffraction Pattern Calculation",
+                     options=[f"**🔬 Structure Visualization**", "💥 Diffraction Pattern Calculation",
                               "📊 (P)RDF Calculation",
                               "🛠️ Online Peak Matching (UNDER TESTING, being regularly upgraded 😊)",
                               "📈 Interactive Data Plot"
