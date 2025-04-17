@@ -51,7 +51,7 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-# Inject custom CSS for buttons.
+
 st.markdown(
     """
     <style>
@@ -138,11 +138,8 @@ with col1:
 
 pattern_details = None
 
-# st.divider()
 
-# Add mode selection at the very beginning
 st.sidebar.markdown("## 🍕 XRDlicious")
-# mode = st.sidebar.radio("Select Mode", ["Basic", "Advanced"], index=0)
 mode = "Advanced"
 
 calc_mode = st.sidebar.multiselect(
@@ -163,7 +160,7 @@ if "**🛠️ Online Peak Matching** (UNDER TESTING, being regularly upgraded �
         unsafe_allow_html=True
     )
 
-# Initialize session state keys if not already set.
+# Initialize session state keys
 if 'mp_options' not in st.session_state:
     st.session_state['mp_options'] = None
 if 'selected_structure' not in st.session_state:
@@ -171,8 +168,7 @@ if 'selected_structure' not in st.session_state:
 if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
     st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
 
-# Create two columns: one for search and one for structure selection and actions.
-# st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+
 
 st.markdown(
     """
@@ -203,16 +199,14 @@ user_pattern_file = st.sidebar.file_uploader(
 
 if uploaded_files_user_sidebar:
     for file in uploaded_files_user_sidebar:
-        # Only add the file if it hasn't been processed before.
         if file.name not in st.session_state.full_structures:
             try:
-                # Replace load_structure with your structure-parsing function.
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
             except Exception as e:
                 st.error(f"Failed to parse {file.name}: {e}")
 
-# Column 1: Search for structures.
+
 structure_cell_choice = st.sidebar.radio(
     "Structure Cell Type:",
     options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
@@ -236,7 +230,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                 help="Choose whether to search for structures in the Materials Project (about 179 000 Materials Entries), Crystallographic Open Database (COD), or in the AFLOW database with ICSD catalog (about 60 000 ICSD Entries)."
             )
         if db_choice == "COD":
-            # Get COD search query string from sidebar
             with col1:
                 with cols2:
                     cod_search_query = st.text_input(
@@ -286,7 +279,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                     else:
                         st.error("Please enter at least one element for the COD search.")
 
-            # Display search results if available.
             with cols3:
                 st.subheader("Structures Found in COD")
                 if 'cod_options' in st.session_state and st.session_state.cod_options:
@@ -306,14 +298,12 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                        f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
                         st.write(f"**Lattice Parameters:** {lattice_str}")
 
-                        # Create a link to the COD website using the file id (remove the 'cod_' prefix).
                         cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
                         st.write(f"**Link:** {cod_url}")
 
-                        # Define file_name now, so it is available for both adding and downloading.
+
                         file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
 
-                        # "Add" structure button
                         if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
                             from pymatgen.io.cif import CifWriter
 
@@ -330,7 +320,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                 st.session_state.uploaded_files.append(cif_file)
                             st.success("Structure added from COD!")
 
-                        # Download button using the defined file_name
                         from pymatgen.io.cif import CifWriter
 
                         st.download_button(
@@ -360,13 +349,8 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                 st.session_state.mp_options = []
                                 st.session_state.full_structures_see = {}  # store full pymatgen Structures
                                 for doc in docs:
-                                    # Retrieve the full structure
                                     full_structure = mpr.get_structure_by_material_id(doc.material_id)
-                                    # (Optionally, convert to conventional cell here)
-                                    # Retrieve the full structure (including lattice parameters)
                                     if convert_to_conventional:
-                                        # analyzer = SpacegroupAnalyzer(full_structure)
-                                        # structure_to_use = analyzer.get_conventional_standard_structure()
                                         structure_to_use = get_full_conventional_structure(full_structure, symprec=0.1)
                                     elif pymatgen_prim_cell_lll:
                                         analyzer = SpacegroupAnalyzer(full_structure)
@@ -400,20 +384,14 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                     aflow_elements_input = st.text_input("Enter elements separated by spaces (e.g., Sr Ti O):",
                                                          value="Sr Ti O")
 
-            # Process user input:
             if aflow_elements_input:
                 import re
 
-                # Replace commas with spaces, then split on whitespace.
                 elements = re.split(r'[\s,]+', aflow_elements_input.strip())
                 elements = [el for el in elements if el]  # Remove any empty strings.
 
-                # Order elements alphabetically.
                 ordered_elements = sorted(elements)
-
-                # Create a comma-separated string for the inner search.
                 ordered_str = ",".join(ordered_elements)
-                # Automatically calculate number of species.
                 aflow_nspecies = len(ordered_elements)
             else:
                 ordered_str = ""
@@ -441,9 +419,7 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                             st.session_state.aflow_options = []
                             st.session_state.entrys = {}  # store full AFLOW entry objects
                             for entry in results:
-                                # Save the full entry object in session state.
                                 st.session_state.entrys[entry.auid] = entry
-                                # Use the provided geometry string from AFLOW for display.
                                 st.session_state.aflow_options.append(
                                     f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax} {entry.geometry})"
                                 )
@@ -467,21 +443,12 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                 file_name = f"{selected_id}_{composition}.cif"
                 file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
-                # Retrieve the corresponding MP structure from session state.
                 if selected_id in st.session_state.full_structures_see:
                     selected_entry = st.session_state.full_structures_see[selected_id]
 
-                    # st.write("### Selected Structure Details")
                     st.write(f"**Material ID:** {selected_id}, **Formula:** {composition}")
 
-                    # Display original lattice parameters
-                    # lattice = selected_entry.lattice
-                    # st.write(f"**Primitive Cell Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å")
-                    # st.write(f"**Primitive Cell Angles:** α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
-
                     if convert_to_conventional:
-                        # analyzer = SpacegroupAnalyzer(full_structure)
-                        # structure_to_use = analyzer.get_conventional_standard_structure()
                         converted_structure = get_full_conventional_structure(selected_entry, symprec=0.1)
                         conv_lattice = converted_structure.lattice
                         st.write(
@@ -507,10 +474,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                         conv_lattice = converted_structure.lattice
                         st.write(
                             f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å, α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
-
-                    # Optionally, convert to the conventional cell using your defined function.
-
-                    # Optionally, show space group using pymatgen's SpacegroupAnalyzer.
                     from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
                     analyzer = SpacegroupAnalyzer(selected_entry)
@@ -545,15 +508,10 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                 st.subheader("Structures Found in AFLOW")
                 selected_structure = st.selectbox("Select a structure from AFLOW:", st.session_state.aflow_options)
                 selected_auid = selected_structure.split(": ")[0].strip()
-                # Retrieve the corresponding AFLOW entry from session state.
                 selected_entry = next(
                     (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid), None)
                 if selected_entry:
-                    # st.write("### Selected Structure Details")
                     st.write(f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}")
-                    # st.write(f"**Space Group:** ({selected_entry.spacegroup_relax})")
-
-                    # Identify a CIF file (choose one ending with '_sprim.cif' or '.cif')
 
                     cif_files = [f for f in selected_entry.files if f.endswith("_sprim.cif") or f.endswith(".cif")]
 
@@ -568,13 +526,9 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                         corrected_aurl = f"{host_part}/{path_part}"
 
                         file_url = f"http://{corrected_aurl}/{cif_filename}"
-
-                        # Fetch the CIF file once.
-
                         response = requests.get(file_url)
                         cif_content = response.content
 
-                        # "Add" button: store the CIF file in session state.
                         structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
                         if convert_to_conventional:
                             converted_structure = get_full_conventional_structure(structure_from_aflow, symprec=0.1)
@@ -602,7 +556,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                             st.write(
                                 f"**Primitive Cell (Niggli) Lattice:** a = {conv_lattice.a:.3f} Å, b = {conv_lattice.b:.3f} Å, c = {conv_lattice.c:.3f} Å, α = {conv_lattice.alpha:.2f}°, β = {conv_lattice.beta:.2f}°, γ = {conv_lattice.gamma:.2f}°")
                         else:
-                            # If no conversion flag is set, display the original lattice.
                             lattice = structure_from_aflow.lattice
                             st.write(
                                 f"**Original Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}°")
@@ -638,44 +591,29 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
 
 
 def validate_atom_dataframe(df):
-    """
-    Validate the atomic positions dataframe to ensure all required fields are properly filled.
-
-    Parameters:
-    - df (pd.DataFrame): The DataFrame from st.data_editor
-
-    Returns:
-    - tuple: (is_valid, error_message)
-        - is_valid (bool): True if dataframe is valid, False otherwise
-        - error_message (str): Description of the validation error, empty if valid
-    """
     required_columns = ["Element", "Frac X", "Frac Y", "Frac Z", "Occupancy"]
 
-    # First check if all required columns exist
     for col in required_columns:
         if col not in df.columns:
             return False, f"Missing required column: {col}"
 
-    # Check for empty values in required columns
     for col in required_columns:
         if df[col].isna().any() or (df[col] == "").any():
             rows_with_empty = df[df[col].isna() | (df[col] == "")].index.tolist()
             return False, f"Empty values in '{col}' column (rows {rows_with_empty}). Please complete all fields."
 
-    # Check for valid numeric values in coordinate columns
+
     for col in ["Frac X", "Frac Y", "Frac Z", "Occupancy"]:
         try:
             df[col].astype(float)
         except (ValueError, TypeError):
             return False, f"Invalid numeric values in '{col}' column. Please enter valid numbers."
 
-    # Check that occupancy is between 0 and 1
 
-    # Check that Element is a valid chemical symbol
+
     for idx, elem in enumerate(df["Element"]):
         if not isinstance(elem, str) or not elem.strip():
             return False, f"Row {idx + 1}: Element cannot be empty"
-        # Optional: Add more sophisticated element validation if needed
 
     return True, ""
 
@@ -686,14 +624,13 @@ if uploaded_files_user_sidebar:
     for file in uploaded_files_user_sidebar:
         try:
             structure = load_structure(file)
-            # Use file.name as the key (or modify to a unique identifier if needed)
             st.session_state['full_structures'][file.name] = structure
         except Exception as e:
             st.error(f"Failed to parse {file.name}: {e}")
 else:
     uploaded_files = st.session_state['uploaded_files']
 
-# Column 2: Select structure and add/download CIF.
+
 
 
 if uploaded_files:
@@ -729,8 +666,6 @@ if uploaded_files:
                 for sp in atom.species:
                     species_set.add(sp.symbol)
     species_list = sorted(species_set)
-    # st.subheader("📊 Detected Atomic Species")
-    # st.write(", ".join(species_list))
 else:
     species_list = []
 
@@ -747,36 +682,20 @@ if "base_modified_structure" not in st.session_state:
 if "new_symmetry" not in st.session_state:
     st.session_state["new_symmetry"] = None
 
-# Structure Visualization Mode ----------
 def recalc_computed_columns(df, lattice):
-    """
-    Update the DataFrame after user edits:
-    - If fractional coords are modified, recalculate Cartesian coordinates.
-    - Keep all other columns as-is.
-    - Reset the 'No' column for indexing.
 
-    Parameters:
-    - df (pd.DataFrame): The DataFrame from st.data_editor.
-    - lattice (pymatgen.core.Lattice): Lattice object used for conversion.
-
-    Returns:
-    - pd.DataFrame: Updated DataFrame.
-    """
     import numpy as np
 
     df = df.copy()
 
-    # Drop and reset the numbering column
+
     if "No" in df.columns:
         df = df.drop(columns=["No"])
     df.insert(0, "No", range(1, len(df) + 1))
 
-    # Ensure coordinate columns exist
     for col in ["Frac X", "Frac Y", "Frac Z", "X", "Y", "Z"]:
         if col not in df.columns:
             df[col] = 0.0
-
-    # Try converting fractional coordinates to float and recalculate Cartesian
     try:
         frac_coords = df[["Frac X", "Frac Y", "Frac Z"]].astype(float).values
         cart_coords = lattice.get_cartesian_coords(frac_coords)
@@ -785,10 +704,8 @@ def recalc_computed_columns(df, lattice):
         df["Z"] = np.round(cart_coords[:, 2], 3)
         df["Occupancy"] = df["Occupancy"].astype(float)
     except Exception as e:
-        # If user input is invalid, don't update cartesian
         st.warning(f"Could not recalculate Cartesian coordinates: {e}")
 
-    # Fill any missing expected columns if needed
     for col in ["Elements", "Atom", "Wyckoff", "Occupancy"]:
         if col not in df.columns:
             df[col] = ""
@@ -797,30 +714,10 @@ def recalc_computed_columns(df, lattice):
 
 
 def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
-    """
-    Automatically save the current structure as a CIF file.
-
-    Parameters:
-    -----------
-    auto_save_filename : str
-        Filename to save the structure as (should end with .cif)
-    visual_pmg_structure : Structure
-        The reference structure whose lattice will be used
-
-    Returns:
-    --------
-    bool
-        True if saving was successful, False otherwise
-    """
     try:
-        # Group atoms by fractional coordinates
         grouped_data = st.session_state.modified_atom_df.copy()
         grouped_data[['Frac X', 'Frac Y', 'Frac Z']] = grouped_data[['Frac X', 'Frac Y', 'Frac Z']].round(5)
-
-        # Group by position
         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
-        # Create new structure with correct occupancies
         new_struct = Structure(visual_pmg_structure.lattice, [], [])
 
         for (x, y, z), group in position_groups:
@@ -833,25 +730,22 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
             new_struct.append(species=species_dict, coords=position,
                               coords_are_cartesian=False, properties=props)
 
-        # Save CIF content
         st.session_state.auto_saved_structure = new_struct.copy()
         cif_writer = CifWriter(new_struct, symprec=0.1, write_site_properties=True)
         cif_content = cif_writer.__str__()
 
-        # Prepare file
         cif_file = io.BytesIO(cif_content.encode('utf-8'))
         cif_file.name = auto_save_filename
 
-        # Manage file list in session state
         if 'uploaded_files' not in st.session_state:
             st.session_state.uploaded_files = []
 
-        # Replace existing file with the same name
+
         st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                            f.name != auto_save_filename]
         st.session_state.uploaded_files.append(cif_file)
 
-        # Update the final structures list
+
         if "final_structures" not in st.session_state:
             st.session_state.final_structures = {}
 
@@ -860,7 +754,6 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
         st.session_state["original_structures"][file_key] = new_struct
 
         st.success(f"Structure automatically saved as '{auto_save_filename}'.")
-        #st.rerun()
         return True
 
 
@@ -869,9 +762,6 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
         return False
 
 
-# Example usage:
-# if auto_save_structure:
-#     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
 
 if "modified_defects" not in st.session_state:
     st.session_state["modified_defects"] = {}
@@ -892,19 +782,15 @@ if "expander_defects" not in st.session_state:
 
 
 if "**🔬 Structure Visualization**" in calc_mode:
-    #auto_save_structure = st.checkbox("🔄 Automatically save structure modifications (IN FUTURE UPDATE)", value=False,  disabled=True)
-    #auto_save_filename = st.text_input("Enter a filename for auto-saved modifications:", "auto_saved_structure.cif")
+
     auto_save_structure = False
     auto_save_filename = False
-    # show_structure = st.sidebar.checkbox("Show Structure Visualization Tool", value=True)
     show_structure = True
     if uploaded_files:
         if "helpful" not in st.session_state:
             st.session_state["helpful"] = False
         if show_structure:
             col_viz, col_mod, col_download = st.columns(3)
-
-            # Initialize session state keys if not set
             if "current_structure" not in st.session_state:
                 st.session_state["current_structure"] = None
             if "selected_file" not in st.session_state:
@@ -918,20 +804,16 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 else:
                     selected_file = st.radio("", file_options)
             with col_mod:
-                apply_cell_conversion = st.checkbox("🧱 Find a new symmetry", value=False)
+                apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
-                    "🧱 Allow conversion between cell representation (will lead to lost information about occupancies)",
+                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost information about occupancies)",
                     value=False)
-
-            # Check if selection changed
             if selected_file != st.session_state["selected_file"]:
                 st.session_state["modified_defects"] = {}
                 st.session_state["current_structure"] = None
-
-                # Update the session state
                 st.session_state["selected_file"] = selected_file
 
-                # Read the new structure
+
                 try:
                     mp_struct = load_structure(selected_file)
 
@@ -939,44 +821,22 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     structure = read(selected_file)
                     mp_struct = AseAtomsAdaptor.get_structure(structure)
 
-                # Save to session state
                 st.session_state["current_structure"] = mp_struct
                 st.session_state["original_structures"][selected_file] = mp_struct.copy()
                 st.session_state["auto_saved_structure"] = mp_struct.copy()
-          #  else:
-                # Use the stored structure
-          #      mp_struct = st.session_state["current_structure"]
+
             selected_file = st.session_state.get("selected_file")
             original_structures = st.session_state["original_structures"]
 
         if "selected_file" not in st.session_state or st.session_state.selected_file != selected_file:
             st.session_state.selected_file = selected_file
 
-        # --------------------------------------------------
-        # Define a color mapping for common elements.
-        # --------------------------------------------------
         color_map = jmol_colors
 
-
-        # --------------------------------------------------
-        # Helper function: Recalculate computed columns
-        # --------------------------------------------------
-
-        # --------------------------------------------------
-        # Use the selected file from the col_viz section.
-        # Assume selected_file is defined already in your col_viz block.
-        # Load the structure from the selected file.
         visual_pmg_structure = load_structure(selected_file)
-
-        # DEBUGGING FOR OCCUPANCIES
-        #for i, site in enumerate(visual_pmg_structure.sites):
-        #    st.write(f"Site {i + 1} occupancy info: {site.species}")
-            # Reinitialize the interactive table if the selected file has changed.
-
         file_changed = selected_file != prev_selected_file
 
         if file_changed:
-            # Reset current structure and related session states
             st.session_state["current_structure"] = None
             try:
                 mp_struct = load_structure(selected_file)
@@ -986,8 +846,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 mp_struct = AseAtomsAdaptor.get_structure(structure)
             st.session_state["current_structure"] = mp_struct
             st.session_state["original_structures"][selected_file] = mp_struct.copy()
-
-        # After all logic, update selected_file in session state
         st.session_state["selected_file"] = selected_file
 
         if file_changed or "modified_atom_df" not in st.session_state:
@@ -995,13 +853,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
 
         def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
-            """
-            Build a DataFrame with full occupancy info and Wyckoff positions.
-            - Sites with multiple species (e.g., Ti:0.5, Ni:0.5) are split into separate rows
-            - Each row represents a single element at a site with its occupancy value
-            - Includes element indices (Ti1, Ti2, etc.)
-            """
-            # Try to get Wyckoff positions using symmetry analyzer
             try:
                 sga = SpacegroupAnalyzer(structure, symprec=0.1)
                 wyckoffs = sga.get_symmetry_dataset()["wyckoffs"]
@@ -1009,34 +860,25 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 wyckoffs = ["-"] * len(structure.sites)
 
             initial_data = []
-            row_index = 1  # For the "No" column
-
-            # Count occurrences of each element for indexing
+            row_index = 1
             element_counts = {}
 
             for i, site in enumerate(structure.sites):
                 frac = site.frac_coords
                 cart = structure.lattice.get_cartesian_coords(frac)
-
-                # Create a row for each element at this site
                 for sp, occ in site.species.items():
-                    #st.write(sp,occ )
                     element = sp.symbol
-
-                    # Update element counter
                     if element not in element_counts:
                         element_counts[element] = 1
                     else:
                         element_counts[element] += 1
-
-                    # Create element with index (e.g., Ti1, Ti2)
                     element_indexed = f"{element}{element_counts[element]}"
 
                     row = {
                         "No": row_index,
                         "Element": element,
-                        "Element_Index": element_indexed,  # Add the new column
-                        "Occupancy": round(occ, 3),  # This might be getting inferred as integer if all are 1.0
+                        "Element_Index": element_indexed,
+                        "Occupancy": round(occ, 3),
                         "Frac X": round(frac[0], 3),
                         "Frac Y": round(frac[1], 3),
                         "Frac Z": round(frac[2], 3),
@@ -1048,8 +890,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
                     initial_data.append(row)
                     row_index += 1
-
-            # Create DataFrame with explicit column types
             df = pd.DataFrame(initial_data)
 
 
@@ -1063,7 +903,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
             mp_struct = AseAtomsAdaptor.get_structure(structure)
 
         if st.session_state["auto_saved_structure"]:
-        # Use the auto-saved modified structure if it exists
             mp_struct = st.session_state["auto_saved_structure"].copy()
         elif not st.session_state["modified_defects"]:
             mp_struct = mp_struct.copy()
@@ -1074,8 +913,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
         if cell_convert_or:
             if convert_to_conventional:
-                # analyzer = SpacegroupAnalyzer(mp_struct)
-                # converted_structure = analyzer.get_conventional_standard_structure()
                 converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
             elif pymatgen_prim_cell_niggli:
                 analyzer = SpacegroupAnalyzer(mp_struct)
@@ -1095,8 +932,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
         for i, site in enumerate(mp_struct.sites):
             frac = site.frac_coords
             cart = mp_struct.lattice.get_cartesian_coords(frac)
-
-            # Create a row for each element at this site
 
 
 
@@ -1125,21 +960,18 @@ if "**🔬 Structure Visualization**" in calc_mode:
             n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
                                     value=st.session_state["supercell_n_c"], step=1)
 
-        # Update session state
         st.session_state["supercell_n_a"] = n_a
         st.session_state["supercell_n_b"] = n_b
         st.session_state["supercell_n_c"] = n_c
 
         supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
 
-        # I want to always apply the supercell transofrmations on the initial cell
 
         if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-        # Create the supercell
+
             transformer = SupercellTransformation(supercell_matrix)
             mp_struct = transformer.apply_transformation(st.session_state["original_structures"][selected_file])
 
-            # Store in session state for table/plot updates
             st.session_state["current_structure"] = mp_struct
             st.session_state["auto_saved_structure"] = mp_struct
             st.rerun()
@@ -1148,8 +980,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
         if apply_cell_conversion:
             if convert_to_conventional:
-                # analyzer = SpacegroupAnalyzer(mp_struct)
-                # converted_structure = analyzer.get_conventional_standard_structure()
+
                 converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
             elif pymatgen_prim_cell_niggli:
                 analyzer = SpacegroupAnalyzer(mp_struct)
@@ -1166,9 +997,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
             st.session_state["auto_saved_structure"] = converted_structure
             st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
         else:
-            #  if "base_modified_structure" not in st.session_state:
-            # Initially, set the base to the current modified structure.
-            #      st.session_state["base_modified_structure"] = mp_struct.copy()
             print("DIDNT APPLY ANYTHING")
             converted_structure = mp_struct
 
@@ -1176,7 +1004,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
         mp_struct = converted_structure
         visual_pmg_structure = mp_struct
 
-        # ---- END OF SUPERCELLS -----
+
         if st.session_state["auto_saved_structure"]:
             mp_struct = st.session_state["auto_saved_structure"]
         elif not st.session_state["modified_defects"]:
@@ -1186,20 +1014,19 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
         from pymatgen.core import Structure, Element
 
-        with st.expander("Create Point Defects", icon='❌', expanded=st.session_state["expander_defects"]):
+        with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
 
             colb1, colb2, colb3 = st.columns(3)
 
             with colb2:
                 st.session_state["expander_defects"] = True
                 def wrap_coordinates(frac_coords):
-                    """Wrap fractional coordinates into [0,1)."""
                     coords = np.array(frac_coords)
                     return coords % 1
 
 
                 def compute_periodic_distance_matrix(frac_coords):
-                    """Compute pairwise distances considering periodic boundary conditions."""
+
                     n = len(frac_coords)
                     dist_matrix = np.zeros((n, n))
                     for i in range(n):
@@ -1216,7 +1043,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
                     import random
                     selected_indices = [random.randrange(len(coords_wrapped))]
-                    # selected_indices = [0]  # Always select the first candidate as the start.
                     for _ in range(1, n_points):
                         remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
                         if mode == "farthest":
@@ -1233,7 +1059,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                             raise ValueError(
                                 "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
                         selected_indices.append(next_index)
-                    # Return both the selected coordinates and their local indices.
+
                     selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
                     return selected_coords, selected_indices
 
@@ -1298,7 +1124,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                             else:
                                 frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
 
-                            # Select the desired number of points.
+
                             selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
                                                                       mode=mode)
                             new_structure = structure.copy()
@@ -1311,8 +1137,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         return new_structure
 
 
-                # ---------- Vacancy Functions ----------
-
                 def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
                                                     target_value=0.5):
                     with colb3:
@@ -1320,7 +1144,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                             new_structure = structure.copy()
                             indices_to_remove = []
                             for el, perc in vacancy_percentages.items():
-                                # Get indices of sites for the element.
                                 el_indices = [i for i, site in enumerate(new_structure.sites) if
                                               site.specie.symbol == el]
                                 n_sites = len(el_indices)
@@ -1328,20 +1151,16 @@ if "**🔬 Structure Visualization**" in calc_mode:
                                 st.write(f"🧠 Removed {n_remove} atoms of {el}.")
                                 if n_remove < 1:
                                     continue
-                                # Get the fractional coordinates of these sites.
                                 el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
-                                # If fewer removals than available sites, use the selection function.
                                 if n_remove < len(el_coords):
                                     _, selected_local_indices = select_spaced_points(el_coords,
                                                                                      n_points=n_remove,
                                                                                      mode=selection_mode,
                                                                                      target_value=target_value)
-                                    # Map the selected local indices back to global indices.
                                     selected_global_indices = [el_indices[i] for i in selected_local_indices]
                                 else:
                                     selected_global_indices = el_indices
                                 indices_to_remove.extend(selected_global_indices)
-                            # Remove sites in descending order (so that indices remain valid).
                             for i in sorted(indices_to_remove, reverse=True):
                                 new_structure.remove_sites([i])
                     return new_structure
@@ -1382,7 +1201,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                                     selected_global_indices = indices
                                 for i in selected_global_indices:
                                     new_species[i] = sub_el
-                            # Rebuild the structure using the original lattice, updated species, and coordinates.
                             new_structure = Structure(structure.lattice, new_species, new_coords,
                                                       coords_are_cartesian=False)
                     return new_structure
@@ -1466,7 +1284,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     st.markdown("""
     
                         """)
-                    # Row 1: Two columns for vacancy mode and target value
+
                     col1, col2 = st.columns(2)
                     vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
                                                             ["farthest", "nearest", "moderate"], index=0)
@@ -1476,7 +1294,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     else:
                         vacancy_target_value = 0.5
 
-                    # Row 2: One column per element for vacancy percentage input
+
                     elements = sorted({site.specie.symbol for site in mp_struct.sites})
                     cols = st.columns(len(elements))
                     vacancy_percentages = {
@@ -1489,7 +1307,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     st.markdown("""
                         **Substitution Settings**
                         """)
-                    # Row 1: Substitution mode and target value
+
                     col1, col2 = st.columns(2)
                     substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
                                                                  ["farthest", "nearest", "moderate"], index=0)
@@ -1499,7 +1317,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                                                                       format="%.2f")
                     else:
                         substitution_target_value = 0.5
-                    # Row 2: One column per element (each showing two inputs: percentage and target)
+
                     elements = sorted({site.specie.symbol for site in mp_struct.sites})
                     cols = st.columns(len(elements))
                     substitution_settings = {}
@@ -1529,11 +1347,9 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         visual_pmg_structure = mp_struct
                         st.session_state["modified_defects"] = updated_structure
                         st.session_state["auto_saved_structure"] = updated_structure
-                        # base_for_supercell = st.session_state["base_modified_structure"]
                         with colb3:
                             st.success("Interstitials inserted and structure updated!")
                         st.session_state["helpful"] = True
-                        #st.rerun()
                 elif operation_mode == "Create Vacancies":
                     if not st.session_state["modified_defects"]:
                         mp_struct = mp_struct.copy()
@@ -1547,7 +1363,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
                         mp_struct = updated_structure
                         st.session_state["current_structure"] = updated_structure
-                        # base_for_supercell = st.session_state["base_modified_structure"]
                         st.session_state["last_multiplier"] = (1, 1, 1)
                         visual_pmg_structure = mp_struct
                         st.session_state["modified_defects"] = updated_structure
@@ -1555,7 +1370,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         with colb3:
                             st.success("Vacancies created and structure updated!")
                         st.session_state["helpful"] = True
-                        #st.rerun()
                 elif operation_mode == "Substitute Atoms":
                     if not st.session_state["modified_defects"]:
                         mp_struct = mp_struct.copy()
@@ -1571,14 +1385,11 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         st.session_state["current_structure"] = updated_structure
                         st.session_state["modified_defects"] = updated_structure
                         st.session_state["auto_saved_structure"] = updated_structure
-                        # base_for_supercell = st.session_state["base_modified_structure"]
                         visual_pmg_structure = mp_struct
                         with colb3:
                             st.success("Substitutions applied and structure updated!")
                         st.session_state["helpful"] = True
-                        #st.rerun()
-        #if st.session_state["auto_saved_structure"]:
-        #    mp_struct = st.session_state["auto_saved_structure"]
+
         if not st.session_state["modified_defects"]:
             mp_struct = mp_struct.copy()
         else:
@@ -1589,53 +1400,34 @@ if "**🔬 Structure Visualization**" in calc_mode:
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
         print("HEEEEEEEEEEEERSSSSSSS")
         print(st.session_state.modified_atom_df)
-        # --------------------------------------------------
-        # Display the Interactive Data Editor
-        # --------------------------------------------------
 
-       # edited_df = st.data_editor(st.session_state.modified_atom_df, num_rows="dynamic", key="atom_editor")
-        #st.session_state.modified_atom_df = edited_df
-       # st.session_state.modified_atom_df = recalc_computed_columns(edited_df.copy(), visual_pmg_structure.lattice)
 
-        # --------------------------------------------------
-        # Checkbox: Show only atoms with unique Wyckoff positions in the 3D plot.
-        # --------------------------------------------------
-        # Checkbox: Show only atoms with unique Wyckoff positions in the 3D plot.
-
-        # --------------------------------------------------
         col_g1, col_g2 = st.columns([1,4])
         with col_g1:
-            unique_wyckoff_only = st.checkbox("Visualize only atoms with unique Wyckoff positions", value=False)
+            unique_wyckoff_only = st.checkbox("Visualize only atoms with unique **Wyckoff positions** **(Please add the structure to the calculator first if you modified the structure, otherwise it will reset any changes)**", value=False)
 
         if "modified_atom_df" not in st.session_state or "reset_requested" in st.session_state:
             st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
             if "reset_requested" in st.session_state:
                 del st.session_state["reset_requested"]
-        # Create a copy of the full dataframe
         full_df = st.session_state.modified_atom_df.copy()
 
 
 
-        # Prepare the display dataframe based on checkbox
         if unique_wyckoff_only:
-            # Group by Wyckoff position and Element to count occurrences
             grouped = full_df.groupby(['Wyckoff', 'Element']).size().reset_index(name='count')
 
-            # For each unique Wyckoff+Element combination, keep only the first occurrence in the original df
+
             unique_indices = []
             for _, row in grouped.iterrows():
                 wyckoff = row['Wyckoff']
                 element = row['Element']
                 count = row['count']
 
-                # Find first index of this Wyckoff+Element combination
                 idx = full_df[(full_df['Wyckoff'] == wyckoff) & (full_df['Element'] == element)].index[0]
                 unique_indices.append(idx)
 
-            # Filter the DataFrame to keep only the unique positions
             display_df = full_df.loc[unique_indices].copy()
-
-            # Update the Wyckoff column to include multiplicity
             for i, row in display_df.iterrows():
                 wyckoff = row['Wyckoff']
                 element = row['Element']
@@ -1643,16 +1435,10 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 if count > 1:
                     display_df.at[i, 'Wyckoff'] = f"{wyckoff} ({count}x)"
         else:
-            # Use the full dataframe for display
             display_df = full_df
         print("FULL DF")
         print(display_df)
-        # --------------------------------------------------
-        # Display the Interactive Data Editor (ONLY ONE with a unique key)
-        # --------------------------------------------------
 
-
-        # Use a different key based on the view mode to avoid conflicts
         editor_key = "atom_editor_unique" if unique_wyckoff_only else "atom_editor_full"
         with st.expander("Modify atomic sites", icon='⚛️', expanded=st.session_state["expander_atomic_sites"] ):
             st.session_state["expander_open"] = True
@@ -1671,7 +1457,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     "Frac X": st.column_config.NumberColumn(format="%.5f"),
                     "Frac Y": st.column_config.NumberColumn(format="%.5f"),
                     "Frac Z": st.column_config.NumberColumn(format="%.5f"),
-                    # add other columns if needed
                 }
             )
 
@@ -1680,84 +1465,72 @@ if "**🔬 Structure Visualization**" in calc_mode:
             if not is_valid:
                 st.warning(f"⚠️ **Validation Error**: {error_message}")
                 st.warning("Please complete all required fields in the data editor before proceeding.")
-                # Optionally, you could disable further processing here to prevent errors
-                st.stop()  # This will stop execution of the remainder of the script
+                st.stop()
 
-            # Then continue with the existing code for processing the edited dataframe
-            # Detect if changes have been made by comparing to previous state
+
             if 'previous_atom_df' not in st.session_state:
                 st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
 
             if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only == False:
-                # Update modified_atom_df with the new edits
+
                 st.session_state.modified_atom_df = edited_df.copy()
 
-                # Automatic saving if checkbox is selected
+
                 if auto_save_structure:
                     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
 
-                # Update previous state after handling changes
                 st.session_state.previous_atom_df = edited_df.copy()
 
-            # Detect if changes have been made by comparing to previous state
+
             if 'previous_atom_df' not in st.session_state:
                 st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
 
             if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only==False:
-                # Update modified_atom_df with the new edits
+
                 st.session_state.modified_atom_df = edited_df.copy()
 
-                # Automatic saving if checkbox is selected
+
                 if auto_save_structure:
                     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
 
 
-                # Update previous state after handling changes
                 st.session_state.previous_atom_df = edited_df.copy()
 
-            # Update session state based on edits
+
             if edited_df.equals(display_df) == False:
                 if unique_wyckoff_only:
-                    # We need to propagate changes from the unique view back to the full DataFrame
+
                     for i, row in edited_df.iterrows():
                         wyckoff = row['Wyckoff']
                         element = row['Element']
 
-                        # Remove the multiplicity indicator if present
                         if '(' in wyckoff:
                             wyckoff = wyckoff.split(' (')[0]
 
-                        # Update all matching rows in the full DataFrame
                         mask = (full_df['Wyckoff'] == wyckoff) & (full_df['Element'] == element)
 
-                        # Copy the edited values to all matching rows
+
                         for col in ['Frac X', 'Frac Y', 'Frac Z']:
                             full_df.loc[mask, col] = row[col]
 
-                    # Recalculate the Cartesian coordinates for the full dataframe
+
                     st.session_state.modified_atom_df = recalc_computed_columns(full_df, visual_pmg_structure.lattice)
                 else:
-                    # Direct update for full view
+
                     st.session_state.modified_atom_df = recalc_computed_columns(edited_df.copy(),
                                                                                 visual_pmg_structure.lattice)
 
-            # For the 3D plot, use either the filtered or full dataframe
+
 
             df_plot = edited_df  # Use the edited dataframe directly for the plot
 
 
         with col_g1:
-            show_atom_labels = st.checkbox("Show atom labels in 3D visualization", value=True)
+            show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=True)
 
-        #LATTICE PARAMTE
-
-        # --------------------------------------------------
-        # Lattice Parameter Modification Section
-        # --------------------------------------------------
 
         with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
 
-            # Check if lattice parameters are already in session state
             if "lattice_a" not in st.session_state:
                 st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
             if "lattice_b" not in st.session_state:
@@ -1771,7 +1544,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
             if "lattice_gamma" not in st.session_state:
                 st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
 
-            # Store current lattice parameters to detect changes
+
             old_a = st.session_state["lattice_a"]
             old_b = st.session_state["lattice_b"]
             old_c = st.session_state["lattice_c"]
@@ -1779,7 +1552,13 @@ if "**🔬 Structure Visualization**" in calc_mode:
             old_beta = st.session_state["lattice_beta"]
             old_gamma = st.session_state["lattice_gamma"]
 
-            # Create two rows with 3 columns each for the lattice parameters
+            old_a = visual_pmg_structure.lattice.a
+            old_b =visual_pmg_structure.lattice.b
+            old_c = visual_pmg_structure.lattice.c
+            old_alpha = visual_pmg_structure.lattice.alpha
+            old_beta = visual_pmg_structure.lattice.beta
+            old_gamma = visual_pmg_structure.lattice.gamma
+
             col_a, col_b, col_c = st.columns(3)
             col_alpha, col_beta, col_gamma = st.columns(3)
 
@@ -1831,7 +1610,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                                             step=0.1,
                                             format="%.5f")
 
-            # Update session state with new values
             st.session_state["lattice_a"] = new_a
             st.session_state["lattice_b"] = new_b
             st.session_state["lattice_c"] = new_c
@@ -1841,7 +1619,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
             if st.button("Apply Lattice Changes"):
                 try:
                     st.session_state["expander_lattice"] = True
-                    # Create a new lattice using the updated parameters
+
                     from pymatgen.core import Lattice
 
                     new_lattice = Lattice.from_parameters(
@@ -1853,13 +1631,11 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         gamma=new_gamma
                     )
 
-                    # Create a new structure with the updated lattice but same sites
-                    # Get current fractional coordinates from the structure
+
                     frac_coords = [site.frac_coords for site in mp_struct.sites]
                     species = [site.species for site in mp_struct.sites]
                     props = [site.properties for site in mp_struct.sites]
 
-                    # Create a new structure with the updated lattice but keeping the same fractional coordinates
                     from pymatgen.core import Structure
 
                     updated_structure = Structure(
@@ -1870,23 +1646,20 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
                     )
 
-                    # Update the structures in session state
+
                     mp_struct = updated_structure
                     visual_pmg_structure = updated_structure
                     st.session_state["current_structure"] = updated_structure
                     st.session_state["auto_saved_structure"] = updated_structure
 
-                    # Update the atom dataframe to reflect the new Cartesian coordinates
                     if "modified_atom_df" in st.session_state:
                         st.session_state.modified_atom_df = recalc_computed_columns(
                             st.session_state.modified_atom_df.copy(),
                             updated_structure.lattice
                         )
 
-                    # Display success message
                     st.success("Lattice parameters updated successfully!")
 
-                    # Save the modified structure if auto-save is enabled
                     if auto_save_structure:
                         auto_save_structure_function(auto_save_filename, updated_structure)
 
@@ -1894,22 +1667,15 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     st.error(f"Error updating lattice parameters: {e}")
                 st.rerun()
 
-        # (Keep the existing unique_wyckoff_only checkbox)
+        df_plot = df_plot.copy()
 
-        # --------------------------------------------------
 
-        # --------------------------------------------------
-        # Build the 3D Plotly Visualization (Atoms + Unit Cell) with larger fonts and border
-        # --------------------------------------------------
-        df_plot = df_plot.copy()  # Create a copy to avoid modifying the original
-
-        # If show_atom_labels is False, clear the labels
         if not show_atom_labels:
             atom_labels = [""] * len(df_plot)
         else:
-            atom_labels = df_plot["Element_Index"].tolist()  # Use Element_Index for labels
+            atom_labels = df_plot["Element_Index"].tolist()
 
-        elements = df_plot["Element"].tolist()  # Using Element column directly
+        elements = df_plot["Element"].tolist()
         xs = df_plot["X"].tolist()
         ys = df_plot["Y"].tolist()
         zs = df_plot["Z"].tolist()
@@ -1918,12 +1684,11 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 "Base atom size in visualization:",
                 min_value=1,
                 max_value=30,
-                value=20,  # Default value
+                value=20,
                 step=1,
                 help="Adjust the base size of atoms in the 3D visualization - size will adjust with zooming"
             )
 
-        # Then in your plot code, enable dynamic sizing
         atom_traces = []
         unique_elements = sorted(set(elements))
         for elem in unique_elements:
@@ -1933,10 +1698,8 @@ if "**🔬 Structure Visualization**" in calc_mode:
             z_vals = [zs[i] for i in indices]
             labels_for_elem = [atom_labels[i] for i in indices]
 
-            # Only show text if labels are enabled
             mode = 'markers+text' if show_atom_labels else 'markers'
 
-            # Configure marker with dynamic sizing
             trace = go.Scatter3d(
                 x=x_vals, y=y_vals, z=z_vals,
                 mode=mode,
@@ -1944,10 +1707,9 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     size=base_atom_size,
                     color=color_map.get(elem, "gray"),
                     opacity=1,
-                    # Enable dynamic sizing based on zoom level
                     sizemode='area',
-                    sizeref=2.5,  # Smaller values make size more responsive to zoom
-                    sizemin=0.5,  # Minimum size when zoomed out very far
+                    sizeref=2.5,
+                    sizemin=0.5,
                 ),
                 text=labels_for_elem,
                 textposition="top center",
@@ -1959,7 +1721,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
             )
             atom_traces.append(trace)
 
-        # Draw the unit cell.
+
         cell = visual_pmg_structure.lattice.matrix  # 3x3 array; each row is a lattice vector.
         a, b, c = cell[0], cell[1], cell[2]
         corners = []
@@ -1990,7 +1752,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
         edge_trace = go.Scatter3d(
             x=edge_x, y=edge_y, z=edge_z, opacity=0.8,
             mode="lines",
-            line=dict(color="black", width=3),  # Increased width from 2
+            line=dict(color="black", width=3),
             name="Unit Cell"
         )
         arrow_trace = go.Cone(
@@ -2024,14 +1786,13 @@ if "**🔬 Structure Visualization**" in calc_mode:
             text=vec_texts,
             textposition="top center",
             textfont=dict(
-                size=14,  # Increased text font size
+                size=14,
                 color="black"
             ),
             showlegend=False
         )
         data = atom_traces + [edge_trace,  label_trace]
 
-        # Enhanced layout with border and larger fonts
         layout = go.Layout(
 
             scene=dict(
@@ -2040,43 +1801,37 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     zeroline=False,
                     showline=False,
                     visible=False,
-                    # Remove the invalid 'titlefont' property
                 ),
                 yaxis=dict(
                     showgrid=False,
                     zeroline=False,
                     showline=False,
                     visible=False,
-                    # Remove the invalid 'titlefont' property
                 ),
                 zaxis=dict(
                     showgrid=False,
                     zeroline=False,
                     showline=False,
                     visible=False,
-                    # Remove the invalid 'titlefont' property
                 ),
-                # Add a global font size for the scene
                 annotations=[],
             ),
-            margin=dict(l=20, r=20, b=20, t=50),  # Adjusted margins to accommodate border
+            margin=dict(l=20, r=20, b=20, t=50),
             legend=dict(
                 font=dict(
-                    size=16  # Larger legend font
+                    size=16
                 )
             ),
-            paper_bgcolor='white',  # Background color for the plot area
-            plot_bgcolor='white',  # Background color for the plotting surface
+            paper_bgcolor='white',
+            plot_bgcolor='white',
         )
 
-        # Create figure with data and layout
         fig = go.Figure(data=data, layout=layout)
 
-        # Add a border around the figure
+
         fig.update_layout(
             width=1000,
             height=800,
-            # Using a different approach for the border
             shapes=[
                 dict(
                     type="rect",
@@ -2090,39 +1845,31 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         color="black",
                         width=3,
                     ),
-                    fillcolor="rgba(0,0,0,0)",  # Transparent fill
+                    fillcolor="rgba(0,0,0,0)",
                 )
             ]
         )
 
-        # For 3D plots, we can also adjust the camera and scene settings
         fig.update_scenes(
-            aspectmode='data',  # Keeps the data scale
+            aspectmode='data',
             camera=dict(
-                eye=dict(x=1.5, y=1.5, z=1.5)  # Adjust the camera position
+                eye=dict(x=1.5, y=1.5, z=1.5)
             ),
-            # Add font properties at the scene level
+
             dragmode='orbit'
         )
 
         with col_g2:
-        # Render the plot in Streamlit
             st.plotly_chart(fig, use_container_width=True)
-        from pymatgen.core.composition import Composition
 
         custom_filename = st.text_input("Enter a name for the modified structure file:", value="MODIFIED_STR")
         if not custom_filename.endswith(".cif"):
             custom_filename += ".cif"
 
-        # --------------------------------------------------
-        # Add Modified Structure Button (with Debug Info)
-        # --------------------------------------------------
+
         if st.button("Add Modified Structure to Calculator"):
             try:
-                # Use the same approach as the Download button to handle partial occupancies
                 grouped_data = st.session_state.modified_atom_df.copy()
-
-                # Round coordinates to ensure proper grouping
                 grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                 grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                 grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
@@ -2148,42 +1895,34 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
 
                     new_struct.append(
-                        species=species_dict,  # Dictionary maps element to occupancy
+                        species=species_dict,
                         coords=position,
                         coords_are_cartesian=False,
                         properties=props
                     )
 
-                # Debug information
-                st.info(f"Created structure with {len(new_struct)} sites")
-                if len(new_struct) > 0:
-                    st.info(f"First site: {new_struct[0].species_string} at {new_struct[0].frac_coords}")
 
-                # Create CIF and save to file
                 cif_writer = CifWriter(new_struct, symprec=0.1, write_site_properties=True)
                 cif_content = cif_writer.__str__()
                 cif_file = io.BytesIO(cif_content.encode('utf-8'))
                 cif_file.name = custom_filename
 
-                # Add to uploaded files
                 if 'uploaded_files' not in st.session_state:
                     st.session_state.uploaded_files = []
 
-                # Check if file with same name already exists
                 if any(f.name == custom_filename for f in st.session_state.uploaded_files):
                     st.warning(f"A file named '{custom_filename}' already exists. The new version will replace it.")
-                    # Remove old file with same name
+
                     st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                        f.name != custom_filename]
 
-                # Add the new file
+
                 st.session_state.uploaded_files.append(cif_file)
 
-                # Store in final structures
+
                 if "final_structures" not in st.session_state:
                     st.session_state.final_structures = {}
 
-                # Use the custom filename as the key (without .cif extension)
                 new_key = custom_filename.replace(".cif", "")
                 st.session_state.final_structures[new_key] = new_struct
 
@@ -2199,10 +1938,10 @@ if "**🔬 Structure Visualization**" in calc_mode:
         from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
         transformer = OrderDisorderedStructureTransformation(no_oxi_states=True)
 
-        # This will generate an ordered structure, selecting species based on occupancies:
+
         structure_to_convert = visual_pmg_structure
         try:
-            # Only apply ordering if structure is disordered
+
             visual_ase = AseAtomsAdaptor.get_atoms(structure_to_convert)
         except Exception as e:
             transformer = OrderDisorderedStructureTransformation()
@@ -2231,8 +1970,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
             f"Volume = {volume:.2f} Å³"
         )
 
-        #left_col, right_col = st.columns([1, 3])
-
         with col_g1:
             try:
                 sg_analyzer = SpacegroupAnalyzer(visual_pmg_structure)
@@ -2240,7 +1977,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 spg_number = sg_analyzer.get_space_group_number()
                 space_group_str = f"{spg_symbol} ({spg_number})"
 
-            # New check
                 same_lattice = lattice_same_conventional_vs_primitive(visual_pmg_structure)
                 if same_lattice is None:
                     cell_note = "⚠️ Could not determine if cells are identical."
@@ -2270,9 +2006,9 @@ if "**🔬 Structure Visualization**" in calc_mode:
             """, unsafe_allow_html=True)
 
         with col_download:
-            with st.expander("Download Options", expanded=True):
+            with st.expander(f"**Download Options**", expanded=True):
                 file_format = st.radio(
-                    "Select file format",
+                    f"Select file **format**",
                     ("CIF", "VASP", "LAMMPS", "XYZ",),
                     horizontal=True
                 )
@@ -2283,24 +2019,14 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
                 try:
                     if file_format == "CIF":
-                        # Use pymatgen's CifWriter for CIF output.
                         from pymatgen.io.cif import CifWriter
-
-                       # cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1,
-                       #                               refine_struct=False)
-                       # file_content = str(cif_writer_visual)
 
                         download_file_name = selected_file.split('.')[
                                                  0] + '_' + str(spg_number) + f'.cif'
 
                         mime = "chemical/x-cif"
-
-                        print(df_plot)
-                        # First, group atoms by position to identify partial occupancies
-                        # df_plot
                         grouped_data = st.session_state.modified_atom_df.copy()
                         grouped_data = df_plot.copy()
-                        # Round coordinates to ensure proper grouping
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
@@ -2308,58 +2034,49 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         # Group by position
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
-                        # Create a new structure with properly defined partial occupancies
                         new_struct = Structure(visual_pmg_structure.lattice, [], [])
 
                         for (x, y, z), group in position_groups:
                             position = (float(x), float(y), float(z))
 
-                            # For each position, create a composition with partial occupancies
                             species_dict = {}
                             for _, row in group.iterrows():
                                 element = row['Element']
                                 occupancy = float(row['Occupancy'])
 
-                                # Add to the species dictionary
+
                                 if element in species_dict:
                                     species_dict[element] += occupancy
                                 else:
                                     species_dict[element] = occupancy
 
-                            # Create properties dictionary
+
                             props = {"wyckoff": group.iloc[0]["Wyckoff"]}
 
-                            # Add the site with partial occupancy using append
+
                             new_struct.append(
-                                species=species_dict,  # Dictionary maps element to occupancy
+                                species=species_dict,
                                 coords=position,
                                 coords_are_cartesian=False,
                                 properties=props
                             )
 
-                        # Create the CIF file
+
                         file_content = CifWriter(new_struct, symprec=0.1, write_site_properties=True).__str__()
                     elif file_format == "VASP":
                         from pymatgen.io.cif import CifWriter
 
-                        # cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1,
-                        #                               refine_struct=False)
-                        # file_content = str(cif_writer_visual)
 
 
                         mime = "chemical/x-cif"
 
-                        print(df_plot)
-                        # First, group atoms by position to identify partial occupancies
-                        # df_plot
                         grouped_data = st.session_state.modified_atom_df.copy()
                         grouped_data = df_plot.copy()
-                        # Round coordinates to ensure proper grouping
+
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
-                        # Group by position
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
                         # Create a new structure with properly defined partial occupancies
@@ -2368,24 +2085,15 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         for (x, y, z), group in position_groups:
                             position = (float(x), float(y), float(z))
 
-                            # For each position, create a composition with partial occupancies
+
                             species_dict = {}
                             for _, row in group.iterrows():
                                 element = row['Element']
-
-
-
-
-                            # Add the site with partial occupancy using append
                             new_struct.append(
-                                species=element,  # Dictionary maps element to occupancy
+                                species=element,
                                 coords=position,
                                 coords_are_cartesian=False,
                             )
-
-                        # Create the CIF file
-                        #file_content = CifWriter(new_struct, symprec=0.1, write_site_properties=True).__str__()
-
 
 
 
@@ -2414,23 +2122,15 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     elif file_format == "LAMMPS":
                         from pymatgen.io.cif import CifWriter
 
-                        # cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1,
-                        #                               refine_struct=False)
-                        # file_content = str(cif_writer_visual)
-
                         mime = "chemical/x-cif"
 
-                        print(df_plot)
-                        # First, group atoms by position to identify partial occupancies
-                        # df_plot
                         grouped_data = st.session_state.modified_atom_df.copy()
                         grouped_data = df_plot.copy()
-                        # Round coordinates to ensure proper grouping
+
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
-                        # Group by position
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
                         # Create a new structure with properly defined partial occupancies
@@ -2438,15 +2138,12 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
                         for (x, y, z), group in position_groups:
                             position = (float(x), float(y), float(z))
-
-                            # For each position, create a composition with partial occupancies
                             species_dict = {}
                             for _, row in group.iterrows():
                                 element = row['Element']
 
-                            # Add the site with partial occupancy using append
                             new_struct.append(
-                                species=element,  # Dictionary maps element to occupancy
+                                species=element,
                                 coords=position,
                                 coords_are_cartesian=False,
                             )
@@ -2477,45 +2174,31 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
                     elif file_format == "XYZ":
                         from pymatgen.io.cif import CifWriter
-
-                        # cif_writer_visual = CifWriter(st.session_state["current_structure"], symprec=0.1,
-                        #                               refine_struct=False)
-                        # file_content = str(cif_writer_visual)
-
                         mime = "chemical/x-cif"
 
-                        print(df_plot)
-                        # First, group atoms by position to identify partial occupancies
-                        # df_plot
                         grouped_data = st.session_state.modified_atom_df.copy()
                         grouped_data = df_plot.copy()
-                        # Round coordinates to ensure proper grouping
+
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
-                        # Group by position
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
-                        # Create a new structure with properly defined partial occupancies
                         new_struct = Structure(visual_pmg_structure.lattice, [], [])
 
                         for (x, y, z), group in position_groups:
                             position = (float(x), float(y), float(z))
 
-                            # For each position, create a composition with partial occupancies
                             species_dict = {}
                             for _, row in group.iterrows():
                                 element = row['Element']
 
-                            # Add the site with partial occupancy using append
                             new_struct.append(
-                                species=element,  # Dictionary maps element to occupancy
+                                species=element,
                                 coords=position,
                                 coords_are_cartesian=False,
                             )
-
-
                         current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
                         out = StringIO()
                         write(out, current_ase_structure, format="xyz")
@@ -2535,7 +2218,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                         type="primary",
                         mime=mime
                     )
-        #st.rerun()
+
 
 
 
@@ -2961,7 +2644,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        st.error(f"Error processing experimental file {file.name}: {e}")
+                      #  st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
                     # If using 'Normalized' intensity scale, normalize the experimental intensities.
@@ -3017,7 +2700,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
-                    st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                   # st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
                     x_user, y_user = None, None
 
     if st.session_state.calc_xrd and uploaded_files:
@@ -3037,7 +2720,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "factors": [1.0, 1 / 2.0]
             },
             "Mo(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.07093, 0.0711, 0.064],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "wavelengths": [0.07093, 0.0711, 0.064],
                 "factors": [1.0, 1 / 2.0, 1 / 9.0]
             },
             "Cr(Ka1+Ka2)": {
@@ -3045,7 +2728,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "factors": [1.0, 1 / 2.0]
             },
             "Cr(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.22897, 0.22888, 0.208],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "wavelengths": [0.22897, 0.22888, 0.208],
                 "factors": [1.0, 1 / 2.0, 1 / 9.0]
             },
             "Fe(Ka1+Ka2)": {
@@ -3053,7 +2736,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "factors": [1.0, 1 / 2.0]
             },
             "Fe(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.19360, 0.194, 0.176],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "wavelengths": [0.19360, 0.194, 0.176],
                 "factors": [1.0, 1 / 2.0, 1 / 9.0]
             },
             "Co(Ka1+Ka2)": {
@@ -3061,7 +2744,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "factors": [1.0, 1 / 2.0]
             },
             "Co(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.17889, 0.17927, 0.163],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "wavelengths": [0.17889, 0.17927, 0.163],
                 "factors": [1.0, 1 / 2.0, 1 / 9.0]
             },
             "Ag(Ka1+Ka2)": {
@@ -3069,17 +2752,15 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "factors": [1.0, 1 / 2.0]
             },
             "Ag(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.0561, 0.05634, 0.0496],  # in nm: Kα₁, Kα₂, and Kβ (here CuKb1)
+                "wavelengths": [0.0561, 0.05634, 0.0496],
                 "factors": [1.0, 1 / 2.0, 1 / 9.0]
             }
-            # Extend with additional multi-component presets if needed.
         }
 
-        # Check whether the user-selected preset is multi-component.
+
         is_multi_component = preset_choice in multi_component_presets
         if is_multi_component:
             comp_info = multi_component_presets[preset_choice]
-            # Fallback: if "labels" key is missing, assign default labels based on number of wavelengths.
             if "labels" not in comp_info:
                 n = len(comp_info["wavelengths"])
                 if n == 2:
@@ -3089,12 +2770,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 else:
                     comp_info["labels"] = ["Kα1"] * n
 
-        # st.subheader("📊 OUTPUT → Diffraction Patterns")
 
-        # =====================================================================
-        # NOTE: The block below computes the diffraction pattern details but
-        # DOES NOT create any static (matplotlib) plot.
-        # =====================================================================
         colors = plt.cm.tab10.colors
         pattern_details = {}
         full_range = (0.01, 179.9)
@@ -3211,14 +2887,8 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 "x_dense_full": x_dense_full,
                 "y_dense": y_dense_total
             }
-        # End of diffraction pattern calculations.
-        # (Note: The entire static matplotlib plotting block has been removed.)
 
-        # ---------------------------------------------------------------------------
-        # NEW: Place the file uploader widget for user XRD pattern ABOVE the interactive plot.
-        # -----------------------------------       ----------------------------------------
 
-        # Now create the interactive Plotly figur       e for peak identification and indexing.
         show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
         if peak_representation != "Delta":
             if preset_choice in multi_component_presets:
@@ -3234,7 +2904,6 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 st.sidebar.subheader("Include Kα1 for hovering:")
                 show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
 
-        # fig_interactive = go.Figure()
 
         for idx, (file_name, details) in enumerate(pattern_details.items()):
 
@@ -3408,26 +3077,21 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                                                 wavelength_nm, diffraction_choice)
         colors = ["black", "brown", "grey", "purple"]
         if user_pattern_file:
-            # Create a separate Plotly figure for experimental data
-
-            # Process the experimental files:
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
                     try:
-                        # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
+
                         df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        st.error(f"Error processing experimental file {file.name}: {e}")
+                        #st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
-                    # If using 'Normalized' intensity scale, normalize the experimental intensities.
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
-                    # Optional: filter data to only include points within your current two-theta range.
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
                             x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
@@ -3451,7 +3115,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                     x_user = df.iloc[:, 0].values
                     y_user = df.iloc[:, 1].values
                 except Exception as e:
-                    st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                   # st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
                     x_user, y_user = None, None
 
                 if x_user is not None and y_user is not None:
@@ -3476,7 +3140,6 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                         )
                     ))
 
-            # Optionally, set the layout of this experimental figure:
             fig_interactive.update_layout(
                 xaxis_title="2θ (°)",
                 yaxis_title="Intensity",
@@ -3707,7 +3370,6 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
 
         multi_structures = len(uploaded_files) > 1
 
-        # Import Plotly and a helper function to convert Matplotlib colors to hex
         import plotly.graph_objects as go
         import matplotlib.pyplot as plt
 
@@ -3717,8 +3379,6 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
         def rgb_to_hex(color):
             return '#%02x%02x%02x' % (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
 
-
-        # Set font size and color without changing the font family
         font_dict = dict(size=24, color="black")
 
         st.divider()
@@ -3733,7 +3393,6 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
             title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
             hex_color = rgb_to_hex(colors[idx % len(colors)])
 
-            # Create interactive Plotly figure with markers and custom font color
             fig = go.Figure()
             fig.add_trace(go.Scatter(
                 x=all_distance_dict[comb],
@@ -3774,7 +3433,6 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
             global_rdf_avg.append(np.mean(vals))
         hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
 
-        # Create interactive Plotly figure for the Total RDF with markers and custom font color
         fig_global = go.Figure()
         fig_global.add_trace(go.Scatter(
             x=global_bins,
@@ -3805,7 +3463,6 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
 
 if "**📈 Interactive Data Plot**" in calc_mode:
 
-    # Define a list of colors (adjust as needed)
     colors = ['blue', 'red', 'green', 'orange', 'purple', 'black', 'grey']
 
     st.markdown(
@@ -3831,6 +3488,9 @@ if "**📈 Interactive Data Plot**" in calc_mode:
     line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0, step=0.3)
     marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0, step=1.0)
 
+
+    enable_conversion = st.checkbox("Enable powder XRD data conversion", value=False)
+
     if user_pattern_file:
         files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
 
@@ -3854,6 +3514,145 @@ if "**📈 Interactive Data Plot**" in calc_mode:
             x_axis_metric = "X-data"
             y_axis_metric = "Y-data"
 
+        file_conversion_settings = []
+
+        if enable_conversion:
+            with st.expander("❓ How does Divergence Slit Conversion work?", expanded=False):
+                st.markdown("""
+                ### Divergence Slit Conversion Explained
+
+                #### Auto Slit
+                - The slit **automatically adjusts** with angle (2θ) to **keep the irradiated area constant**.
+                - Produces intensity that remains relatively **consistent** across angles.
+
+                #### Fixed Slit
+                - The slit has a **fixed opening angle**.
+                - As 2θ increases, the **irradiated area is smaller**.
+                - Results in **reduced intensity at higher angles**.
+
+                #### Conversion Types
+
+                - **Fixed Slit → Auto Slit**  
+                  Adjusts for loss of intensity at higher angles by simulating constant irradiated area:
+
+                  $$
+                  \\text{Intensity}_{\\text{auto}} = \\text{Intensity}_{\\text{fixed}} \\times \\frac{\\text{Irradiated Length} \\times \\sin(\\theta)}{\\text{Fixed Slit Size}}
+                  $$
+
+                - **Auto Slit → Fixed Slit**  
+                  Simulates reduced illuminated area at higher angles:
+
+                  $$
+                  \\text{Intensity}_{\\text{fixed}} = \\text{Intensity}_{\\text{auto}} \\times \\frac{\\text{Fixed Slit Size}}{\\text{Irradiated Length} \\times \\sin(\\theta)}
+                  $$
+
+                #### Parameters
+
+                - **Fixed slit size (degrees)**: The opening angle of the slit in degrees.
+                - **Irradiated sample length (mm)**: Physical length of sample that is illuminated.
+                  - Reflection geometry: *10–20 mm*  
+                  - Transmission geometry: *1–2 mm*
+
+                """)
+            for i, file in enumerate(files):
+                with st.expander(f"🔄 Conversion settings for {file.name}", expanded=(i == 0)):
+                    wave_col, slit_col = st.columns(2)
+
+                    with wave_col:
+                        st.markdown("**Wavelength/d-spacing conversion:**")
+                        input_format = st.selectbox(
+                            "Convert from:",
+                            [
+                                "No conversion",
+                                "2theta (Cu)",
+                                "2theta (Co)",
+                                "2theta (Custom)",
+                                "d-spacing (Å)"
+                            ],
+                            key=f"input_format_{i}"
+                        )
+                        output_format = None
+                        custom_wavelength = None
+
+                        if input_format != "No conversion":
+                            if input_format == "d-spacing (Å)":
+                                output_options = [
+                                    "2theta (Cu)",
+                                    "2theta (Co)",
+                                    "2theta (Custom)"
+                                ]
+                            elif "2theta" in input_format:
+                                output_options = [
+                                    "d-spacing (Å)",
+                                    "2theta (Cu)",
+                                    "2theta (Co)",
+                                    "2theta (Custom)"
+                                ]
+                                if input_format in output_options:
+                                    output_options.remove(input_format)
+
+                            output_format = st.selectbox(
+                                "Convert to:",
+                                output_options,
+                                key=f"output_format_{i}"
+                            )
+                        if (input_format == "2theta (Custom)" or
+                                output_format == "2theta (Custom)"):
+                            custom_wavelength = st.number_input(
+                                "Custom wavelength (Å)",
+                                min_value=0.1,
+                                max_value=10.0,
+                                value=1.54056,
+                                step=0.01,
+                                format="%.5f",
+                                key=f"custom_wl_{i}"
+                            )
+
+                    with slit_col:
+
+                        st.markdown("**Divergence slit conversion:**")
+                        slit_conversion_type = st.selectbox(
+                            "Convert slit type:",
+                            [
+                                "No conversion",
+                                "Auto slit to fixed slit",
+                                "Fixed slit to auto slit"
+                            ],
+                            key=f"slit_conv_{i}"
+                        )
+                        fixed_slit_size = None
+                        irradiated_length = None
+                        if slit_conversion_type != "No conversion":
+                            fixed_slit_size = st.number_input(
+                                "Fixed slit size (degrees)",
+                                min_value=0.1,
+                                max_value=2.0,
+                                value=1.0,
+                                step=0.1,
+                                format="%.2f",
+                                key=f"fixed_slit_{i}"
+                            )
+                            irradiated_length = st.number_input(
+                                "Irradiated sample length (mm)",
+                                min_value=1.0,
+                                max_value=50.0,
+                                value=10.0,
+                                step=1.0,
+                                key=f"irradiated_{i}"
+                            )
+
+                            st.info("Typical values: 10-20 mm for reflection, 1-2 mm for transmission geometry.")
+
+                    file_conversion_settings.append({
+                        "file_index": i,
+                        "conversion_type": "No conversion" if input_format == "No conversion" or not output_format else f"{input_format} to {output_format}",
+                        "input_format": input_format,
+                        "output_format": output_format,
+                        "custom_wavelength": custom_wavelength,
+                        "slit_conversion_type": slit_conversion_type,
+                        "fixed_slit_size": fixed_slit_size,
+                        "irradiated_length": irradiated_length
+                    })
         offset_cols = st.columns(len(files))
         y_offsets = []
         for i, file in enumerate(files):
@@ -3863,6 +3662,18 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                 key=f"y_offset_{i}"
             )
             y_offsets.append(offset_val)
+        scale_cols = st.columns(len(files))
+        y_scales = []
+        for i, file in enumerate(files):
+            scale_val = scale_cols[i].number_input(
+                f"Scale factor for {file.name}",
+                min_value=0.01,
+                max_value=100.0,
+                value=1.0,
+                step=0.1,
+                key=f"y_scale_{i}"
+            )
+            y_scales.append(scale_val)
 
         fig_interactive = go.Figure()
         for i, file in enumerate(files):
@@ -3896,13 +3707,174 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                 x_data = df.iloc[:, 0].values
                 y_data = df.iloc[:, 1].values
 
+                if enable_conversion:
+                    settings = file_conversion_settings[i]  # this must match the same index i as files[i]
+                    conversion_type = settings.get("conversion_type", "No conversion")
+                    if conversion_type == "No conversion":
+                        pass
+                    else:
+                        def convert_data(x_values, conversion_type, custom_wavelength=None):
+                            import numpy as np
+
+                            wavelength_map = {
+                                "Cu": 1.54056,
+                                "Co": 1.78897
+                            }
+                            parts = conversion_type.split(" to ")
+                            if len(parts) != 2:
+                                st.error("Invalid conversion type format.")
+                                return x_values
+
+                            input_format = parts[0]
+                            output_format = parts[1]
+
+                            lambda_in = None
+                            for label in wavelength_map:
+                                if label in input_format:
+                                    lambda_in = wavelength_map[label]
+                            if "Custom" in input_format:
+                                lambda_in = custom_wavelength
+                            lambda_out = None
+                            for label in wavelength_map:
+                                if label in output_format:
+                                    lambda_out = wavelength_map[label]
+                            if "Custom" in output_format:
+                                lambda_out = custom_wavelength
+                            if "2theta" in input_format and "d-spacing" in output_format:
+                                if lambda_in is None:
+                                    st.error("Missing input wavelength for 2θ → d-spacing conversion.")
+                                    return x_values
+
+                                theta_rad = np.radians(x_values / 2)
+                                valid = np.abs(np.sin(theta_rad)) > 1e-6
+                                d = np.zeros_like(x_values)
+                                d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
+                                d[~valid] = np.nan
+                                return d
+                            elif "d-spacing" in input_format and "2theta" in output_format:
+                                if lambda_out is None:
+                                    st.error("Missing output wavelength for d-spacing → 2θ conversion.")
+                                    return x_values
+
+                                valid = x_values > 0
+                                sin_arg = lambda_out / (2 * x_values[valid])
+                                sin_arg = np.clip(sin_arg, 0, 1)
+                                theta = np.degrees(np.arcsin(sin_arg))
+                                result = np.zeros_like(x_values)
+                                result[valid] = 2 * theta
+                                result[~valid] = np.nan
+                                return result
+
+
+                            elif "2theta" in input_format and "2theta" in output_format:
+                                if lambda_in is None or lambda_out is None:
+                                    st.error("Missing wavelength for 2θ to 2θ conversion.")
+                                    return x_values
+
+                                theta_rad = np.radians(x_values / 2)
+                                valid = np.abs(np.sin(theta_rad)) > 1e-6
+                                d = np.zeros_like(x_values)
+                                d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
+
+                                # Now d → 2θ (at new wavelength)
+                                sin_arg = lambda_out / (2 * d[valid])
+                                sin_arg = np.clip(sin_arg, 0, 1)
+                                theta_new = np.degrees(np.arcsin(sin_arg))
+
+                                result = np.copy(x_values)
+                                result[valid] = 2 * theta_new
+                                result[~valid] = np.nan
+                                return result
+
+                            else:
+                                st.warning("No matching conversion logic applied.")
+                                return x_values
+
+
+                        try:
+                            x_data = convert_data(
+                                x_values=x_data,
+                                conversion_type=conversion_type,
+                                custom_wavelength=settings["custom_wavelength"]
+                            )
+
+
+                            if "to d-spacing" in conversion_type:
+                                x_axis_metric = "d-spacing (Å)"
+                            elif "to 2theta" in conversion_type:
+                                if "Cu" in conversion_type:
+                                    x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
+                                elif "Co" in conversion_type:
+                                    x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
+                                elif "custom" in conversion_type:
+                                    x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
+                            elif conversion_type == "Auto slit to fixed slit":
+                                x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
+
+
+                            st.success(f"Converted {file.name}: {conversion_type}")
+
+
+                            valid_mask = ~np.isnan(x_data)
+                            if not np.all(valid_mask):
+                                x_data = x_data[valid_mask]
+                                y_data = y_data[valid_mask]
+                                st.warning(f"Some points in {file.name} were invalid for conversion and were removed")
+
+                        except Exception as e:
+                            st.error(f"Error in data conversion for {file.name}: {e}")
+                            st.warning("Using original data for this file.")
+
+
             except Exception as e:
-                st.error(f"Error processing file {file.name}: {e}")
-                continue
+                st.error(
+                    f"Error occurred in file processing for {file.name}: {str(e)}")
+
+            if enable_conversion and i < len(file_conversion_settings):
+                slit_settings = file_conversion_settings[i]
+
+                slit_conversion_type = slit_settings.get("slit_conversion_type", "No conversion")
+                fixed_slit_size = slit_settings.get("fixed_slit_size")
+                irradiated_length = slit_settings.get("irradiated_length")
+
+                if slit_conversion_type != "No conversion":
+                    theta_rad = np.radians(x_data / 2)  # convert 2θ to θ in radians for calculations
+
+                    # Avoid division by zero by creating a valid mask
+                    valid_mask = np.abs(np.sin(theta_rad)) > 1e-6
+
+                    if slit_conversion_type == "Auto slit to fixed slit":
+                        adjustment_factor = np.zeros_like(y_data)
+                        adjustment_factor[valid_mask] = fixed_slit_size / (
+                                irradiated_length * np.sin(theta_rad[valid_mask])
+                        )
+
+                        y_data = y_data * adjustment_factor
+                        st.success(f"Applied Auto slit → Fixed slit conversion for {file.name}")
+
+                    elif slit_conversion_type == "Fixed slit to auto slit":
+                        adjustment_factor = np.zeros_like(y_data)
+                        adjustment_factor[valid_mask] = (
+                                irradiated_length * np.sin(theta_rad[valid_mask]) / fixed_slit_size
+                        )
+
+                        y_data = y_data * adjustment_factor
+                        st.success(f"Applied Fixed slit → Auto slit conversion for {file.name}")
+                    if not np.all(valid_mask):
+                        st.warning(
+                            f"Some points in {file.name} were omitted during slit conversion due to invalid angles."
+                        )
+                        x_data = x_data[valid_mask]
+                        y_data = y_data[valid_mask]
 
             try:
+
                 if normalized_intensity and np.max(y_data) > 0:
                     y_data = (y_data / np.max(y_data)) * 100
+
+                if i < len(y_scales):
+                    y_data = y_data * y_scales[i]
+
                 y_data = y_data + y_offsets[i]
 
                 mask = np.ones_like(x_data, dtype=bool)
@@ -3979,12 +3951,43 @@ if "**📈 Interactive Data Plot**" in calc_mode:
             autosize=True
         )
 
-        # Apply x-axis range from user input
         if fix_x_axis == True:
             fig_interactive.update_xaxes(range=[x_axis_min, x_axis_max])
 
         st.plotly_chart(fig_interactive)
-# If used in academic publications, please cite:
+
+        import io
+
+        st.markdown("### 💾 Download Processed Data")
+        delimiter_label_to_value = {
+            "Comma (`,`)": ",",
+            "Space (` `)": " ",
+            "Tab (`\\t`)": "\t",
+            "Semicolon (`;`)": ";"
+        }
+
+        delimiter_label = st.selectbox("Choose delimiter for download:", list(delimiter_label_to_value.keys()))
+        delimiter_option = delimiter_label_to_value[delimiter_label]
+
+        for i, file in enumerate(files):
+            df_out = pd.DataFrame({
+                x_axis_metric: fig_interactive.data[i].x,
+                y_axis_metric: fig_interactive.data[i].y
+            })
+
+            buffer = io.StringIO()
+            df_out.to_csv(buffer, sep=delimiter_option, index=False)
+
+            base_name = file.name.rsplit(".", 1)[0]
+            download_name = f"{base_name}_processed.txt"
+
+            st.download_button(
+                label=f"⬇️ Download processed data for {file.name}",
+                data=buffer.getvalue(),
+                file_name=download_name,
+                mime="text/plain"
+            )
+
 
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
