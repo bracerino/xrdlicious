@@ -3802,11 +3802,7 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                             if "to d-spacing" in conversion_type:
                                 x_axis_metric = "d-spacing (Å)"
                             elif "to 2theta" in conversion_type:
-                                if "Cu" in conversion_type:
-                                    x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
-                                elif "Co" in conversion_type:
-                                    x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
-                                elif "custom" in conversion_type:
+                                if "custom" in conversion_type:
                                     x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
                             elif conversion_type == "Auto slit to fixed slit":
                                 x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
