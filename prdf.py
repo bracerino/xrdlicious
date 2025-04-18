@@ -3308,6 +3308,9 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
+
+
+#---- PRDF
 if "**📊 (P)RDF Calculation**" in calc_mode:
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
@@ -3319,6 +3322,20 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                       "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. "
                       "Peak width = disorder. Height = relative likelihood.")
 
+    # Add LAMMPS trajectory file option
+    use_lammps_traj = st.checkbox("📈 Use LAMMPS Trajectory File",
+                                  help="Enable this to analyze a LAMMPS dump trajectory file with multiple frames")
+
+    if use_lammps_traj:
+        lammps_file = st.file_uploader("Upload LAMMPS Trajectory File (.dump, .lammpstrj)",
+                                       type=["dump", "lammpstrj"],
+                                       help="Upload a LAMMPS trajectory file to analyze PRDF for each frame")
+        frame_sampling = st.slider("Frame Sampling Rate",
+                                   min_value=1,
+                                   max_value=20,
+                                   value=1,
+                                   help="Select every Nth frame from the trajectory (1 = use all frames)")
+
     cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
     bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.001, max_value=5.000, value=0.100, step=0.005,
                                format="%.2f")
@@ -3329,46 +3346,343 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
 
     if not st.session_state.calc_rdf:
         st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
-    if st.session_state.calc_rdf and uploaded_files:
+    if st.session_state.calc_rdf and (uploaded_files or (use_lammps_traj and lammps_file)):
         st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
         species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
         all_prdf_dict = defaultdict(list)
         all_distance_dict = {}
         global_rdf_list = []
 
-        for file in uploaded_files:
+        # Process LAMMPS trajectory if selected
+        if use_lammps_traj and lammps_file:
+            st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
+
+            # Try to detect file format based on content
+            file_content_sample = lammps_file.read(2048)  # Read first 2KB to check format
+            lammps_file.seek(0)  # Reset file pointer to beginning
+
+            # Convert bytes to string for inspection
             try:
-                structure = read(file.name)
-                mg_structure = AseAtomsAdaptor.get_structure(structure)
+                sample_text = file_content_sample.decode('utf-8')
+            except UnicodeDecodeError:
+                sample_text = file_content_sample.decode('latin-1')
+
+            # Display format detection information
+            if "ITEM: TIMESTEP" in sample_text:
+                st.success("Detected standard LAMMPS dump format")
+            elif "ITEM: NUMBER OF ATOMS" in sample_text:
+                st.success("Detected LAMMPS dump format with atom counts")
+            else:
+                st.warning("Could not detect standard LAMMPS format markers. Will attempt to read anyway.")
+
+            progress_bar = st.progress(0)
+
+            # Read the trajectory file
+            try:
+                import tempfile
+                import io
+
+                # Create a BytesIO object from the uploaded file
+                bytes_data = io.BytesIO(lammps_file.getbuffer())
+
+                # Try to read directly from the BytesIO object first
+                st.info("Attempting to read LAMMPS trajectory directly from memory...")
+
+                # Try several methods to read the LAMMPS dump file
+                from ase.io import read as ase_read
+
+                frames = []
+
+                read_methods = [
+                    {'format': 'lammps-dump', 'description': 'Standard LAMMPS dump format'},
+                    {'format': 'lammps-dump-text', 'description': 'LAMMPS dump text format'},
+                    {'format': None, 'description': 'Automatic format detection'}
+                ]
+
+                success = False
+
+
+                # Custom parser function for LAMMPS dump data as string
+                def parse_lammps_dump_from_string(content):
+                    from ase import Atoms
+                    import numpy as np
+
+                    frames = []
+                    lines = content.splitlines()
+
+                    i = 0
+                    while i < len(lines):
+                        if 'ITEM: TIMESTEP' in lines[i]:
+                            i += 2  # Skip timestep line
+                            if i >= len(lines) or 'ITEM: NUMBER OF ATOMS' not in lines[i]:
+                                continue
+
+                            i += 1
+                            try:
+                                num_atoms = int(lines[i].strip())
+                                i += 1
+
+                                # Skip box bounds
+                                while i < len(lines) and 'ITEM: ATOMS' not in lines[i]:
+                                    i += 1
+
+                                if i >= len(lines):
+                                    break
+
+                                # Get atom column headers
+                                header = lines[i].replace('ITEM: ATOMS', '').strip().split()
+                                i += 1
+
+                                # Read atom data
+                                positions = np.zeros((num_atoms, 3))
+                                symbols = []
+
+                                for j in range(num_atoms):
+                                    if i + j >= len(lines):
+                                        break
+
+                                    values = lines[i + j].strip().split()
+                                    if len(values) < len(header):
+                                        continue
+
+                                    # Find position columns
+                                    x_idx = header.index('x') if 'x' in header else -1
+                                    y_idx = header.index('y') if 'y' in header else -1
+                                    z_idx = header.index('z') if 'z' in header else -1
+
+                                    # Find element column (could be 'type' or 'element')
+                                    type_idx = header.index('type') if 'type' in header else -1
+                                    element_idx = header.index('element') if 'element' in header else -1
+
+                                    if x_idx >= 0 and y_idx >= 0 and z_idx >= 0:
+                                        positions[j] = [float(values[x_idx]), float(values[y_idx]),
+                                                        float(values[z_idx])]
+
+                                    # Convert type to element if needed
+                                    if element_idx >= 0:
+                                        symbols.append(values[element_idx])
+                                    elif type_idx >= 0:
+                                        # Map type to element - this is a simplification, might need adjustment
+                                        type_num = int(values[type_idx])
+                                        element_map = {1: 'Si', 2: 'O', 3: 'Al', 4: 'Na'}  # Example mapping
+                                        symbols.append(element_map.get(type_num, f'X{type_num}'))
+
+                                i += num_atoms
+
+                                # Create ASE Atoms object
+                                if len(symbols) == num_atoms:
+                                    atoms = Atoms(symbols=symbols, positions=positions)
+                                    frames.append(atoms)
+                            except Exception as inner_e:
+                                st.error(f"Error parsing frame: {str(inner_e)}")
+                                i += 1
+                        else:
+                            i += 1
+
+                    return frames
+
+
+                # First try reading directly from BytesIO
+                for method in read_methods:
+                    if success:
+                        break
+
+                    try:
+                        bytes_data.seek(0)  # Reset to beginning of stream
+                        st.info(f"Trying to read using {method['description']} directly from memory...")
+
+                        # For memory-based reading, we need to handle bytes vs string issues
+                        if method['format'] == 'lammps-dump' or method['format'] == 'lammps-dump-text':
+                            # Get bytes data and convert to string for processing
+                            raw_bytes = bytes_data.getvalue()
+                            try:
+                                # Try to decode as utf-8 first
+                                text_content = raw_bytes.decode('utf-8')
+                            except UnicodeDecodeError:
+                                # Fall back to latin-1 if utf-8 fails
+                                text_content = raw_bytes.decode('latin-1')
+
+                            # Write to a new BytesIO object to ensure it's properly formatted
+                            temp_bytes = io.BytesIO()
+                            temp_bytes.write(text_content.encode('utf-8'))
+                            temp_bytes.seek(0)
+
+                            frames = ase_read(temp_bytes, index=':', format=method['format'])
+                        elif method['format'] is None:
+                            # For auto-detection, try to read with explicit bytes
+                            bytes_data.seek(0)
+                            raw_data = bytes_data.getvalue()
+                            temp_bytes = io.BytesIO(raw_data)
+                            frames = ase_read(temp_bytes, index=':')
+
+                        if frames and len(frames) > 0:
+                            success = True
+                            st.success(f"Successfully read using {method['description']} from memory")
+                    except Exception as e:
+                        st.warning(f"Failed with {method['description']} from memory: {str(e)}")
+
+                # If direct reading failed, try with a temporary file in Streamlit's cache directory
+                if not success:
+                    st.warning("Direct memory reading failed. Trying with temporary file...")
+
+                    # Use Streamlit's cache directory if available, otherwise use system temp
+                    import os
+
+                    temp_dir = os.path.join(os.getcwd(), ".streamlit/temp") if os.path.exists(
+                        os.path.join(os.getcwd(), ".streamlit")) else tempfile.gettempdir()
+
+                    # Ensure the directory exists
+                    os.makedirs(temp_dir, exist_ok=True)
+
+                    # Create a unique filename
+                    import uuid
+
+                    temp_file_path = os.path.join(temp_dir, f"temp_lammps_{uuid.uuid4().hex}.dump")
+
+                    # Save the uploaded file temporarily
+                    bytes_data.seek(0)
+                    with open(temp_file_path, "wb") as f:
+                        f.write(bytes_data.getbuffer())
+
+                    st.info(f"Saved temporary file for processing at: {temp_file_path}")
+
+                    # Try reading with all methods from the temporary file
+                    for method in read_methods:
+                        if success:
+                            break
+
+                        try:
+                            st.info(f"Trying to read using {method['description']} from temp file...")
+
+                            if method['format'] is None:
+                                frames = ase_read(temp_file_path, index=':')
+                            else:
+                                frames = ase_read(temp_file_path, index=':', format=method['format'])
+
+                            if frames and len(frames) > 0:
+                                success = True
+                                st.success(f"Successfully read using {method['description']} from temp file")
+                        except Exception as e:
+                            st.warning(f"Failed with {method['description']} from temp file: {str(e)}")
+
+                    # Clean up the temporary file
+                    try:
+                        os.remove(temp_file_path)
+                        st.info("Temporary file removed")
+                    except Exception as clean_err:
+                        st.warning(f"Could not remove temporary file: {str(clean_err)}")
+
+                # If all standard methods fail, try with custom parsing
+                if not success:
+                    st.warning("All standard methods failed. Attempting custom parsing...")
+                    # Reset BytesIO to beginning
+                    bytes_data.seek(0)
+
+                    # Convert to text
+                    try:
+                        text_content = bytes_data.getvalue().decode('utf-8')
+                    except UnicodeDecodeError:
+                        text_content = bytes_data.getvalue().decode('latin-1')
+
+                    # Parse manually
+                    frames = parse_lammps_dump_from_string(text_content)
+
+                    if frames and len(frames) > 0:
+                        success = True
+                        st.success(f"Successfully read using custom parser")
+
+                if not frames or len(frames) == 0:
+                    raise Exception("Could not extract any frames from the trajectory file")
+
+                total_frames = len(frames)
+                st.write(f"Found {total_frames} frames in the trajectory")
+
+                # Use selected frames based on sampling rate
+                selected_frames = frames[::frame_sampling]
+                st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
+
+                # Process each frame
+                for i, frame in enumerate(selected_frames):
+                    progress_bar.progress((i + 1) / len(selected_frames))
+
+                    try:
+                        mg_structure = AseAtomsAdaptor.get_structure(frame)
+
+                        # Calculate PRDF for this frame
+                        prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+                        prdf_featurizer.fit([mg_structure])
+                        prdf_data = prdf_featurizer.featurize(mg_structure)
+                        feature_labels = prdf_featurizer.feature_labels()
+
+                        prdf_dict = defaultdict(list)
+                        distance_dict = {}
+                        global_dict = {}
+
+                        for j, label in enumerate(feature_labels):
+                            parts = label.split(" PRDF r=")
+                            element_pair = tuple(parts[0].split("-"))
+                            distance_range = parts[1].split("-")
+                            bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
+                            prdf_dict[element_pair].append(prdf_data[j])
+
+                            if element_pair not in distance_dict:
+                                distance_dict[element_pair] = []
+                            distance_dict[element_pair].append(bin_center)
+                            global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[j]
+
+                        for pair, values in prdf_dict.items():
+                            if pair not in all_distance_dict:
+                                all_distance_dict[pair] = distance_dict[pair]
+                            if isinstance(values, float):
+                                values = [values]
+                            all_prdf_dict[pair].append(values)
+
+                        global_rdf_list.append(global_dict)
+
+                    except Exception as e:
+                        st.error(f"Error processing frame {i}: {str(e)}")
+
+                progress_bar.progress(1.0)
+                multi_structures = True  # We're treating each frame as a separate structure
+
             except Exception as e:
-                mg_structure = load_structure(file.name)
+                st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
 
-            prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
-            prdf_featurizer.fit([mg_structure])
-            prdf_data = prdf_featurizer.featurize(mg_structure)
-            feature_labels = prdf_featurizer.feature_labels()
-            prdf_dict = defaultdict(list)
-            distance_dict = {}
-            global_dict = {}
-            for i, label in enumerate(feature_labels):
-                parts = label.split(" PRDF r=")
-                element_pair = tuple(parts[0].split("-"))
-                distance_range = parts[1].split("-")
-                bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                prdf_dict[element_pair].append(prdf_data[i])
-                if element_pair not in distance_dict:
-                    distance_dict[element_pair] = []
-                distance_dict[element_pair].append(bin_center)
-                global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
-            for pair, values in prdf_dict.items():
-                if pair not in all_distance_dict:
-                    all_distance_dict[pair] = distance_dict[pair]
-                if isinstance(values, float):
-                    values = [values]
-                all_prdf_dict[pair].append(values)
-            global_rdf_list.append(global_dict)
+        # Process regular structure files
+        else:
+            for file in uploaded_files:
+                try:
+                    structure = read(file.name)
+                    mg_structure = AseAtomsAdaptor.get_structure(structure)
+                except Exception as e:
+                    mg_structure = load_structure(file.name)
 
-        multi_structures = len(uploaded_files) > 1
+                prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+                prdf_featurizer.fit([mg_structure])
+                prdf_data = prdf_featurizer.featurize(mg_structure)
+                feature_labels = prdf_featurizer.feature_labels()
+                prdf_dict = defaultdict(list)
+                distance_dict = {}
+                global_dict = {}
+                for i, label in enumerate(feature_labels):
+                    parts = label.split(" PRDF r=")
+                    element_pair = tuple(parts[0].split("-"))
+                    distance_range = parts[1].split("-")
+                    bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
+                    prdf_dict[element_pair].append(prdf_data[i])
+                    if element_pair not in distance_dict:
+                        distance_dict[element_pair] = []
+                    distance_dict[element_pair].append(bin_center)
+                    global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
+                for pair, values in prdf_dict.items():
+                    if pair not in all_distance_dict:
+                        all_distance_dict[pair] = distance_dict[pair]
+                    if isinstance(values, float):
+                        values = [values]
+                    all_prdf_dict[pair].append(values)
+                global_rdf_list.append(global_dict)
+
+            multi_structures = len(uploaded_files) > 1
 
         import plotly.graph_objects as go
         import matplotlib.pyplot as plt
@@ -3378,6 +3692,7 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
 
         def rgb_to_hex(color):
             return '#%02x%02x%02x' % (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+
 
         font_dict = dict(size=24, color="black")
 
@@ -3390,7 +3705,12 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                 prdf_avg = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
             else:
                 prdf_avg = np.zeros_like(all_distance_dict[comb])
-            title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
+            if use_lammps_traj and lammps_file:
+                title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+            else:
+                title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
             hex_color = rgb_to_hex(colors[idx % len(colors)])
 
             fig = go.Figure()
@@ -3402,6 +3722,27 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                 line=dict(color=hex_color),
                 marker=dict(size=10)
             ))
+
+            # Add standard deviation band for trajectory analysis
+            if use_lammps_traj and lammps_file and len(valid_prdf) > 1:
+                prdf_std = np.std(prdf_array, axis=0)
+                fig.add_trace(go.Scatter(
+                    x=all_distance_dict[comb],
+                    y=prdf_avg + prdf_std,
+                    mode='lines',
+                    line=dict(width=0),
+                    showlegend=False
+                ))
+                fig.add_trace(go.Scatter(
+                    x=all_distance_dict[comb],
+                    y=prdf_avg - prdf_std,
+                    mode='lines',
+                    line=dict(width=0),
+                    fillcolor='rgba(100,100,100,0.2)',
+                    fill='tonexty',
+                    showlegend=False
+                ))
+
             fig.update_layout(
                 title={'text': title_str, 'font': font_dict},
                 xaxis_title={'text': "Distance (Å)", 'font': font_dict},
@@ -3426,11 +3767,14 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
             global_bins_set.update(gd.keys())
         global_bins = sorted(list(global_bins_set))
         global_rdf_avg = []
+        global_rdf_std = []
         for b in global_bins:
             vals = []
             for gd in global_rdf_list:
                 vals.append(gd.get(b, 0))
             global_rdf_avg.append(np.mean(vals))
+            global_rdf_std.append(np.std(vals))
+
         hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
 
         fig_global = go.Figure()
@@ -3442,7 +3786,29 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
             line=dict(color=hex_color_global),
             marker=dict(size=10)
         ))
-        title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
+
+        # Add standard deviation band for trajectory analysis
+        if use_lammps_traj and lammps_file:
+            fig_global.add_trace(go.Scatter(
+                x=global_bins,
+                y=[a + s for a, s in zip(global_rdf_avg, global_rdf_std)],
+                mode='lines',
+                line=dict(width=0),
+                showlegend=False
+            ))
+            fig_global.add_trace(go.Scatter(
+                x=global_bins,
+                y=[max(0, a - s) for a, s in zip(global_rdf_avg, global_rdf_std)],
+                mode='lines',
+                line=dict(width=0),
+                fillcolor='rgba(100,100,100,0.2)',
+                fill='tonexty',
+                showlegend=False
+            ))
+            title_global = "Trajectory-Averaged Global RDF"
+        else:
+            title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
+
         fig_global.update_layout(
             title={'text': title_global, 'font': font_dict},
             xaxis_title={'text': "Distance (Å)", 'font': font_dict},
@@ -3564,8 +3930,8 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                             "Convert from:",
                             [
                                 "No conversion",
-                                "2theta (Cu)",
-                                "2theta (Co)",
+                                "2theta (Copper CuKa1)",
+                                "2theta (Cobalt CoKa1)",
                                 "2theta (Custom)",
                                 "d-spacing (Å)"
                             ],
@@ -3577,15 +3943,15 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                         if input_format != "No conversion":
                             if input_format == "d-spacing (Å)":
                                 output_options = [
-                                    "2theta (Cu)",
-                                    "2theta (Co)",
+                                    "2theta (Copper CuKa1)",
+                                    "2theta (Cobalt CoKa1)",
                                     "2theta (Custom)"
                                 ]
                             elif "2theta" in input_format:
                                 output_options = [
                                     "d-spacing (Å)",
-                                    "2theta (Cu)",
-                                    "2theta (Co)",
+                                    "2theta (Copper CuKa1)",
+                                    "2theta (Cobalt CoKa1)",
                                     "2theta (Custom)"
                                 ]
                                 if input_format in output_options:
@@ -3802,7 +4168,11 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                             if "to d-spacing" in conversion_type:
                                 x_axis_metric = "d-spacing (Å)"
                             elif "to 2theta" in conversion_type:
-                                if "custom" in conversion_type:
+                                if "Copper" in conversion_type:
+                                    x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
+                                elif "Cobalt" in conversion_type:
+                                    x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
+                                elif "custom" in conversion_type:
                                     x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
                             elif conversion_type == "Auto slit to fixed slit":
                                 x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
