@@ -3332,7 +3332,7 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                                        help="Upload a LAMMPS trajectory file to analyze PRDF for each frame")
         frame_sampling = st.slider("Frame Sampling Rate",
                                    min_value=1,
-                                   max_value=20,
+                                   max_value=500,
                                    value=1,
                                    help="Select every Nth frame from the trajectory (1 = use all frames)")
 
