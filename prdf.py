@@ -106,7 +106,7 @@ components.html(
 )
 
 st.markdown(
-    "#### XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+    f"#### **XRDlicious:** Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 col1, col2 = st.columns([1.25, 1])
 
 with col2:
@@ -118,8 +118,9 @@ with col1:
         st.info(
             "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
             "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
-            "between primitive and conventional crystal structure representations and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
+            "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
             "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
+            "Additionally, there is option to interactively plot and modify your two-columns data. "
         )
         st.warning(
             "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
@@ -3444,9 +3445,63 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
+# Add these session state initializations at the beginning of your script
 
 
-#---- PRDF
+# Add these session state initializations at the beginning of your script
+# Make sure these are executed before any other Streamlit code
+
+# Initialize session state variables
+if "calc_rdf" not in st.session_state:
+    st.session_state.calc_rdf = False
+if "display_mode" not in st.session_state:
+    st.session_state.display_mode = "Average PRDF across frames"
+if "selected_frame_idx" not in st.session_state:
+    st.session_state.selected_frame_idx = 0
+if "frame_indices" not in st.session_state:
+    st.session_state.frame_indices = []
+if "processed_data" not in st.session_state:
+    st.session_state.processed_data = {
+        "all_prdf_dict": {},
+        "all_distance_dict": {},
+        "global_rdf_list": [],
+        "multi_structures": False
+    }
+if "animate" not in st.session_state:
+    st.session_state.animate = False
+if "do_calculation" not in st.session_state:
+    st.session_state.do_calculation = False
+
+
+# Callback functions
+def update_selected_frame():
+    st.session_state.selected_frame_idx = st.session_state.frame_slider
+
+
+def update_display_mode():
+    st.session_state.display_mode = st.session_state.display_mode_radio
+    # Reset animation when switching display modes
+    st.session_state.animate = False
+
+
+def trigger_calculation():
+    st.session_state.calc_rdf = True
+    st.session_state.do_calculation = True
+    # Clear existing data
+    st.session_state.frame_indices = []
+    st.session_state.processed_data = {
+        "all_prdf_dict": {},
+        "all_distance_dict": {},
+        "global_rdf_list": [],
+        "multi_structures": False
+    }
+
+
+def toggle_animation():
+    st.session_state.animate = not st.session_state.animate
+
+
+# Main PRDF section
 if "**📊 (P)RDF Calculation**" in calc_mode:
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
@@ -3458,9 +3513,17 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                       "Here, the (P)RDF values are **unitless** (relative PRDF intensity). Peaks = preferred bonding distances. "
                       "Peak width = disorder. Height = relative likelihood.")
 
-
     use_lammps_traj = st.checkbox("📈 Use LAMMPS Trajectory File",
                                   help="Enable this for a LAMMPS dump trajectory file with multiple frames")
+
+    line_style = st.radio(
+        "Line Style",
+        ["Lines + Markers", "Lines Only"],
+        index=0,
+        key="line_style",
+        horizontal=True,
+        help="Select how to display PRDF lines - with or without point markers"
+    )
 
     if use_lammps_traj:
         lammps_file = st.file_uploader("Upload LAMMPS Trajectory File (.dump, .lammpstrj)",
@@ -3468,304 +3531,331 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                                        help="Upload a LAMMPS trajectory file to analyze PRDF for each frame")
         frame_sampling = st.slider("Frame Sampling Rate",
                                    min_value=1,
-                                   max_value=20,
+                                   max_value=500,
                                    value=1,
                                    help="Select every Nth frame from the trajectory (1 = use all frames)")
 
+        st.radio(
+            "Display Mode",
+            ["Average PRDF across frames", "Individual frame PRDFs"],
+            index=0 if st.session_state.display_mode == "Average PRDF across frames" else 1,
+            key="display_mode_radio",
+            on_change=update_display_mode
+        )
+
+
     cutoff = st.number_input("⚙️ Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=1.0, format="%.1f")
     bin_size = st.number_input("⚙️ Bin Size (Å)", min_value=0.001, max_value=5.000, value=0.100, step=0.005,
-                               format="%.2f")
-    if "calc_rdf" not in st.session_state:
-        st.session_state.calc_rdf = False
-    if st.button("Calculate RDF"):
-        st.session_state.calc_rdf = True
+                               format="%.3f")
 
-    if not st.session_state.calc_rdf:
-        st.subheader("📊 OUTPUT → Click first on the 'RDF' button.")
+    st.button("Calculate RDF", on_click=trigger_calculation)
+
     if st.session_state.calc_rdf and (uploaded_files or (use_lammps_traj and lammps_file)):
-        st.subheader("📊 OUTPUT → RDF (PRDF & Total RDF)")
-        species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
-        all_prdf_dict = defaultdict(list)
-        all_distance_dict = {}
-        global_rdf_list = []
 
+        if st.session_state.do_calculation:
+            species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
+            all_prdf_dict = defaultdict(list)
+            all_distance_dict = {}
+            global_rdf_list = []
 
-        if use_lammps_traj and lammps_file:
-            st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
-            progress_bar = st.progress(0)
-            with st.expander("Log from reading LAMMPS trajectory file"):
-                # Try to detect file format
-                file_content_sample = lammps_file.read(2048)
-                lammps_file.seek(0)
-                try:
-                    sample_text = file_content_sample.decode('utf-8')
-                except UnicodeDecodeError:
-                    sample_text = file_content_sample.decode('latin-1')
+            if use_lammps_traj and lammps_file:
+                st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
+                progress_bar = st.progress(0)
+                with st.expander("Log from reading LAMMPS trajectory file"):
+                    file_content_sample = lammps_file.read(2048)
+                    lammps_file.seek(0)
+                    try:
+                        sample_text = file_content_sample.decode('utf-8')
+                    except UnicodeDecodeError:
+                        sample_text = file_content_sample.decode('latin-1')
 
-                if "ITEM: TIMESTEP" in sample_text:
-                    st.success("Detected standard LAMMPS dump format")
-                elif "ITEM: NUMBER OF ATOMS" in sample_text:
-                    st.success("Detected LAMMPS dump format with atom counts")
-                else:
-                    st.warning("Could not detect standard LAMMPS format markers. Will attempt to read anyway.")
+                    if "ITEM: TIMESTEP" in sample_text:
+                        st.success("Detected standard LAMMPS dump format")
+                    elif "ITEM: NUMBER OF ATOMS" in sample_text:
+                        st.success("Detected LAMMPS dump format with atom counts")
+                    else:
+                        st.warning("Could not detect standard LAMMPS format markers. Will attempt to read anyway.")
+                    try:
+                        import tempfile
+                        import io
 
+                        bytes_data = io.BytesIO(lammps_file.getbuffer())
 
-                # Read the trajectory file
-                try:
-                    import tempfile
-                    import io
+                        st.info("Attempting to read LAMMPS trajectory directly from memory...")
 
-                    bytes_data = io.BytesIO(lammps_file.getbuffer())
-
-                    st.info("Attempting to read LAMMPS trajectory directly from memory...")
-
-                    from ase.io import read as ase_read
-
-                    frames = []
-
-                    read_methods = [
-                        {'format': 'lammps-dump', 'description': 'Standard LAMMPS dump format'},
-                        {'format': 'lammps-dump-text', 'description': 'LAMMPS dump text format'},
-                        {'format': None, 'description': 'Automatic format detection'}
-                    ]
-
-                    success = False
-
-
-                    def parse_lammps_dump_from_string(content):
-                        from ase import Atoms
-                        import numpy as np
+                        from ase.io import read as ase_read
 
                         frames = []
-                        lines = content.splitlines()
 
-                        i = 0
-                        while i < len(lines):
-                            if 'ITEM: TIMESTEP' in lines[i]:
-                                i += 2
-                                if i >= len(lines) or 'ITEM: NUMBER OF ATOMS' not in lines[i]:
-                                    continue
+                        read_methods = [
+                            {'format': 'lammps-dump', 'description': 'Standard LAMMPS dump format'},
+                            {'format': 'lammps-dump-text', 'description': 'LAMMPS dump text format'},
+                            {'format': None, 'description': 'Automatic format detection'}
+                        ]
 
-                                i += 1
-                                try:
-                                    num_atoms = int(lines[i].strip())
+                        success = False
+
+
+                        def parse_lammps_dump_from_string(content):
+                            from ase import Atoms
+                            import numpy as np
+
+                            frames = []
+                            lines = content.splitlines()
+
+                            i = 0
+                            while i < len(lines):
+                                if 'ITEM: TIMESTEP' in lines[i]:
+                                    i += 2
+                                    if i >= len(lines) or 'ITEM: NUMBER OF ATOMS' not in lines[i]:
+                                        continue
+
                                     i += 1
-                                    while i < len(lines) and 'ITEM: ATOMS' not in lines[i]:
+                                    try:
+                                        num_atoms = int(lines[i].strip())
                                         i += 1
-                                    if i >= len(lines):
-                                        break
-                                    header = lines[i].replace('ITEM: ATOMS', '').strip().split()
-                                    i += 1
-                                    positions = np.zeros((num_atoms, 3))
-                                    symbols = []
-                                    for j in range(num_atoms):
-                                        if i + j >= len(lines):
+                                        while i < len(lines) and 'ITEM: ATOMS' not in lines[i]:
+                                            i += 1
+                                        if i >= len(lines):
                                             break
-                                        values = lines[i + j].strip().split()
-                                        if len(values) < len(header):
-                                            continue
-                                        x_idx = header.index('x') if 'x' in header else -1
-                                        y_idx = header.index('y') if 'y' in header else -1
-                                        z_idx = header.index('z') if 'z' in header else -1
+                                        header = lines[i].replace('ITEM: ATOMS', '').strip().split()
+                                        i += 1
+                                        positions = np.zeros((num_atoms, 3))
+                                        symbols = []
+                                        for j in range(num_atoms):
+                                            if i + j >= len(lines):
+                                                break
+                                            values = lines[i + j].strip().split()
+                                            if len(values) < len(header):
+                                                continue
+                                            x_idx = header.index('x') if 'x' in header else -1
+                                            y_idx = header.index('y') if 'y' in header else -1
+                                            z_idx = header.index('z') if 'z' in header else -1
 
-                                        # Find element column
-                                        type_idx = header.index('type') if 'type' in header else -1
-                                        element_idx = header.index('element') if 'element' in header else -1
+                                            # Find element column
+                                            type_idx = header.index('type') if 'type' in header else -1
+                                            element_idx = header.index('element') if 'element' in header else -1
 
-                                        if x_idx >= 0 and y_idx >= 0 and z_idx >= 0:
-                                            positions[j] = [float(values[x_idx]), float(values[y_idx]),
-                                                            float(values[z_idx])]
+                                            if x_idx >= 0 and y_idx >= 0 and z_idx >= 0:
+                                                positions[j] = [float(values[x_idx]), float(values[y_idx]),
+                                                                float(values[z_idx])]
 
-                                        if element_idx >= 0:
-                                            symbols.append(values[element_idx])
-                                        elif type_idx >= 0:
-                                            type_num = int(values[type_idx])
-                                            element_map = {1: 'Si', 2: 'O', 3: 'Al', 4: 'Na'}  # Example mapping
-                                            symbols.append(element_map.get(type_num, f'X{type_num}'))
-                                    i += num_atoms
-                                    if len(symbols) == num_atoms:
-                                        atoms = Atoms(symbols=symbols, positions=positions)
-                                        frames.append(atoms)
-                                except Exception as inner_e:
-                                    st.error(f"Error parsing frame: {str(inner_e)}")
+                                            if element_idx >= 0:
+                                                symbols.append(values[element_idx])
+                                            elif type_idx >= 0:
+                                                type_num = int(values[type_idx])
+                                                element_map = {1: 'Si', 2: 'O', 3: 'Al', 4: 'Na'}  # Example mapping
+                                                symbols.append(element_map.get(type_num, f'X{type_num}'))
+                                        i += num_atoms
+                                        if len(symbols) == num_atoms:
+                                            atoms = Atoms(symbols=symbols, positions=positions)
+                                            frames.append(atoms)
+                                    except Exception as inner_e:
+                                        st.error(f"Error parsing frame: {str(inner_e)}")
+                                        i += 1
+                                else:
                                     i += 1
-                            else:
-                                i += 1
 
-                        return frames
-                    for method in read_methods:
-                        if success:
-                            break
+                            return frames
 
-                        try:
-                            bytes_data.seek(0)
-                            st.info(f"Trying to read using {method['description']} directly from memory...")
-                            if method['format'] == 'lammps-dump' or method['format'] == 'lammps-dump-text':
-                                # Get bytes data and convert to string
-                                raw_bytes = bytes_data.getvalue()
-                                try:
-                                    text_content = raw_bytes.decode('utf-8')
-                                except UnicodeDecodeError:
-                                    text_content = raw_bytes.decode('latin-1')
 
-                                temp_bytes = io.BytesIO()
-                                temp_bytes.write(text_content.encode('utf-8'))
-                                temp_bytes.seek(0)
-
-                                frames = ase_read(temp_bytes, index=':', format=method['format'])
-                            elif method['format'] is None:
-                                bytes_data.seek(0)
-                                raw_data = bytes_data.getvalue()
-                                temp_bytes = io.BytesIO(raw_data)
-                                frames = ase_read(temp_bytes, index=':')
-
-                            if frames and len(frames) > 0:
-                                success = True
-                                st.success(f"Successfully read using {method['description']} from memory")
-                        except Exception as e:
-                            st.warning(f"Failed with {method['description']} from memory: {str(e)}")
-                    if not success:
-                        st.warning("Direct memory reading failed. Trying with temporary file...")
-                        import os
-                        temp_dir = os.path.join(os.getcwd(), ".streamlit/temp") if os.path.exists(
-                            os.path.join(os.getcwd(), ".streamlit")) else tempfile.gettempdir()
-                        os.makedirs(temp_dir, exist_ok=True)
-                        import uuid
-
-                        temp_file_path = os.path.join(temp_dir, f"temp_lammps_{uuid.uuid4().hex}.dump")
-                        bytes_data.seek(0)
-                        with open(temp_file_path, "wb") as f:
-                            f.write(bytes_data.getbuffer())
-                        st.info(f"Saved temporary file for processing at: {temp_file_path}")
                         for method in read_methods:
                             if success:
                                 break
 
                             try:
-                                st.info(f"Trying to read using {method['description']} from temp file...")
+                                bytes_data.seek(0)
+                                st.info(f"Trying to read using {method['description']} directly from memory...")
+                                if method['format'] == 'lammps-dump' or method['format'] == 'lammps-dump-text':
+                                    # Get bytes data and convert to string
+                                    raw_bytes = bytes_data.getvalue()
+                                    try:
+                                        text_content = raw_bytes.decode('utf-8')
+                                    except UnicodeDecodeError:
+                                        text_content = raw_bytes.decode('latin-1')
 
-                                if method['format'] is None:
-                                    frames = ase_read(temp_file_path, index=':')
-                                else:
-                                    frames = ase_read(temp_file_path, index=':', format=method['format'])
+                                    temp_bytes = io.BytesIO()
+                                    temp_bytes.write(text_content.encode('utf-8'))
+                                    temp_bytes.seek(0)
+
+                                    frames = ase_read(temp_bytes, index=':', format=method['format'])
+                                elif method['format'] is None:
+                                    bytes_data.seek(0)
+                                    raw_data = bytes_data.getvalue()
+                                    temp_bytes = io.BytesIO(raw_data)
+                                    frames = ase_read(temp_bytes, index=':')
 
                                 if frames and len(frames) > 0:
                                     success = True
-                                    st.success(f"Successfully read using {method['description']} from temp file")
+                                    st.success(f"Successfully read using {method['description']} from memory")
                             except Exception as e:
-                                st.warning(f"Failed with {method['description']} from temp file: {str(e)}")
+                                st.warning(f"Failed with {method['description']} from memory: {str(e)}")
+                        if not success:
+                            st.warning("Direct memory reading failed. Trying with temporary file...")
+                            import os
 
-                        # Clean up the temporary file
-                        try:
-                            os.remove(temp_file_path)
-                            st.info("Temporary file removed")
-                        except Exception as clean_err:
-                            st.warning(f"Could not remove temporary file: {str(clean_err)}")
-                    if not success:
-                        st.warning("All standard methods failed. Attempting custom parsing...")
-                        bytes_data.seek(0)
-                        try:
-                            text_content = bytes_data.getvalue().decode('utf-8')
-                        except UnicodeDecodeError:
-                            text_content = bytes_data.getvalue().decode('latin-1')
-                        frames = parse_lammps_dump_from_string(text_content)
+                            temp_dir = os.path.join(os.getcwd(), ".streamlit/temp") if os.path.exists(
+                                os.path.join(os.getcwd(), ".streamlit")) else tempfile.gettempdir()
+                            os.makedirs(temp_dir, exist_ok=True)
+                            import uuid
 
-                        if frames and len(frames) > 0:
-                            success = True
-                            st.success(f"Successfully read using custom parser")
+                            temp_file_path = os.path.join(temp_dir, f"temp_lammps_{uuid.uuid4().hex}.dump")
+                            bytes_data.seek(0)
+                            with open(temp_file_path, "wb") as f:
+                                f.write(bytes_data.getbuffer())
+                            st.info(f"Saved temporary file for processing at: {temp_file_path}")
+                            for method in read_methods:
+                                if success:
+                                    break
 
-                    if not frames or len(frames) == 0:
-                        raise Exception("Could not extract any frames from the trajectory file")
-                except Exception as e:
-                    st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
-            total_frames = len(frames)
-            st.write(f"Found {total_frames} frames in the trajectory")
+                                try:
+                                    st.info(f"Trying to read using {method['description']} from temp file...")
 
-            # Use selected frames based on sampling rate
-            selected_frames = frames[::frame_sampling]
-            st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
+                                    if method['format'] is None:
+                                        frames = ase_read(temp_file_path, index=':')
+                                    else:
+                                        frames = ase_read(temp_file_path, index=':', format=method['format'])
 
-            # Process each frame
-            for i, frame in enumerate(selected_frames):
-                progress_bar.progress((i + 1) / len(selected_frames))
+                                    if frames and len(frames) > 0:
+                                        success = True
+                                        st.success(f"Successfully read using {method['description']} from temp file")
+                                except Exception as e:
+                                    st.warning(f"Failed with {method['description']} from temp file: {str(e)}")
 
-                try:
-                    mg_structure = AseAtomsAdaptor.get_structure(frame)
+                            try:
+                                os.remove(temp_file_path)
+                                st.info("Temporary file removed")
+                            except Exception as clean_err:
+                                st.warning(f"Could not remove temporary file: {str(clean_err)}")
+                        if not success:
+                            st.warning("All standard methods failed. Attempting custom parsing...")
+                            bytes_data.seek(0)
+                            try:
+                                text_content = bytes_data.getvalue().decode('utf-8')
+                            except UnicodeDecodeError:
+                                text_content = bytes_data.getvalue().decode('latin-1')
+                            frames = parse_lammps_dump_from_string(text_content)
 
-                    # Calculate PRDF for this frame
+                            if frames and len(frames) > 0:
+                                success = True
+                                st.success(f"Successfully read using custom parser")
+
+                        if not frames or len(frames) == 0:
+                            raise Exception("Could not extract any frames from the trajectory file")
+                    except Exception as e:
+                        st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
+
+                total_frames = len(frames)
+                st.write(f"Found {total_frames} frames in the trajectory")
+
+                # Use selected frames based on sampling rate
+                selected_frames = frames[::frame_sampling]
+                st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
+
+                # Store frame indices and reset animation state
+                frame_indices = [i * frame_sampling for i in range(len(selected_frames))]
+                st.session_state.frame_indices = frame_indices
+                st.session_state.animate = False
+
+                # Process each frame
+                for i, frame in enumerate(selected_frames):
+                    progress_bar.progress((i + 1) / len(selected_frames))
+
+                    try:
+                        mg_structure = AseAtomsAdaptor.get_structure(frame)
+
+                        # Calculate PRDF for this frame
+                        prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+                        prdf_featurizer.fit([mg_structure])
+                        prdf_data = prdf_featurizer.featurize(mg_structure)
+                        feature_labels = prdf_featurizer.feature_labels()
+
+                        prdf_dict = defaultdict(list)
+                        distance_dict = {}
+                        global_dict = {}
+
+                        for j, label in enumerate(feature_labels):
+                            parts = label.split(" PRDF r=")
+                            element_pair = tuple(parts[0].split("-"))
+                            distance_range = parts[1].split("-")
+                            bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
+                            prdf_dict[element_pair].append(prdf_data[j])
+
+                            if element_pair not in distance_dict:
+                                distance_dict[element_pair] = []
+                            distance_dict[element_pair].append(bin_center)
+                            global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[j]
+
+                        for pair, values in prdf_dict.items():
+                            if pair not in all_distance_dict:
+                                all_distance_dict[pair] = distance_dict[pair]
+                            if isinstance(values, float):
+                                values = [values]
+                            all_prdf_dict[pair].append(values)
+
+                        global_rdf_list.append(global_dict)
+
+                    except Exception as e:
+                        st.error(f"Error processing frame {i}: {str(e)}")
+
+                progress_bar.progress(1.0)
+                multi_structures = True
+
+            else:
+                for file in uploaded_files:
+                    try:
+                        structure = read(file.name)
+                        mg_structure = AseAtomsAdaptor.get_structure(structure)
+                    except Exception as e:
+                        mg_structure = load_structure(file.name)
+
                     prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                     prdf_featurizer.fit([mg_structure])
                     prdf_data = prdf_featurizer.featurize(mg_structure)
                     feature_labels = prdf_featurizer.feature_labels()
-
                     prdf_dict = defaultdict(list)
                     distance_dict = {}
                     global_dict = {}
-
-                    for j, label in enumerate(feature_labels):
+                    for i, label in enumerate(feature_labels):
                         parts = label.split(" PRDF r=")
                         element_pair = tuple(parts[0].split("-"))
                         distance_range = parts[1].split("-")
                         bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                        prdf_dict[element_pair].append(prdf_data[j])
-
+                        prdf_dict[element_pair].append(prdf_data[i])
                         if element_pair not in distance_dict:
                             distance_dict[element_pair] = []
                         distance_dict[element_pair].append(bin_center)
-                        global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[j]
-
+                        global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
                     for pair, values in prdf_dict.items():
                         if pair not in all_distance_dict:
                             all_distance_dict[pair] = distance_dict[pair]
                         if isinstance(values, float):
                             values = [values]
                         all_prdf_dict[pair].append(values)
-
                     global_rdf_list.append(global_dict)
 
-                except Exception as e:
-                    st.error(f"Error processing frame {i}: {str(e)}")
+                multi_structures = len(uploaded_files) > 1
+                frame_indices = [0]
+                st.session_state.frame_indices = frame_indices
 
-            progress_bar.progress(1.0)
-            multi_structures = True
+            st.session_state.processed_data = {
+                "all_prdf_dict": all_prdf_dict,
+                "all_distance_dict": all_distance_dict,
+                "global_rdf_list": global_rdf_list,
+                "multi_structures": multi_structures
+            }
 
-        else:
-            for file in uploaded_files:
-                try:
-                    structure = read(file.name)
-                    mg_structure = AseAtomsAdaptor.get_structure(structure)
-                except Exception as e:
-                    mg_structure = load_structure(file.name)
+            st.session_state.do_calculation = False
 
-                prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
-                prdf_featurizer.fit([mg_structure])
-                prdf_data = prdf_featurizer.featurize(mg_structure)
-                feature_labels = prdf_featurizer.feature_labels()
-                prdf_dict = defaultdict(list)
-                distance_dict = {}
-                global_dict = {}
-                for i, label in enumerate(feature_labels):
-                    parts = label.split(" PRDF r=")
-                    element_pair = tuple(parts[0].split("-"))
-                    distance_range = parts[1].split("-")
-                    bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                    prdf_dict[element_pair].append(prdf_data[i])
-                    if element_pair not in distance_dict:
-                        distance_dict[element_pair] = []
-                    distance_dict[element_pair].append(bin_center)
-                    global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
-                for pair, values in prdf_dict.items():
-                    if pair not in all_distance_dict:
-                        all_distance_dict[pair] = distance_dict[pair]
-                    if isinstance(values, float):
-                        values = [values]
-                    all_prdf_dict[pair].append(values)
-                global_rdf_list.append(global_dict)
-
-            multi_structures = len(uploaded_files) > 1
+        all_prdf_dict = st.session_state.processed_data["all_prdf_dict"]
+        all_distance_dict = st.session_state.processed_data["all_distance_dict"]
+        global_rdf_list = st.session_state.processed_data["global_rdf_list"]
+        multi_structures = st.session_state.processed_data["multi_structures"]
+        frame_indices = st.session_state.frame_indices
 
         import plotly.graph_objects as go
         import matplotlib.pyplot as plt
+        import numpy as np
 
         colors = plt.cm.tab10.colors
 
@@ -3776,136 +3866,514 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
 
         font_dict = dict(size=24, color="black")
 
+
         st.divider()
         st.subheader("PRDF Plots:")
-        for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
-            valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
-            if valid_prdf:
-                prdf_array = np.vstack(valid_prdf)
-                prdf_avg = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
-            else:
-                prdf_avg = np.zeros_like(all_distance_dict[comb])
+        hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
 
-            if use_lammps_traj and lammps_file:
-                title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
-            else:
-                title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
+        if use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
+            if "animation_speed" not in st.session_state:
+                st.session_state.animation_speed = 0.5
+
+
+            def update_speed():
+                st.session_state.animation_speed = st.session_state.speed_slider
+
+
+            st.slider("Animation Speed",
+                      min_value=0.05,
+                      max_value=2.00,
+                      value=st.session_state.animation_speed,
+                      step=0.05,
+                      key="speed_slider",
+                      on_change=update_speed,
+                      help="Seconds per frame")
+
+
+        for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
 
             hex_color = rgb_to_hex(colors[idx % len(colors)])
 
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=all_distance_dict[comb],
-                y=prdf_avg,
-                mode='lines+markers',
-                name=f"{comb[0]}-{comb[1]}",
-                line=dict(color=hex_color),
-                marker=dict(size=10)
-            ))
 
-            # Add standard deviation band for trajectory analysis
-            if use_lammps_traj and lammps_file and len(valid_prdf) > 1:
-                prdf_std = np.std(prdf_array, axis=0)
+            valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
+
+            if not valid_prdf:
+
+                prdf_data = np.zeros_like(all_distance_dict[comb])
+                title_str = f"PRDF: {comb[0]}-{comb[1]}"
+
+                fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=all_distance_dict[comb],
-                    y=prdf_avg + prdf_std,
-                    mode='lines',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=prdf_avg - prdf_std,
-                    mode='lines',
-                    line=dict(width=0),
-                    fillcolor='rgba(100,100,100,0.2)',
-                    fill='tonexty',
-                    showlegend=False
+                    y=prdf_data,
+                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                    name=f"{comb[0]}-{comb[1]}",
+                    line=dict(color=hex_color),
+                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
                 ))
 
-            fig.update_layout(
-                title={'text': title_str, 'font': font_dict},
-                xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                hovermode='x',
-                font=font_dict,
-                xaxis=dict(tickfont=font_dict),
-                yaxis=dict(tickfont=font_dict, range=[0, None]),
-                hoverlabel=dict(font=font_dict)
-            )
+            elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
+
+                fig = go.Figure()
+
+
+                fig.add_trace(go.Scatter(
+                    x=all_distance_dict[comb],
+                    y=valid_prdf[0],  # First frame data
+                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                    name=f"{comb[0]}-{comb[1]}",
+                    line=dict(color=hex_color, width=2),
+                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                ))
+
+                frames = []
+                for i, frame_data in enumerate(valid_prdf):
+                    frame = go.Frame(
+                        data=[go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=frame_data,
+                            mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                            line=dict(color=hex_color, width=2),
+                            marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                        )],
+                        name=f"frame_{i}"
+                    )
+                    frames.append(frame)
+
+                fig.frames = frames
+
+                updatemenus = [
+                    dict(
+                        type="buttons",
+                        direction="right",
+                        x=0.1,
+                        y=-0.1,
+                        showactive=False,
+                        buttons=[
+                            dict(
+                                label="▶️ Play",
+                                method="animate",
+                                args=[None, {
+                                    "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
+                                    "fromcurrent": True, "mode": "immediate"}],
+                            ),
+                            dict(
+                                label="⏹️ Pause",
+                                method="animate",
+                                args=[[None], {"frame": {"duration": 0, "redraw": True},
+                                               "mode": "immediate", "transition": {"duration": 0}}],
+                            ),
+                        ],
+                    )
+                ]
+
+
+                sliders = [
+                    dict(
+                        active=0,
+                        yanchor="top",
+                        xanchor="left",
+                        currentvalue=dict(
+                            font=dict(size=16),
+                            prefix="Frame: ",
+                            visible=True,
+                            xanchor="right"
+                        ),
+                        pad=dict(b=10, t=50),
+                        len=0.9,
+                        x=0.1,
+                        y=0,
+                        steps=[
+                            dict(
+                                method="animate",
+                                args=[
+                                    [f"frame_{k}"],
+                                    {"frame": {"duration": 100, "redraw": True},
+                                     "mode": "immediate",
+                                     "transition": {"duration": 0}}
+                                ],
+                                label=f"{frame_indices[k]}"
+                            )
+                            for k in range(len(valid_prdf))
+                        ]
+                    )
+                ]
+
+                all_y_values = [y for data in valid_prdf for y in data]
+                max_y = max(all_y_values) * 1.1 if all_y_values else 1.0
+
+                title_str = f"PRDF: {comb[0]}-{comb[1]} Animation"
+
+                fig.update_layout(
+                    title={'text': title_str, 'font': font_dict},
+                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                    hovermode='x',
+                    updatemenus=updatemenus,
+                    sliders=sliders,
+                    font=font_dict,
+                    xaxis=dict(tickfont=font_dict),
+                    yaxis=dict(tickfont=font_dict, range=[0, max_y]),
+                    hoverlabel=dict(font=font_dict)
+                )
+
+            else:
+                prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
+                prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
+
+                if use_lammps_traj and lammps_file:
+                    title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+                else:
+                    title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=all_distance_dict[comb],
+                    y=prdf_data,
+                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                    name=f"{comb[0]}-{comb[1]}",
+                    line=dict(color=hex_color, width=2),
+                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                ))
+
+
+                if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
+                    prdf_std = np.std(prdf_array, axis=0)
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data + prdf_std,
+                        mode='lines',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=np.maximum(0, prdf_data - prdf_std),
+                        mode='lines',
+                        line=dict(width=0),
+                        fillcolor='rgba(100,100,100,0.2)',
+                        fill='tonexty',
+                        showlegend=False
+                    ))
+
+                fig.update_layout(
+                    title={'text': title_str, 'font': font_dict},
+                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                    hovermode='x',
+                    font=font_dict,
+                    xaxis=dict(tickfont=font_dict),
+                    yaxis=dict(tickfont=font_dict, range=[0, None]),
+                    hoverlabel=dict(font=font_dict)
+                )
+
             st.plotly_chart(fig, use_container_width=True)
 
-            with st.expander(f"View Data for {comb[0]}-{comb[1]}"):
-                table_str = "#Distance (Å)    PRDF\n"
-                for x, y in zip(all_distance_dict[comb], prdf_avg):
-                    table_str += f"{x:<12.3f} {y:<12.3f}\n"
-                st.code(table_str, language="text")
+
 
         st.subheader("Total RDF Plot:")
         global_bins_set = set()
         for gd in global_rdf_list:
             global_bins_set.update(gd.keys())
         global_bins = sorted(list(global_bins_set))
-        global_rdf_avg = []
-        global_rdf_std = []
-        for b in global_bins:
-            vals = []
-            for gd in global_rdf_list:
-                vals.append(gd.get(b, 0))
-            global_rdf_avg.append(np.mean(vals))
-            global_rdf_std.append(np.std(vals))
 
-        hex_color_global = rgb_to_hex(colors[len(all_prdf_dict) % len(colors)])
+        if use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
 
-        fig_global = go.Figure()
-        fig_global.add_trace(go.Scatter(
-            x=global_bins,
-            y=global_rdf_avg,
-            mode='lines+markers',
-            name="Global RDF",
-            line=dict(color=hex_color_global),
-            marker=dict(size=10)
-        ))
+            fig_global = go.Figure()
 
 
-        if use_lammps_traj and lammps_file:
+            initial_frame = global_rdf_list[0]
+            initial_values = [initial_frame.get(b, 0) for b in global_bins]
+
             fig_global.add_trace(go.Scatter(
                 x=global_bins,
-                y=[a + s for a, s in zip(global_rdf_avg, global_rdf_std)],
-                mode='lines',
-                line=dict(width=0),
-                showlegend=False
+                y=initial_values,
+                mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                name=f"Global RDF",
+                line=dict(color=hex_color_global, width=2),
+                marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
             ))
-            fig_global.add_trace(go.Scatter(
-                x=global_bins,
-                y=[max(0, a - s) for a, s in zip(global_rdf_avg, global_rdf_std)],
-                mode='lines',
-                line=dict(width=0),
-                fillcolor='rgba(100,100,100,0.2)',
-                fill='tonexty',
-                showlegend=False
-            ))
-            title_global = "Trajectory-Averaged Global RDF"
+
+
+            frames = []
+            for i, global_dict in enumerate(global_rdf_list):
+                frame_values = [global_dict.get(b, 0) for b in global_bins]
+
+                frame = go.Frame(
+                    data=[go.Scatter(
+                        x=global_bins,
+                        y=frame_values,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        line=dict(color=hex_color_global, width=2),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    )],
+                    name=f"frame_{i}"
+                )
+                frames.append(frame)
+
+            fig_global.frames = frames
+
+            updatemenus = [
+                dict(
+                    type="buttons",
+                    direction="right",
+                    x=0.1,
+                    y=-0.1,
+                    showactive=False,
+                    buttons=[
+                        dict(
+                            label="▶️ Play",
+                            method="animate",
+                            args=[None,
+                                  {"frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
+                                   "fromcurrent": True, "mode": "immediate"}],
+                        ),
+                        dict(
+                            label="⏹️ Pause",
+                            method="animate",
+                            args=[[None], {"frame": {"duration": 0, "redraw": True},
+                                           "mode": "immediate", "transition": {"duration": 0}}],
+                        ),
+                    ],
+                )
+            ]
+
+            # Add slider
+            sliders = [
+                dict(
+                    active=0,
+                    yanchor="top",
+                    xanchor="left",
+                    currentvalue=dict(
+                        font=dict(size=16),
+                        prefix="Frame: ",
+                        visible=True,
+                        xanchor="right"
+                    ),
+                    pad=dict(b=10, t=50),
+                    len=0.9,
+                    x=0.1,
+                    y=0,
+                    steps=[
+                        dict(
+                            method="animate",
+                            args=[
+                                [f"frame_{k}"],
+                                {"frame": {"duration": 100, "redraw": True},
+                                 "mode": "immediate",
+                                 "transition": {"duration": 0}}
+                            ],
+                            label=f"{frame_indices[k]}"
+                        )
+                        for k in range(len(global_rdf_list))
+                    ]
+                )
+            ]
+
+
+            all_values = []
+            for gdict in global_rdf_list:
+                values = [gdict.get(b, 0) for b in global_bins]
+                all_values.extend(values)
+            max_y = max(all_values) * 1.1 if all_values else 1.0
+
+            fig_global.update_layout(
+                title={'text': "Global RDF Animation", 'font': font_dict},
+                xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                yaxis_title={'text': "Total RDF Intensity", 'font': font_dict},
+                hovermode='x',
+                updatemenus=updatemenus,
+                sliders=sliders,
+                font=font_dict,
+                xaxis=dict(tickfont=font_dict),
+                yaxis=dict(tickfont=font_dict, range=[0, max_y]),
+                hoverlabel=dict(font=font_dict)
+            )
+
+            title_global = "Global RDF Animation"
+
         else:
-            title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
 
-        fig_global.update_layout(
-            title={'text': title_global, 'font': font_dict},
-            xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-            yaxis_title={'text': "Total RDF Intensity", 'font': font_dict},
-            hovermode='x',
-            font=font_dict,
-            xaxis=dict(tickfont=font_dict),
-            yaxis=dict(tickfont=font_dict, range=[0, None]),
-            hoverlabel=dict(font=font_dict)
-        )
+            global_rdf_avg = []
+            global_rdf_std = []
+
+            for b in global_bins:
+                vals = []
+                for gd in global_rdf_list:
+                    vals.append(gd.get(b, 0))
+                global_rdf_avg.append(np.mean(vals))
+                global_rdf_std.append(np.std(vals))
+
+            fig_global = go.Figure()
+            fig_global.add_trace(go.Scatter(
+                x=global_bins,
+                y=global_rdf_avg,
+                mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                name="Global RDF",
+                line=dict(color=hex_color_global, width=2),
+                marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+            ))
+
+            if use_lammps_traj and lammps_file:
+                fig_global.add_trace(go.Scatter(
+                    x=global_bins,
+                    y=[a + s for a, s in zip(global_rdf_avg, global_rdf_std)],
+                    mode='lines',
+                    line=dict(width=0),
+                    showlegend=False
+                ))
+                fig_global.add_trace(go.Scatter(
+                    x=global_bins,
+                    y=[max(0, a - s) for a, s in zip(global_rdf_avg, global_rdf_std)],
+                    mode='lines',
+                    line=dict(width=0),
+                    fillcolor='rgba(100,100,100,0.2)',
+                    fill='tonexty',
+                    showlegend=False
+                ))
+                title_global = "Trajectory-Averaged Global RDF"
+            else:
+                title_global = "Averaged Global RDF" if multi_structures else "Global RDF"
+
+            fig_global.update_layout(
+                title={'text': title_global, 'font': font_dict},
+                xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                yaxis_title={'text': "Total RDF Intensity", 'font': font_dict},
+                hovermode='x',
+                font=font_dict,
+                xaxis=dict(tickfont=font_dict),
+                yaxis=dict(tickfont=font_dict, range=[0, None]),
+                hoverlabel=dict(font=font_dict)
+            )
+
+
         st.plotly_chart(fig_global, use_container_width=True)
 
-        with st.expander("View Data for Total RDF"):
-            table_str = "#Distance (Å)    Total RDF\n"
-            for x, y in zip(global_bins, global_rdf_avg):
-                table_str += f"{x:<12.3f} {y:<12.3f}\n"
-            st.code(table_str, language="text")
+
+        def toggle_animation():
+            st.session_state.animate = not st.session_state.animate
+            if st.session_state.animate:
+                st.rerun()
+
+
+        st.subheader("Download Options")
+
+        if "download_prepared" not in st.session_state:
+            st.session_state.download_prepared = False
+
+
+        def prepare_downloads():
+            st.session_state.download_prepared = True
+
+
+        st.button("Prepare Data for Download", on_click=prepare_downloads)
+
+        if st.session_state.download_prepared:
+            import io
+            import pandas as pd
+            import base64
+
+
+            is_individual_mode = (use_lammps_traj and lammps_file and
+                                  st.session_state.display_mode == "Individual frame PRDFs")
+
+
+            for comb, prdf_list in all_prdf_dict.items():
+                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
+
+                if valid_prdf:
+                    if is_individual_mode:
+
+                        df = pd.DataFrame()
+                        df["Distance (Å)"] = all_distance_dict[comb]
+
+                        for i, frame_data in enumerate(valid_prdf):
+                            df[f"Frame_{frame_indices[i]}"] = frame_data
+
+                        csv = df.to_csv(index=False)
+                        b64 = base64.b64encode(csv.encode()).decode()
+                        href = f'<a href="data:file/csv;base64,{b64}" download="{comb[0]}_{comb[1]}_prdf_frames.csv">Download {comb[0]}-{comb[1]} PRDF data for all frames</a>'
+                        st.markdown(href, unsafe_allow_html=True)
+                    else:
+
+                        df = pd.DataFrame()
+                        df["Distance (Å)"] = all_distance_dict[comb]
+
+                        if multi_structures:
+
+                            prdf_array = np.vstack(valid_prdf)
+                            prdf_data = np.mean(prdf_array, axis=0)
+                            df["Average"] = prdf_data
+
+
+                            if len(valid_prdf) > 1:
+                                prdf_std = np.std(prdf_array, axis=0)
+                                df["StdDev"] = prdf_std
+
+                            filename = f"{comb[0]}_{comb[1]}_prdf_average.csv"
+                        else:
+
+                            prdf_data = valid_prdf[0]
+                            df["PRDF"] = prdf_data
+                            filename = f"{comb[0]}_{comb[1]}_prdf.csv"
+
+                        csv = df.to_csv(index=False)
+                        b64 = base64.b64encode(csv.encode()).decode()
+                        href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download {comb[0]}-{comb[1]} PRDF data</a>'
+                        st.markdown(href, unsafe_allow_html=True)
+
+
+            global_bins_set = set()
+            for gd in global_rdf_list:
+                global_bins_set.update(gd.keys())
+            global_bins = sorted(list(global_bins_set))
+
+            if is_individual_mode:
+
+                global_df = pd.DataFrame()
+                global_df["Distance (Å)"] = global_bins
+
+                for i, gd in enumerate(global_rdf_list):
+                    global_df[f"Frame_{frame_indices[i]}"] = [gd.get(b, 0) for b in global_bins]
+
+                global_filename = "global_rdf_frames.csv"
+                download_text = "Download Total RDF data for all frames"
+            elif multi_structures:
+
+                global_df = pd.DataFrame()
+                global_df["Distance (Å)"] = global_bins
+
+
+                global_avgs = []
+                global_stds = []
+                for b in global_bins:
+                    vals = [gd.get(b, 0) for gd in global_rdf_list]
+                    global_avgs.append(np.mean(vals))
+                    if len(global_rdf_list) > 1:
+                        global_stds.append(np.std(vals))
+
+                global_df["Average"] = global_avgs
+
+                if len(global_rdf_list) > 1:
+                    global_df["StdDev"] = global_stds
+
+                global_filename = "global_rdf_average.csv"
+                download_text = "Download Average Total RDF data"
+            else:
+
+                global_df = pd.DataFrame()
+                global_df["Distance (Å)"] = global_bins
+                global_df["RDF"] = [global_rdf_list[0].get(b, 0) for b in global_bins]
+
+                global_filename = "global_rdf.csv"
+                download_text = "Download Total RDF data"
+
+            global_csv = global_df.to_csv(index=False)
+            global_b64 = base64.b64encode(global_csv.encode()).decode()
+            global_href = f'<a href="data:file/csv;base64,{global_b64}" download="{global_filename}">{download_text}</a>'
+            st.markdown(global_href, unsafe_allow_html=True)
 
 if "**📈 Interactive Data Plot**" in calc_mode:
 
