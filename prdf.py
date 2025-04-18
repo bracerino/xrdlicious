@@ -2299,7 +2299,135 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                      "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
                      " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
             )
+        use_debye_waller = st.checkbox(
+            "✓ Apply Debye-Waller temperature factors",
+            value=False,
+            help="Apply temperature-dependent intensity correction using Debye-Waller factors (B-factors) for each element. "
+                 "This accounts for thermal motion of atoms, which reduces diffraction peak intensities. "
+                 "Enter B-factor values for each element in Å² for each structure file. Typical values range from 0.5 to 3.0 Å² "
+                "Higher values (2-3 Å²) represent more thermal motion or disorder. Lower values (0.5-1 Å²) represent less thermal motion (e.g., at low temperatures). "
+                "The intensity correction is applied as: exp(-B·sin²θ/λ²)."
+        )
 
+        if use_debye_waller:
+                st.markdown(f"### 🔥 Debye-Waller B-factors")
+                if "debye_waller_factors_per_file" not in st.session_state:
+                    st.session_state.debye_waller_factors_per_file = {}
+                preset_col1, preset_col2 = st.columns([1, 3])
+                with preset_col1:
+                    apply_preset = st.selectbox(
+                        "Apply a preset to all files",
+                        ["Custom (No Preset)", "Room Temperature (300K)", "Low Temperature (100K)",
+                         "High Temperature (500K)"],
+                        key="dw_preset"
+                    )
+
+                with preset_col2:
+                    if apply_preset != "Custom (No Preset)":
+                        preset_values = {
+                            "Room Temperature (300K)": {
+                                "H": 1.1, "C": 0.8, "N": 0.9, "O": 0.7, "F": 0.8, "Na": 1.1, "Mg": 0.5,
+                                "Al": 0.6, "Si": 0.5, "P": 0.7, "S": 0.6, "Cl": 0.8, "K": 1.2, "Ca": 0.6,
+                                "Ti": 0.4, "V": 0.4, "Cr": 0.4, "Mn": 0.5, "Fe": 0.4, "Co": 0.4, "Ni": 0.4,
+                                "Cu": 0.5, "Zn": 0.6, "Ga": 0.7, "Ge": 0.6, "As": 0.5, "Se": 0.7, "Br": 0.9,
+                                "Rb": 1.3, "Sr": 0.7, "Y": 0.5, "Zr": 0.4, "Nb": 0.4, "Mo": 0.4, "Tc": 0.4,
+                                "Ru": 0.4, "Rh": 0.4, "Pd": 0.5, "Ag": 0.6, "Cd": 0.7, "In": 0.8, "Sn": 0.7,
+                                "Sb": 0.6, "Te": 0.7, "I": 1.0, "Cs": 1.4, "Ba": 0.7, "La": 0.5, "Ce": 0.5
+                            },
+                            "Low Temperature (100K)": {
+                                "H": 0.6, "C": 0.4, "N": 0.5, "O": 0.3, "F": 0.4, "Na": 0.6, "Mg": 0.3,
+                                "Al": 0.3, "Si": 0.2, "P": 0.3, "S": 0.3, "Cl": 0.4, "K": 0.7, "Ca": 0.3,
+                                "Ti": 0.2, "V": 0.2, "Cr": 0.2, "Mn": 0.3, "Fe": 0.2, "Co": 0.2, "Ni": 0.2,
+                                "Cu": 0.3, "Zn": 0.3, "Ga": 0.4, "Ge": 0.3, "As": 0.3, "Se": 0.4, "Br": 0.5,
+                                "Rb": 0.7, "Sr": 0.4, "Y": 0.3, "Zr": 0.2, "Nb": 0.2, "Mo": 0.2, "Tc": 0.2,
+                                "Ru": 0.2, "Rh": 0.2, "Pd": 0.3, "Ag": 0.3, "Cd": 0.4, "In": 0.4, "Sn": 0.4,
+                                "Sb": 0.3, "Te": 0.4, "I": 0.5, "Cs": 0.8, "Ba": 0.4, "La": 0.3, "Ce": 0.3
+                            },
+                            "High Temperature (500K)": {
+                                "H": 1.8, "C": 1.3, "N": 1.5, "O": 1.2, "F": 1.3, "Na": 1.8, "Mg": 0.9,
+                                "Al": 1.0, "Si": 0.8, "P": 1.2, "S": 1.0, "Cl": 1.4, "K": 2.0, "Ca": 1.0,
+                                "Ti": 0.7, "V": 0.7, "Cr": 0.7, "Mn": 0.8, "Fe": 0.7, "Co": 0.7, "Ni": 0.7,
+                                "Cu": 0.8, "Zn": 1.0, "Ga": 1.2, "Ge": 1.0, "As": 0.9, "Se": 1.2, "Br": 1.5,
+                                "Rb": 2.2, "Sr": 1.2, "Y": 0.9, "Zr": 0.7, "Nb": 0.7, "Mo": 0.7, "Tc": 0.7,
+                                "Ru": 0.7, "Rh": 0.7, "Pd": 0.8, "Ag": 1.0, "Cd": 1.2, "In": 1.3, "Sn": 1.2,
+                                "Sb": 1.0, "Te": 1.2, "I": 1.7, "Cs": 2.3, "Ba": 1.2, "La": 0.9, "Ce": 0.9
+                            }
+                        }
+
+                        selected_preset = preset_values[apply_preset]
+                        st.write(f"{apply_preset} preset with default B-factors for common elements")
+
+                        sample_elements = ["Si", "O", "Fe", "Ca", "Al"]
+                        sample_values = {el: selected_preset.get(el, "N/A") for el in sample_elements if
+                                         el in selected_preset}
+                        if sample_values:
+                            st.write("Example values: " + ", ".join(
+                                [f"{el}: {val} Å²" for el, val in sample_values.items()]))
+
+                        apply_preset_button = st.button("Apply preset to all files")
+                        if apply_preset_button:
+                            st.success(f"{apply_preset} preset to all files")
+                if not uploaded_files:
+                    st.info(
+                        "No structure files uploaded. Please upload structure files to set Debye-Waller factors.")
+                else:
+                    file_tabs = st.tabs([file.name for file in uploaded_files])
+
+                    for i, (file, tab) in enumerate(zip(uploaded_files, file_tabs)):
+                        with tab:
+                            file_key = file.name
+                            if file_key not in st.session_state.debye_waller_factors_per_file:
+                                st.session_state.debye_waller_factors_per_file[file_key] = {}
+
+                            structure_elements = set()
+                            try:
+                                structure = load_structure(file.name)
+                                for site in structure:
+                                    if hasattr(site, 'specie') and hasattr(site.specie, 'symbol'):
+                                        structure_elements.add(site.specie.symbol)
+                                    elif hasattr(site, 'species'):
+                                        for sp, _ in site.species.items():
+                                            if hasattr(sp, 'symbol'):
+                                                structure_elements.add(sp.symbol)
+                            except Exception as e:
+                                st.warning(f"Could not extract elements from {file.name}: {e}")
+                                continue
+                            if not structure_elements:
+                                st.warning(f"No elements found in {file.name}")
+                                continue
+
+                            if apply_preset != "Custom (No Preset)" and apply_preset_button:
+                                for element in structure_elements:
+                                    if element in selected_preset:
+                                        st.session_state.debye_waller_factors_per_file[file_key][element] = \
+                                        selected_preset[element]
+
+                            st.write(f"**Elements in {file.name}:** {', '.join(sorted(structure_elements))}")
+
+                            num_cols = min(4, len(structure_elements))
+                            cols = st.columns(num_cols)
+
+                            #  input fields for each element
+                            for j, element in enumerate(sorted(structure_elements)):
+                                col_idx = j % num_cols
+                                with cols[col_idx]:
+                                    # Use stored value, preset value, or default
+                                    if apply_preset != "Custom (No Preset)" and apply_preset_button and element in selected_preset:
+                                        default_value = selected_preset[element]
+                                    else:
+                                        default_value = st.session_state.debye_waller_factors_per_file[
+                                            file_key].get(element, 1.0)
+
+                                    b_factor = st.number_input(
+                                        f"B-factor for {element} (Å²)",
+                                        min_value=0.0,
+                                        max_value=10.0,
+                                        value=default_value,
+                                        step=0.1,
+                                        format="%.2f",
+                                        key=f"b_factor_{file_key}_{element}"
+                                    )
+                                    st.session_state.debye_waller_factors_per_file[file_key][element] = b_factor
 
         def format_index(index, first=False, last=False):
             s = str(index)
@@ -2474,7 +2602,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
         if diffraction_choice == "XRD (X-ray)":
             with col1:
                 preset_choice = st.selectbox(
-                    "Preset Wavelength",
+                    "🌊 Preset Wavelength",
                     options=preset_options,
                     index=0,
                     help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
@@ -2492,7 +2620,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
             with col2:
                 if preset_choice not in hide_input_for:
                     wavelength_value = st.number_input(
-                        "Wavelength (nm)",
+                        "🌊 Wavelength (nm)",
                         value=preset_wavelengths[preset_choice],
                         min_value=0.001,
                         step=0.001,
@@ -2779,6 +2907,14 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
 
+            # Create Debye-Waller factors dictionary specific to this file if enabled
+            debye_waller_dict = None
+            if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
+                file_key = file.name
+                if file_key in st.session_state.debye_waller_factors_per_file:
+                    # Get the B-factors specific to this file
+                    debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
+
             if is_multi_component:
                 num_points = 20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
@@ -2792,9 +2928,9 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                 for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
                     wavelength_A_comp = wl * 10  # convert nm to Å
                     if diffraction_choice == "ND (Neutron)":
-                        diff_calc = NDCalculator(wavelength=wavelength_A_comp)
+                        diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
                     else:
-                        diff_calc = XRDCalculator(wavelength=wavelength_A_comp)
+                        diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
                     diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
 
                     filtered_x = []
@@ -2825,9 +2961,9 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                     all_filtered_hkls.extend(filtered_hkls)
             else:
                 if diffraction_choice == "ND (Neutron)":
-                    diff_calc = NDCalculator(wavelength=wavelength_A)
+                    diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
                 else:
-                    diff_calc = XRDCalculator(wavelength=wavelength_A)
+                    diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
                 diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
                 filtered_x = []
                 filtered_y = []
@@ -3332,7 +3468,7 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
                                        help="Upload a LAMMPS trajectory file to analyze PRDF for each frame")
         frame_sampling = st.slider("Frame Sampling Rate",
                                    min_value=1,
-                                   max_value=500,
+                                   max_value=20,
                                    value=1,
                                    help="Select every Nth frame from the trajectory (1 = use all frames)")
 
