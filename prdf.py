@@ -923,6 +923,10 @@ if "expander_supercell" not in st.session_state:
 if "expander_defects" not in st.session_state:
     st.session_state["expander_defects"] = False
 
+
+
+if "run_before" not in st.session_state:
+    st.session_state["run_before"] = False
 if "🔬 Structure Modification" in calc_mode:
 
     auto_save_structure = False
@@ -1625,31 +1629,49 @@ if "🔬 Structure Modification" in calc_mode:
                     "Frac Z": st.column_config.NumberColumn(format="%.5f"),
                 }
             )
+            print("STAV")
+            print(st.session_state["run_before"])
 
-            is_valid, error_message = validate_atom_dataframe(edited_df)
 
-            if not is_valid:
-                st.warning(f"⚠️ **Validation Error**: {error_message}")
-                st.warning("Please complete all required fields in the data editor before proceeding.")
-                st.stop()
 
             if 'previous_atom_df' not in st.session_state:
                 st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
 
             if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only == False:
-                st.session_state.modified_atom_df = edited_df.copy()
+                #st.session_state.modified_atom_df = edited_df.copy()
+                pass
                 if auto_save_structure:
                     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
                 st.session_state.previous_atom_df = edited_df.copy()
+            print("EDITED")
+            print(edited_df)
+            print("DISPL")
+            print(display_df)
+            if 'modified_atom_df_help' not in st.session_state:
+                pass
+            else:
+                display_df = st.session_state.modified_atom_df_help
+            print("DISPLZ DF AFTERRRR")
+            print(display_df)
 
-            if not edited_df.equals(display_df):
+            edited_df_reset = edited_df.reset_index(drop=True)
+            display_df_reset = display_df.reset_index(drop=True)
+
+
+            if not edited_df_reset.equals(display_df_reset):
+                edited_df = edited_df.reset_index(drop=True)
+                display_df = display_df.reset_index(drop=True)
+                st.session_state.modified_atom_df_help = edited_df
+                print(" AI M HERE?")
+                st.session_state["run_before"] = True
                 if unique_wyckoff_only:
 
                     for i, row in edited_df.iterrows():
                         original_row = display_df.loc[i].copy()
                         wyckoff = row['Wyckoff']
-                        if '(' in wyckoff:
-                            wyckoff = wyckoff.split(' (')[0]
+                        match = re.match(r'\d*(\D+)', wyckoff)
+                        if match:
+                            wyckoff = match.group(1)
                         element = row['Element']
                         original_element = original_row['Element']
                         changed_props = {}
@@ -1683,8 +1705,9 @@ if "🔬 Structure Modification" in calc_mode:
 
 
                 try:
-
+                    print("SAVING STRC")
                     grouped_data = st.session_state.modified_atom_df.copy()
+                    print(grouped_data)
                     grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                     grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                     grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
@@ -1734,6 +1757,9 @@ if "🔬 Structure Modification" in calc_mode:
                 except Exception as e:
                     st.error(f"Error rebuilding structure: {e}")
 
+            if st.session_state["run_before"] == True:
+                st.session_state["run_before"] = False
+                st.rerun()
 
             df_plot = edited_df
 
