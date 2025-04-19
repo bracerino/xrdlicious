@@ -206,7 +206,7 @@ if uploaded_files_user_sidebar:
 structure_cell_choice = st.sidebar.radio(
     "Structure Cell Type:",
     options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
-    index=1,  # default to Conventional
+    index=0,  # default to Conventional
     help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
          "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
 )
@@ -913,441 +913,456 @@ if "**🔬 Structure Visualization**" in calc_mode:
         old_c = st.session_state.get("supercell_n_c", 1)
         st.subheader("Edit Structure if Needed")
 
-        with st.expander(
-                f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
-                icon="🧊", expanded=st.session_state["expander_supercell"]):
-            col1, col2, col3 = st.columns(3)
-            st.session_state["expander_supercell"] = True
-            n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_a"], step=1)
-            n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_b"], step=1)
-            n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_c"], step=1)
+        create_defects = st.checkbox(
+            f"Create **Supercell** and **Point Defects**",
+            value=False)
+        if create_defects:
+            with st.expander(
+                    f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
+                    icon="🧊", expanded=st.session_state["expander_supercell"]):
+                col1, col2, col3 = st.columns(3)
+                st.session_state["expander_supercell"] = True
+                n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_a"], step=1)
+                n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_b"], step=1)
+                n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_c"], step=1)
 
-        st.session_state["supercell_n_a"] = n_a
-        st.session_state["supercell_n_b"] = n_b
-        st.session_state["supercell_n_c"] = n_c
+            st.session_state["supercell_n_a"] = n_a
+            st.session_state["supercell_n_b"] = n_b
+            st.session_state["supercell_n_c"] = n_c
 
-        supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
 
-        if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-            transformer = SupercellTransformation(supercell_matrix)
-            mp_struct = transformer.apply_transformation(st.session_state["original_structures"][selected_file])
+            if (n_a, n_b, n_c) != (old_a, old_b, old_c):
+                transformer = SupercellTransformation(supercell_matrix)
+                mp_struct = transformer.apply_transformation(st.session_state["original_structures"][selected_file])
 
-            st.session_state["current_structure"] = mp_struct
-            st.session_state["auto_saved_structure"] = mp_struct
-            st.rerun()
+                st.session_state["current_structure"] = mp_struct
+                st.session_state["auto_saved_structure"] = mp_struct
+                st.rerun()
 
-        if apply_cell_conversion:
-            if convert_to_conventional:
+            if apply_cell_conversion:
+                if convert_to_conventional:
 
-                converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-            elif pymatgen_prim_cell_niggli:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-            elif pymatgen_prim_cell_lll:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                    converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+                elif pymatgen_prim_cell_niggli:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                else:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                st.session_state["new_symmetry"] = converted_structure
+                st.session_state["auto_saved_structure"] = converted_structure
+                st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
             else:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-            st.session_state["new_symmetry"] = converted_structure
-            st.session_state["auto_saved_structure"] = converted_structure
-            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
-        else:
-            print("DIDNT APPLY ANYTHING")
-            converted_structure = mp_struct
+                print("DIDNT APPLY ANYTHING")
+                converted_structure = mp_struct
 
-        st.write("Cell representation conversion is now applied!")
-        mp_struct = converted_structure
-        visual_pmg_structure = mp_struct
+            st.write("Cell representation conversion is now applied!")
+            mp_struct = converted_structure
+            visual_pmg_structure = mp_struct
 
-        if st.session_state["auto_saved_structure"]:
-            mp_struct = st.session_state["auto_saved_structure"]
-        elif not st.session_state["modified_defects"]:
-            mp_struct = mp_struct.copy()
-        else:
-            mp_struct = st.session_state["modified_defects"]
+            if st.session_state["auto_saved_structure"]:
+                mp_struct = st.session_state["auto_saved_structure"]
+            elif not st.session_state["modified_defects"]:
+                mp_struct = mp_struct.copy()
+            else:
+                mp_struct = st.session_state["modified_defects"]
 
-        from pymatgen.core import Structure, Element
+            from pymatgen.core import Structure, Element
 
-        with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
+            with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
 
-            colb1, colb2, colb3 = st.columns(3)
+                colb1, colb2, colb3 = st.columns(3)
 
-            with colb2:
-                st.session_state["expander_defects"] = True
+                with colb2:
+                    st.session_state["expander_defects"] = True
 
 
-                def wrap_coordinates(frac_coords):
-                    coords = np.array(frac_coords)
-                    return coords % 1
+                    def wrap_coordinates(frac_coords):
+                        coords = np.array(frac_coords)
+                        return coords % 1
 
 
-                def compute_periodic_distance_matrix(frac_coords):
+                    def compute_periodic_distance_matrix(frac_coords):
 
-                    n = len(frac_coords)
-                    dist_matrix = np.zeros((n, n))
-                    for i in range(n):
-                        for j in range(i, n):
-                            delta = frac_coords[i] - frac_coords[j]
-                            delta = delta - np.round(delta)
-                            dist = np.linalg.norm(delta)
-                            dist_matrix[i, j] = dist_matrix[j, i] = dist
-                    return dist_matrix
-
-
-                def select_spaced_points(frac_coords, n_points, mode, target_value=0.5):
-                    coords_wrapped = wrap_coordinates(frac_coords)
-                    dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
-                    import random
-                    selected_indices = [random.randrange(len(coords_wrapped))]
-                    for _ in range(1, n_points):
-                        remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
-                        if mode == "farthest":
-                            next_index = max(remaining,
-                                             key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
-                        elif mode == "nearest":
-                            next_index = min(remaining,
-                                             key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
-                        elif mode == "moderate":
-                            next_index = min(remaining, key=lambda i: abs(
-                                sum(dist_matrix[i, j] for j in selected_indices) / len(
-                                    selected_indices) - target_value))
-                        else:
-                            raise ValueError(
-                                "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
-                        selected_indices.append(next_index)
-
-                    selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
-                    return selected_coords, selected_indices
+                        n = len(frac_coords)
+                        dist_matrix = np.zeros((n, n))
+                        for i in range(n):
+                            for j in range(i, n):
+                                delta = frac_coords[i] - frac_coords[j]
+                                delta = delta - np.round(delta)
+                                dist = np.linalg.norm(delta)
+                                dist_matrix[i, j] = dist_matrix[j, i] = dist
+                        return dist_matrix
 
 
-                # ---------- Interstitial Functions ----------
-
-                def classify_interstitial_site(structure, frac_coords, dummy_element="H"):
-                    from pymatgen.analysis.local_env import CrystalNN
-                    temp_struct = structure.copy()
-                    temp_struct.append(dummy_element, frac_coords, coords_are_cartesian=False)
-                    cnn = CrystalNN()
-                    try:
-                        nn_info = cnn.get_nn_info(temp_struct, len(temp_struct) - 1)
-                    except Exception as e:
-                        st.write("CrystalNN error:", e)
-                        nn_info = []
-                    cn = len(nn_info)
-
-                    if cn == 4:
-                        return f"CN = {cn} **(Tetrahedral)**"
-                    elif cn == 6:
-                        return f"CN = {cn} **(Octahedral)**"
-                    elif cn == 3:
-                        return f"CN = {cn} (Trigonal Planar)"
-                    elif cn == 5:
-                        return f"CN = {cn} (Trigonal Bipyramidal)"
-                    else:
-                        return f"CN = {cn}"
-
-
-                def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
-                                                        which_interstitial=0, mode="farthest",
-                                                        clustering_tol=0.75,
-                                                        min_dist=0.5):
-                    from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
-                    with colb3:
-                        with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
-                            generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
-                                                                     min_dist=min_dist)
-
-                            frac_coords = []
-                            frac_coords_dict = {}
-                            unique_int = []
-                            idx = 0
-                            # Collect candidate sites from the generator.
-                            for interstitial in generator.generate(structure, "H"):
-                                frac_coords_dict[idx] = []
-                                unique_int.append(interstitial.site.frac_coords)
-                                label = classify_interstitial_site(structure, interstitial.site.frac_coords)
-                                rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                                st.write(
-                                    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
-                                for site in interstitial.equivalent_sites:
-                                    frac_coords.append(site.frac_coords)
-                                    frac_coords_dict[idx].append(site.frac_coords)
-                                idx += 1
-
-                            st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
-
-                            if which_interstitial == 0:
-                                frac_coords_use = frac_coords
+                    def select_spaced_points(frac_coords, n_points, mode, target_value=0.5):
+                        coords_wrapped = wrap_coordinates(frac_coords)
+                        dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
+                        import random
+                        selected_indices = [random.randrange(len(coords_wrapped))]
+                        for _ in range(1, n_points):
+                            remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
+                            if mode == "farthest":
+                                next_index = max(remaining,
+                                                 key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                            elif mode == "nearest":
+                                next_index = min(remaining,
+                                                 key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                            elif mode == "moderate":
+                                next_index = min(remaining, key=lambda i: abs(
+                                    sum(dist_matrix[i, j] for j in selected_indices) / len(
+                                        selected_indices) - target_value))
                             else:
-                                frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
+                                raise ValueError(
+                                    "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
+                            selected_indices.append(next_index)
 
-                            selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
-                                                                      mode=mode)
-                            new_structure = structure.copy()
-                            for point in selected_points:
-                                new_structure.append(
-                                    species=Element(interstitial_element),
-                                    coords=point,
-                                    coords_are_cartesian=False  # Input is fractional.
-                                )
+                        selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
+                        return selected_coords, selected_indices
+
+
+                    # ---------- Interstitial Functions ----------
+
+                    def classify_interstitial_site(structure, frac_coords, dummy_element="H"):
+                        from pymatgen.analysis.local_env import CrystalNN
+                        temp_struct = structure.copy()
+                        temp_struct.append(dummy_element, frac_coords, coords_are_cartesian=False)
+                        cnn = CrystalNN()
+                        try:
+                            nn_info = cnn.get_nn_info(temp_struct, len(temp_struct) - 1)
+                        except Exception as e:
+                            st.write("CrystalNN error:", e)
+                            nn_info = []
+                        cn = len(nn_info)
+
+                        if cn == 4:
+                            return f"CN = {cn} **(Tetrahedral)**"
+                        elif cn == 6:
+                            return f"CN = {cn} **(Octahedral)**"
+                        elif cn == 3:
+                            return f"CN = {cn} (Trigonal Planar)"
+                        elif cn == 5:
+                            return f"CN = {cn} (Trigonal Bipyramidal)"
+                        else:
+                            return f"CN = {cn}"
+
+
+                    def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
+                                                            which_interstitial=0, mode="farthest",
+                                                            clustering_tol=0.75,
+                                                            min_dist=0.5):
+                        from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
+                        with colb3:
+                            with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
+                                generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
+                                                                         min_dist=min_dist)
+
+                                frac_coords = []
+                                frac_coords_dict = {}
+                                unique_int = []
+                                idx = 0
+                                # Collect candidate sites from the generator.
+                                for interstitial in generator.generate(structure, "H"):
+                                    frac_coords_dict[idx] = []
+                                    unique_int.append(interstitial.site.frac_coords)
+                                    label = classify_interstitial_site(structure, interstitial.site.frac_coords)
+                                    rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
+                                    st.write(
+                                        f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+                                    for site in interstitial.equivalent_sites:
+                                        frac_coords.append(site.frac_coords)
+                                        frac_coords_dict[idx].append(site.frac_coords)
+                                    idx += 1
+
+                                st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+
+                                if which_interstitial == 0:
+                                    frac_coords_use = frac_coords
+                                else:
+                                    frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
+
+                                selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
+                                                                          mode=mode)
+                                new_structure = structure.copy()
+                                for point in selected_points:
+                                    new_structure.append(
+                                        species=Element(interstitial_element),
+                                        coords=point,
+                                        coords_are_cartesian=False  # Input is fractional.
+                                    )
+                            return new_structure
+
+
+                    def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
+                                                        target_value=0.5):
+                        with colb3:
+                            with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                new_structure = structure.copy()
+                                indices_to_remove = []
+                                for el, perc in vacancy_percentages.items():
+                                    el_indices = [i for i, site in enumerate(new_structure.sites) if
+                                                  site.specie.symbol == el]
+                                    n_sites = len(el_indices)
+                                    n_remove = int(round(n_sites * perc / 100.0))
+                                    st.write(f"🧠 Removed {n_remove} atoms of {el}.")
+                                    if n_remove < 1:
+                                        continue
+                                    el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
+                                    if n_remove < len(el_coords):
+                                        _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                         n_points=n_remove,
+                                                                                         mode=selection_mode,
+                                                                                         target_value=target_value)
+                                        selected_global_indices = [el_indices[i] for i in selected_local_indices]
+                                    else:
+                                        selected_global_indices = el_indices
+                                    indices_to_remove.extend(selected_global_indices)
+                                for i in sorted(indices_to_remove, reverse=True):
+                                    new_structure.remove_sites([i])
                         return new_structure
 
 
-                def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
-                                                    target_value=0.5):
+                    # ==================== Substitute Functions ====================
                     with colb3:
-                        with st.spinner(f"Creating substitutes, please wait. 😊"):
-                            new_structure = structure.copy()
-                            indices_to_remove = []
-                            for el, perc in vacancy_percentages.items():
-                                el_indices = [i for i, site in enumerate(new_structure.sites) if
-                                              site.specie.symbol == el]
-                                n_sites = len(el_indices)
-                                n_remove = int(round(n_sites * perc / 100.0))
-                                st.write(f"🧠 Removed {n_remove} atoms of {el}.")
-                                if n_remove < 1:
-                                    continue
-                                el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
-                                if n_remove < len(el_coords):
-                                    _, selected_local_indices = select_spaced_points(el_coords,
-                                                                                     n_points=n_remove,
-                                                                                     mode=selection_mode,
-                                                                                     target_value=target_value)
-                                    selected_global_indices = [el_indices[i] for i in selected_local_indices]
-                                else:
-                                    selected_global_indices = el_indices
-                                indices_to_remove.extend(selected_global_indices)
-                            for i in sorted(indices_to_remove, reverse=True):
-                                new_structure.remove_sites([i])
-                    return new_structure
+                        st.markdown(f"### Log output:")
 
 
-                # ==================== Substitute Functions ====================
-                with colb3:
-                    st.markdown(f"### Log output:")
-
-
-                def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
-                                                  target_value=0.5):
-                    with colb3:
-                        with st.spinner(f"Creating substitutes, please wait. 😊"):
-                            new_species = [site.species_string for site in structure.sites]
-                            new_coords = [site.frac_coords for site in structure.sites]
-                            for orig_el, settings in substitution_dict.items():
-                                perc = settings.get("percentage", 0)
-                                sub_el = settings.get("substitute", "").strip()
-                                if perc <= 0 or not sub_el:
-                                    continue
-                                indices = [i for i, site in enumerate(structure.sites) if
-                                           site.specie.symbol == orig_el]
-                                n_sites = len(indices)
-                                n_substitute = int(round(n_sites * perc / 100.0))
-                                st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
-
-                                if n_substitute < 1:
-                                    continue
-                                el_coords = [new_coords[i] for i in indices]
-                                if n_substitute < len(el_coords):
-                                    _, selected_local_indices = select_spaced_points(el_coords,
-                                                                                     n_points=n_substitute,
-                                                                                     mode=selection_mode,
-                                                                                     target_value=target_value)
-                                    selected_global_indices = [indices[i] for i in selected_local_indices]
-                                else:
-                                    selected_global_indices = indices
-                                for i in selected_global_indices:
-                                    new_species[i] = sub_el
-                            new_structure = Structure(structure.lattice, new_species, new_coords,
-                                                      coords_are_cartesian=False)
-                    return new_structure
-
-
-                # ==================== Streamlit UI ====================
-
-                # Choose among the three operation modes.
-
-                operation_mode = st.selectbox("Choose Operation Mode",
-                                              ["Insert Interstitials (Voronoi method)", "Create Vacancies",
-                                               "Substitute Atoms"], help="""
-                #Interstitials settings
-                - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
-                - **# to Insert**: The number of interstitial atoms to insert into the structure.
-                - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
-                  - `0` uses all detected interstitial sites.  
-                  - `1` uses only the first unique type, `2` for second, etc.
-
-                - **Selection Mode**: How to choose which interstitial sites to use:  
-                  - `farthest`: picks sites farthest apart from each other.  
-                  - `nearest`: picks sites closest together.  
-                  - `moderate`: balances distances around a target value.
-
-                - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
-                - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
-
-                #Vacancy settings
-                - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
-                  - `farthest`: removes atoms that are farthest apart, to maximize spacing.
-                  - `nearest`: removes atoms closest together, forming local vacancy clusters.
-                  - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
-
-                - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
-                  This value defines the average spacing (in fractional coordinates) between vacancies.
-
-                - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
-                  For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
-
-                #Substitution settings
-                - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
-                  - `farthest`: substitutes atoms spaced far apart from each other.
-                  - `nearest`: substitutes atoms that are close together.
-                  - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
-
-                - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
-                  It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
-
-                - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
-
-                - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
-                  Leave blank or set substitution % to 0 to skip substitution for that element.
-                        """)
-
-                if operation_mode == "Insert Interstitials (Voronoi method)":
-                    st.markdown("""
-                        **Insert Interstitials Settings**
-                        """)
-
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        interstitial_element_to_place = st.text_input("Element", value="N")
-                    with col2:
-                        number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
-                    with col3:
-                        which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
-                                                                    min_value=0)
-
-                    col4, col5, col6 = st.columns(3)
-                    with col4:
-                        selection_mode = st.selectbox("Selection Mode",
-                                                      options=["farthest", "nearest", "moderate"],
-                                                      index=0)
-                    with col5:
-                        clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
-                    with col6:
-                        min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
-
-                elif operation_mode == "Create Vacancies":
-                    st.markdown("""
-
-                        """)
-
-                    col1, col2 = st.columns(2)
-                    vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
-                                                            ["farthest", "nearest", "moderate"], index=0)
-                    if vacancy_selection_mode == "moderate":
-                        vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
-                                                                 format="%.2f")
-                    else:
-                        vacancy_target_value = 0.5
-
-                    elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                    cols = st.columns(len(elements))
-                    vacancy_percentages = {
-                        el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
-                                                 max_value=100.0,
-                                                 step=1.0, format="%.1f")
-                        for i, el in enumerate(elements)}
-
-                elif operation_mode == "Substitute Atoms":
-                    st.markdown("""
-                        **Substitution Settings**
-                        """)
-
-                    col1, col2 = st.columns(2)
-                    substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
-                                                                 ["farthest", "nearest", "moderate"], index=0)
-                    if substitution_selection_mode == "moderate":
-                        substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
-                                                                      step=0.05,
-                                                                      format="%.2f")
-                    else:
-                        substitution_target_value = 0.5
-
-                    elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                    cols = st.columns(len(elements))
-                    substitution_settings = {}
-                    for i, el in enumerate(elements):
-                        with cols[i]:
-                            sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
-                                                       max_value=100.0, step=1.0, format="%.1f",
-                                                       key=f"sub_perc_{el}")
-                            sub_target = st.text_input(f"Substitute {el} with", value="",
-                                                       key=f"sub_target_{el}")
-                        substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
-
-                # ==================== Execute Operation ====================
-                if operation_mode == "Insert Interstitials (Voronoi method)":
-
-                    if st.button("Insert Interstitials"):
-                        updated_structure = insert_interstitials_into_structure(mp_struct,
-                                                                                interstitial_element_to_place,
-                                                                                number_of_interstitials_to_insert,
-                                                                                which_interstitial_to_use,
-                                                                                mode=selection_mode,
-                                                                                clustering_tol=clustering_tol,
-                                                                                min_dist=min_dist)
-
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        visual_pmg_structure = mp_struct
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
+                    def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
+                                                      target_value=0.5):
                         with colb3:
-                            st.success("Interstitials inserted and structure updated!")
-                        st.session_state["helpful"] = True
-                elif operation_mode == "Create Vacancies":
-                    if not st.session_state["modified_defects"]:
-                        mp_struct = mp_struct.copy()
-                    else:
-                        mp_struct = st.session_state["modified_defects"]
-                    if st.button("Create Vacancies"):
-                        updated_structure = remove_vacancies_from_structure(mp_struct,
-                                                                            vacancy_percentages,
-                                                                            selection_mode=vacancy_selection_mode,
-                                                                            target_value=vacancy_target_value)
+                            with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                new_species = [site.species_string for site in structure.sites]
+                                new_coords = [site.frac_coords for site in structure.sites]
+                                for orig_el, settings in substitution_dict.items():
+                                    perc = settings.get("percentage", 0)
+                                    sub_el = settings.get("substitute", "").strip()
+                                    if perc <= 0 or not sub_el:
+                                        continue
+                                    indices = [i for i, site in enumerate(structure.sites) if
+                                               site.specie.symbol == orig_el]
+                                    n_sites = len(indices)
+                                    n_substitute = int(round(n_sites * perc / 100.0))
+                                    st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
 
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        st.session_state["last_multiplier"] = (1, 1, 1)
-                        visual_pmg_structure = mp_struct
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
-                        with colb3:
-                            st.success("Vacancies created and structure updated!")
-                        st.session_state["helpful"] = True
-                elif operation_mode == "Substitute Atoms":
-                    if not st.session_state["modified_defects"]:
-                        mp_struct = mp_struct.copy()
-                    else:
-                        mp_struct = st.session_state["modified_defects"]
-                    if st.button("Substitute Atoms"):
-                        updated_structure = substitute_atoms_in_structure(mp_struct,
-                                                                          substitution_settings,
-                                                                          selection_mode=substitution_selection_mode,
-                                                                          target_value=substitution_target_value)
+                                    if n_substitute < 1:
+                                        continue
+                                    el_coords = [new_coords[i] for i in indices]
+                                    if n_substitute < len(el_coords):
+                                        _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                         n_points=n_substitute,
+                                                                                         mode=selection_mode,
+                                                                                         target_value=target_value)
+                                        selected_global_indices = [indices[i] for i in selected_local_indices]
+                                    else:
+                                        selected_global_indices = indices
+                                    for i in selected_global_indices:
+                                        new_species[i] = sub_el
+                                new_structure = Structure(structure.lattice, new_species, new_coords,
+                                                          coords_are_cartesian=False)
+                        return new_structure
 
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
-                        visual_pmg_structure = mp_struct
-                        with colb3:
-                            st.success("Substitutions applied and structure updated!")
-                        st.session_state["helpful"] = True
+
+                    # ==================== Streamlit UI ====================
+
+                    # Choose among the three operation modes.
+
+                    operation_mode = st.selectbox("Choose Operation Mode",
+                                                  ["Insert Interstitials (Voronoi method)", "Create Vacancies",
+                                                   "Substitute Atoms"], help="""
+                    #Interstitials settings
+                    - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
+                    - **# to Insert**: The number of interstitial atoms to insert into the structure.
+                    - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
+                      - `0` uses all detected interstitial sites.  
+                      - `1` uses only the first unique type, `2` for second, etc.
+    
+                    - **Selection Mode**: How to choose which interstitial sites to use:  
+                      - `farthest`: picks sites farthest apart from each other.  
+                      - `nearest`: picks sites closest together.  
+                      - `moderate`: balances distances around a target value.
+    
+                    - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
+                    - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
+    
+                    #Vacancy settings
+                    - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
+                      - `farthest`: removes atoms that are farthest apart, to maximize spacing.
+                      - `nearest`: removes atoms closest together, forming local vacancy clusters.
+                      - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
+    
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      This value defines the average spacing (in fractional coordinates) between vacancies.
+    
+                    - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
+                      For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
+    
+                    #Substitution settings
+                    - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
+                      - `farthest`: substitutes atoms spaced far apart from each other.
+                      - `nearest`: substitutes atoms that are close together.
+                      - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
+    
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
+    
+                    - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
+    
+                    - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
+                      Leave blank or set substitution % to 0 to skip substitution for that element.
+                            """)
+
+                    if operation_mode == "Insert Interstitials (Voronoi method)":
+                        st.markdown("""
+                            **Insert Interstitials Settings**
+                            """)
+
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            interstitial_element_to_place = st.text_input("Element", value="N")
+                        with col2:
+                            number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
+                        with col3:
+                            which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
+                                                                        min_value=0)
+
+                        col4, col5, col6 = st.columns(3)
+                        with col4:
+                            selection_mode = st.selectbox("Selection Mode",
+                                                          options=["farthest", "nearest", "moderate"],
+                                                          index=0)
+                        with col5:
+                            clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
+                        with col6:
+                            min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
+
+                    elif operation_mode == "Create Vacancies":
+                        st.markdown("""
+    
+                            """)
+
+                        col1, col2 = st.columns(2)
+                        vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
+                                                                ["farthest", "nearest", "moderate"], index=0)
+                        if vacancy_selection_mode == "moderate":
+                            vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                     format="%.2f")
+                        else:
+                            vacancy_target_value = 0.5
+
+                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                        cols = st.columns(len(elements))
+                        vacancy_percentages = {
+                            el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
+                                                     max_value=100.0,
+                                                     step=1.0, format="%.1f")
+                            for i, el in enumerate(elements)}
+
+                    elif operation_mode == "Substitute Atoms":
+                        st.markdown("""
+                            **Substitution Settings**
+                            """)
+
+                        col1, col2 = st.columns(2)
+                        substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
+                                                                     ["farthest", "nearest", "moderate"], index=0)
+                        if substitution_selection_mode == "moderate":
+                            substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
+                                                                          step=0.05,
+                                                                          format="%.2f")
+                        else:
+                            substitution_target_value = 0.5
+
+                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                        cols = st.columns(len(elements))
+                        substitution_settings = {}
+                        for i, el in enumerate(elements):
+                            with cols[i]:
+                                sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
+                                                           max_value=100.0, step=1.0, format="%.1f",
+                                                           key=f"sub_perc_{el}")
+                                sub_target = st.text_input(f"Substitute {el} with", value="",
+                                                           key=f"sub_target_{el}")
+                            substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
+
+                    # ==================== Execute Operation ====================
+                    if operation_mode == "Insert Interstitials (Voronoi method)":
+
+                        if st.button("Insert Interstitials"):
+                            updated_structure = insert_interstitials_into_structure(mp_struct,
+                                                                                    interstitial_element_to_place,
+                                                                                    number_of_interstitials_to_insert,
+                                                                                    which_interstitial_to_use,
+                                                                                    mode=selection_mode,
+                                                                                    clustering_tol=clustering_tol,
+                                                                                    min_dist=min_dist)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            visual_pmg_structure = mp_struct
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            with colb3:
+                                st.success("Interstitials inserted and structure updated!")
+                            st.session_state["helpful"] = True
+                    elif operation_mode == "Create Vacancies":
+                        if not st.session_state["modified_defects"]:
+                            mp_struct = mp_struct.copy()
+                        else:
+                            mp_struct = st.session_state["modified_defects"]
+                        if st.button("Create Vacancies"):
+                            updated_structure = remove_vacancies_from_structure(mp_struct,
+                                                                                vacancy_percentages,
+                                                                                selection_mode=vacancy_selection_mode,
+                                                                                target_value=vacancy_target_value)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            st.session_state["last_multiplier"] = (1, 1, 1)
+                            visual_pmg_structure = mp_struct
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            with colb3:
+                                st.success("Vacancies created and structure updated!")
+                            st.session_state["helpful"] = True
+                    elif operation_mode == "Substitute Atoms":
+                        if not st.session_state["modified_defects"]:
+                            mp_struct = mp_struct.copy()
+                        else:
+                            mp_struct = st.session_state["modified_defects"]
+                        if st.button("Substitute Atoms"):
+                            updated_structure = substitute_atoms_in_structure(mp_struct,
+                                                                              substitution_settings,
+                                                                              selection_mode=substitution_selection_mode,
+                                                                              target_value=substitution_target_value)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            visual_pmg_structure = mp_struct
+                            with colb3:
+                                st.success("Substitutions applied and structure updated!")
+                            st.session_state["helpful"] = True
+        else:
+            st.session_state["current_structure"] = mp_struct
+            st.session_state["auto_saved_structure"] = mp_struct
+            visual_pmg_structure = mp_struct
+
+            if st.session_state["auto_saved_structure"]:
+                mp_struct = st.session_state["auto_saved_structure"]
+            elif not st.session_state["modified_defects"]:
+                mp_struct = mp_struct.copy()
+            else:
+                mp_struct = st.session_state["modified_defects"]
 
         if not st.session_state["modified_defects"]:
             mp_struct = mp_struct.copy()
@@ -1357,13 +1372,12 @@ if "**🔬 Structure Visualization**" in calc_mode:
         if st.session_state["new_symmetry"] and apply_cell_conversion == True:
             mp_struct = st.session_state["new_symmetry"]
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
-        print("HEEEEEEEEEEEERSSSSSSS")
-        print(st.session_state.modified_atom_df)
+
 
         col_g1, col_g2 = st.columns([1, 4])
         with col_g1:
             unique_wyckoff_only = st.checkbox(
-                "Visualize only atoms with unique **Wyckoff positions** **(Please add the structure to the calculator first if you modified the structure, otherwise it will reset any changes)**",
+                "Visualize only atoms in **asymmetric unit**",
                 value=False)
 
         if "modified_atom_df" not in st.session_state or "reset_requested" in st.session_state:
@@ -1421,7 +1435,6 @@ if "**🔬 Structure Visualization**" in calc_mode:
 
             if not is_valid:
                 st.warning(f"⚠️ **Validation Error**: {error_message}")
-                st.warning("Please complete all required fields in the data editor before proceeding.")
                 st.stop()
 
             if 'previous_atom_df' not in st.session_state:
@@ -1469,7 +1482,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     st.session_state.modified_atom_df = recalc_computed_columns(edited_df.copy(),
                                                                                 visual_pmg_structure.lattice)
 
-            df_plot = edited_df  # Use the edited dataframe directly for the plot
+            df_plot = edited_df
 
         with col_g1:
             show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=True)
@@ -1489,19 +1502,71 @@ if "**🔬 Structure Visualization**" in calc_mode:
             if "lattice_gamma" not in st.session_state:
                 st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
 
-            old_a = st.session_state["lattice_a"]
-            old_b = st.session_state["lattice_b"]
-            old_c = st.session_state["lattice_c"]
-            old_alpha = st.session_state["lattice_alpha"]
-            old_beta = st.session_state["lattice_beta"]
-            old_gamma = st.session_state["lattice_gamma"]
-
             old_a = visual_pmg_structure.lattice.a
             old_b = visual_pmg_structure.lattice.b
             old_c = visual_pmg_structure.lattice.c
             old_alpha = visual_pmg_structure.lattice.alpha
             old_beta = visual_pmg_structure.lattice.beta
             old_gamma = visual_pmg_structure.lattice.gamma
+
+
+            try:
+                sga = SpacegroupAnalyzer(visual_pmg_structure)
+                crystal_system = sga.get_crystal_system()
+                spg_symbol = sga.get_space_group_symbol()
+                spg_number = sga.get_space_group_number()
+                st.info(f"Crystal system: **{crystal_system.upper()}** | Space group: **{spg_symbol} (#{spg_number})**")
+
+
+                override_symmetry = st.checkbox("Override symmetry constraints (allow editing all parameters)",
+                                                value=False)
+                if override_symmetry:
+                    crystal_system = "triclinic"
+            except Exception as e:
+                crystal_system = "unknown"
+                st.warning(f"Could not determine crystal system: {e}")
+                override_symmetry = st.checkbox("Override symmetry constraints (allow editing all parameters)",
+                                                value=False)
+                if override_symmetry:
+                    crystal_system = "triclinic"
+            params_info = {
+                "cubic": {
+                    "modifiable": ["a"],
+                    "info": "In cubic systems, only parameter 'a' can be modified (b=a, c=a, α=β=γ=90°)"
+                },
+                "tetragonal": {
+                    "modifiable": ["a", "c"],
+                    "info": "In tetragonal systems, only parameters 'a' and 'c' can be modified (b=a, α=β=γ=90°)"
+                },
+                "orthorhombic": {
+                    "modifiable": ["a", "b", "c"],
+                    "info": "In orthorhombic systems, you can modify 'a', 'b', and 'c' (α=β=γ=90°)"
+                },
+                "hexagonal": {
+                    "modifiable": ["a", "c"],
+                    "info": "In hexagonal systems, only parameters 'a' and 'c' can be modified (b=a, α=β=90°, γ=120°)"
+                },
+                "trigonal": {
+                    "modifiable": ["a", "c", "alpha"],
+                    "info": "In trigonal systems, parameters 'a', 'c', and 'α' can be modified (b=a, β=α, γ=120° or γ=α depending on the specific space group)"
+                },
+                "monoclinic": {
+                    "modifiable": ["a", "b", "c", "beta"],
+                    "info": "In monoclinic systems, parameters 'a', 'b', 'c', and 'β' can be modified (α=γ=90°)"
+                },
+                "triclinic": {
+                    "modifiable": ["a", "b", "c", "alpha", "beta", "gamma"],
+                    "info": "In triclinic systems, all parameters can be modified"
+                },
+                "unknown": {
+                    "modifiable": ["a", "b", "c", "alpha", "beta", "gamma"],
+                    "info": "All parameters can be modified (system unknown)"
+                }
+            }
+
+            st.markdown(params_info[crystal_system]["info"])
+
+            modifiable = params_info[crystal_system]["modifiable"]
 
             col_a, col_b, col_c = st.columns(3)
             col_alpha, col_beta, col_gamma = st.columns(3)
@@ -1515,44 +1580,94 @@ if "**🔬 Structure Visualization**" in calc_mode:
                                         format="%.5f")
 
             with col_b:
-                new_b = st.number_input("b (Å)",
-                                        value=float(old_b),
-                                        min_value=0.1,
-                                        max_value=100.0,
-                                        step=0.01,
-                                        format="%.5f")
+                if "b" in modifiable:
+                    new_b = st.number_input("b (Å)",
+                                            value=float(old_b),
+                                            min_value=0.1,
+                                            max_value=100.0,
+                                            step=0.01,
+                                            format="%.5f")
+                else:
+                    # Display b as non-editable based on crystal system
+                    if crystal_system in ["cubic", "tetragonal", "hexagonal", "trigonal"]:
+                        st.text_input("b (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
+                        new_b = new_a
+                    else:
+                        st.text_input("b (Å)", value=f"{float(old_b):.5f}", disabled=True)
+                        new_b = old_b
 
             with col_c:
-                new_c = st.number_input("c (Å)",
-                                        value=float(old_c),
-                                        min_value=0.1,
-                                        max_value=100.0,
-                                        step=0.01,
-                                        format="%.5f")
+                if "c" in modifiable:
+                    new_c = st.number_input("c (Å)",
+                                            value=float(old_c),
+                                            min_value=0.1,
+                                            max_value=100.0,
+                                            step=0.01,
+                                            format="%.5f")
+                else:
+                    if crystal_system == "cubic":
+                        st.text_input("c (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
+                        new_c = new_a
+                    else:
+                        st.text_input("c (Å)", value=f"{float(old_c):.5f}", disabled=True)
+                        new_c = old_c
 
             with col_alpha:
-                new_alpha = st.number_input("α (°)",
-                                            value=float(old_alpha),
-                                            min_value=0.1,
-                                            max_value=179.9,
-                                            step=0.1,
-                                            format="%.5f")
+                if "alpha" in modifiable:
+                    new_alpha = st.number_input("α (°)",
+                                                value=float(old_alpha),
+                                                min_value=0.1,
+                                                max_value=179.9,
+                                                step=0.1,
+                                                format="%.5f")
+                else:
+                    if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal", "monoclinic"]:
+                        st.text_input("α (°)", value="90.00000", disabled=True)
+                        new_alpha = 90.0
+                    else:
+                        st.text_input("α (°)", value=f"{float(old_alpha):.5f}", disabled=True)
+                        new_alpha = old_alpha
 
             with col_beta:
-                new_beta = st.number_input("β (°)",
-                                           value=float(old_beta),
-                                           min_value=0.1,
-                                           max_value=179.9,
-                                           step=0.1,
-                                           format="%.5f")
+                if "beta" in modifiable:
+                    new_beta = st.number_input("β (°)",
+                                               value=float(old_beta),
+                                               min_value=0.1,
+                                               max_value=179.9,
+                                               step=0.1,
+                                               format="%.5f")
+                else:
+                    if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal"]:
+                        st.text_input("β (°)", value="90.00000", disabled=True)
+                        new_beta = 90.0
+                    elif crystal_system == "trigonal" and "alpha" in modifiable:
+                        st.text_input("β (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
+                        new_beta = new_alpha
+                    else:
+                        st.text_input("β (°)", value=f"{float(old_beta):.5f}", disabled=True)
+                        new_beta = old_beta
 
             with col_gamma:
-                new_gamma = st.number_input("γ (°)",
-                                            value=float(old_gamma),
-                                            min_value=0.1,
-                                            max_value=179.9,
-                                            step=0.1,
-                                            format="%.5f")
+                if "gamma" in modifiable:
+                    new_gamma = st.number_input("γ (°)",
+                                                value=float(old_gamma),
+                                                min_value=0.1,
+                                                max_value=179.9,
+                                                step=0.1,
+                                                format="%.5f")
+                else:
+                    if crystal_system in ["cubic", "tetragonal", "orthorhombic", "monoclinic"]:
+                        st.text_input("γ (°)", value="90.00000", disabled=True)
+                        new_gamma = 90.0
+                    elif crystal_system == "hexagonal":
+                        st.text_input("γ (°)", value="120.00000", disabled=True)
+                        new_gamma = 120.0
+                    elif crystal_system == "trigonal" and spg_symbol.startswith("R"):
+                        st.text_input("γ (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
+                        new_gamma = new_alpha
+                    else:
+                        st.text_input("γ (°)", value=f"{float(old_gamma):.5f}", disabled=True)
+                        new_gamma = old_gamma
 
             st.session_state["lattice_a"] = new_a
             st.session_state["lattice_b"] = new_b
@@ -1560,6 +1675,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
             st.session_state["lattice_alpha"] = new_alpha
             st.session_state["lattice_beta"] = new_beta
             st.session_state["lattice_gamma"] = new_gamma
+
             if st.button("Apply Lattice Changes"):
                 try:
                     st.session_state["expander_lattice"] = True
