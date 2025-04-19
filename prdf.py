@@ -128,9 +128,9 @@ st.markdown("""
 
 .hello-container {
   position: fixed;
-  top: 40%;
+  top: 20px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   z-index: 9999;
   animation: fadeOut 7s ease-out forwards;
 }
@@ -159,64 +159,65 @@ st.markdown("""
   </div>
 </div>
 """, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
+  0%   { opacity: 0; transform: translateY(-10px); }
+  5%   { opacity: 1; transform: translateY(0); }
+  95%  { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-10px); }
 }
 
-/* Shared tip styling */
 .onboarding-tip {
   background-color: #ffffff;
   border-left: 5px solid #3399ff;
-  padding: 14px 18px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  font-size: 1em;
+  padding: 18px 22px;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  font-size: 1.1em;
+  font-weight: 500;
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 100px;
+  right: 40px;
   z-index: 9999;
+  max-width: 400px;
+  width: 100%;
   opacity: 0;
-  max-width: 500px;
-  width: calc(100% - 80px);
 }
 
-/* Specific step positions with delay */
-.tip1 {
-  top: 55%;
-  animation: fadeInOut 6s ease-in-out 7s forwards;
-}
-.tip2 {
-  top: 63%;
-  animation: fadeInOut 6s ease-in-out 14s forwards;
-}
-.tip3 {
-  top: 71%;
-  animation: fadeInOut 6s ease-in-out 21s forwards;
+/* Adjust timing: each lasts 7s now */
+.tip1 { animation: fadeInOut 7s ease-in-out 7s forwards; }
+.tip2 { animation: fadeInOut 7s ease-in-out 15s forwards; }
+.tip3 { animation: fadeInOut 7s ease-in-out 23s forwards; }
+
+.tip-label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #0066cc;
+  margin-bottom: 6px;
+  display: block;
 }
 </style>
 
-<!-- Step 1: Calculation Tool -->
+<!-- Tip 1 -->
 <div class="onboarding-tip tip1">
+  <span class="tip-label">Tip 1/3</span>
   🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
 </div>
 
-<!-- Step 2: Upload Structure -->
+<!-- Tip 2 -->
 <div class="onboarding-tip tip2">
-  📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>2-column data</b> using the sidebar.
+  <span class="tip-label">Tip 2/3</span>
+  📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
 </div>
 
-<!-- Step 3: Search Option -->
+<!-- Tip 3 -->
 <div class="onboarding-tip tip3">
-  🐣 No files? Use the <b>search interface</b> above to fetch structures from online databases.
+  <span class="tip-label">Tip 3/3</span>
+  🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
 </div>
 """, unsafe_allow_html=True)
-
-
 
 col1, col2 = st.columns([1.25, 1])
 
