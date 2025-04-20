@@ -45,6 +45,8 @@ from aflow import search  # ensure your file is not named aflow.py!
 import aflow.keywords as AFLOW_K
 import requests
 from PIL import Image
+import os
+import psutil
 
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
@@ -5356,6 +5358,15 @@ st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
 **The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
 """)
+def get_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss / (1024 ** 2)  # in MB
+
+
+memory_usage = get_memory_usage()
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**")
+
 st.markdown("""
 
 ### Acknowledgments
