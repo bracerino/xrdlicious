@@ -12,3 +12,4 @@ mp-api==0.45.3
 aflow
 pillow
 pymatgen.analysis.defects
+psutil
