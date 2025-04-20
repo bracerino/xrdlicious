@@ -3961,6 +3961,14 @@ def toggle_animation():
     st.session_state.animate = not st.session_state.animate
 
 
+if "📊 (P)RDF" not in calc_mode:
+    for key in [
+        "calc_rdf", "display_mode", "selected_frame_idx", "frame_indices",
+        "processed_data", "animate", "do_calculation", "download_prepared"
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+            
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
     # --- RDF (PRDF) Settings and Calculation ---
