@@ -104,8 +104,121 @@ components.html(
     height=0,
 )
 
-st.markdown(
-    f"#### **XRDlicious:** Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+
+st.markdown("#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+
+st.markdown("""
+<style>
+@keyframes wave {
+  0% { transform: rotate(0.0deg); }
+  10% { transform: rotate(14.0deg); }
+  20% { transform: rotate(-8.0deg); }
+  30% { transform: rotate(14.0deg); }
+  40% { transform: rotate(-4.0deg); }
+  50% { transform: rotate(10.0deg); }
+  60% { transform: rotate(0.0deg); }
+  100% { transform: rotate(0.0deg); }
+}
+
+@keyframes fadeOut {
+  0%   { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; display: none; }
+}
+
+.hello-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  animation: fadeOut 7s ease-out forwards;
+}
+
+.hello-message {
+  font-size: 2.5em;
+  font-weight: bold;
+  text-align: center;
+  background-color: #f0f2f6;
+  padding: 20px 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.wave-emoji {
+  display: inline-block;
+  animation: wave 2s infinite;
+  transform-origin: 70% 70%;
+}
+</style>
+
+<div class="hello-container">
+  <div class="hello-message">
+      <span class="wave-emoji">👋</span> Hello there! Welcome to <span style="color:#0066cc;">XRDlicious</span>.<br>
+  Let's do some delicious diffraction! 🐣
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  5%   { opacity: 1; transform: translateY(0); }
+  95%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+.onboarding-tip {
+  background-color: #ffffff;
+  border-left: 5px solid #3399ff;
+  padding: 18px 22px;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  font-size: 1.1em;
+  font-weight: 500;
+  position: fixed;
+  top: 100px;
+  right: 40px;
+  z-index: 9999;
+  max-width: 400px;
+  width: 100%;
+  opacity: 0;
+}
+
+/* Adjust timing: each lasts 7s now */
+.tip1 { animation: fadeInOut 7s ease-in-out 7s forwards; }
+.tip2 { animation: fadeInOut 7s ease-in-out 15s forwards; }
+.tip3 { animation: fadeInOut 7s ease-in-out 23s forwards; }
+
+.tip-label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #0066cc;
+  margin-bottom: 6px;
+  display: block;
+}
+</style>
+
+<!-- Tip 1 -->
+<div class="onboarding-tip tip1">
+  <span class="tip-label">Tip 1/3</span>
+  🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
+</div>
+
+<!-- Tip 2 -->
+<div class="onboarding-tip tip2">
+  <span class="tip-label">Tip 2/3</span>
+  📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
+</div>
+
+<!-- Tip 3 -->
+<div class="onboarding-tip tip3">
+  <span class="tip-label">Tip 3/3</span>
+  🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
+</div>
+""", unsafe_allow_html=True)
+
 col1, col2 = st.columns([1.25, 1])
 
 with col2:
@@ -144,20 +257,36 @@ mode = "Advanced"
 calc_mode = st.sidebar.multiselect(
     "Choose Type(s) of Calculation/Analysis",
     options=[
-        "**🔬 Structure Visualization**",
-        "**💥 Diffraction Pattern Calculation**",
-        "**📊 (P)RDF Calculation**",
-        "**🛠️ Online Peak Matching** (UNDER TESTING, being regularly upgraded 😊)",
-        "**📈 Interactive Data Plot**"
+        "🔬 Structure Modification",
+        "💥 Powder Diffraction",
+        "📊 (P)RDF",
+        "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
+        "📈 Interactive Data Plot"
     ],
-    default=["**💥 Diffraction Pattern Calculation**"]
+    default=[]
 )
-if "**🛠️ Online Peak Matching** (UNDER TESTING, being regularly upgraded 😊)" in calc_mode:
-    st.subheader("For the Online Peak Matching Subtool, Please visit: ")
+
+
+if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)" in calc_mode:
+    st.subheader("For the Online Peak Search/Match Subtool, Please visit (USE ONLY FOR TESTING PURPOSES): ")
     st.markdown(
         '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
         unsafe_allow_html=True
     )
+
+
+def update_element_indices(df):
+    """Update the Element_Index column based on Element values"""
+    element_counts = {}
+    for i, row in df.iterrows():
+        element = row['Element']
+        if element not in element_counts:
+            element_counts[element] = 1
+        else:
+            element_counts[element] += 1
+        df.at[i, 'Element_Index'] = f"{element}{element_counts[element]}"
+    return df
+
 
 # Initialize session state keys
 if 'mp_options' not in st.session_state:
@@ -166,6 +295,36 @@ if 'selected_structure' not in st.session_state:
     st.session_state['selected_structure'] = None
 if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
     st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
+
+
+def remove_fractional_occupancies_safely(structure):
+    # Create lists to hold the new structure data
+    species = []
+    coords = []
+
+    # Process each site
+    for site in structure:
+        if site.is_ordered:
+            # Just add ordered sites directly
+            species.append(site.specie)
+        else:
+            # For disordered sites, find the dominant species
+            dominant_sp = max(site.species.items(), key=lambda x: x[1])[0]
+            species.append(dominant_sp)
+
+        # Keep the coordinates
+        coords.append(site.frac_coords)
+
+    # Create a new, ordered structure
+    ordered_structure = Structure(
+        lattice=structure.lattice,
+        species=species,
+        coords=coords,
+        coords_are_cartesian=False
+    )
+
+    return ordered_structure
+
 
 st.markdown(
     """
@@ -206,7 +365,7 @@ if uploaded_files_user_sidebar:
 structure_cell_choice = st.sidebar.radio(
     "Structure Cell Type:",
     options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
-    index=1,  # default to Conventional
+    index=0,  # default to Conventional
     help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
          "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
 )
@@ -215,9 +374,8 @@ pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
 pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
 pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
-
-if "**📈 Interactive Data Plot**" not in calc_mode:
-    with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
+if "📈 Interactive Data Plot" not in calc_mode:
+    with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=False):
         cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
         with cols:
 
@@ -236,8 +394,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                 "Enter elements separated by spaces (e.g., Sr Ti O):",
                 value="Sr Ti O"
             )
-
-
 
         if st.button("Search Selected Databases"):
             if not db_choices:
@@ -264,7 +420,8 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                             st.session_state.full_structures_see = {}
 
                                             for doc in docs:
-                                                full_structure = mpr.get_structure_by_material_id(doc.material_id, conventional_unit_cell=True)
+                                                full_structure = mpr.get_structure_by_material_id(doc.material_id,
+                                                                                                  conventional_unit_cell=True)
                                                 structure_to_use = full_structure
                                                 st.session_state.full_structures_see[doc.material_id] = full_structure
                                                 lattice = structure_to_use.lattice
@@ -343,16 +500,16 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                             cif_content = get_cif_from_cod(entry)
                                             if cif_content:
                                                 try:
-                                                    #structure = get_full_conventional_structure(
+                                                    # structure = get_full_conventional_structure(
                                                     #    get_cod_str(cif_content))
                                                     structure = get_cod_str(cif_content)
                                                     cod_id = f"cod_{entry.get('file')}"
                                                     st.session_state.full_structures_see_cod[cod_id] = structure
                                                     spcs = entry.get("sg")
                                                     spcs_number = entry.get("sgNumber")
-                                                    #Listing all keywords in the entry
-                                                    #all_keys = list(entry.keys())
-                                                    #st.write(all_keys)
+                                                    # Listing all keywords in the entry
+                                                    # all_keys = list(entry.keys())
+                                                    # st.write(all_keys)
 
                                                     cell_volume = structure.lattice.volume
                                                     st.session_state.cod_options.append(
@@ -404,14 +561,13 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                             if selected_id in st.session_state.full_structures_see:
                                 selected_entry = st.session_state.full_structures_see[selected_id]
 
-
                                 conv_lattice = selected_entry.lattice
                                 cell_volume = selected_entry.lattice.volume
                                 density = str(selected_entry.density).split()[0]
                                 n_atoms = len(selected_entry)
                                 atomic_den = n_atoms / cell_volume
-                                st.write(f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
-
+                                st.write(
+                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
                                 st.write(
                                     f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
@@ -460,7 +616,6 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                 (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
                                 None)
                             if selected_entry:
-
 
                                 cif_files = [f for f in selected_entry.files if
                                              f.endswith("_sprim.cif") or f.endswith(".cif")]
@@ -544,10 +699,12 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                 idcodd = cod_id.removeprefix("cod_")
                                 st.write(
                                     f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
-                                st.write(f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
+                                st.write(
+                                    f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
                                 st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
                                 analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+                                st.write(
+                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
                                 cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
                                 st.write(f"**Link:** {cod_url}")
@@ -572,6 +729,14 @@ if "**📈 Interactive Data Plot**" not in calc_mode:
                                     file_name=file_name,
                                     mime="chemical/x-cif", type="primary",
                                 )
+
+
+if not calc_mode:
+    st.info("""
+    From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
+    If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases** above 🐣.
+    """)
+
 
 def validate_atom_dataframe(df):
     required_columns = ["Element", "Frac X", "Frac Y", "Frac Z", "Occupancy"]
@@ -629,7 +794,7 @@ for i, file in enumerate(st.session_state['uploaded_files']):
 if files_to_remove:
     for f in files_to_remove:
         st.session_state['uploaded_files'].remove(f)
-    st.rerun()  # 🔁 Force Streamlit to rerun and refresh UI
+    st.rerun()
 
 if uploaded_files:
     species_set = set()
@@ -658,6 +823,13 @@ if "base_modified_structure" not in st.session_state:
 
 if "new_symmetry" not in st.session_state:
     st.session_state["new_symmetry"] = None
+
+
+def has_partial_occupancies(structure):
+    for site in structure:
+        if not site.is_ordered:
+            return True
+    return False
 
 
 def recalc_computed_columns(df, lattice):
@@ -751,15 +923,22 @@ if "expander_supercell" not in st.session_state:
 if "expander_defects" not in st.session_state:
     st.session_state["expander_defects"] = False
 
-if "**🔬 Structure Visualization**" in calc_mode:
+
+
+if "run_before" not in st.session_state:
+    st.session_state["run_before"] = False
+if "🔬 Structure Modification" in calc_mode:
 
     auto_save_structure = False
     auto_save_filename = False
     show_structure = True
+    st.info("First, upload your crystal structures or add them from online databases. ")
     if uploaded_files:
         if "helpful" not in st.session_state:
             st.session_state["helpful"] = False
+
         if show_structure:
+
             col_viz, col_mod, col_download = st.columns(3)
             if "current_structure" not in st.session_state:
                 st.session_state["current_structure"] = None
@@ -793,6 +972,9 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 st.session_state["current_structure"] = mp_struct
                 st.session_state["original_structures"][selected_file] = mp_struct.copy()
                 st.session_state["auto_saved_structure"] = mp_struct.copy()
+                st.session_state["supercell_n_a"] = 1
+                st.session_state["supercell_n_b"] = 1
+                st.session_state["supercell_n_c"] = 1
 
             selected_file = st.session_state.get("selected_file")
             original_structures = st.session_state["original_structures"]
@@ -878,6 +1060,12 @@ if "**🔬 Structure Visualization**" in calc_mode:
             mp_struct = st.session_state["modified_defects"]
 
         if cell_convert_or:
+
+            if st.session_state["modified_defects"]:
+                mp_struct = st.session_state["modified_defects"]
+            elif file_changed:
+                mp_struct = load_structure(st.session_state.get("selected_file"))
+
             if convert_to_conventional:
                 converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
             elif pymatgen_prim_cell_niggli:
@@ -895,6 +1083,7 @@ if "**🔬 Structure Visualization**" in calc_mode:
             st.session_state["auto_saved_structure"] = mp_struct
             st.session_state["original_structures"][selected_file] = mp_struct
             st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
+            mp_struct = st.session_state["modified_defects"]
         for i, site in enumerate(mp_struct.sites):
             frac = site.frac_coords
             cart = mp_struct.lattice.get_cartesian_coords(frac)
@@ -913,441 +1102,463 @@ if "**🔬 Structure Visualization**" in calc_mode:
         old_c = st.session_state.get("supercell_n_c", 1)
         st.subheader("Edit Structure if Needed")
 
-        with st.expander(
-                f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
-                icon="🧊", expanded=st.session_state["expander_supercell"]):
-            col1, col2, col3 = st.columns(3)
-            st.session_state["expander_supercell"] = True
-            n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_a"], step=1)
-            n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_b"], step=1)
-            n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
-                                    value=st.session_state["supercell_n_c"], step=1)
+        create_defects = st.checkbox(
+            f"Create **Supercell** and **Point Defects**",
+            value=False)
+        if create_defects:
+            with st.expander(
+                    f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
+                    icon="🧊", expanded=st.session_state["expander_supercell"]):
+                col1, col2, col3 = st.columns(3)
+                st.session_state["expander_supercell"] = True
+                n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_a"], step=1)
+                n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_b"], step=1)
+                n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                                        value=st.session_state["supercell_n_c"], step=1)
 
-        st.session_state["supercell_n_a"] = n_a
-        st.session_state["supercell_n_b"] = n_b
-        st.session_state["supercell_n_c"] = n_c
+            st.session_state["supercell_n_a"] = n_a
+            st.session_state["supercell_n_b"] = n_b
+            st.session_state["supercell_n_c"] = n_c
 
-        supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
 
-        if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-            transformer = SupercellTransformation(supercell_matrix)
-            mp_struct = transformer.apply_transformation(st.session_state["original_structures"][selected_file])
+            if (n_a, n_b, n_c) != (old_a, old_b, old_c):
+                transformer = SupercellTransformation(supercell_matrix)
 
-            st.session_state["current_structure"] = mp_struct
-            st.session_state["auto_saved_structure"] = mp_struct
-            st.rerun()
+                from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
 
-        if apply_cell_conversion:
-            if convert_to_conventional:
+                mp_struct = remove_fractional_occupancies_safely(st.session_state["original_structures"][selected_file])
+                mp_struct = transformer.apply_transformation(mp_struct)
 
-                converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-            elif pymatgen_prim_cell_niggli:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-            elif pymatgen_prim_cell_lll:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-                converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                st.session_state["current_structure"] = mp_struct
+                st.session_state["auto_saved_structure"] = mp_struct
+                st.rerun()
+
+            if apply_cell_conversion:
+                if st.session_state["modified_defects"]:
+                    mp_struct = st.session_state["modified_defects"]
+                if convert_to_conventional:
+
+                    converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+                elif pymatgen_prim_cell_niggli:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
+                elif pymatgen_prim_cell_lll:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
+                else:
+                    analyzer = SpacegroupAnalyzer(mp_struct)
+                    converted_structure = analyzer.get_primitive_standard_structure()
+                st.session_state["new_symmetry"] = converted_structure
+                st.session_state["auto_saved_structure"] = converted_structure
+
+                st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
             else:
-                analyzer = SpacegroupAnalyzer(mp_struct)
-                converted_structure = analyzer.get_primitive_standard_structure()
-            st.session_state["new_symmetry"] = converted_structure
-            st.session_state["auto_saved_structure"] = converted_structure
-            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
-        else:
-            print("DIDNT APPLY ANYTHING")
-            converted_structure = mp_struct
+                print("DIDNT APPLY ANYTHING")
+                converted_structure = mp_struct
 
-        st.write("Cell representation conversion is now applied!")
-        mp_struct = converted_structure
-        visual_pmg_structure = mp_struct
+            st.write("Cell representation conversion is now applied!")
+            mp_struct = converted_structure
+            visual_pmg_structure = mp_struct
 
-        if st.session_state["auto_saved_structure"]:
-            mp_struct = st.session_state["auto_saved_structure"]
-        elif not st.session_state["modified_defects"]:
-            mp_struct = mp_struct.copy()
-        else:
-            mp_struct = st.session_state["modified_defects"]
+            if st.session_state["auto_saved_structure"]:
+                mp_struct = st.session_state["auto_saved_structure"]
+            elif not st.session_state["modified_defects"]:
+                mp_struct = mp_struct.copy()
+            else:
+                mp_struct = st.session_state["modified_defects"]
 
-        from pymatgen.core import Structure, Element
+            from pymatgen.core import Structure, Element
 
-        with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
+            with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
 
-            colb1, colb2, colb3 = st.columns(3)
+                colb1, colb2, colb3 = st.columns(3)
 
-            with colb2:
-                st.session_state["expander_defects"] = True
+                with colb2:
+                    st.session_state["expander_defects"] = True
 
 
-                def wrap_coordinates(frac_coords):
-                    coords = np.array(frac_coords)
-                    return coords % 1
+                    def wrap_coordinates(frac_coords):
+                        coords = np.array(frac_coords)
+                        return coords % 1
 
 
-                def compute_periodic_distance_matrix(frac_coords):
+                    def compute_periodic_distance_matrix(frac_coords):
 
-                    n = len(frac_coords)
-                    dist_matrix = np.zeros((n, n))
-                    for i in range(n):
-                        for j in range(i, n):
-                            delta = frac_coords[i] - frac_coords[j]
-                            delta = delta - np.round(delta)
-                            dist = np.linalg.norm(delta)
-                            dist_matrix[i, j] = dist_matrix[j, i] = dist
-                    return dist_matrix
-
-
-                def select_spaced_points(frac_coords, n_points, mode, target_value=0.5):
-                    coords_wrapped = wrap_coordinates(frac_coords)
-                    dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
-                    import random
-                    selected_indices = [random.randrange(len(coords_wrapped))]
-                    for _ in range(1, n_points):
-                        remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
-                        if mode == "farthest":
-                            next_index = max(remaining,
-                                             key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
-                        elif mode == "nearest":
-                            next_index = min(remaining,
-                                             key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
-                        elif mode == "moderate":
-                            next_index = min(remaining, key=lambda i: abs(
-                                sum(dist_matrix[i, j] for j in selected_indices) / len(
-                                    selected_indices) - target_value))
-                        else:
-                            raise ValueError(
-                                "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
-                        selected_indices.append(next_index)
-
-                    selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
-                    return selected_coords, selected_indices
+                        n = len(frac_coords)
+                        dist_matrix = np.zeros((n, n))
+                        for i in range(n):
+                            for j in range(i, n):
+                                delta = frac_coords[i] - frac_coords[j]
+                                delta = delta - np.round(delta)
+                                dist = np.linalg.norm(delta)
+                                dist_matrix[i, j] = dist_matrix[j, i] = dist
+                        return dist_matrix
 
 
-                # ---------- Interstitial Functions ----------
-
-                def classify_interstitial_site(structure, frac_coords, dummy_element="H"):
-                    from pymatgen.analysis.local_env import CrystalNN
-                    temp_struct = structure.copy()
-                    temp_struct.append(dummy_element, frac_coords, coords_are_cartesian=False)
-                    cnn = CrystalNN()
-                    try:
-                        nn_info = cnn.get_nn_info(temp_struct, len(temp_struct) - 1)
-                    except Exception as e:
-                        st.write("CrystalNN error:", e)
-                        nn_info = []
-                    cn = len(nn_info)
-
-                    if cn == 4:
-                        return f"CN = {cn} **(Tetrahedral)**"
-                    elif cn == 6:
-                        return f"CN = {cn} **(Octahedral)**"
-                    elif cn == 3:
-                        return f"CN = {cn} (Trigonal Planar)"
-                    elif cn == 5:
-                        return f"CN = {cn} (Trigonal Bipyramidal)"
-                    else:
-                        return f"CN = {cn}"
-
-
-                def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
-                                                        which_interstitial=0, mode="farthest",
-                                                        clustering_tol=0.75,
-                                                        min_dist=0.5):
-                    from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
-                    with colb3:
-                        with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
-                            generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
-                                                                     min_dist=min_dist)
-
-                            frac_coords = []
-                            frac_coords_dict = {}
-                            unique_int = []
-                            idx = 0
-                            # Collect candidate sites from the generator.
-                            for interstitial in generator.generate(structure, "H"):
-                                frac_coords_dict[idx] = []
-                                unique_int.append(interstitial.site.frac_coords)
-                                label = classify_interstitial_site(structure, interstitial.site.frac_coords)
-                                rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                                st.write(
-                                    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
-                                for site in interstitial.equivalent_sites:
-                                    frac_coords.append(site.frac_coords)
-                                    frac_coords_dict[idx].append(site.frac_coords)
-                                idx += 1
-
-                            st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
-
-                            if which_interstitial == 0:
-                                frac_coords_use = frac_coords
+                    def select_spaced_points(frac_coords, n_points, mode, target_value=0.5):
+                        coords_wrapped = wrap_coordinates(frac_coords)
+                        dist_matrix = compute_periodic_distance_matrix(coords_wrapped)
+                        import random
+                        selected_indices = [random.randrange(len(coords_wrapped))]
+                        for _ in range(1, n_points):
+                            remaining = [i for i in range(len(coords_wrapped)) if i not in selected_indices]
+                            if mode == "farthest":
+                                next_index = max(remaining,
+                                                 key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                            elif mode == "nearest":
+                                next_index = min(remaining,
+                                                 key=lambda i: min(dist_matrix[i, j] for j in selected_indices))
+                            elif mode == "moderate":
+                                next_index = min(remaining, key=lambda i: abs(
+                                    sum(dist_matrix[i, j] for j in selected_indices) / len(
+                                        selected_indices) - target_value))
                             else:
-                                frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
+                                raise ValueError(
+                                    "Invalid selection mode. Use 'farthest', 'nearest', or 'moderate'.")
+                            selected_indices.append(next_index)
 
-                            selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
-                                                                      mode=mode)
-                            new_structure = structure.copy()
-                            for point in selected_points:
-                                new_structure.append(
-                                    species=Element(interstitial_element),
-                                    coords=point,
-                                    coords_are_cartesian=False  # Input is fractional.
-                                )
+                        selected_coords = np.array(coords_wrapped)[selected_indices].tolist()
+                        return selected_coords, selected_indices
+
+
+                    # ---------- Interstitial Functions ----------
+
+                    def classify_interstitial_site(structure, frac_coords, dummy_element="H"):
+                        from pymatgen.analysis.local_env import CrystalNN
+                        temp_struct = structure.copy()
+                        temp_struct.append(dummy_element, frac_coords, coords_are_cartesian=False)
+                        cnn = CrystalNN()
+                        try:
+                            nn_info = cnn.get_nn_info(temp_struct, len(temp_struct) - 1)
+                        except Exception as e:
+                            st.write("CrystalNN error:", e)
+                            nn_info = []
+                        cn = len(nn_info)
+
+                        if cn == 4:
+                            return f"CN = {cn} **(Tetrahedral)**"
+                        elif cn == 6:
+                            return f"CN = {cn} **(Octahedral)**"
+                        elif cn == 3:
+                            return f"CN = {cn} (Trigonal Planar)"
+                        elif cn == 5:
+                            return f"CN = {cn} (Trigonal Bipyramidal)"
+                        else:
+                            return f"CN = {cn}"
+
+
+                    def insert_interstitials_into_structure(structure, interstitial_element, n_interstitials,
+                                                            which_interstitial=0, mode="farthest",
+                                                            clustering_tol=0.75,
+                                                            min_dist=0.5):
+                        from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
+                        with colb3:
+                            with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
+                                generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
+                                                                         min_dist=min_dist)
+
+                                frac_coords = []
+                                frac_coords_dict = {}
+                                unique_int = []
+                                idx = 0
+                                # Collect candidate sites from the generator.
+                                for interstitial in generator.generate(structure, "H"):
+                                    frac_coords_dict[idx] = []
+                                    unique_int.append(interstitial.site.frac_coords)
+                                    label = classify_interstitial_site(structure, interstitial.site.frac_coords)
+                                    rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
+                                    st.write(
+                                        f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+                                    for site in interstitial.equivalent_sites:
+                                        frac_coords.append(site.frac_coords)
+                                        frac_coords_dict[idx].append(site.frac_coords)
+                                    idx += 1
+
+                                st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+
+                                if which_interstitial == 0:
+                                    frac_coords_use = frac_coords
+                                else:
+                                    frac_coords_use = frac_coords_dict.get(which_interstitial - 1, [])
+
+                                selected_points, _ = select_spaced_points(frac_coords_use, n_points=n_interstitials,
+                                                                          mode=mode)
+                                new_structure = structure.copy()
+                                for point in selected_points:
+                                    new_structure.append(
+                                        species=Element(interstitial_element),
+                                        coords=point,
+                                        coords_are_cartesian=False
+                                    )
+                            return new_structure
+
+
+                    def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
+                                                        target_value=0.5):
+                        with colb3:
+                            with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                new_structure = structure.copy()
+                                indices_to_remove = []
+                                for el, perc in vacancy_percentages.items():
+                                    el_indices = [i for i, site in enumerate(new_structure.sites) if
+                                                  site.specie.symbol == el]
+                                    n_sites = len(el_indices)
+                                    n_remove = int(round(n_sites * perc / 100.0))
+                                    st.write(f"🧠 Removed {n_remove} atoms of {el}.")
+                                    if n_remove < 1:
+                                        continue
+                                    el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
+                                    if n_remove < len(el_coords):
+                                        _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                         n_points=n_remove,
+                                                                                         mode=selection_mode,
+                                                                                         target_value=target_value)
+                                        selected_global_indices = [el_indices[i] for i in selected_local_indices]
+                                    else:
+                                        selected_global_indices = el_indices
+                                    indices_to_remove.extend(selected_global_indices)
+                                for i in sorted(indices_to_remove, reverse=True):
+                                    new_structure.remove_sites([i])
                         return new_structure
 
 
-                def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
-                                                    target_value=0.5):
+                    # ==================== Substitute Functions ====================
                     with colb3:
-                        with st.spinner(f"Creating substitutes, please wait. 😊"):
-                            new_structure = structure.copy()
-                            indices_to_remove = []
-                            for el, perc in vacancy_percentages.items():
-                                el_indices = [i for i, site in enumerate(new_structure.sites) if
-                                              site.specie.symbol == el]
-                                n_sites = len(el_indices)
-                                n_remove = int(round(n_sites * perc / 100.0))
-                                st.write(f"🧠 Removed {n_remove} atoms of {el}.")
-                                if n_remove < 1:
-                                    continue
-                                el_coords = [new_structure.sites[i].frac_coords for i in el_indices]
-                                if n_remove < len(el_coords):
-                                    _, selected_local_indices = select_spaced_points(el_coords,
-                                                                                     n_points=n_remove,
-                                                                                     mode=selection_mode,
-                                                                                     target_value=target_value)
-                                    selected_global_indices = [el_indices[i] for i in selected_local_indices]
-                                else:
-                                    selected_global_indices = el_indices
-                                indices_to_remove.extend(selected_global_indices)
-                            for i in sorted(indices_to_remove, reverse=True):
-                                new_structure.remove_sites([i])
-                    return new_structure
+                        st.markdown(f"### Log output:")
 
 
-                # ==================== Substitute Functions ====================
-                with colb3:
-                    st.markdown(f"### Log output:")
-
-
-                def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
-                                                  target_value=0.5):
-                    with colb3:
-                        with st.spinner(f"Creating substitutes, please wait. 😊"):
-                            new_species = [site.species_string for site in structure.sites]
-                            new_coords = [site.frac_coords for site in structure.sites]
-                            for orig_el, settings in substitution_dict.items():
-                                perc = settings.get("percentage", 0)
-                                sub_el = settings.get("substitute", "").strip()
-                                if perc <= 0 or not sub_el:
-                                    continue
-                                indices = [i for i, site in enumerate(structure.sites) if
-                                           site.specie.symbol == orig_el]
-                                n_sites = len(indices)
-                                n_substitute = int(round(n_sites * perc / 100.0))
-                                st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
-
-                                if n_substitute < 1:
-                                    continue
-                                el_coords = [new_coords[i] for i in indices]
-                                if n_substitute < len(el_coords):
-                                    _, selected_local_indices = select_spaced_points(el_coords,
-                                                                                     n_points=n_substitute,
-                                                                                     mode=selection_mode,
-                                                                                     target_value=target_value)
-                                    selected_global_indices = [indices[i] for i in selected_local_indices]
-                                else:
-                                    selected_global_indices = indices
-                                for i in selected_global_indices:
-                                    new_species[i] = sub_el
-                            new_structure = Structure(structure.lattice, new_species, new_coords,
-                                                      coords_are_cartesian=False)
-                    return new_structure
-
-
-                # ==================== Streamlit UI ====================
-
-                # Choose among the three operation modes.
-
-                operation_mode = st.selectbox("Choose Operation Mode",
-                                              ["Insert Interstitials (Voronoi method)", "Create Vacancies",
-                                               "Substitute Atoms"], help="""
-                #Interstitials settings
-                - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
-                - **# to Insert**: The number of interstitial atoms to insert into the structure.
-                - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
-                  - `0` uses all detected interstitial sites.  
-                  - `1` uses only the first unique type, `2` for second, etc.
-
-                - **Selection Mode**: How to choose which interstitial sites to use:  
-                  - `farthest`: picks sites farthest apart from each other.  
-                  - `nearest`: picks sites closest together.  
-                  - `moderate`: balances distances around a target value.
-
-                - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
-                - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
-
-                #Vacancy settings
-                - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
-                  - `farthest`: removes atoms that are farthest apart, to maximize spacing.
-                  - `nearest`: removes atoms closest together, forming local vacancy clusters.
-                  - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
-
-                - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
-                  This value defines the average spacing (in fractional coordinates) between vacancies.
-
-                - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
-                  For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
-
-                #Substitution settings
-                - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
-                  - `farthest`: substitutes atoms spaced far apart from each other.
-                  - `nearest`: substitutes atoms that are close together.
-                  - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
-
-                - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
-                  It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
-
-                - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
-
-                - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
-                  Leave blank or set substitution % to 0 to skip substitution for that element.
-                        """)
-
-                if operation_mode == "Insert Interstitials (Voronoi method)":
-                    st.markdown("""
-                        **Insert Interstitials Settings**
-                        """)
-
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        interstitial_element_to_place = st.text_input("Element", value="N")
-                    with col2:
-                        number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
-                    with col3:
-                        which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
-                                                                    min_value=0)
-
-                    col4, col5, col6 = st.columns(3)
-                    with col4:
-                        selection_mode = st.selectbox("Selection Mode",
-                                                      options=["farthest", "nearest", "moderate"],
-                                                      index=0)
-                    with col5:
-                        clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
-                    with col6:
-                        min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
-
-                elif operation_mode == "Create Vacancies":
-                    st.markdown("""
-
-                        """)
-
-                    col1, col2 = st.columns(2)
-                    vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
-                                                            ["farthest", "nearest", "moderate"], index=0)
-                    if vacancy_selection_mode == "moderate":
-                        vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
-                                                                 format="%.2f")
-                    else:
-                        vacancy_target_value = 0.5
-
-                    elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                    cols = st.columns(len(elements))
-                    vacancy_percentages = {
-                        el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
-                                                 max_value=100.0,
-                                                 step=1.0, format="%.1f")
-                        for i, el in enumerate(elements)}
-
-                elif operation_mode == "Substitute Atoms":
-                    st.markdown("""
-                        **Substitution Settings**
-                        """)
-
-                    col1, col2 = st.columns(2)
-                    substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
-                                                                 ["farthest", "nearest", "moderate"], index=0)
-                    if substitution_selection_mode == "moderate":
-                        substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
-                                                                      step=0.05,
-                                                                      format="%.2f")
-                    else:
-                        substitution_target_value = 0.5
-
-                    elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                    cols = st.columns(len(elements))
-                    substitution_settings = {}
-                    for i, el in enumerate(elements):
-                        with cols[i]:
-                            sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
-                                                       max_value=100.0, step=1.0, format="%.1f",
-                                                       key=f"sub_perc_{el}")
-                            sub_target = st.text_input(f"Substitute {el} with", value="",
-                                                       key=f"sub_target_{el}")
-                        substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
-
-                # ==================== Execute Operation ====================
-                if operation_mode == "Insert Interstitials (Voronoi method)":
-
-                    if st.button("Insert Interstitials"):
-                        updated_structure = insert_interstitials_into_structure(mp_struct,
-                                                                                interstitial_element_to_place,
-                                                                                number_of_interstitials_to_insert,
-                                                                                which_interstitial_to_use,
-                                                                                mode=selection_mode,
-                                                                                clustering_tol=clustering_tol,
-                                                                                min_dist=min_dist)
-
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        visual_pmg_structure = mp_struct
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
+                    def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="farthest",
+                                                      target_value=0.5):
                         with colb3:
-                            st.success("Interstitials inserted and structure updated!")
-                        st.session_state["helpful"] = True
-                elif operation_mode == "Create Vacancies":
-                    if not st.session_state["modified_defects"]:
-                        mp_struct = mp_struct.copy()
-                    else:
-                        mp_struct = st.session_state["modified_defects"]
-                    if st.button("Create Vacancies"):
-                        updated_structure = remove_vacancies_from_structure(mp_struct,
-                                                                            vacancy_percentages,
-                                                                            selection_mode=vacancy_selection_mode,
-                                                                            target_value=vacancy_target_value)
+                            with st.spinner(f"Creating substitutes, please wait. 😊"):
+                                new_species = [site.species_string for site in structure.sites]
+                                new_coords = [site.frac_coords for site in structure.sites]
+                                for orig_el, settings in substitution_dict.items():
+                                    perc = settings.get("percentage", 0)
+                                    sub_el = settings.get("substitute", "").strip()
+                                    if perc <= 0 or not sub_el:
+                                        continue
+                                    indices = [i for i, site in enumerate(structure.sites) if
+                                               site.specie.symbol == orig_el]
+                                    n_sites = len(indices)
+                                    n_substitute = int(round(n_sites * perc / 100.0))
+                                    st.write(f"🧠 Replaced {n_substitute} atoms of {orig_el} with {sub_el}.")
 
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        st.session_state["last_multiplier"] = (1, 1, 1)
-                        visual_pmg_structure = mp_struct
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
-                        with colb3:
-                            st.success("Vacancies created and structure updated!")
-                        st.session_state["helpful"] = True
-                elif operation_mode == "Substitute Atoms":
-                    if not st.session_state["modified_defects"]:
-                        mp_struct = mp_struct.copy()
-                    else:
-                        mp_struct = st.session_state["modified_defects"]
-                    if st.button("Substitute Atoms"):
-                        updated_structure = substitute_atoms_in_structure(mp_struct,
-                                                                          substitution_settings,
-                                                                          selection_mode=substitution_selection_mode,
-                                                                          target_value=substitution_target_value)
+                                    if n_substitute < 1:
+                                        continue
+                                    el_coords = [new_coords[i] for i in indices]
+                                    if n_substitute < len(el_coords):
+                                        _, selected_local_indices = select_spaced_points(el_coords,
+                                                                                         n_points=n_substitute,
+                                                                                         mode=selection_mode,
+                                                                                         target_value=target_value)
+                                        selected_global_indices = [indices[i] for i in selected_local_indices]
+                                    else:
+                                        selected_global_indices = indices
+                                    for i in selected_global_indices:
+                                        new_species[i] = sub_el
+                                new_structure = Structure(structure.lattice, new_species, new_coords,
+                                                          coords_are_cartesian=False)
+                        return new_structure
 
-                        mp_struct = updated_structure
-                        st.session_state["current_structure"] = updated_structure
-                        st.session_state["modified_defects"] = updated_structure
-                        st.session_state["auto_saved_structure"] = updated_structure
-                        visual_pmg_structure = mp_struct
-                        with colb3:
-                            st.success("Substitutions applied and structure updated!")
-                        st.session_state["helpful"] = True
+
+                    # ==================== Streamlit UI ====================
+
+                    # Choose among the three operation modes.
+
+                    operation_mode = st.selectbox("Choose Operation Mode",
+                                                  ["Insert Interstitials (Voronoi method)", "Create Vacancies",
+                                                   "Substitute Atoms"], help="""
+                    #Interstitials settings
+                    - **Element**: The chemical symbol of the interstitial atom you want to insert (e.g., `N` for nitrogen).
+                    - **# to Insert**: The number of interstitial atoms to insert into the structure.
+                    - **Type (0=all, 1=first...)**: Selects a specific interstitial site type.  
+                      - `0` uses all detected interstitial sites.  
+                      - `1` uses only the first unique type, `2` for second, etc.
+
+                    - **Selection Mode**: How to choose which interstitial sites to use:  
+                      - `farthest`: picks sites farthest apart from each other.  
+                      - `nearest`: picks sites closest together.  
+                      - `moderate`: balances distances around a target value.
+
+                    - **Clustering Tol**: Tolerance for clustering nearby interstitial candidates together (higher = more merging).
+                    - **Min Dist**: Minimum allowed distance between interstitials and other atoms when generating candidate sites. Do not consider any candidate site that is closer than this distance to an existing atom.
+
+                    #Vacancy settings
+                    - **Vacancy Selection Mode**: Strategy for choosing which atoms to remove:
+                      - `farthest`: removes atoms that are farthest apart, to maximize spacing.
+                      - `nearest`: removes atoms closest together, forming local vacancy clusters.
+                      - `moderate`: selects atoms to remove so that the average spacing between them is close to a target value.
+
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      This value defines the average spacing (in fractional coordinates) between vacancies.
+
+                    - **Vacancy % for [Element]**: Percentage of atoms to remove for each element.  
+                      For example, if there are 20 O atoms and you set 10%, two O atoms will be randomly removed based on the selection mode.
+
+                    #Substitution settings
+                    - **Substitution Selection Mode**: Strategy to determine *which* atoms of a given element are substituted:
+                      - `farthest`: substitutes atoms spaced far apart from each other.
+                      - `nearest`: substitutes atoms that are close together.
+                      - `moderate`: substitutes atoms spaced at an average distance close to the specified target.
+
+                    - **Target (moderate mode)**: Only used when `moderate` mode is selected.  
+                      It defines the preferred average spacing (in fractional coordinates) between substituted atoms.
+
+                    - **Substitution % for [Element]**: How many atoms (as a percentage) of a given element should be substituted.
+
+                    - **Substitute [Element] with**: The element symbol you want to use as a replacement.  
+                      Leave blank or set substitution % to 0 to skip substitution for that element.
+                            """)
+
+                    if operation_mode == "Insert Interstitials (Voronoi method)":
+                        st.markdown("""
+                            **Insert Interstitials Settings**
+                            """)
+
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            interstitial_element_to_place = st.text_input("Element", value="N")
+                        with col2:
+                            number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
+                        with col3:
+                            which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
+                                                                        min_value=0)
+
+                        col4, col5, col6 = st.columns(3)
+                        with col4:
+                            selection_mode = st.selectbox("Selection Mode",
+                                                          options=["farthest", "nearest", "moderate"],
+                                                          index=0)
+                        with col5:
+                            clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
+                        with col6:
+                            min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
+
+                    elif operation_mode == "Create Vacancies":
+                        st.markdown("""
+
+                            """)
+
+                        col1, col2 = st.columns(2)
+                        vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
+                                                                ["farthest", "nearest", "moderate"], index=0)
+                        if vacancy_selection_mode == "moderate":
+                            vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                     format="%.2f")
+                        else:
+                            vacancy_target_value = 0.5
+
+                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                        cols = st.columns(len(elements))
+                        vacancy_percentages = {
+                            el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
+                                                     max_value=100.0,
+                                                     step=1.0, format="%.1f")
+                            for i, el in enumerate(elements)}
+
+                    elif operation_mode == "Substitute Atoms":
+                        st.markdown("""
+                            **Substitution Settings**
+                            """)
+
+                        col1, col2 = st.columns(2)
+                        substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
+                                                                     ["farthest", "nearest", "moderate"], index=0)
+                        if substitution_selection_mode == "moderate":
+                            substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
+                                                                          step=0.05,
+                                                                          format="%.2f")
+                        else:
+                            substitution_target_value = 0.5
+
+                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                        cols = st.columns(len(elements))
+                        substitution_settings = {}
+                        for i, el in enumerate(elements):
+                            with cols[i]:
+                                sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
+                                                           max_value=100.0, step=1.0, format="%.1f",
+                                                           key=f"sub_perc_{el}")
+                                sub_target = st.text_input(f"Substitute {el} with", value="",
+                                                           key=f"sub_target_{el}")
+                            substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
+
+                    # ==================== Execute Operation ====================
+                    if operation_mode == "Insert Interstitials (Voronoi method)":
+
+                        if st.button("Insert Interstitials"):
+                            updated_structure = insert_interstitials_into_structure(mp_struct,
+                                                                                    interstitial_element_to_place,
+                                                                                    number_of_interstitials_to_insert,
+                                                                                    which_interstitial_to_use,
+                                                                                    mode=selection_mode,
+                                                                                    clustering_tol=clustering_tol,
+                                                                                    min_dist=min_dist)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            visual_pmg_structure = mp_struct
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            with colb3:
+                                st.success("Interstitials inserted and structure updated!")
+                            st.session_state["helpful"] = True
+                    elif operation_mode == "Create Vacancies":
+                        if not st.session_state["modified_defects"]:
+                            mp_struct = mp_struct.copy()
+                        else:
+                            mp_struct = st.session_state["modified_defects"]
+                        if st.button("Create Vacancies"):
+                            updated_structure = remove_vacancies_from_structure(mp_struct,
+                                                                                vacancy_percentages,
+                                                                                selection_mode=vacancy_selection_mode,
+                                                                                target_value=vacancy_target_value)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            st.session_state["last_multiplier"] = (1, 1, 1)
+                            visual_pmg_structure = mp_struct
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            with colb3:
+                                st.success("Vacancies created and structure updated!")
+                            st.session_state["helpful"] = True
+                    elif operation_mode == "Substitute Atoms":
+                        if not st.session_state["modified_defects"]:
+                            mp_struct = mp_struct.copy()
+                        else:
+                            mp_struct = st.session_state["modified_defects"]
+                        if st.button("Substitute Atoms"):
+                            updated_structure = substitute_atoms_in_structure(mp_struct,
+                                                                              substitution_settings,
+                                                                              selection_mode=substitution_selection_mode,
+                                                                              target_value=substitution_target_value)
+
+                            mp_struct = updated_structure
+                            st.session_state["current_structure"] = updated_structure
+                            st.session_state["modified_defects"] = updated_structure
+                            st.session_state["auto_saved_structure"] = updated_structure
+                            visual_pmg_structure = mp_struct
+                            with colb3:
+                                st.success("Substitutions applied and structure updated!")
+                            st.session_state["helpful"] = True
+        else:
+            st.session_state["current_structure"] = mp_struct
+            st.session_state["auto_saved_structure"] = mp_struct
+            visual_pmg_structure = mp_struct
+
+            if st.session_state["auto_saved_structure"]:
+                mp_struct = st.session_state["auto_saved_structure"]
+            elif not st.session_state["modified_defects"]:
+                mp_struct = mp_struct.copy()
+            else:
+                mp_struct = st.session_state["modified_defects"]
 
         if not st.session_state["modified_defects"]:
             mp_struct = mp_struct.copy()
@@ -1357,13 +1568,11 @@ if "**🔬 Structure Visualization**" in calc_mode:
         if st.session_state["new_symmetry"] and apply_cell_conversion == True:
             mp_struct = st.session_state["new_symmetry"]
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
-        print("HEEEEEEEEEEEERSSSSSSS")
-        print(st.session_state.modified_atom_df)
 
         col_g1, col_g2 = st.columns([1, 4])
         with col_g1:
             unique_wyckoff_only = st.checkbox(
-                "Visualize only atoms with unique **Wyckoff positions** **(Please add the structure to the calculator first if you modified the structure, otherwise it will reset any changes)**",
+                "Visualize only atoms in **asymmetric unit**",
                 value=False)
 
         if "modified_atom_df" not in st.session_state or "reset_requested" in st.session_state:
@@ -1390,14 +1599,18 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 element = row['Element']
                 count = grouped[(grouped['Wyckoff'] == wyckoff) & (grouped['Element'] == element)]['count'].values[0]
                 if count > 1:
-                    display_df.at[i, 'Wyckoff'] = f"{wyckoff} ({count}x)"
+                    display_df.at[i, 'Wyckoff'] = f"{count}{wyckoff}"
         else:
             display_df = full_df
         print("FULL DF")
         print(display_df)
 
+        if unique_wyckoff_only:
+            st.info(
+                "ℹ️ When editing atoms in asymmetric unit view, changes will be propagated to all symmetrically equivalent atoms with the same Wyckoff position.")
+
         editor_key = "atom_editor_unique" if unique_wyckoff_only else "atom_editor_full"
-        with st.expander("Modify atomic sites", icon='⚛️', expanded=st.session_state["expander_atomic_sites"]):
+        with st.expander("Modify atomic sites", icon='⚛️', expanded = True): #expanded=st.session_state["expander_atomic_sites"]
             st.session_state["expander_open"] = True
             edited_df = st.data_editor(
                 display_df,
@@ -1416,210 +1629,385 @@ if "**🔬 Structure Visualization**" in calc_mode:
                     "Frac Z": st.column_config.NumberColumn(format="%.5f"),
                 }
             )
+            print("STAV")
+            print(st.session_state["run_before"])
 
-            is_valid, error_message = validate_atom_dataframe(edited_df)
 
-            if not is_valid:
-                st.warning(f"⚠️ **Validation Error**: {error_message}")
-                st.warning("Please complete all required fields in the data editor before proceeding.")
-                st.stop()
 
             if 'previous_atom_df' not in st.session_state:
                 st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
 
             if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only == False:
-
-                st.session_state.modified_atom_df = edited_df.copy()
-
+                #st.session_state.modified_atom_df = edited_df.copy()
+                pass
                 if auto_save_structure:
                     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
-
                 st.session_state.previous_atom_df = edited_df.copy()
+            print("EDITED")
+            print(edited_df)
+            print("DISPL")
+            print(display_df)
+            if 'modified_atom_df_help' not in st.session_state:
+                pass
+            else:
+                display_df = st.session_state.modified_atom_df_help
+            print("DISPLZ DF AFTERRRR")
+            print(display_df)
 
-            if 'previous_atom_df' not in st.session_state:
-                st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
+            edited_df_reset = edited_df.reset_index(drop=True)
+            display_df_reset = display_df.reset_index(drop=True)
 
-            if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only == False:
 
-                st.session_state.modified_atom_df = edited_df.copy()
-
-                if auto_save_structure:
-                    auto_save_structure_function(auto_save_filename, visual_pmg_structure)
-
-                st.session_state.previous_atom_df = edited_df.copy()
-
-            if edited_df.equals(display_df) == False:
+            if not edited_df_reset.equals(display_df_reset):
+                edited_df = edited_df.reset_index(drop=True)
+                display_df = display_df.reset_index(drop=True)
+                st.session_state.modified_atom_df_help = edited_df
+                print(" AI M HERE?")
+                st.session_state["run_before"] = True
                 if unique_wyckoff_only:
 
                     for i, row in edited_df.iterrows():
+                        original_row = display_df.loc[i].copy()
                         wyckoff = row['Wyckoff']
+                        match = re.match(r'\d*(\D+)', wyckoff)
+                        if match:
+                            wyckoff = match.group(1)
                         element = row['Element']
-
-                        if '(' in wyckoff:
-                            wyckoff = wyckoff.split(' (')[0]
+                        original_element = original_row['Element']
+                        changed_props = {}
+                        for col in ['Element', 'Frac X', 'Frac Y', 'Frac Z', 'Occupancy']:
+                            if col in row and col in original_row and row[col] != original_row[col]:
+                                changed_props[col] = row[col]
+                        if 'Element' in changed_props:
+                            mask = (full_df['Wyckoff'] == wyckoff) & (full_df['Element'] == original_element)
+                            full_df.loc[mask, 'Element'] = changed_props['Element']
+                            update_element_indices(full_df)
+                            element = changed_props['Element']
 
                         mask = (full_df['Wyckoff'] == wyckoff) & (full_df['Element'] == element)
 
-                        for col in ['Frac X', 'Frac Y', 'Frac Z']:
-                            full_df.loc[mask, col] = row[col]
+                        for col, value in changed_props.items():
+                            if col != 'Element':
+                                full_df.loc[mask, col] = value
+
+                        n_affected = mask.sum()
+                        if n_affected > 1:
+                            props_str = ", ".join([f"{k}={v}" for k, v in changed_props.items()])
+                            st.info(f"Updated {n_affected} atoms at Wyckoff position '{wyckoff}' with {props_str}")
 
                     st.session_state.modified_atom_df = recalc_computed_columns(full_df, visual_pmg_structure.lattice)
+                    df_plot = full_df.copy()
                 else:
 
                     st.session_state.modified_atom_df = recalc_computed_columns(edited_df.copy(),
                                                                                 visual_pmg_structure.lattice)
+                    df_plot = edited_df.copy()
 
-            df_plot = edited_df  # Use the edited dataframe directly for the plot
+
+                try:
+                    print("SAVING STRC")
+                    grouped_data = st.session_state.modified_atom_df.copy()
+                    print(grouped_data)
+                    grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                    grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                    grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+
+
+                    position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+
+                    new_struct = Structure(visual_pmg_structure.lattice, [], [])
+
+                    for (x, y, z), group in position_groups:
+                        position = (float(x), float(y), float(z))
+                        species_dict = {}
+
+                        for _, row in group.iterrows():
+                            element = row['Element']
+                            occupancy = float(row['Occupancy'])
+
+                            if element in species_dict:
+                                species_dict[element] += occupancy
+                            else:
+                                species_dict[element] = occupancy
+
+                        # Get Wyckoff position if available
+                        props = {}
+                        if "Wyckoff" in group.columns:
+                            props["wyckoff"] = group.iloc[0]["Wyckoff"]
+
+                        # Add the site to the structure
+                        new_struct.append(
+                            species=species_dict,
+                            coords=position,
+                            coords_are_cartesian=False,
+                            properties=props
+                        )
+
+                    visual_pmg_structure = new_struct
+                    mp_struct = new_struct
+                    st.session_state["current_structure"] = new_struct
+                    st.session_state["auto_saved_structure"] = new_struct
+                    st.session_state["modified_defects"] = mp_struct
+
+                    st.success("Structure rebuilt from the modified atomic positions!")
+
+                    if auto_save_structure:
+                        auto_save_structure_function(auto_save_filename, new_struct)
+
+                except Exception as e:
+                    st.error(f"Error rebuilding structure: {e}")
+
+            if st.session_state["run_before"] == True:
+                st.session_state["run_before"] = False
+                st.rerun()
+
+            df_plot = edited_df
 
         with col_g1:
             show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=True)
 
-        with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
+        if create_defects == False:
+            with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
 
-            if "lattice_a" not in st.session_state:
-                st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
-            if "lattice_b" not in st.session_state:
-                st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
-            if "lattice_c" not in st.session_state:
-                st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
-            if "lattice_alpha" not in st.session_state:
-                st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
-            if "lattice_beta" not in st.session_state:
-                st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
-            if "lattice_gamma" not in st.session_state:
-                st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
+                if "lattice_a" not in st.session_state:
+                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
+                if "lattice_b" not in st.session_state:
+                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
+                if "lattice_c" not in st.session_state:
+                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
+                if "lattice_alpha" not in st.session_state:
+                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
+                if "lattice_beta" not in st.session_state:
+                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
+                if "lattice_gamma" not in st.session_state:
+                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
 
-            old_a = st.session_state["lattice_a"]
-            old_b = st.session_state["lattice_b"]
-            old_c = st.session_state["lattice_c"]
-            old_alpha = st.session_state["lattice_alpha"]
-            old_beta = st.session_state["lattice_beta"]
-            old_gamma = st.session_state["lattice_gamma"]
+                old_a = visual_pmg_structure.lattice.a
+                old_b = visual_pmg_structure.lattice.b
+                old_c = visual_pmg_structure.lattice.c
+                old_alpha = visual_pmg_structure.lattice.alpha
+                old_beta = visual_pmg_structure.lattice.beta
+                old_gamma = visual_pmg_structure.lattice.gamma
 
-            old_a = visual_pmg_structure.lattice.a
-            old_b = visual_pmg_structure.lattice.b
-            old_c = visual_pmg_structure.lattice.c
-            old_alpha = visual_pmg_structure.lattice.alpha
-            old_beta = visual_pmg_structure.lattice.beta
-            old_gamma = visual_pmg_structure.lattice.gamma
-
-            col_a, col_b, col_c = st.columns(3)
-            col_alpha, col_beta, col_gamma = st.columns(3)
-
-            with col_a:
-                new_a = st.number_input("a (Å)",
-                                        value=float(old_a),
-                                        min_value=0.1,
-                                        max_value=100.0,
-                                        step=0.01,
-                                        format="%.5f")
-
-            with col_b:
-                new_b = st.number_input("b (Å)",
-                                        value=float(old_b),
-                                        min_value=0.1,
-                                        max_value=100.0,
-                                        step=0.01,
-                                        format="%.5f")
-
-            with col_c:
-                new_c = st.number_input("c (Å)",
-                                        value=float(old_c),
-                                        min_value=0.1,
-                                        max_value=100.0,
-                                        step=0.01,
-                                        format="%.5f")
-
-            with col_alpha:
-                new_alpha = st.number_input("α (°)",
-                                            value=float(old_alpha),
-                                            min_value=0.1,
-                                            max_value=179.9,
-                                            step=0.1,
-                                            format="%.5f")
-
-            with col_beta:
-                new_beta = st.number_input("β (°)",
-                                           value=float(old_beta),
-                                           min_value=0.1,
-                                           max_value=179.9,
-                                           step=0.1,
-                                           format="%.5f")
-
-            with col_gamma:
-                new_gamma = st.number_input("γ (°)",
-                                            value=float(old_gamma),
-                                            min_value=0.1,
-                                            max_value=179.9,
-                                            step=0.1,
-                                            format="%.5f")
-
-            st.session_state["lattice_a"] = new_a
-            st.session_state["lattice_b"] = new_b
-            st.session_state["lattice_c"] = new_c
-            st.session_state["lattice_alpha"] = new_alpha
-            st.session_state["lattice_beta"] = new_beta
-            st.session_state["lattice_gamma"] = new_gamma
-            if st.button("Apply Lattice Changes"):
                 try:
-                    st.session_state["expander_lattice"] = True
+                    sga = SpacegroupAnalyzer(visual_pmg_structure)
+                    crystal_system = sga.get_crystal_system()
+                    spg_symbol = sga.get_space_group_symbol()
+                    spg_number = sga.get_space_group_number()
+                    st.info(f"Crystal system: **{crystal_system.upper()}** | Space group: **{spg_symbol} (#{spg_number})**")
 
-                    from pymatgen.core import Lattice
+                    override_symmetry = st.checkbox("Override symmetry constraints (allow editing all parameters)",
+                                                    value=False)
+                    if override_symmetry:
+                        crystal_system = "triclinic"
+                except Exception as e:
+                    crystal_system = "unknown"
+                    st.warning(f"Could not determine crystal system: {e}")
+                    override_symmetry = st.checkbox("Override symmetry constraints (allow editing all parameters)",
+                                                    value=False)
+                    if override_symmetry:
+                        crystal_system = "triclinic"
+                params_info = {
+                    "cubic": {
+                        "modifiable": ["a"],
+                        "info": "In cubic systems, only parameter 'a' can be modified (b=a, c=a, α=β=γ=90°)"
+                    },
+                    "tetragonal": {
+                        "modifiable": ["a", "c"],
+                        "info": "In tetragonal systems, only parameters 'a' and 'c' can be modified (b=a, α=β=γ=90°)"
+                    },
+                    "orthorhombic": {
+                        "modifiable": ["a", "b", "c"],
+                        "info": "In orthorhombic systems, you can modify 'a', 'b', and 'c' (α=β=γ=90°)"
+                    },
+                    "hexagonal": {
+                        "modifiable": ["a", "c"],
+                        "info": "In hexagonal systems, only parameters 'a' and 'c' can be modified (b=a, α=β=90°, γ=120°)"
+                    },
+                    "trigonal": {
+                        "modifiable": ["a", "c", "alpha"],
+                        "info": "In trigonal systems, parameters 'a', 'c', and 'α' can be modified (b=a, β=α, γ=120° or γ=α depending on the specific space group)"
+                    },
+                    "monoclinic": {
+                        "modifiable": ["a", "b", "c", "beta"],
+                        "info": "In monoclinic systems, parameters 'a', 'b', 'c', and 'β' can be modified (α=γ=90°)"
+                    },
+                    "triclinic": {
+                        "modifiable": ["a", "b", "c", "alpha", "beta", "gamma"],
+                        "info": "In triclinic systems, all parameters can be modified"
+                    },
+                    "unknown": {
+                        "modifiable": ["a", "b", "c", "alpha", "beta", "gamma"],
+                        "info": "All parameters can be modified (system unknown)"
+                    }
+                }
 
-                    new_lattice = Lattice.from_parameters(
-                        a=new_a,
-                        b=new_b,
-                        c=new_c,
-                        alpha=new_alpha,
-                        beta=new_beta,
-                        gamma=new_gamma
-                    )
+                st.markdown(params_info[crystal_system]["info"])
 
-                    frac_coords = [site.frac_coords for site in mp_struct.sites]
-                    species = [site.species for site in mp_struct.sites]
-                    props = [site.properties for site in mp_struct.sites]
+                modifiable = params_info[crystal_system]["modifiable"]
 
-                    from pymatgen.core import Structure
+                col_a, col_b, col_c = st.columns(3)
+                col_alpha, col_beta, col_gamma = st.columns(3)
 
-                    updated_structure = Structure(
-                        lattice=new_lattice,
-                        species=species,
-                        coords=frac_coords,
-                        coords_are_cartesian=False,
-                        site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
-                    )
+                with col_a:
+                    new_a = st.number_input("a (Å)",
+                                            value=float(old_a),
+                                            min_value=0.1,
+                                            max_value=100.0,
+                                            step=0.01,
+                                            format="%.5f")
 
-                    mp_struct = updated_structure
-                    visual_pmg_structure = updated_structure
-                    st.session_state["current_structure"] = updated_structure
-                    st.session_state["auto_saved_structure"] = updated_structure
+                with col_b:
+                    if "b" in modifiable:
+                        new_b = st.number_input("b (Å)",
+                                                value=float(old_b),
+                                                min_value=0.1,
+                                                max_value=100.0,
+                                                step=0.01,
+                                                format="%.5f")
+                    else:
 
-                    if "modified_atom_df" in st.session_state:
-                        st.session_state.modified_atom_df = recalc_computed_columns(
-                            st.session_state.modified_atom_df.copy(),
-                            updated_structure.lattice
+                        if crystal_system in ["cubic", "tetragonal", "hexagonal", "trigonal"]:
+                            st.text_input("b (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
+                            new_b = new_a
+                        else:
+                            st.text_input("b (Å)", value=f"{float(old_b):.5f}", disabled=True)
+                            new_b = old_b
+
+                with col_c:
+                    if "c" in modifiable:
+                        new_c = st.number_input("c (Å)",
+                                                value=float(old_c),
+                                                min_value=0.1,
+                                                max_value=100.0,
+                                                step=0.01,
+                                                format="%.5f")
+                    else:
+                        if crystal_system == "cubic":
+                            st.text_input("c (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
+                            new_c = new_a
+                        else:
+                            st.text_input("c (Å)", value=f"{float(old_c):.5f}", disabled=True)
+                            new_c = old_c
+
+                with col_alpha:
+                    if "alpha" in modifiable:
+                        new_alpha = st.number_input("α (°)",
+                                                    value=float(old_alpha),
+                                                    min_value=0.1,
+                                                    max_value=179.9,
+                                                    step=0.1,
+                                                    format="%.5f")
+                    else:
+                        if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal", "monoclinic"]:
+                            st.text_input("α (°)", value="90.00000", disabled=True)
+                            new_alpha = 90.0
+                        else:
+                            st.text_input("α (°)", value=f"{float(old_alpha):.5f}", disabled=True)
+                            new_alpha = old_alpha
+
+                with col_beta:
+                    if "beta" in modifiable:
+                        new_beta = st.number_input("β (°)",
+                                                   value=float(old_beta),
+                                                   min_value=0.1,
+                                                   max_value=179.9,
+                                                   step=0.1,
+                                                   format="%.5f")
+                    else:
+                        if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal"]:
+                            st.text_input("β (°)", value="90.00000", disabled=True)
+                            new_beta = 90.0
+                        elif crystal_system == "trigonal" and "alpha" in modifiable:
+                            st.text_input("β (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
+                            new_beta = new_alpha
+                        else:
+                            st.text_input("β (°)", value=f"{float(old_beta):.5f}", disabled=True)
+                            new_beta = old_beta
+
+                with col_gamma:
+                    if "gamma" in modifiable:
+                        new_gamma = st.number_input("γ (°)",
+                                                    value=float(old_gamma),
+                                                    min_value=0.1,
+                                                    max_value=179.9,
+                                                    step=0.1,
+                                                    format="%.5f")
+                    else:
+                        if crystal_system in ["cubic", "tetragonal", "orthorhombic", "monoclinic"]:
+                            st.text_input("γ (°)", value="90.00000", disabled=True)
+                            new_gamma = 90.0
+                        elif crystal_system == "hexagonal":
+                            st.text_input("γ (°)", value="120.00000", disabled=True)
+                            new_gamma = 120.0
+                        elif crystal_system == "trigonal" and spg_symbol.startswith("R"):
+                            st.text_input("γ (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
+                            new_gamma = new_alpha
+                        else:
+                            st.text_input("γ (°)", value=f"{float(old_gamma):.5f}", disabled=True)
+                            new_gamma = old_gamma
+
+                st.session_state["lattice_a"] = new_a
+                st.session_state["lattice_b"] = new_b
+                st.session_state["lattice_c"] = new_c
+                st.session_state["lattice_alpha"] = new_alpha
+                st.session_state["lattice_beta"] = new_beta
+                st.session_state["lattice_gamma"] = new_gamma
+
+                if st.button("Apply Lattice Changes"):
+                    try:
+                        st.session_state["expander_lattice"] = True
+
+                        from pymatgen.core import Lattice
+
+                        new_lattice = Lattice.from_parameters(
+                            a=new_a,
+                            b=new_b,
+                            c=new_c,
+                            alpha=new_alpha,
+                            beta=new_beta,
+                            gamma=new_gamma
                         )
 
-                    st.success("Lattice parameters updated successfully!")
+                        frac_coords = [site.frac_coords for site in mp_struct.sites]
+                        species = [site.species for site in mp_struct.sites]
+                        props = [site.properties for site in mp_struct.sites]
 
-                    if auto_save_structure:
-                        auto_save_structure_function(auto_save_filename, updated_structure)
+                        from pymatgen.core import Structure
 
-                except Exception as e:
-                    st.error(f"Error updating lattice parameters: {e}")
-                st.rerun()
+                        updated_structure = Structure(
+                            lattice=new_lattice,
+                            species=species,
+                            coords=frac_coords,
+                            coords_are_cartesian=False,
+                            site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
+                        )
+
+                        mp_struct = updated_structure
+                        visual_pmg_structure = updated_structure
+                        st.session_state["modified_defects"] = mp_struct
+                        st.session_state["current_structure"] = updated_structure
+                        st.session_state["auto_saved_structure"] = updated_structure
+
+                        if "modified_atom_df" in st.session_state:
+                            st.session_state.modified_atom_df = recalc_computed_columns(
+                                st.session_state.modified_atom_df.copy(),
+                                updated_structure.lattice
+                            )
+
+                        st.success("Lattice parameters updated successfully!")
+
+                        if auto_save_structure:
+                            auto_save_structure_function(auto_save_filename, updated_structure)
+
+                    except Exception as e:
+                        st.error(f"Error updating lattice parameters: {e}")
+                    st.rerun()
+        else:
+            st.info(f'If you wish to directly modify lattice parameters, uncheck first the Create Supercell and Point Defects')
 
         df_plot = df_plot.copy()
 
-        if not show_atom_labels:
-            atom_labels = [""] * len(df_plot)
-        else:
-            atom_labels = df_plot["Element_Index"].tolist()
-
-        elements = df_plot["Element"].tolist()
-        xs = df_plot["X"].tolist()
-        ys = df_plot["Y"].tolist()
-        zs = df_plot["Z"].tolist()
         with col_g1:
             base_atom_size = st.slider(
                 "Base atom size in visualization:",
@@ -1630,14 +2018,107 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 help="Adjust the base size of atoms in the 3D visualization - size will adjust with zooming"
             )
 
+
+        has_partial_occupancies = False
+        for site in visual_pmg_structure:
+            if not site.is_ordered:
+                has_partial_occupancies = True
+                break
+
+
+        if has_partial_occupancies:
+            st.info(
+                "This structure contains sites with partial occupancies. Combined labels will be shown for these sites.")
+
+        if not show_atom_labels:
+
+            atom_labels_dict = {}
+        else:
+
+            atom_labels_dict = {}
+
+            processed_df = df_plot.copy()
+            processed_df['X_round'] = processed_df['X'].round(3)
+            processed_df['Y_round'] = processed_df['Y'].round(3)
+            processed_df['Z_round'] = processed_df['Z'].round(3)
+
+
+            coord_groups = processed_df.groupby(['X_round', 'Y_round', 'Z_round'])
+
+
+            for (x, y, z), group in coord_groups:
+                position_key = (x, y, z)
+
+                if len(group) == 1 and abs(group['Occupancy'].values[0] - 1.0) < 0.01:
+                    atom_labels_dict[position_key] = group['Element_Index'].values[0]
+                    continue
+
+
+                total_occ = group['Occupancy'].sum()
+
+                vacancy = 1.0 - total_occ if total_occ < 0.99 else 0
+
+
+                label_parts = []
+
+                for _, row in group.iterrows():
+                    element = row['Element']
+                    occ = row['Occupancy']
+                    if occ > 0.01:
+                        label_parts.append(f"{element}{occ:.1f}")
+
+
+                if vacancy > 0.01:
+                    label_parts.append(f"□{vacancy:.1f}")  # Square symbol for vacancy
+
+                atom_labels_dict[position_key] = "/".join(label_parts)
+
         atom_traces = []
-        unique_elements = sorted(set(elements))
-        for elem in unique_elements:
-            indices = [i for i, x in enumerate(elements) if x == elem]
-            x_vals = [xs[i] for i in indices]
-            y_vals = [ys[i] for i in indices]
-            z_vals = [zs[i] for i in indices]
-            labels_for_elem = [atom_labels[i] for i in indices]
+
+        df_plot['X_round'] = df_plot['X'].round(3)
+        df_plot['Y_round'] = df_plot['Y'].round(3)
+        df_plot['Z_round'] = df_plot['Z'].round(3)
+
+        # Group by coordinates to get dominant element at each position
+        position_groups = df_plot.groupby(['X_round', 'Y_round', 'Z_round'])
+        element_positions = {}
+        element_labels = {}
+
+        for (x, y, z), group in position_groups:
+            position = (x, y, z)
+
+            if len(group) > 1:
+                max_row = group.loc[group['Occupancy'].idxmax()]
+                dominant_element = max_row['Element']
+            else:
+                dominant_element = group['Element'].iloc[0]
+
+            if dominant_element not in element_positions:
+                element_positions[dominant_element] = []
+                element_labels[dominant_element] = []
+
+            element_positions[dominant_element].append(position)
+
+            if show_atom_labels:
+                pos_key = (x, y, z)
+
+                if pos_key in atom_labels_dict:
+                    label = atom_labels_dict[pos_key]
+                else:
+
+                    label = dominant_element
+                element_labels[dominant_element].append(label)
+            else:
+                element_labels[dominant_element].append("")
+
+        for element, positions in element_positions.items():
+            if not positions:
+                continue
+
+            x_vals = [pos[0] for pos in positions]
+            y_vals = [pos[1] for pos in positions]
+            z_vals = [pos[2] for pos in positions]
+            labels = element_labels[element]
 
             mode = 'markers+text' if show_atom_labels else 'markers'
 
@@ -1646,19 +2127,19 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 mode=mode,
                 marker=dict(
                     size=base_atom_size,
-                    color=color_map.get(elem, "gray"),
+                    color=color_map.get(element, "gray"),
                     opacity=1,
                     sizemode='area',
                     sizeref=2.5,
                     sizemin=0.5,
                 ),
-                text=labels_for_elem,
+                text=labels,
                 textposition="top center",
                 textfont=dict(
                     size=14,
                     color="black"
                 ),
-                name=elem
+                name=element
             )
             atom_traces.append(trace)
 
@@ -1866,36 +2347,24 @@ if "**🔬 Structure Visualization**" in calc_mode:
                 st.error(
                     f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
 
-        from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+        lattice = visual_pmg_structure.lattice
+        a_para = lattice.a
+        b_para = lattice.b
+        c_para = lattice.c
+        alpha = lattice.alpha
+        beta = lattice.beta
+        gamma = lattice.gamma
+        volume = lattice.volume
 
-        transformer = OrderDisorderedStructureTransformation(no_oxi_states=True)
-
-        structure_to_convert = visual_pmg_structure
-        try:
-
-            visual_ase = AseAtomsAdaptor.get_atoms(structure_to_convert)
-        except Exception as e:
-            transformer = OrderDisorderedStructureTransformation()
-            structure_to_convert = transformer.apply_transformation(structure_to_convert)
-            visual_ase = AseAtomsAdaptor.get_atoms(structure_to_convert)
-
-        cell_params = visual_ase.get_cell_lengths_and_angles()  # (a, b, c, α, β, γ)
-        a_para, b_para, c_para = cell_params[:3]
-        alpha, beta, gamma = [radians(x) for x in cell_params[3:]]
-
-        volume = a_para * b_para * c_para * sqrt(
-            1 - cos(alpha) ** 2 - cos(beta) ** 2 - cos(gamma) ** 2 +
-            2 * cos(alpha) * cos(beta) * cos(gamma)
-        )
         # Get lattice parameters
 
         lattice_str = (
-            f"a = {cell_params[0]:.4f} Å<br>"
-            f"b = {cell_params[1]:.4f} Å<br>"
-            f"c = {cell_params[2]:.4f} Å<br>"
-            f"α = {cell_params[3]:.2f}°<br>"
-            f"β = {cell_params[4]:.2f}°<br>"
-            f"γ = {cell_params[5]:.2f}°<br>"
+            f"a = {a_para:.4f} Å<br>"
+            f"b = {b_para:.4f} Å<br>"
+            f"c = {c_para:.4f} Å<br>"
+            f"α = {alpha:.2f}°<br>"
+            f"β = {beta:.2f}°<br>"
+            f"γ = {gamma:.2f}°<br>"
             f"Volume = {volume:.2f} Å³"
         )
 
@@ -1929,215 +2398,214 @@ if "**🔬 Structure Visualization**" in calc_mode:
             st.markdown(f"""
             <div style='text-align: center; font-size: 18px;'>
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
-                <p><strong>Number of Atoms:</strong> {len(visual_ase)}</p>
+                <p><strong>Number of Atoms:</strong> {len(visual_pmg_structure)}</p>
                 <p><strong>Space Group:</strong> {space_group_str}</p>
             </div>
             """, unsafe_allow_html=True)
 
         with col_download:
-            with st.expander(f"**Download Options**", expanded=True):
-                file_format = st.radio(
-                    f"Select file **format**",
-                    ("CIF", "VASP", "LAMMPS", "XYZ",),
-                    horizontal=True
-                )
+            file_format = st.radio(
+                f"Select file **format**",
+                ("CIF", "VASP", "LAMMPS", "XYZ",),
+                horizontal=True
+            )
 
-                file_content = None
-                download_file_name = None
-                mime = "text/plain"
+            file_content = None
+            download_file_name = None
+            mime = "text/plain"
 
-                try:
-                    if file_format == "CIF":
-                        from pymatgen.io.cif import CifWriter
+            try:
+                if file_format == "CIF":
+                    from pymatgen.io.cif import CifWriter
 
-                        download_file_name = selected_file.split('.')[
-                                                 0] + '_' + str(spg_number) + f'.cif'
+                    download_file_name = selected_file.split('.')[
+                                             0] + '_' + str(spg_number) + f'.cif'
 
-                        mime = "chemical/x-cif"
-                        grouped_data = st.session_state.modified_atom_df.copy()
-                        grouped_data = df_plot.copy()
-                        grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
-                        grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
-                        grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+                    mime = "chemical/x-cif"
+                    grouped_data = st.session_state.modified_atom_df.copy()
+                    grouped_data = df_plot.copy()
+                    grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                    grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                    grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
-                        # Group by position
-                        position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+                    # Group by position
+                    position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
-                        new_struct = Structure(visual_pmg_structure.lattice, [], [])
+                    new_struct = Structure(visual_pmg_structure.lattice, [], [])
 
-                        for (x, y, z), group in position_groups:
-                            position = (float(x), float(y), float(z))
+                    for (x, y, z), group in position_groups:
+                        position = (float(x), float(y), float(z))
 
-                            species_dict = {}
-                            for _, row in group.iterrows():
-                                element = row['Element']
-                                occupancy = float(row['Occupancy'])
+                        species_dict = {}
+                        for _, row in group.iterrows():
+                            element = row['Element']
+                            occupancy = float(row['Occupancy'])
 
-                                if element in species_dict:
-                                    species_dict[element] += occupancy
-                                else:
-                                    species_dict[element] = occupancy
+                            if element in species_dict:
+                                species_dict[element] += occupancy
+                            else:
+                                species_dict[element] = occupancy
 
-                            props = {"wyckoff": group.iloc[0]["Wyckoff"]}
+                        props = {"wyckoff": group.iloc[0]["Wyckoff"]}
 
-                            new_struct.append(
-                                species=species_dict,
-                                coords=position,
-                                coords_are_cartesian=False,
-                                properties=props
-                            )
-
-                        file_content = CifWriter(new_struct, symprec=0.1, write_site_properties=True).__str__()
-                    elif file_format == "VASP":
-                        from pymatgen.io.cif import CifWriter
-
-                        mime = "chemical/x-cif"
-
-                        grouped_data = st.session_state.modified_atom_df.copy()
-                        grouped_data = df_plot.copy()
-
-                        grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
-                        grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
-                        grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
-
-                        position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
-                        # Create a new structure with properly defined partial occupancies
-                        new_struct = Structure(visual_pmg_structure.lattice, [], [])
-
-                        for (x, y, z), group in position_groups:
-                            position = (float(x), float(y), float(z))
-
-                            species_dict = {}
-                            for _, row in group.iterrows():
-                                element = row['Element']
-                            new_struct.append(
-                                species=element,
-                                coords=position,
-                                coords_are_cartesian=False,
-                            )
-
-                        out = StringIO()
-                        current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
-
-                        colsss, colyyy = st.columns([1, 1])
-                        with colsss:
-                            use_fractional = st.checkbox("Output POSCAR with fractional coordinates",
-                                                         value=True,
-                                                         key="poscar_fractional")
-
-                        with colyyy:
-                            from ase.constraints import FixAtoms
-
-                            use_selective_dynamics = st.checkbox("Include Selective dynamics (all atoms free)",
-                                                                 value=False, key="poscar_sd")
-                            if use_selective_dynamics:
-                                constraint = FixAtoms(indices=[])  # No atoms are fixed, so all will be T T T
-                                current_ase_structure.set_constraint(constraint)
-                        write(out, current_ase_structure, format="vasp", direct=use_fractional, sort=True)
-                        file_content = out.getvalue()
-                        download_file_name = selected_file.split('.')[
-                                                 0] + '_' + str(spg_number) + f'.poscar'
-
-                    elif file_format == "LAMMPS":
-                        from pymatgen.io.cif import CifWriter
-
-                        mime = "chemical/x-cif"
-
-                        grouped_data = st.session_state.modified_atom_df.copy()
-                        grouped_data = df_plot.copy()
-
-                        grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
-                        grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
-                        grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
-
-                        position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
-                        # Create a new structure with properly defined partial occupancies
-                        new_struct = Structure(visual_pmg_structure.lattice, [], [])
-
-                        for (x, y, z), group in position_groups:
-                            position = (float(x), float(y), float(z))
-                            species_dict = {}
-                            for _, row in group.iterrows():
-                                element = row['Element']
-
-                            new_struct.append(
-                                species=element,
-                                coords=position,
-                                coords_are_cartesian=False,
-                            )
-
-                        st.markdown("**LAMMPS Export Options**")
-
-                        atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
-                        units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
-                        include_masses = st.checkbox("Include atomic masses", value=True)
-                        force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
-                        current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
-                        out = StringIO()
-                        write(
-                            out,
-                            current_ase_structure,
-                            format="lammps-data",
-                            atom_style=atom_style,
-                            units=units,
-                            masses=include_masses,
-                            force_skew=force_skew
+                        new_struct.append(
+                            species=species_dict,
+                            coords=position,
+                            coords_are_cartesian=False,
+                            properties=props
                         )
-                        file_content = out.getvalue()
 
-                        download_file_name = selected_file.split('.')[
-                                                 0] + '_' + str(spg_number) + f'_.lmp'
+                    file_content = CifWriter(new_struct, symprec=0.1, write_site_properties=True).__str__()
+                elif file_format == "VASP":
+                    from pymatgen.io.cif import CifWriter
 
-                    elif file_format == "XYZ":
-                        from pymatgen.io.cif import CifWriter
+                    mime = "chemical/x-cif"
 
-                        mime = "chemical/x-cif"
+                    grouped_data = st.session_state.modified_atom_df.copy()
+                    grouped_data = df_plot.copy()
 
-                        grouped_data = st.session_state.modified_atom_df.copy()
-                        grouped_data = df_plot.copy()
+                    grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                    grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                    grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
-                        grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
-                        grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
-                        grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+                    position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
-                        position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+                    # Create a new structure with properly defined partial occupancies
+                    new_struct = Structure(visual_pmg_structure.lattice, [], [])
 
-                        new_struct = Structure(visual_pmg_structure.lattice, [], [])
+                    for (x, y, z), group in position_groups:
+                        position = (float(x), float(y), float(z))
 
-                        for (x, y, z), group in position_groups:
-                            position = (float(x), float(y), float(z))
+                        species_dict = {}
+                        for _, row in group.iterrows():
+                            element = row['Element']
+                        new_struct.append(
+                            species=element,
+                            coords=position,
+                            coords_are_cartesian=False,
+                        )
 
-                            species_dict = {}
-                            for _, row in group.iterrows():
-                                element = row['Element']
+                    out = StringIO()
+                    current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
 
-                            new_struct.append(
-                                species=element,
-                                coords=position,
-                                coords_are_cartesian=False,
-                            )
-                        current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
-                        out = StringIO()
-                        write(out, current_ase_structure, format="xyz")
-                        file_content = out.getvalue()
-                        download_file_name = selected_file.split('.')[
-                                                 0] + '_' + str(spg_number) + f'_.xyz'
+                    colsss, colyyy = st.columns([1, 1])
+                    with colsss:
+                        use_fractional = st.checkbox("Output POSCAR with fractional coordinates",
+                                                     value=True,
+                                                     key="poscar_fractional")
 
-                except Exception as e:
-                    st.error(f"Error generating {file_format} file: {e}")
-                    st.error(
-                        f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
+                    with colyyy:
+                        from ase.constraints import FixAtoms
 
-                if file_content is not None:
-                    st.download_button(
-                        label=f"Download {file_format} file",
-                        data=file_content,
-                        file_name=download_file_name,
-                        type="primary",
-                        mime=mime
+                        use_selective_dynamics = st.checkbox("Include Selective dynamics (all atoms free)",
+                                                             value=False, key="poscar_sd")
+                        if use_selective_dynamics:
+                            constraint = FixAtoms(indices=[])  # No atoms are fixed, so all will be T T T
+                            current_ase_structure.set_constraint(constraint)
+                    write(out, current_ase_structure, format="vasp", direct=use_fractional, sort=True)
+                    file_content = out.getvalue()
+                    download_file_name = selected_file.split('.')[
+                                             0] + '_' + str(spg_number) + f'.poscar'
+
+                elif file_format == "LAMMPS":
+                    from pymatgen.io.cif import CifWriter
+
+                    mime = "chemical/x-cif"
+
+                    grouped_data = st.session_state.modified_atom_df.copy()
+                    grouped_data = df_plot.copy()
+
+                    grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                    grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                    grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+
+                    position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+
+                    # Create a new structure with properly defined partial occupancies
+                    new_struct = Structure(visual_pmg_structure.lattice, [], [])
+
+                    for (x, y, z), group in position_groups:
+                        position = (float(x), float(y), float(z))
+                        species_dict = {}
+                        for _, row in group.iterrows():
+                            element = row['Element']
+
+                        new_struct.append(
+                            species=element,
+                            coords=position,
+                            coords_are_cartesian=False,
+                        )
+
+                    st.markdown("**LAMMPS Export Options**")
+
+                    atom_style = st.selectbox("Select atom_style", ["atomic", "charge", "full"], index=0)
+                    units = st.selectbox("Select units", ["metal", "real", "si"], index=0)
+                    include_masses = st.checkbox("Include atomic masses", value=True)
+                    force_skew = st.checkbox("Force triclinic cell (skew)", value=False)
+                    current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
+                    out = StringIO()
+                    write(
+                        out,
+                        current_ase_structure,
+                        format="lammps-data",
+                        atom_style=atom_style,
+                        units=units,
+                        masses=include_masses,
+                        force_skew=force_skew
                     )
+                    file_content = out.getvalue()
+
+                    download_file_name = selected_file.split('.')[
+                                             0] + '_' + str(spg_number) + f'_.lmp'
+
+                elif file_format == "XYZ":
+                    from pymatgen.io.cif import CifWriter
+
+                    mime = "chemical/x-cif"
+
+                    grouped_data = st.session_state.modified_atom_df.copy()
+                    grouped_data = df_plot.copy()
+
+                    grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                    grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                    grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+
+                    position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+
+                    new_struct = Structure(visual_pmg_structure.lattice, [], [])
+
+                    for (x, y, z), group in position_groups:
+                        position = (float(x), float(y), float(z))
+
+                        species_dict = {}
+                        for _, row in group.iterrows():
+                            element = row['Element']
+
+                        new_struct.append(
+                            species=element,
+                            coords=position,
+                            coords_are_cartesian=False,
+                        )
+                    current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
+                    out = StringIO()
+                    write(out, current_ase_structure, format="xyz")
+                    file_content = out.getvalue()
+                    download_file_name = selected_file.split('.')[
+                                             0] + '_' + str(spg_number) + f'_.xyz'
+
+            except Exception as e:
+                st.error(f"Error generating {file_format} file: {e}")
+                st.error(
+                    f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
+
+            if file_content is not None:
+                st.download_button(
+                    label=f"Download {file_format} file",
+                    data=file_content,
+                    file_name=download_file_name,
+                    type="primary",
+                    mime=mime
+                )
 
 # --- Diffraction Settings and Calculation ---
 
@@ -2162,7 +2630,7 @@ if mode == "Basic":
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
 
-if "**💥 Diffraction Pattern Calculation**" in calc_mode:
+if "💥 Powder Diffraction" in calc_mode:
     with st.expander("Diffraction Settings", icon="⚙️", expanded=st.session_state["expander_diff_settings"]):
         st.subheader(
             "⚙️ Diffraction Settings",
@@ -3285,7 +3753,7 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                                 hkl_group])
                     table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str, language="text")
-            with st.expander(f"View Highest Intensity Peaks for XRD Pattern: {file.name}", expanded=True):
+            with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: {file.name}", expanded=True):
                 table_str2 = "#X-axis    Intensity    hkl\n"
                 for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
                     if i in annotate_indices:
@@ -3303,11 +3771,12 @@ if "**💥 Diffraction Pattern Calculation**" in calc_mode:
                                     h in hkl_group])
                         table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str2, language="text")
-            with st.expander(f"View Continuous Curve Data for XRD Pattern: {file.name}"):
+            with st.expander(f"View Continuous Curve Data for Diffraction Pattern: {file.name}"):
                 table_str3 = "#X-axis    Y-value\n"
                 for x_val, y_val in zip(x_dense_full, y_dense):
                     table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
                 st.code(table_str3, language="text")
+
 
         combined_data = {}
         for file in uploaded_files:
@@ -3415,7 +3884,7 @@ def toggle_animation():
 
 
 # Main PRDF section
-if "**📊 (P)RDF Calculation**" in calc_mode:
+if "📊 (P)RDF" in calc_mode:
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
@@ -4268,7 +4737,7 @@ if "**📊 (P)RDF Calculation**" in calc_mode:
             global_href = f'<a href="data:file/csv;base64,{global_b64}" download="{global_filename}">{download_text}</a>'
             st.markdown(global_href, unsafe_allow_html=True)
 
-if "**📈 Interactive Data Plot**" in calc_mode:
+if "📈 Interactive Data Plot" in calc_mode:
 
     colors = ['blue', 'red', 'green', 'orange', 'purple', 'black', 'grey']
 
@@ -4790,7 +5259,8 @@ if "**📈 Interactive Data Plot**" in calc_mode:
                 file_name=download_name,
                 mime="text/plain"
             )
-
+    else:
+        st.info(f"Upload your data file first to see all options.")
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
 
