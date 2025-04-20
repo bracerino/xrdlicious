@@ -1527,6 +1527,7 @@ if "🔬 Structure Modification" in calc_mode:
         col_g1, col_g2 = st.columns([1, 4])
 
         with col_g1:
+            show_plot_str = st.checkbox(f"Show 3D structure plot", value = True)
             allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
@@ -2157,203 +2158,204 @@ if "🔬 Structure Modification" in calc_mode:
         element_positions = {}
         element_labels = {}
 
-        for (x, y, z), group in position_groups:
-            position = (x, y, z)
+        if show_plot_str:
+            for (x, y, z), group in position_groups:
+                position = (x, y, z)
 
-            if len(group) > 1:
-                max_row = group.loc[group['Occupancy'].idxmax()]
-                dominant_element = max_row['Element']
-            else:
-                dominant_element = group['Element'].iloc[0]
-
-            if dominant_element not in element_positions:
-                element_positions[dominant_element] = []
-                element_labels[dominant_element] = []
-
-            element_positions[dominant_element].append(position)
-
-            if show_atom_labels:
-                pos_key = (x, y, z)
-
-                if pos_key in atom_labels_dict:
-                    label = atom_labels_dict[pos_key]
+                if len(group) > 1:
+                    max_row = group.loc[group['Occupancy'].idxmax()]
+                    dominant_element = max_row['Element']
                 else:
+                    dominant_element = group['Element'].iloc[0]
 
-                    label = dominant_element
-                element_labels[dominant_element].append(label)
-            else:
-                element_labels[dominant_element].append("")
+                if dominant_element not in element_positions:
+                    element_positions[dominant_element] = []
+                    element_labels[dominant_element] = []
 
-        for element, positions in element_positions.items():
-            if not positions:
-                continue
+                element_positions[dominant_element].append(position)
 
-            x_vals = [pos[0] for pos in positions]
-            y_vals = [pos[1] for pos in positions]
-            z_vals = [pos[2] for pos in positions]
-            labels = element_labels[element]
+                if show_atom_labels:
+                    pos_key = (x, y, z)
 
-            mode = 'markers+text' if show_atom_labels else 'markers'
+                    if pos_key in atom_labels_dict:
+                        label = atom_labels_dict[pos_key]
+                    else:
 
-            trace = go.Scatter3d(
-                x=x_vals, y=y_vals, z=z_vals,
-                mode=mode,
-                marker=dict(
-                    size=base_atom_size,
-                    color=color_map.get(element, "gray"),
-                    opacity=1,
-                    sizemode='area',
-                    sizeref=2.5,
-                    sizemin=0.5,
-                ),
-                text=labels,
+                        label = dominant_element
+                    element_labels[dominant_element].append(label)
+                else:
+                    element_labels[dominant_element].append("")
+
+            for element, positions in element_positions.items():
+                if not positions:
+                    continue
+
+                x_vals = [pos[0] for pos in positions]
+                y_vals = [pos[1] for pos in positions]
+                z_vals = [pos[2] for pos in positions]
+                labels = element_labels[element]
+
+                mode = 'markers+text' if show_atom_labels else 'markers'
+
+                trace = go.Scatter3d(
+                    x=x_vals, y=y_vals, z=z_vals,
+                    mode=mode,
+                    marker=dict(
+                        size=base_atom_size,
+                        color=color_map.get(element, "gray"),
+                        opacity=1,
+                        sizemode='area',
+                        sizeref=2.5,
+                        sizemin=0.5,
+                    ),
+                    text=labels,
+                    textposition="top center",
+                    textfont=dict(
+                        size=14,
+                        color="black"
+                    ),
+                    name=element
+                )
+                atom_traces.append(trace)
+
+            cell = visual_pmg_structure.lattice.matrix  # 3x3 array; each row is a lattice vector.
+            a, b, c = cell[0], cell[1], cell[2]
+            corners = []
+            for i in [0, 1]:
+                for j in [0, 1]:
+                    for k in [0, 1]:
+                        corner = i * a + j * b + k * c
+                        corners.append(corner)
+
+            edges = []
+            for i in [0, 1]:
+                for j in [0, 1]:
+                    for k in [0, 1]:
+                        start_coord = np.array([i, j, k])
+                        start_point = i * a + j * b + k * c
+                        for axis in range(3):
+                            if start_coord[axis] == 0:
+                                neighbor = start_coord.copy()
+                                neighbor[axis] = 1
+                                end_point = neighbor[0] * a + neighbor[1] * b + neighbor[2] * c
+                                edges.append((start_point, end_point))
+            edge_x, edge_y, edge_z = [], [], []
+            for start, end in edges:
+                edge_x.extend([start[0], end[0], None])
+                edge_y.extend([start[1], end[1], None])
+                edge_z.extend([start[2], end[2], None])
+
+            edge_trace = go.Scatter3d(
+                x=edge_x, y=edge_y, z=edge_z, opacity=0.8,
+                mode="lines",
+                line=dict(color="black", width=3),
+                name="Unit Cell"
+            )
+            arrow_trace = go.Cone(
+                x=[0, 0, 0],
+                y=[0, 0, 0],
+                z=[0, 0, 0],
+                u=[a[0], b[0], c[0]],
+                v=[a[1], b[1], c[1]],
+                w=[a[2], b[2], c[2]],
+                anchor="tail",
+                colorscale=[[0, "black"], [1, "black"]],
+                showscale=False,
+                sizemode="absolute",
+                sizeref=0.3,
+                name="Lattice Vectors"
+            )
+            labels_x, labels_y, labels_z, vec_texts = [], [], [], []
+            for vec, label in zip([a, b, c],
+                                  [f"a = {np.linalg.norm(a):.3f} Å",
+                                   f"b = {np.linalg.norm(b):.3f} Å",
+                                   f"c = {np.linalg.norm(c):.3f} Å"]):
+                norm = np.linalg.norm(vec)
+                pos = vec + (0.1 * vec / (norm + 1e-6))
+                labels_x.append(pos[0])
+                labels_y.append(pos[1])
+                labels_z.append(pos[2])
+                vec_texts.append(label)
+            label_trace = go.Scatter3d(
+                x=labels_x, y=labels_y, z=labels_z,
+                mode="text",
+                text=vec_texts,
                 textposition="top center",
                 textfont=dict(
                     size=14,
                     color="black"
                 ),
-                name=element
+                showlegend=False
             )
-            atom_traces.append(trace)
+            data = atom_traces + [edge_trace, label_trace]
 
-        cell = visual_pmg_structure.lattice.matrix  # 3x3 array; each row is a lattice vector.
-        a, b, c = cell[0], cell[1], cell[2]
-        corners = []
-        for i in [0, 1]:
-            for j in [0, 1]:
-                for k in [0, 1]:
-                    corner = i * a + j * b + k * c
-                    corners.append(corner)
+            layout = go.Layout(
 
-        edges = []
-        for i in [0, 1]:
-            for j in [0, 1]:
-                for k in [0, 1]:
-                    start_coord = np.array([i, j, k])
-                    start_point = i * a + j * b + k * c
-                    for axis in range(3):
-                        if start_coord[axis] == 0:
-                            neighbor = start_coord.copy()
-                            neighbor[axis] = 1
-                            end_point = neighbor[0] * a + neighbor[1] * b + neighbor[2] * c
-                            edges.append((start_point, end_point))
-        edge_x, edge_y, edge_z = [], [], []
-        for start, end in edges:
-            edge_x.extend([start[0], end[0], None])
-            edge_y.extend([start[1], end[1], None])
-            edge_z.extend([start[2], end[2], None])
-
-        edge_trace = go.Scatter3d(
-            x=edge_x, y=edge_y, z=edge_z, opacity=0.8,
-            mode="lines",
-            line=dict(color="black", width=3),
-            name="Unit Cell"
-        )
-        arrow_trace = go.Cone(
-            x=[0, 0, 0],
-            y=[0, 0, 0],
-            z=[0, 0, 0],
-            u=[a[0], b[0], c[0]],
-            v=[a[1], b[1], c[1]],
-            w=[a[2], b[2], c[2]],
-            anchor="tail",
-            colorscale=[[0, "black"], [1, "black"]],
-            showscale=False,
-            sizemode="absolute",
-            sizeref=0.3,
-            name="Lattice Vectors"
-        )
-        labels_x, labels_y, labels_z, vec_texts = [], [], [], []
-        for vec, label in zip([a, b, c],
-                              [f"a = {np.linalg.norm(a):.3f} Å",
-                               f"b = {np.linalg.norm(b):.3f} Å",
-                               f"c = {np.linalg.norm(c):.3f} Å"]):
-            norm = np.linalg.norm(vec)
-            pos = vec + (0.1 * vec / (norm + 1e-6))
-            labels_x.append(pos[0])
-            labels_y.append(pos[1])
-            labels_z.append(pos[2])
-            vec_texts.append(label)
-        label_trace = go.Scatter3d(
-            x=labels_x, y=labels_y, z=labels_z,
-            mode="text",
-            text=vec_texts,
-            textposition="top center",
-            textfont=dict(
-                size=14,
-                color="black"
-            ),
-            showlegend=False
-        )
-        data = atom_traces + [edge_trace, label_trace]
-
-        layout = go.Layout(
-
-            scene=dict(
-                xaxis=dict(
-                    showgrid=False,
-                    zeroline=False,
-                    showline=False,
-                    visible=False,
-                ),
-                yaxis=dict(
-                    showgrid=False,
-                    zeroline=False,
-                    showline=False,
-                    visible=False,
-                ),
-                zaxis=dict(
-                    showgrid=False,
-                    zeroline=False,
-                    showline=False,
-                    visible=False,
-                ),
-                annotations=[],
-            ),
-            margin=dict(l=20, r=20, b=20, t=50),
-            legend=dict(
-                font=dict(
-                    size=16
-                )
-            ),
-            paper_bgcolor='white',
-            plot_bgcolor='white',
-        )
-
-        fig = go.Figure(data=data, layout=layout)
-
-        fig.update_layout(
-            width=1000,
-            height=800,
-            shapes=[
-                dict(
-                    type="rect",
-                    xref="paper",
-                    yref="paper",
-                    x0=0,
-                    y0=0,
-                    x1=1,
-                    y1=1,
-                    line=dict(
-                        color="black",
-                        width=3,
+                scene=dict(
+                    xaxis=dict(
+                        showgrid=False,
+                        zeroline=False,
+                        showline=False,
+                        visible=False,
                     ),
-                    fillcolor="rgba(0,0,0,0)",
-                )
-            ]
-        )
+                    yaxis=dict(
+                        showgrid=False,
+                        zeroline=False,
+                        showline=False,
+                        visible=False,
+                    ),
+                    zaxis=dict(
+                        showgrid=False,
+                        zeroline=False,
+                        showline=False,
+                        visible=False,
+                    ),
+                    annotations=[],
+                ),
+                margin=dict(l=20, r=20, b=20, t=50),
+                legend=dict(
+                    font=dict(
+                        size=16
+                    )
+                ),
+                paper_bgcolor='white',
+                plot_bgcolor='white',
+            )
 
-        fig.update_scenes(
-            aspectmode='data',
-            camera=dict(
-                eye=dict(x=1.5, y=1.5, z=1.5)
-            ),
+            fig = go.Figure(data=data, layout=layout)
 
-            dragmode='orbit'
-        )
+            fig.update_layout(
+                width=1000,
+                height=800,
+                shapes=[
+                    dict(
+                        type="rect",
+                        xref="paper",
+                        yref="paper",
+                        x0=0,
+                        y0=0,
+                        x1=1,
+                        y1=1,
+                        line=dict(
+                            color="black",
+                            width=3,
+                        ),
+                        fillcolor="rgba(0,0,0,0)",
+                    )
+                ]
+            )
 
-        with col_g2:
-            st.plotly_chart(fig, use_container_width=True)
+            fig.update_scenes(
+                aspectmode='data',
+                camera=dict(
+                    eye=dict(x=1.5, y=1.2, z=1)
+                ),
+
+                dragmode='orbit'
+            )
+
+            with col_g2:
+                st.plotly_chart(fig, use_container_width=True)
 
         custom_filename = st.text_input("Enter a name for the modified structure file:", value="MODIFIED_STR")
         if not custom_filename.endswith(".cif"):
