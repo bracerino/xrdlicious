@@ -1525,7 +1525,9 @@ if "🔬 Structure Modification" in calc_mode:
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
 
         col_g1, col_g2 = st.columns([1, 4])
+
         with col_g1:
+            allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
                 value=False)
@@ -1602,7 +1604,7 @@ if "🔬 Structure Modification" in calc_mode:
             edited_df_reset = edited_df.reset_index(drop=True)
             display_df_reset = display_df.reset_index(drop=True)
 
-            if not edited_df_reset.equals(display_df_reset):
+            if not edited_df_reset.equals(display_df_reset) and allow_atomic_mod:
                 edited_df = edited_df.reset_index(drop=True)
                 display_df = display_df.reset_index(drop=True)
                 st.session_state.modified_atom_df_help = edited_df
@@ -1838,6 +1840,7 @@ if "🔬 Structure Modification" in calc_mode:
             st.rerun()
         with col_g1:
             show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=True)
+
 
         if create_defects == False:
             with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
