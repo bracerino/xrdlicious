@@ -3955,6 +3955,8 @@ def trigger_calculation():
         "global_rdf_list": [],
         "multi_structures": False
     }
+    import gc
+    gc.collect()
 
 
 def toggle_animation():
