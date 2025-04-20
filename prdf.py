@@ -5373,8 +5373,8 @@ def get_memory_usage():
 
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free Streamlit Community Cloud with resource limit of 2.7 GBs. If there will be demand for more,
-we will upgrade to paid server to have more resources. :]")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free Streamlit Community Cloud with resource limit of 2.7 GBs. If there will be demand for more, "
+         "we will upgrade to paid server to have more resources. :]")
 
 st.markdown("""
 
