@@ -5337,10 +5337,9 @@ def get_memory_usage():
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # in MB
 
-st.title("Memory Usage Monitor")
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
 
 
 st.markdown("""
