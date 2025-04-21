@@ -157,76 +157,78 @@ st.markdown("""
 <div class="hello-container">
   <div class="hello-message">
       <span class="wave-emoji">👋</span> Hello there! Welcome to <span style="color:#0066cc;">XRDlicious</span>.<br>
-  Let's do some delicious diffraction! 🐣
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-@keyframes fadeInOut {
-  0%   { opacity: 0; transform: translateY(-10px); }
-  5%   { opacity: 1; transform: translateY(0); }
-  95%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
 
-.onboarding-tip {
-  background-color: #ffffff;
-  border-left: 5px solid #3399ff;
-  padding: 18px 22px;
-  border-radius: 14px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  font-size: 1.1em;
-  font-weight: 500;
-  position: fixed;
-  top: 100px;
-  right: 40px;
-  z-index: 9999;
-  max-width: 400px;
-  width: 100%;
-  opacity: 0;
-}
 
-/* Adjust timing: each lasts 7s now */
-.tip1 { animation: fadeInOut 7s ease-in-out 7s forwards; }
-.tip2 { animation: fadeInOut 7s ease-in-out 15s forwards; }
-.tip3 { animation: fadeInOut 7s ease-in-out 23s forwards; }
-
-.tip-label {
-  font-size: 0.9em;
-  font-weight: 600;
-  color: #0066cc;
-  margin-bottom: 6px;
-  display: block;
-}
-</style>
-
-<!-- Tip 1 -->
-<div class="onboarding-tip tip1">
-  <span class="tip-label">Tip 1/3</span>
-  🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
-</div>
-
-<!-- Tip 2 -->
-<div class="onboarding-tip tip2">
-  <span class="tip-label">Tip 2/3</span>
-  📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
-</div>
-
-<!-- Tip 3 -->
-<div class="onboarding-tip tip3">
-  <span class="tip-label">Tip 3/3</span>
-  🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
-</div>
-""", unsafe_allow_html=True)
-
-col1, col2 = st.columns([1.25, 1])
+col1, col2, col3 = st.columns([1.25, 0.5, 0.5])
 
 with col2:
     st.info(
         "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)"
     )
+with col3:
+    if st.button("💡 Need Help?"):
+        st.markdown("""
+        <style>
+        @keyframes fadeInOut {
+          0%   { opacity: 0; transform: translateY(-10px); }
+          5%   { opacity: 1; transform: translateY(0); }
+          95%  { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        .onboarding-tip {
+          background-color: #ffffff;
+          border-left: 5px solid #3399ff;
+          padding: 18px 22px;
+          border-radius: 14px;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+          font-size: 1.1em;
+          font-weight: 500;
+          position: fixed;
+          top: 100px;
+          right: 40px;
+          z-index: 9999;
+          max-width: 400px;
+          width: 100%;
+          opacity: 0;
+        }
+
+        .tip1 { animation: fadeInOut 7s ease-in-out 0s forwards; }
+        .tip2 { animation: fadeInOut 7s ease-in-out 7s forwards; }
+        .tip3 { animation: fadeInOut 7s ease-in-out 14s forwards; }
+
+        .tip-label {
+          font-size: 0.9em;
+          font-weight: 600;
+          color: #0066cc;
+          margin-bottom: 6px;
+          display: block;
+        }
+        </style>
+
+        <!-- Tip 1 -->
+        <div class="onboarding-tip tip1">
+          <span class="tip-label">Tip 1/3</span>
+          🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
+        </div>
+
+        <!-- Tip 2 -->
+        <div class="onboarding-tip tip2">
+          <span class="tip-label">Tip 2/3</span>
+          📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
+        </div>
+
+        <!-- Tip 3 -->
+        <div class="onboarding-tip tip3">
+          <span class="tip-label">Tip 3/3</span>
+          🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
+        </div>
+        """, unsafe_allow_html=True)
+
 with col1:
     with st.expander("Read here about this appllication.", icon="📖"):
         st.info(
@@ -290,34 +292,25 @@ def update_element_indices(df):
     return df
 
 
-# Initialize session state keys
 if 'mp_options' not in st.session_state:
     st.session_state['mp_options'] = None
 if 'selected_structure' not in st.session_state:
     st.session_state['selected_structure'] = None
 if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
-    st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
+    st.session_state['uploaded_files'] = []
 
 
 def remove_fractional_occupancies_safely(structure):
-    # Create lists to hold the new structure data
     species = []
     coords = []
 
-    # Process each site
     for site in structure:
         if site.is_ordered:
-            # Just add ordered sites directly
             species.append(site.specie)
         else:
-            # For disordered sites, find the dominant species
             dominant_sp = max(site.species.items(), key=lambda x: x[1])[0]
             species.append(dominant_sp)
-
-        # Keep the coordinates
         coords.append(site.frac_coords)
-
-    # Create a new, ordered structure
     ordered_structure = Structure(
         lattice=structure.lattice,
         species=species,
@@ -364,17 +357,7 @@ if uploaded_files_user_sidebar:
             except Exception as e:
                 st.error(f"Failed to parse {file.name}: {e}")
 
-structure_cell_choice = st.sidebar.radio(
-    "Structure Cell Type:",
-    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
-    index=0,  # default to Conventional
-    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
-         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
-)
-convert_to_conventional = structure_cell_choice == "Conventional Cell"
-pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
-pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
-pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
+
 
 if "📈 Interactive Data Plot" not in calc_mode:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=False):
@@ -534,9 +517,8 @@ if "📈 Interactive Data Plot" not in calc_mode:
                                 else:
                                     st.error("Please enter at least one element for the COD search.")
 
-        # Display results from all searched databases in separate sections
+
         with cols3:
-            # Create tabs for each database's results
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
                 tabs = []
                 if 'mp_options' in st.session_state and st.session_state.mp_options:
@@ -549,7 +531,6 @@ if "📈 Interactive Data Plot" not in calc_mode:
                 if tabs:
                     selected_tab = st.tabs(tabs)
 
-                    # Materials Project tab
                     tab_index = 0
                     if 'mp_options' in st.session_state and st.session_state.mp_options:
                         with selected_tab[tab_index]:
@@ -606,7 +587,6 @@ if "📈 Interactive Data Plot" not in calc_mode:
                                     )
                         tab_index += 1
 
-                    # AFLOW tab
                     if 'aflow_options' in st.session_state and st.session_state.aflow_options:
                         with selected_tab[tab_index]:
                             st.subheader("🧬 Structures Found in AFLOW")
@@ -914,6 +894,13 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
         return False
 
 
+
+if "removal_message" not in st.session_state:
+    st.session_state.removal_message = ""
+if not isinstance(st.session_state.removal_message, str):
+    st.session_state.removal_message = str(st.session_state.removal_message)
+
+
 def wrap_coordinates(frac_coords):
     coords = np.array(frac_coords)
     return coords % 1
@@ -989,6 +976,7 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                                         min_dist=0.5):
     from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
     with colb3:
+        st.session_state.removal_message = ""
         with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
             generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
                                                      min_dist=min_dist)
@@ -1003,14 +991,24 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                 unique_int.append(interstitial.site.frac_coords)
                 label = classify_interstitial_site(structure, interstitial.site.frac_coords)
                 rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                st.write(
-                    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+                #st.write(
+                #    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+
+                new_msg = f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)\n"
+                st.session_state.removal_message += new_msg + "\n"
                 for site in interstitial.equivalent_sites:
                     frac_coords.append(site.frac_coords)
                     frac_coords_dict[idx].append(site.frac_coords)
                 idx += 1
 
-            st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+            #st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+            new_msg = f"**Total number of available interstitial positions:** {len(frac_coords)}\n"
+            st.session_state.removal_message += new_msg + "\n"
+
+
+            if st.session_state.removal_message:
+                st.write(st.session_state.removal_message)
+
 
             if which_interstitial == 0:
                 frac_coords_use = frac_coords
@@ -1180,10 +1178,23 @@ if "🔬 Structure Modification" in calc_mode:
                 else:
                     selected_file = st.radio("", file_options)
             with col_mod:
-                apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+                #apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
-                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost information about occupancies)",
+                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
                     value=False)
+                if cell_convert_or:
+                    structure_cell_choice = st.radio(
+                        "Structure Cell Type:",
+                        options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)",
+                                 "Primitive Cell (no reduction)"],
+                        index=0,  # default to Conventional
+                        help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
+                             "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
+                    )
+                    convert_to_conventional = structure_cell_choice == "Conventional Cell"
+                    pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+                    pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+                    pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
             if selected_file != st.session_state["selected_file"]:
 
                 #IF SELECTED FILE CHANGED, RESETTING ALL MODIFICATIONS
@@ -1256,6 +1267,29 @@ if "🔬 Structure Modification" in calc_mode:
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
             value=False)
+        #with col_mod:
+            # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+           #if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
+            #    mp_struct = st.session_state["current_structure"]
+                #converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+                #st.session_state["current_structure"] = converted_structure
+            #    analyzer = SpacegroupAnalyzer(mp_struct, symprec=0.1)
+
+                # Get the conventional standard structure
+            #    converted_structure = analyzer.get_conventional_standard_structure()
+
+                # Print symmetry information
+            #    spacegroup = analyzer.get_space_group_symbol()
+            #    st.write(f"Structure converted to conventional cell with spacegroup: {spacegroup}")
+
+                # Update the session state with the new structure
+            #    st.session_state["current_structure"] = converted_structure
+
+                # Display information about the new structure
+            #    st.write(f"Lattice parameters: {converted_structure.lattice.abc}")
+            #    st.write(f"Lattice angles: {converted_structure.lattice.angles}")
+            #    st.write(f"Number of sites: {len(converted_structure)}")
+            #    st.session_state["current_structure"] = converted_structure
         if create_defects:
             with st.expander(
                     f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
@@ -1275,6 +1309,8 @@ if "🔬 Structure Modification" in calc_mode:
 
             supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
 
+
+
             if (n_a, n_b, n_c) != (old_a, old_b, old_c):
                 transformer = SupercellTransformation(supercell_matrix)
 
@@ -1285,24 +1321,10 @@ if "🔬 Structure Modification" in calc_mode:
 
                 st.session_state["current_structure"] = mp_struct
                 st.session_state["auto_saved_structure"] = mp_struct
-                st.rerun()
 
-            if apply_cell_conversion:
-                if convert_to_conventional:
+                converted_structure = mp_struct
+                #st.rerun()
 
-                    converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-                elif pymatgen_prim_cell_niggli:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-                elif pymatgen_prim_cell_lll:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
-                else:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                st.session_state["current_structure"] = converted_structure
 
 
 
@@ -1330,9 +1352,6 @@ if "🔬 Structure Modification" in calc_mode:
                     # ==================== Substitute Functions ====================
                     with colb3:
                         st.markdown(f"### Log output:")
-                    # ==================== Streamlit UI ====================
-
-                    # Choose among the three operation modes.
 
                     operation_mode = st.selectbox("Choose Operation Mode",
                                                   ["Insert Interstitials (Voronoi method)", "Create Vacancies",
@@ -1530,7 +1549,7 @@ if "🔬 Structure Modification" in calc_mode:
 
         with col_g1:
             show_plot_str = st.checkbox(f"Show 3D structure plot", value = True)
-            allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
+            #allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
                 value=False)
@@ -1607,7 +1626,7 @@ if "🔬 Structure Modification" in calc_mode:
             edited_df_reset = edited_df.reset_index(drop=True)
             display_df_reset = display_df.reset_index(drop=True)
 
-            if not edited_df_reset.equals(display_df_reset) and allow_atomic_mod:
+            if not edited_df_reset.equals(display_df_reset): #and allow_atomic_mod:
                 edited_df = edited_df.reset_index(drop=True)
                 display_df = display_df.reset_index(drop=True)
                 st.session_state.modified_atom_df_help = edited_df
@@ -1618,10 +1637,7 @@ if "🔬 Structure Modification" in calc_mode:
 
                     for i, row in edited_df.iterrows():
                         original_row = st.session_state.df_last_before_wyck.iloc[i].copy()
-
-                        # Extract the Wyckoff site information
                         display_wyckoff = row['Wyckoff']
-                        # Extract just the letter part (a, b, c, etc.) from the Wyckoff symbol
                         match = re.match(r'\d*(\D+)', display_wyckoff)
                         if match:
                             wyckoff_letter = match.group(1)
@@ -1630,41 +1646,26 @@ if "🔬 Structure Modification" in calc_mode:
 
                         element = row['Element']
                         original_element = original_row['Element']
-
-                        # Detect what properties have changed
                         changed_props = {}
                         for col in ['Element', 'Frac X', 'Frac Y', 'Frac Z', 'Occupancy']:
                             if col in row and col in original_row and row[col] != original_row[col]:
                                 changed_props[col] = row[col]
-
-                        # If nothing changed, skip this row
                         if not changed_props:
                             continue
-
-                        # Find all atoms in the full dataframe with the same Wyckoff letter
-                        # We match based on the letter at the end of the Wyckoff position
                         wyckoff_mask = full_df_copy['Wyckoff'].str.endswith(wyckoff_letter)
-
-                        # If element changed, update all atoms with matching Wyckoff letter and original element
                         if 'Element' in changed_props:
                             # Find all atoms with same Wyckoff letter and original element
                             element_mask = wyckoff_mask & (full_df_copy['Element'] == original_element)
 
                             if element_mask.sum() > 0:
-                                # Update the element
                                 full_df_copy.loc[element_mask, 'Element'] = changed_props['Element']
-                                # Update element indices for proper labeling
                                 update_element_indices(full_df_copy)
-                                # Remember the new element for other property updates
                                 element = changed_props['Element']
 
                                 #st.info(
                                 #    f"Updated {element_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Element changed from {original_element} to {element}")
 
-                        # Update occupancy for matching atoms
                         if 'Occupancy' in changed_props:
-                            # For occupancy, we need to find all atoms with the same Wyckoff letter and element
-                            # If the element was just changed, use the new element
                             occ_mask = wyckoff_mask & (full_df_copy['Element'] == element)
 
                             if occ_mask.sum() > 0:
@@ -1672,36 +1673,23 @@ if "🔬 Structure Modification" in calc_mode:
 
                                 #st.info(
                                 #    f"Updated {occ_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Occupancy changed to {changed_props['Occupancy']}")
-
-                        # Check if position was changed
                         position_changed = any(col in changed_props for col in ['Frac X', 'Frac Y', 'Frac Z'])
 
                         if position_changed:
-                            # For position changes we need to be more careful
-                            # We want to update only the specific atom that was edited in the asymmetric unit
 
-                            # First find the exact atom in the full dataframe that corresponds to this row
-                            # We can match using original coordinates and element
                             x_orig = original_row['Frac X']
                             y_orig = original_row['Frac Y']
                             z_orig = original_row['Frac Z']
-
-                            # Create a mask for the atom with exact match of coordinates
                             coord_mask = (
                                     (abs(full_df_copy['Frac X'] - x_orig) < 1e-5) &
                                     (abs(full_df_copy['Frac Y'] - y_orig) < 1e-5) &
                                     (abs(full_df_copy['Frac Z'] - z_orig) < 1e-5)
                             )
 
-                            # The original element might have changed, so match based on original element
-                            # and coordinates
                             exact_match = coord_mask & (full_df_copy['Element'] == original_element) & wyckoff_mask
 
                             if exact_match.sum() >= 1:
-                                # Get the first matching index (should only be one)
                                 match_idx = full_df_copy[exact_match].index[0]
-
-                                # Update position for just this specific atom
                                 if 'Frac X' in changed_props:
                                     full_df_copy.at[match_idx, 'Frac X'] = changed_props['Frac X']
                                 if 'Frac Y' in changed_props:
@@ -1716,7 +1704,6 @@ if "🔬 Structure Modification" in calc_mode:
                                 #st.error(
                                 #    f"Could not find exact matching atom to update position. Found {exact_match.sum()} matches.")
 
-                    # Use the fully updated dataframe for the structure
                     st.session_state.modified_atom_df = recalc_computed_columns(full_df_copy, visual_pmg_structure.lattice)
                     df_plot = full_df_copy.copy()
                     try:
@@ -1744,19 +1731,16 @@ if "🔬 Structure Modification" in calc_mode:
                                 else:
                                     species_dict[element] = occupancy
 
-                            # Get Wyckoff position if available
                             props = {}
                             if "Wyckoff" in group.columns:
                                 props["wyckoff"] = group.iloc[0]["Wyckoff"]
 
-                            # Add the site to the structure
                             new_struct.append(
                                 species=species_dict,
                                 coords=position,
                                 coords_are_cartesian=False,
                                 properties=props
                             )
-                            #print(new_struct)
 
 
                         visual_pmg_structure = new_struct
@@ -1804,19 +1788,16 @@ if "🔬 Structure Modification" in calc_mode:
                                 else:
                                     species_dict[element] = occupancy
 
-                            # Get Wyckoff position if available
                             props = {}
                             if "Wyckoff" in group.columns:
                                 props["wyckoff"] = group.iloc[0]["Wyckoff"]
 
-                            # Add the site to the structure
                             new_struct.append(
                                 species=species_dict,
                                 coords=position,
                                 coords_are_cartesian=False,
                                 properties=props
                             )
-                            #print(new_struct)
 
 
                         visual_pmg_structure = new_struct
@@ -2423,7 +2404,7 @@ if "🔬 Structure Modification" in calc_mode:
                 st.error(f"Error reconstructing structure: {e}")
                 st.error(
                     f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
-
+            st.rerun()
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
         b_para = lattice.b
@@ -3224,13 +3205,9 @@ if "💥 Powder Diffraction" in calc_mode:
         if not st.session_state.calc_xrd:
             st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
         if user_pattern_file:
-            # Create a separate Plotly figure for experimental data
-
-            # Process the experimental files:
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
                     try:
-                        # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
                         df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
@@ -3239,11 +3216,9 @@ if "💥 Powder Diffraction" in calc_mode:
                         #  st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
-                    # If using 'Normalized' intensity scale, normalize the experimental intensities.
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
-                    # Optional: filter data to only include points within your current two-theta range.
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
                             x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
@@ -3296,7 +3271,6 @@ if "💥 Powder Diffraction" in calc_mode:
                     x_user, y_user = None, None
 
     if st.session_state.calc_xrd and uploaded_files:
-        # Sidebar: Let the user select which structures to include in the diffraction plot
 
         multi_component_presets = {
             "Cu(Ka1+Ka2)": {
@@ -3368,13 +3342,10 @@ if "💥 Powder Diffraction" in calc_mode:
         for idx, file in enumerate(uploaded_files):
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
-
-            # Create Debye-Waller factors dictionary specific to this file if enabled
             debye_waller_dict = None
             if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
                 file_key = file.name
                 if file_key in st.session_state.debye_waller_factors_per_file:
-                    # Get the B-factors specific to this file
                     debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
 
             if is_multi_component:
@@ -3456,7 +3427,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 all_filtered_hkls = filtered_hkls
                 all_peak_types = ["Kα1"] * len(filtered_x)
 
-            # Intensity scaling.
             if intensity_scale_option == "Normalized":
                 norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
                 y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
@@ -3464,7 +3434,6 @@ if "💥 Powder Diffraction" in calc_mode:
             else:
                 displayed_intensity_array = np.array(all_filtered_y)
 
-            # Convert discrete peak positions.
             peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
             ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
@@ -3474,8 +3443,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
             else:
                 annotate_indices = set()
-
-            # Save the diffraction pattern details for later use in the interactive plot.
             pattern_details[file.name] = {
                 "peak_vals": peak_vals,
                 "intensities": displayed_intensity_array,
@@ -3682,7 +3649,6 @@ if "💥 Powder Diffraction" in calc_mode:
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        # st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
@@ -3905,6 +3871,7 @@ if "💥 Powder Diffraction" in calc_mode:
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
+
 # Add these session state initializations at the beginning of your script
 
 
@@ -3940,14 +3907,15 @@ def update_selected_frame():
 
 def update_display_mode():
     st.session_state.display_mode = st.session_state.display_mode_radio
-    # Reset animation when switching display modes
     st.session_state.animate = False
 
 
 def trigger_calculation():
     st.session_state.calc_rdf = True
     st.session_state.do_calculation = True
-    # Clear existing data
+    for key in ["all_prdf_dict", "all_distance_dict", "global_rdf_list"]:
+        if key in st.session_state.processed_data:
+            del st.session_state.processed_data[key]
     st.session_state.frame_indices = []
     st.session_state.processed_data = {
         "all_prdf_dict": {},
@@ -3958,21 +3926,13 @@ def trigger_calculation():
     import gc
     gc.collect()
 
-
 def toggle_animation():
     st.session_state.animate = not st.session_state.animate
 
 
-if "📊 (P)RDF" not in calc_mode:
-    for key in [
-        "calc_rdf", "display_mode", "selected_frame_idx", "frame_indices",
-        "processed_data", "animate", "do_calculation", "download_prepared"
-    ]:
-        if key in st.session_state:
-            del st.session_state[key]
-            
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
+    uploaded_files = st.session_state.uploaded_files
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
@@ -4030,7 +3990,8 @@ if "📊 (P)RDF" in calc_mode:
             if use_lammps_traj and lammps_file:
                 st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
                 progress_bar = st.progress(0)
-                with st.expander("Log from reading LAMMPS trajectory file"):
+                #with st.expander("Log from reading LAMMPS trajectory file"):
+                with st.status("Reading LAMMPS trajectory file..."):
                     file_content_sample = lammps_file.read(2048)
                     lammps_file.seek(0)
                     try:
@@ -4214,26 +4175,25 @@ if "📊 (P)RDF" in calc_mode:
                     except Exception as e:
                         st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
 
+                lammps_file = None
+                bytes_data = None
+
                 total_frames = len(frames)
                 st.write(f"Found {total_frames} frames in the trajectory")
 
-                # Use selected frames based on sampling rate
                 selected_frames = frames[::frame_sampling]
                 st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
 
-                # Store frame indices and reset animation state
                 frame_indices = [i * frame_sampling for i in range(len(selected_frames))]
                 st.session_state.frame_indices = frame_indices
                 st.session_state.animate = False
 
-                # Process each frame
                 for i, frame in enumerate(selected_frames):
                     progress_bar.progress((i + 1) / len(selected_frames))
 
                     try:
                         mg_structure = AseAtomsAdaptor.get_structure(frame)
 
-                        # Calculate PRDF for this frame
                         prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                         prdf_featurizer.fit([mg_structure])
                         prdf_data = prdf_featurizer.featurize(mg_structure)
@@ -5368,15 +5328,19 @@ st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
 **The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
 """)
+
+
+
 def get_memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     return mem_info.rss / (1024 ** 2)  # in MB
 
+st.title("Memory Usage Monitor")
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free Streamlit Community Cloud with resource limit of 2.7 GBs. If there will be demand for more, "
-         "we will upgrade to paid server to have more resources. :]")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**")
+
 
 st.markdown("""
 
