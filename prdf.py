@@ -163,11 +163,12 @@ st.markdown("""
 
 
 
-col1, col2, col3 = st.columns([1.25, 0.5, 0.5])
+col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)"
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0). The app will be continously updated. Spot a bug or have a feature idea? Let us know at:"
+        "lebedmi2@cvut.cz"
     )
 with col3:
     if st.button("💡 Need Help?"):
