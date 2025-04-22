@@ -134,7 +134,7 @@ st.markdown("""
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  animation: fadeOut 7s ease-out forwards;
+  animation: fadeOut 6s ease-out forwards;
 }
 
 .hello-message {
@@ -356,7 +356,9 @@ if uploaded_files_user_sidebar:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
             except Exception as e:
-                st.error(f"Failed to parse {file.name}: {e}")
+                #st.error(f"Failed to parse {file.name}: {e}")
+                st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
+                         f"and please remove this wrongly placed file. 😊")
 
 
 
@@ -5038,61 +5040,76 @@ if "📈 Interactive Data Plot" in calc_mode:
                         pass
                     else:
                         def convert_data(x_values, conversion_type, custom_wavelength=None):
+
                             import numpy as np
 
                             wavelength_map = {
-                                "Cu": 1.54056,
-                                "Co": 1.78897
+                                "Copper": 1.54056,  # Cu Kα1
+                                "CuKa1": 1.54056,
+                                "Cobalt": 1.78897,  # Co Kα1
+                                "CoKa1": 1.78897
                             }
+
                             parts = conversion_type.split(" to ")
                             if len(parts) != 2:
-                                st.error("Invalid conversion type format.")
+                                print(f"Invalid conversion type format: {conversion_type}")
                                 return x_values
 
-                            input_format = parts[0]
-                            output_format = parts[1]
+                            input_format = parts[0].strip()
+                            output_format = parts[1].strip()
 
                             lambda_in = None
-                            for label in wavelength_map:
-                                if label in input_format:
-                                    lambda_in = wavelength_map[label]
-                            if "Custom" in input_format:
+                            if "Copper" in input_format or "CuKa1" in input_format:
+                                lambda_in = wavelength_map["Copper"]
+                            elif "Cobalt" in input_format or "CoKa1" in input_format:
+                                lambda_in = wavelength_map["Cobalt"]
+                            elif "Custom" in input_format and custom_wavelength is not None:
                                 lambda_in = custom_wavelength
+
                             lambda_out = None
-                            for label in wavelength_map:
-                                if label in output_format:
-                                    lambda_out = wavelength_map[label]
-                            if "Custom" in output_format:
+                            if "Copper" in output_format or "CuKa1" in output_format:
+                                lambda_out = wavelength_map["Copper"]
+                            elif "Cobalt" in output_format or "CoKa1" in output_format:
+                                lambda_out = wavelength_map["Cobalt"]
+                            elif "Custom" in output_format and custom_wavelength is not None:
                                 lambda_out = custom_wavelength
-                            if "2theta" in input_format and "d-spacing" in output_format:
+
+                            if ("2theta" in input_format) and ("d-spacing" in output_format):
                                 if lambda_in is None:
-                                    st.error("Missing input wavelength for 2θ → d-spacing conversion.")
+                                    print(f"Missing input wavelength for conversion: {input_format}")
                                     return x_values
 
-                                theta_rad = np.radians(x_values / 2)
-                                valid = np.abs(np.sin(theta_rad)) > 1e-6
+                                theta_rad = np.radians(x_values / 2)  # Convert to radians
+                                valid = np.abs(np.sin(theta_rad)) > 1e-6  # Avoid division by zero
+
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
                                 d[~valid] = np.nan
-                                return d
-                            elif "d-spacing" in input_format and "2theta" in output_format:
-                                if lambda_out is None:
-                                    st.error("Missing output wavelength for d-spacing → 2θ conversion.")
-                                    return x_values
 
+                                return d
+
+                            elif ("d-spacing" in input_format) and ("2theta" in output_format):
+                                if lambda_out is None:
+                                    print(f"Missing output wavelength for conversion: {output_format}")
+                                    return x_values
                                 valid = x_values > 0
                                 sin_arg = lambda_out / (2 * x_values[valid])
-                                sin_arg = np.clip(sin_arg, 0, 1)
+                                sin_arg = np.clip(sin_arg, 0, 1)  # Ensure valid arcsin input
+
                                 theta = np.degrees(np.arcsin(sin_arg))
                                 result = np.zeros_like(x_values)
                                 result[valid] = 2 * theta
                                 result[~valid] = np.nan
+
                                 return result
 
-
-                            elif "2theta" in input_format and "2theta" in output_format:
+                            elif ("2theta" in input_format) and ("2theta" in output_format):
                                 if lambda_in is None or lambda_out is None:
-                                    st.error("Missing wavelength for 2θ to 2θ conversion.")
+                                    print(
+                                        f"Missing wavelength for 2θ to 2θ conversion. Input λ: {lambda_in}, Output λ: {lambda_out}")
+                                    return x_values
+
+                                if abs(lambda_in - lambda_out) < 1e-6:
                                     return x_values
 
                                 theta_rad = np.radians(x_values / 2)
@@ -5100,18 +5117,18 @@ if "📈 Interactive Data Plot" in calc_mode:
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
 
-                                # Now d → 2θ (at new wavelength)
                                 sin_arg = lambda_out / (2 * d[valid])
                                 sin_arg = np.clip(sin_arg, 0, 1)
                                 theta_new = np.degrees(np.arcsin(sin_arg))
 
-                                result = np.copy(x_values)
+                                result = np.zeros_like(x_values)
                                 result[valid] = 2 * theta_new
                                 result[~valid] = np.nan
+
                                 return result
 
                             else:
-                                st.warning("No matching conversion logic applied.")
+                                print(f"No matching conversion logic for: {conversion_type}")
                                 return x_values
 
 
