@@ -134,7 +134,7 @@ st.markdown("""
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  animation: fadeOut 6s ease-out forwards;
+  animation: fadeOut 7s ease-out forwards;
 }
 
 .hello-message {
@@ -4805,7 +4805,7 @@ if "📈 Interactive Data Plot" in calc_mode:
 
     col_line, col_marker = st.columns([1, 1])
     show_lines = col_line.checkbox("Show Lines", value=True)
-    show_markers = col_marker.checkbox("Show Markers", value=True)
+    show_markers = col_marker.checkbox("Show Markers", value=False)
 
     col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([1, 1, 1, 1, 1])
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
@@ -5014,12 +5014,24 @@ if "📈 Interactive Data Plot" in calc_mode:
                     )
                 else:
                     if skip_header:
+                        file.seek(0)
+                        try:
+                            file_content = file.read().decode('utf-8')
+                        except UnicodeDecodeError:
+                            file_content = file.read().decode('latin-1')
+
+                        lines = file_content.splitlines()
+                        comment_line_indices = [i for i, line in enumerate(lines) if line.strip().startswith('#')]
+                        lines_to_skip = [0] + comment_line_indices
+                        lines_to_skip = sorted(set(lines_to_skip))
+                        file.seek(0)
+
                         df = pd.read_csv(
                             file,
                             sep=r'\s+|,|;',
                             engine='python',
                             header=None,
-                            skiprows=1
+                            skiprows=lines_to_skip
                         )
                     else:
                         df = pd.read_csv(
