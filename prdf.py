@@ -564,7 +564,7 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
 
 
                             st.write(
-                                f"**Material ID:** {selected_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
+                                f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
                             st.write(
                                 f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
@@ -1312,61 +1312,56 @@ if "🔬 Structure Modification" in calc_mode:
             #    st.write(f"Number of sites: {len(converted_structure)}")
             #    st.session_state["current_structure"] = converted_structure
         if create_defects:
-            with st.expander(
-                    f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
-                    icon="🧊", expanded=st.session_state["expander_supercell"]):
-                col1, col2, col3 = st.columns(3)
-                st.session_state["expander_supercell"] = True
-                n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_a"], step=1)
-                n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_b"], step=1)
-                n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_c"], step=1)
-
-            st.session_state["supercell_n_a"] = n_a
-            st.session_state["supercell_n_b"] = n_b
-            st.session_state["supercell_n_c"] = n_c
-
-            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
-
-
-
-            if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-                transformer = SupercellTransformation(supercell_matrix)
-
-                from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
-
-                mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
-                mp_struct = transformer.apply_transformation(mp_struct)
-
-                st.session_state["current_structure"] = mp_struct
-                st.session_state["auto_saved_structure"] = mp_struct
-
-                converted_structure = mp_struct
-                #st.rerun()
-
-
-
-
-            else:
-                print("DIDNT APPLY ANYTHING")
-                converted_structure = mp_struct
-
-
-            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
-
-            st.write("Cell representation conversion is now applied!")
-            mp_struct = converted_structure
-            visual_pmg_structure = mp_struct
-            st.session_state["current_structure"] = mp_struct
-
-
             from pymatgen.core import Structure, Element
 
-            with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
+            with st.expander("Create Supercell (Uncheck the conversion between cells) and Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
 
                 colb1, colb2, colb3 = st.columns(3)
+
+                with colb1:
+                    col1, col2, col3 = st.columns(3)
+                    st.session_state["expander_supercell"] = True
+                    n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_a"], step=1)
+                    n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_b"], step=1)
+                    n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_c"], step=1)
+
+                st.session_state["supercell_n_a"] = n_a
+                st.session_state["supercell_n_b"] = n_b
+                st.session_state["supercell_n_c"] = n_c
+
+                supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+
+                if (n_a, n_b, n_c) != (old_a, old_b, old_c):
+                    transformer = SupercellTransformation(supercell_matrix)
+
+                    from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+
+                    mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
+                    mp_struct = transformer.apply_transformation(mp_struct)
+
+                    st.session_state["current_structure"] = mp_struct
+                    st.session_state["auto_saved_structure"] = mp_struct
+
+                    converted_structure = mp_struct
+                    # st.rerun()
+
+
+
+
+                else:
+                    print("DIDNT APPLY ANYTHING")
+                    converted_structure = mp_struct
+
+                st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
+
+                st.write("Cell representation conversion is now applied!")
+                mp_struct = converted_structure
+                visual_pmg_structure = mp_struct
+                st.session_state["current_structure"] = mp_struct
+
 
                 with colb2:
                     st.session_state["expander_defects"] = True
