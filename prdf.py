@@ -4890,38 +4890,38 @@ if "📈 Interactive Data Plot" in calc_mode:
                             "Convert from:",
                             [
                                 "No conversion",
+                                "d-spacing (Å)", 
                                 "2theta (Copper CuKa1)",
                                 "2theta (Cobalt CoKa1)",
-                                "2theta (Custom)",
-                                "d-spacing (Å)"
+                                "2theta (Custom)"
                             ],
                             key=f"input_format_{i}"
                         )
-                        output_format = None
-                        custom_wavelength = None
+                        all_output_options = [
+                            "No conversion",
+                            "d-spacing (Å)",
+                            "2theta (Copper CuKa1)",
+                            "2theta (Cobalt CoKa1)",
+                            "2theta (Custom)"
+                        ]
 
                         if input_format != "No conversion":
-                            if input_format == "d-spacing (Å)":
-                                output_options = [
-                                    "2theta (Copper CuKa1)",
-                                    "2theta (Cobalt CoKa1)",
-                                    "2theta (Custom)"
-                                ]
-                            elif "2theta" in input_format:
-                                output_options = [
-                                    "d-spacing (Å)",
-                                    "2theta (Copper CuKa1)",
-                                    "2theta (Cobalt CoKa1)",
-                                    "2theta (Custom)"
-                                ]
-                                if input_format in output_options:
-                                    output_options.remove(input_format)
+                            if input_format in all_output_options:
+                                filtered_options = [opt for opt in all_output_options if opt != input_format]
+                            else:
+                                filtered_options = all_output_options
+                        else:
+                            filtered_options = all_output_options
 
-                            output_format = st.selectbox(
-                                "Convert to:",
-                                output_options,
-                                key=f"output_format_{i}"
-                            )
+                        output_format = st.selectbox(
+                            "Convert to:",
+                            filtered_options,
+                            index=0,  # Default to first option ("No conversion")
+                            key=f"output_format_{i}"
+                        )
+                        custom_wavelength = None
+
+                        # Custom wavelength input if needed
                         if (input_format == "2theta (Custom)" or
                                 output_format == "2theta (Custom)"):
                             custom_wavelength = st.number_input(
