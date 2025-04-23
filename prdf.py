@@ -3553,7 +3553,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             mode='lines',
                             name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=pt_color, width=2, dash=dash_type),
+                            line=dict(color=pt_color, width=3, dash=dash_type),
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
@@ -3684,7 +3684,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=file.name,
-                        line=dict(dash='solid', width=1, color=color),
+                        line=dict(dash='solid', width=2, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>{file.name}:</b><br>"
@@ -3714,7 +3714,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=user_pattern_file.name,
-                        line=dict(dash='solid', width=1, color=color),
+                        line=dict(dash='solid', width=2, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>User XRD Data:</b><br>"
