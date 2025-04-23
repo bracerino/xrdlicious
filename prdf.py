@@ -564,7 +564,7 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
 
 
                             st.write(
-                                f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
+                                f"**Material ID:** {selected_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
 
                             st.write(
                                 f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
