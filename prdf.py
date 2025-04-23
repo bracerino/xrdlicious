@@ -4912,7 +4912,12 @@ if "📈 Interactive Data Plot" in calc_mode:
                                 "2theta (Cobalt CoKa1)",
                                 "2theta (Custom)"
                             ],
-                            key=f"input_format_{i}"
+                            key=f"input_format_{i}", help = f"Copper (CuKa1): 1.5406 Å\n\n"
+                                " Molybdenum (MoKa1): 0.7093 Å\n"
+                                " Chromium (CrKa1): 2.2897 Å\n"
+                                " Iron (FeKa1): 1.9360 Å\n"
+                                " Cobalt (CoKa1): 1.7889 Å\n"
+                                " Silver (AgKa1): 0.5594 Å\n"
                         )
 
                         # Define all possible output options
