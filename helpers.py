@@ -39,6 +39,335 @@ from PIL import Image
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
+
+def get_formula_type(formula):
+    elements = []
+    counts = []
+
+    # Parse formula like "Fe2O3"
+    import re
+    matches = re.findall(r'([A-Z][a-z]*)(\d*)', formula)
+
+    for element, count in matches:
+        elements.append(element)
+        counts.append(int(count) if count else 1)
+
+    if len(elements) == 1:
+        return "A"
+
+    # Find the GCD to simplify
+    from math import gcd
+    from functools import reduce
+
+    def find_gcd(numbers):
+        return reduce(gcd, numbers)
+
+    divisor = find_gcd(counts)
+    counts = [c // divisor for c in counts]
+
+    # Generate formula type
+    if len(elements) == 2:
+        if counts[0] == 1 and counts[1] == 1:
+            return "AB"
+        elif counts[0] == 1 and counts[1] == 2:
+            return "AB2"
+        elif counts[0] == 2 and counts[1] == 1:
+            return "A2B"
+        else:
+            return f"A{counts[0]}B{counts[1]}"
+    elif len(elements) == 3:
+        if counts[0] == 1 and counts[1] == 1 and counts[2] == 1:
+            return "ABC"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 3:
+            return "ABC3"
+        else:
+            return f"A{counts[0]}B{counts[1]}C{counts[2]}"
+    else:
+        return "Complex"
+
+
+def identify_structure_type(structure):
+    try:
+        analyzer = SpacegroupAnalyzer(structure)
+        spg_symbol = analyzer.get_space_group_symbol()
+        spg_number = analyzer.get_space_group_number()
+        crystal_system = analyzer.get_crystal_system()
+
+        formula = structure.composition.reduced_formula
+        formula_type = get_formula_type(formula)
+
+        if spg_number in STRUCTURE_TYPES and formula_type in STRUCTURE_TYPES[
+            spg_number]:
+            structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**{structure_type}**"
+
+        pearson = f"{crystal_system[0]}{structure.num_sites}"
+        return f"**{crystal_system.capitalize()}** (Formula type: {formula_type}, Pearson symbol: {pearson})"
+
+    except Exception as e:
+        return f"Error identifying structure: {str(e)}"
+
+
+STRUCTURE_TYPES = {
+    # Cubic Structures
+    225: {  # Fm-3m
+        "A": "FCC (Face-centered cubic)",
+        "AB": "Rock Salt (NaCl)",
+        "AB2": "Fluorite (CaF2)",
+        "A2B": "Anti-Fluorite",
+        "AB3": "Cu3Au (L1₂)",
+        "A3B": "AuCu3 type",
+        "ABC": "Half-Heusler (C1b)",
+        "AB6": "K2PtCl6 (cubic antifluorite)",
+        "A2BC4": "Spinel (MgAl2O4)"
+    },
+    229: {  # Im-3m
+        "A": "BCC (Body-centered cubic)",
+        "A2B": "Caesium chloride (CsCl, B2)",
+        "AB12": "NaZn13 type",
+        "A6B": "Tungsten carbide (WC)"
+    },
+    221: {  # Pm-3m
+        "A": "Simple cubic (SC)",
+        "AB": "Cesium Chloride (CsCl)",
+        "ABC3": "Perovskite (Cubic, ABO3)",
+        "AB3": "Cu3Au type",
+        "A3B": "Cr3Si (A15)",
+        "AB6": "ReO3 type"
+    },
+    227: {  # Fd-3m
+        "A": "Diamond cubic",
+        "A2B": "Pyrite (FeS2)",
+        "AB2": "Fluorite-like",
+        "A2B4C": "Normal spinel",
+        "AB4C2": "Inverse spinel",
+        "AB2O4": "Spinel"
+    },
+    216: {  # F-43m
+        "AB": "Zinc Blende (Sphalerite)",
+        "A2B": "Antifluorite"
+    },
+    215: {  # P-43m
+        "ABC3": "Inverse-perovskite",
+        "AB4": "Half-anti-fluorite"
+    },
+    223: {  # Pm-3n
+        "AB": "α-Mn structure",
+        "A2B": "Cr3Si-type"
+    },
+    230: {  # Ia-3d
+        "A2B3": "Garnet structure ((Ca,Mg,Fe)3(Al,Fe)2(SiO4)3)",
+        "AB2": "Pyrochlore"
+    },
+    217: {  # I-43m
+        "A12B": "α-Mn structure"
+    },
+    219: {  # F-43c
+        "AB": "Sodium thallide"
+    },
+    205: {  # Pa-3
+        "AB2": "Cuprite (Cu2O)",
+        "AB6": "ReO3 structure"
+    },
+
+    # Hexagonal Structures
+    194: {  # P6_3/mmc
+        "A": "HCP (Hexagonal close-packed)",
+        "AB": "Wurtzite (high-T)",
+        "A2B": "AlB2 type (hexagonal)",
+        "AB2": "CdI2 type",
+        "AB3": "Ni3Sn type",
+        "A3B": "DO19 structure (Ni3Sn-type)"
+    },
+    186: {  # P6_3mc
+        "AB": "Wurtzite (ZnS)",
+        "A2B": "Marcasite"
+    },
+    191: {  # P6/mmm
+        "AB": "Graphite (hexagonal)",
+        "AB2": "MoS2 type",
+        "A2B": "AlB2 type",
+        "AB5": "CaCu5 type",
+        "A2B17": "Th2Ni17 type"
+    },
+    193: {  # P6_3/mcm
+        "AB3": "Na3As structure",
+        "A2B": "ZrBeSi structure"
+    },
+    187: {  # P-6m2
+        "AB": "Nickeline (NiAs)",
+        "AB2": "CdI2 type"
+    },
+    164: {  # P-3m1
+        "AB2": "CdI2 type",
+        "A": "Graphene layers"
+    },
+    166: {  # R-3m
+        "A": "Rhombohedral",
+        "AB": "Calcite/Dolomite",
+        "AB2": "Corundum (Al2O3)",
+        "A2B3": "α-Al2O3 type"
+    },
+    160: {  # R3m
+        "A2X3": "Binary tetradymite",
+        "AX2": "Delafossite"
+    },
+
+    # Tetragonal Structures
+    139: {  # I4/mmm
+        "A": "Body-centered tetragonal",
+        "AB": "β-Tin",
+        "A2B": "CuAu (L10)",
+        "AB2": "MoSi2 type",
+        "A3B": "Ni3Ti structure"
+    },
+    136: {  # P4_2/mnm
+        "AB2": "Rutile (TiO2)",
+        "A2B": "MoSi2 type"
+    },
+    123: {  # P4/mmm
+        "AB": "γ-CuTi",
+        "A2B": "CuAu (L10)"
+    },
+    140: {  # I4/mcm
+        "AB2": "Anatase (TiO2)",
+        "A15": "β-W structure"
+    },
+    141: {  # I41/amd
+        "AB2": "Anatase (TiO2)",
+        "A2": "α-Sn structure"
+    },
+    115: {  # P-4m2
+        "ABC2": "Chalcopyrite (CuFeS2)"
+    },
+    129: {  # P4/nmm
+        "AB": "PbO structure"
+    },
+
+    # Orthorhombic Structures
+    62: {  # Pnma
+        "AB": "MnP structure",
+        "AB2": "Cotunnite (PbCl2)",
+        "ABX3": "Perovskite (orthorhombic)",
+        "A2B": "Fe2P type",
+        "ABO3": "GdFeO3-type distorted perovskite",
+        "A2BX4": "Olivine ((Mg,Fe)2SiO4)"
+    },
+    63: {  # Cmcm
+        "A": "α-U structure",
+        "AB": "CrB structure",
+        "AB2": "HgBr2 type"
+    },
+    74: {  # Imma
+        "AB": "TlI structure",
+        "A2B": "Marcasite"
+    },
+    64: {  # Cmca
+        "A": "α-Ga structure"
+    },
+    65: {  # Cmmm
+        "AB2": "η-Fe2C structure"
+    },
+    70: {  # Fddd
+        "A": "Orthorhombic unit cell"
+    },
+
+    # Monoclinic Structures
+    14: {  # P21/c
+        "AB": "Monoclinic structure",
+        "AB2": "Baddeleyite (ZrO2)",
+        "ABO3": "Monazite (CePO4)"
+    },
+    12: {  # C2/m
+        "AB2": "Thortveitite (Sc2Si2O7)",
+        "A2B3": "Bixbyite"
+    },
+    15: {  # C2/c
+        "ABO4": "Scheelite (CaWO4)"
+    },
+
+    # Triclinic Structures
+    2: {  # P-1
+        "AB": "Triclinic structure",
+        "AB3": "Wollastonite (CaSiO3)",
+        "ABO4": "Kaolinite"
+    },
+
+    # Other important structures
+    99: {  # P4mm
+        "ABCD3": "Tetragonal perovskite"
+    },
+    167: {  # R-3c
+        "AB": "Calcite (CaCO3)",
+        "A2B3": "Corundum (Al2O3)"
+    },
+    176: {  # P6_3/m
+        "A10B6C2X31": "Apatite (Ca10(PO4)6(OH)2)"
+    },
+    58: {  # Pnnm
+        "AB2": "Marcasite (FeS2)"
+    },
+    11: {  # P21/m
+        "A2B": "ThSi2 type"
+    },
+    72: {  # Ibam
+        "A2B": "MoSi2 type"
+    },
+    198: {  # P213
+        "AB": "FeSi structure",
+        "A12": "β-Mn structure"
+    },
+    88: {  # I41/a
+        "ABO4": "Scheelite (CaWO4)"
+    },
+    33: {  # Pna21
+        "AB": "FeAs structure"
+    },
+    130: {  # P4/ncc
+        "AB2": "Cristobalite (SiO2)"
+    },
+    152: {  # P3121
+        "AB2": "Quartz (SiO2)"
+    },
+    200: {  # Pm-3
+        "A6B": "Fe3W3C"
+    },
+    224: {  # Pn-3m
+        "AB": "Pyrochlore-related"
+    },
+    127: {  # P4/mbm
+        "A2B": "σ-phase structure",
+        "AB5": "CaCu5 type"
+    },
+    148: {  # R-3
+        "AB3": "Calcite (CaCO3)"
+    },
+    69: {  # Fmmm
+        "A15": "β-W structure"
+    },
+    128: {  # P4/mnc
+        "A15": "Cr3Si (A15)"
+    },
+    206: {  # Ia-3
+        "A2B": "Pyrite derivative",
+        "AB2": "Pyrochlore (defective)"
+    },
+    212: {  # P4_3 32
+        "AB": "β-quartz (SiO2)",
+        "A4B3": "Mn4Si3 type"
+    },
+    226: {  # Fm-3c
+        "AX2": "BiF3 type"
+    },
+    196: {  # F23
+        "AB": "FeS2 type"
+    },
+    227: {  # Fd-3m
+        "A8B": "Gamma-brass"
+    }
+}
+
+
 def get_full_conventional_structure_diffra(structure, symprec=1e-3):
     lattice = structure.lattice.matrix
     positions = structure.frac_coords
@@ -136,6 +465,7 @@ def lattice_same_conventional_vs_primitive(structure):
     except Exception as e:
         return None  # Could not determine
 
+
 def get_cod_entries(params):
     try:
         response = requests.get('https://www.crystallography.net/cod/result', params=params)
@@ -146,7 +476,8 @@ def get_cod_entries(params):
             st.error(f"COD search error: {response.status_code}")
             return []
     except Exception as e:
-        st.write("Error during connection to COD database. Probably reason is that the COD database server is currently down.")
+        st.write(
+            "Error during connection to COD database. Probably reason is that the COD database server is currently down.")
 
 
 def get_cif_from_cod(entry):
@@ -163,7 +494,10 @@ def get_structure_from_mp(mp_id):
         structure = mpr.get_structure_by_material_id(mp_id)
         return structure
 
+
 from pymatgen.io.cif import CifParser
+
+
 def get_structure_from_cif_url(cif_url):
     response = requests.get(f"https://www.crystallography.net/cod/{cif_url}.cif")
     if response.status_code == 200:
