@@ -526,6 +526,7 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
             st.image(image, use_container_width =True)
 
 
+
     with cols3:
         if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
             tabs = []
@@ -3556,7 +3557,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             mode='lines',
                             name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=pt_color, width=3, dash=dash_type),
+                            line=dict(color=pt_color, width=4, dash=dash_type),
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
@@ -3588,7 +3589,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         mode='lines',
                         name=file_name,
                         showlegend=True,
-                        line=dict(color=base_color, width=2, dash="solid"),
+                        line=dict(color=base_color, width=3, dash="solid"),
                         hoverinfo="text",
                         text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
@@ -3687,7 +3688,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=file.name,
-                        line=dict(dash='solid', width=2, color=color),
+                        line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>{file.name}:</b><br>"
@@ -3717,7 +3718,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=user_pattern_file.name,
-                        line=dict(dash='solid', width=2, color=color),
+                        line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>User XRD Data:</b><br>"
@@ -4905,67 +4906,98 @@ if "📈 Interactive Data Plot" in calc_mode:
                     wave_col, slit_col = st.columns(2)
 
                     with wave_col:
-                        st.markdown("**Wavelength/d-spacing conversion:**")
+                        st.markdown("**Diffraction data conversion:**")
                         input_format = st.selectbox(
                             "Convert from:",
                             [
                                 "No conversion",
-                                "d-spacing (Å)",  # Repositioned as suggested earlier
+                                "d-spacing (Å)",
                                 "2theta (Copper CuKa1)",
                                 "2theta (Cobalt CoKa1)",
-                                "2theta (Custom)"
+                                "2theta (Custom)",
+                                "q-vector (Å⁻¹)"
                             ],
-                            key=f"input_format_{i}", help = f"Copper (CuKa1): 1.5406 Å\n\n"
-                                " Molybdenum (MoKa1): 0.7093 Å\n"
-                                " Chromium (CrKa1): 2.2897 Å\n"
-                                " Iron (FeKa1): 1.9360 Å\n"
-                                " Cobalt (CoKa1): 1.7889 Å\n"
-                                " Silver (AgKa1): 0.5594 Å\n"
+                            key=f"input_format_{i}",
+                            help=f"Copper (CuKa1): 1.5406 Å\n\n"
+                                 " Molybdenum (MoKa1): 0.7093 Å\n\n"
+                                 " Chromium (CrKa1): 2.2897 Å\n\n"
+                                 " Iron (FeKa1): 1.9360 Å\n\n"
+                                 " Cobalt (CoKa1): 1.7889 Å\n\n"
+                                 " Silver (AgKa1): 0.5594 Å\n\n"
+                                 " q-vector = 4π·sin(θ)/λ\n"
                         )
 
-                        # Define all possible output options
                         all_output_options = [
                             "No conversion",
                             "d-spacing (Å)",
                             "2theta (Copper CuKa1)",
                             "2theta (Cobalt CoKa1)",
-                            "2theta (Custom)"
+                            "2theta (Custom)",
+                            "q-vector (Å⁻¹)"
                         ]
 
-                        # Filter output options based on input selection
                         if input_format != "No conversion":
-                            # Remove the current input format from output options to avoid redundant conversion
-                            if input_format in all_output_options:
-                                filtered_options = [opt for opt in all_output_options if opt != input_format]
-                            else:
-                                filtered_options = all_output_options
+                            filtered_options = all_output_options.copy()
+                            if input_format in filtered_options and input_format != "2theta (Custom)":
+                                filtered_options.remove(input_format)
                         else:
-                            # When "No conversion" is selected for input, show all options but make "No conversion" the default
                             filtered_options = all_output_options
 
-                        # Always display the output format dropdown
                         output_format = st.selectbox(
                             "Convert to:",
                             filtered_options,
-                            index=0,  # Default to first option ("No conversion")
+                            index=0,
                             key=f"output_format_{i}"
                         )
 
-                        # Initialize custom_wavelength with a default value
-                        custom_wavelength = None
+                        input_custom_wavelength = None
+                        output_custom_wavelength = None
 
-                        # Custom wavelength input if needed
-                        if (input_format == "2theta (Custom)" or
-                                output_format == "2theta (Custom)"):
-                            custom_wavelength = st.number_input(
-                                "Custom wavelength (Å)",
+                        if input_format == "2theta (Custom)":
+                            input_custom_wavelength = st.number_input(
+                                "Input custom wavelength (Å)",
                                 min_value=0.1,
                                 max_value=10.0,
                                 value=1.54056,
                                 step=0.01,
                                 format="%.5f",
-                                key=f"custom_wl_{i}"
+                                key=f"input_custom_wl_{i}"
                             )
+
+                        if output_format == "2theta (Custom)":
+                            output_custom_wavelength = st.number_input(
+                                "Output custom wavelength (Å)",
+                                min_value=0.1,
+                                max_value=10.0,
+                                value=1.54056 if input_custom_wavelength is None else input_custom_wavelength * 0.9,
+                                step=0.01,
+                                format="%.5f",
+                                key=f"output_custom_wl_{i}"
+                            )
+
+                        if input_format == "q-vector (Å⁻¹)" and "2theta" in output_format and output_custom_wavelength is None:
+                            if "Custom" in output_format:
+                                output_custom_wavelength = st.number_input(
+                                    "Output wavelength for q-vector to 2theta conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"q_to_2theta_wl_{i}"
+                                )
+
+                        if "2theta" in input_format and output_format == "q-vector (Å⁻¹)" and input_custom_wavelength is None:
+                            if "Custom" in input_format:
+                                input_custom_wavelength = st.number_input(
+                                    "Input wavelength for 2theta to q-vector conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"2theta_to_q_wl_{i}"
+                                )
 
                     with slit_col:
 
@@ -5007,7 +5039,8 @@ if "📈 Interactive Data Plot" in calc_mode:
                         "conversion_type": "No conversion" if input_format == "No conversion" or not output_format else f"{input_format} to {output_format}",
                         "input_format": input_format,
                         "output_format": output_format,
-                        "custom_wavelength": custom_wavelength,
+                        "input_custom_wavelength": input_custom_wavelength,
+                        "output_custom_wavelength": output_custom_wavelength,
                         "slit_conversion_type": slit_conversion_type,
                         "fixed_slit_size": fixed_slit_size,
                         "irradiated_length": irradiated_length
@@ -5084,14 +5117,13 @@ if "📈 Interactive Data Plot" in calc_mode:
                     if conversion_type == "No conversion":
                         pass
                     else:
-                        def convert_data(x_values, conversion_type, custom_wavelength=None):
-
-                            import numpy as np
+                        def convert_data(x_values, conversion_type, input_custom_wavelength=None,
+                                         output_custom_wavelength=None):
 
                             wavelength_map = {
-                                "Copper": 1.54056,  # Cu Kα1
+                                "Copper": 1.54056,
                                 "CuKa1": 1.54056,
-                                "Cobalt": 1.78897,  # Co Kα1
+                                "Cobalt": 1.78897,
                                 "CoKa1": 1.78897
                             }
 
@@ -5108,24 +5140,69 @@ if "📈 Interactive Data Plot" in calc_mode:
                                 lambda_in = wavelength_map["Copper"]
                             elif "Cobalt" in input_format or "CoKa1" in input_format:
                                 lambda_in = wavelength_map["Cobalt"]
-                            elif "Custom" in input_format and custom_wavelength is not None:
-                                lambda_in = custom_wavelength
+                            elif "Custom" in input_format and input_custom_wavelength is not None:
+                                lambda_in = input_custom_wavelength
 
                             lambda_out = None
                             if "Copper" in output_format or "CuKa1" in output_format:
                                 lambda_out = wavelength_map["Copper"]
                             elif "Cobalt" in output_format or "CoKa1" in output_format:
                                 lambda_out = wavelength_map["Cobalt"]
-                            elif "Custom" in output_format and custom_wavelength is not None:
-                                lambda_out = custom_wavelength
+                            elif "Custom" in output_format and output_custom_wavelength is not None:
+                                lambda_out = output_custom_wavelength
 
-                            if ("2theta" in input_format) and ("d-spacing" in output_format):
+                            if "q-vector" in input_format and "d-spacing" in output_format:
+                                valid = x_values > 0
+                                d_values = np.zeros_like(x_values)
+                                d_values[valid] = 2 * np.pi / x_values[valid]
+                                d_values[~valid] = np.nan
+                                return d_values
+
+                            elif "d-spacing" in input_format and "q-vector" in output_format:
+                                valid = x_values > 0
+                                q_values = np.zeros_like(x_values)
+                                q_values[valid] = 2 * np.pi / x_values[valid]
+                                q_values[~valid] = np.nan
+                                return q_values
+
+                            elif "q-vector" in input_format and "2theta" in output_format:
+                                if lambda_out is None:
+                                    print(f"Missing output wavelength for q-vector to 2theta conversion")
+                                    return x_values
+
+                                valid = x_values >= 0
+                                sin_arg = (x_values[valid] * lambda_out) / (4 * np.pi)
+
+                                mask = (sin_arg >= -1) & (sin_arg <= 1)
+                                sin_arg = sin_arg[mask]
+
+                                theta = np.arcsin(sin_arg)
+                                twotheta = 2 * np.degrees(theta)
+
+                                result = np.zeros_like(x_values)
+                                result_indices = np.where(valid)[0][mask]
+                                result[result_indices] = twotheta
+                                result[~valid] = np.nan
+
+                                return result
+
+                            elif "2theta" in input_format and "q-vector" in output_format:
+                                if lambda_in is None:
+                                    print(f"Missing input wavelength for 2theta to q-vector conversion")
+                                    return x_values
+
+                                theta_rad = np.radians(x_values) / 2
+                                q_values = (4 * np.pi * np.sin(theta_rad)) / lambda_in
+
+                                return q_values
+
+                            elif ("2theta" in input_format) and ("d-spacing" in output_format):
                                 if lambda_in is None:
                                     print(f"Missing input wavelength for conversion: {input_format}")
                                     return x_values
 
-                                theta_rad = np.radians(x_values / 2)  # Convert to radians
-                                valid = np.abs(np.sin(theta_rad)) > 1e-6  # Avoid division by zero
+                                theta_rad = np.radians(x_values / 2)
+                                valid = np.abs(np.sin(theta_rad)) > 1e-6
 
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
@@ -5139,7 +5216,7 @@ if "📈 Interactive Data Plot" in calc_mode:
                                     return x_values
                                 valid = x_values > 0
                                 sin_arg = lambda_out / (2 * x_values[valid])
-                                sin_arg = np.clip(sin_arg, 0, 1)  # Ensure valid arcsin input
+                                sin_arg = np.clip(sin_arg, 0, 1)
 
                                 theta = np.degrees(np.arcsin(sin_arg))
                                 result = np.zeros_like(x_values)
@@ -5181,20 +5258,25 @@ if "📈 Interactive Data Plot" in calc_mode:
                             x_data = convert_data(
                                 x_values=x_data,
                                 conversion_type=conversion_type,
-                                custom_wavelength=settings["custom_wavelength"]
+                                input_custom_wavelength=settings["input_custom_wavelength"],
+                                output_custom_wavelength=settings["output_custom_wavelength"]
                             )
 
-                            if "to d-spacing" in conversion_type:
+                            if "to q-vector" in conversion_type:
+                                x_axis_metric = "q (Å⁻¹)"
+                            elif "to d-spacing" in conversion_type:
                                 x_axis_metric = "d-spacing (Å)"
                             elif "to 2theta" in conversion_type:
                                 if "Copper" in conversion_type:
                                     x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
                                 elif "Cobalt" in conversion_type:
                                     x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
-                                elif "custom" in conversion_type:
-                                    x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
-                            elif conversion_type == "Auto slit to fixed slit":
-                                x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
+                                elif "custom" in conversion_type or "Custom" in conversion_type:
+                                    wavelength = settings['output_custom_wavelength']
+                                    if wavelength:
+                                        x_axis_metric = f"2θ (λ={wavelength}Å)"
+                                    else:
+                                        x_axis_metric = "2θ (°)"
 
                             st.success(f"Converted {file.name}: {conversion_type}")
 
