@@ -521,6 +521,9 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
                                     st.warning("COD: No matching structures found.")
                             else:
                                 st.error("Please enter at least one element for the COD search.")
+        with cols2:
+            image = Image.open("images/Rabbit2.png")
+            st.image(image, use_container_width =True)
 
 
     with cols3:
