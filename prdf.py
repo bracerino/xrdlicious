@@ -4824,19 +4824,128 @@ if "📈 Interactive Data Plot" in calc_mode:
     x_axis_log = colc.checkbox("Logarithmic X-axis", value=False)
     y_axis_log = cold.checkbox("Logarithmic Y-axis", value=False)
 
-    col_line, col_marker = st.columns([1, 1])
-    show_lines = col_line.checkbox("Show Lines", value=True)
-    show_markers = col_marker.checkbox("Show Markers", value=False)
 
-    col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([1, 1, 1, 1, 1])
+
+    col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([2, 1, 1, 1, 1])
+    with col_thick:
+        st.info(f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot.")
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
     if fix_x_axis == True:
         x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
         x_axis_max = col_xmax.number_input("X-axis Maximum", value=10.0)
-    line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0, step=0.3)
-    marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0, step=1.0)
+    x_axis_metric = "X-data"
+    y_axis_metric = "Y-data"
+    if user_pattern_file:
+        files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
 
-    enable_conversion = st.checkbox("Enable powder XRD data conversion", value=False)
+        if has_header:
+            try:
+                sample_file = files[0]
+                sample_file.seek(0)
+                df_sample = pd.read_csv(
+                    sample_file,
+                    sep=r'\s+|,|;',
+                    engine='python',
+                    header=0
+                )
+                x_axis_metric = df_sample.columns[0]
+                y_axis_metric = df_sample.columns[1]
+            except Exception as e:
+                st.error(f"Error reading header from file {sample_file.name}: {e}")
+                x_axis_metric = "X-data"
+                y_axis_metric = "Y-data"
+        else:
+            x_axis_metric = "X-data"
+            y_axis_metric = "Y-data"
+
+    plot_placeholder = st.empty()
+    customize_layout = st.sidebar.checkbox(f"Modify the **graph layout**", value=False)
+    if customize_layout:
+        #st.sidebar.markdown("### Graph Appearance Settings")
+
+        col_line, col_marker = st.sidebar.columns(2)
+        show_lines = col_line.checkbox("Show Lines", value=True, key="show_lines")
+        show_markers = col_marker.checkbox("Show Markers", value=False, key="show_markers")
+
+        col_thick, col_size = st.sidebar.columns(2)
+        line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0,
+                                                step=0.3,
+                                                key="line_thickness")
+        marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0,
+                                            step=1.0,
+                                            key="marker_size")
+
+        col_title_font, col_axis_font, col_tick_font = st.sidebar.columns(3)
+        title_font_size = col_title_font.number_input("Title Font Size", min_value=10, max_value=50,
+                                                      value=36,
+                                                      step=2,
+                                                      key="title_font_size")
+        axis_label_font_size = col_axis_font.number_input("Axis Label Font Size", min_value=10,
+                                                          max_value=50,
+                                                          value=36,
+                                                          step=2, key="axis_font_size")
+        tick_font_size = col_tick_font.number_input("Tick Label Font Size", min_value=8, max_value=40,
+                                                    value=24,
+                                                    step=2,
+                                                    key="tick_font_size")
+
+        col_leg_font, col_leg_pos = st.sidebar.columns(2)
+        legend_font_size = col_leg_font.number_input("Legend Font Size", min_value=8, max_value=40,
+                                                     value=28,
+                                                     step=2,
+                                                     key="legend_font_size")
+        legend_position = col_leg_pos.selectbox(
+            "Legend Position",
+            options=["Top", "Bottom", "Left", "Right"],
+            index=0,
+            key="legend_position"
+        )
+
+        col_width, col_height = st.sidebar.columns(2)
+        graph_width = col_width.number_input("Graph Width (pixels)", min_value=400, max_value=2000,
+                                             value=1000,
+                                             step=50,
+                                             key="graph_width")
+        graph_height = col_height.number_input("Graph Height (pixels)", min_value=300, max_value=1500,
+                                               value=900,
+                                               step=50, key="graph_height")
+
+        st.sidebar.markdown("#### Custom Axis Labels")
+        col_x_label, col_y_label = st.sidebar.columns(2)
+        custom_x_label = col_x_label.text_input("X-axis Label", value=x_axis_metric, key="custom_x_label")
+        custom_y_label = col_y_label.text_input("Y-axis Label", value=y_axis_metric, key="custom_y_label")
+
+        if user_pattern_file:
+            st.sidebar.markdown("#### Custom Series Names")
+            series_names = {}
+
+            if isinstance(user_pattern_file, list):
+                for i, file in enumerate(user_pattern_file):
+                    series_names[i] = st.sidebar.text_input(f"Label for {file.name}", value=file.name,
+                                                    key=f"series_name_{i}")
+            else:
+                series_names[0] = st.sidebar.text_input(f"Label for {user_pattern_file.name}",
+                                                value=user_pattern_file.name,
+                                                key="series_name_0")
+    else:
+        show_lines = True
+        show_markers = False
+        line_thickness = 1.0
+        marker_size = 3.0
+        title_font_size = 36
+        axis_label_font_size = 36
+        tick_font_size = 24
+        legend_font_size = 28
+        legend_position = "Top"
+        graph_width = 1000
+        graph_height = 900
+        custom_x_label = x_axis_metric
+        custom_y_label = y_axis_metric
+        series_names = {}
+
+    enable_conversion = st.checkbox(f"Enable powder **XRD data conversion**", value=False)
+
+
 
     if user_pattern_file:
         files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
@@ -5332,10 +5441,12 @@ if "📈 Interactive Data Plot" in calc_mode:
                         x_data = x_data[valid_mask]
                         y_data = y_data[valid_mask]
 
+
+            if normalized_intensity and np.max(y_data) > 0:
+                y_data = (y_data / np.max(y_data)) * 100
+
             try:
 
-                if normalized_intensity and np.max(y_data) > 0:
-                    y_data = (y_data / np.max(y_data)) * 100
 
                 if i < len(y_scales):
                     y_data = y_data * y_scales[i]
@@ -5370,56 +5481,124 @@ if "📈 Interactive Data Plot" in calc_mode:
                 if not mode_str:
                     mode_str = "markers"
 
+                trace_name = series_names.get(i, file.name) if customize_layout else file.name
+
                 fig_interactive.add_trace(go.Scatter(
                     x=x_data,
                     y=y_data,
                     mode=mode_str,
-                    name=file.name,
+                    name=trace_name,
                     line=dict(dash='solid', width=line_thickness, color=color),
                     marker=dict(color=color, size=marker_size),
                     hovertemplate=(
-                        f"<span style='color:{color};'><b>{file.name}</b><br>"
+                        f"<span style='color:{color};'><b>{trace_name}</b><br>"
                         "x = %{x:.2f}<br>y = %{y:.2f}</span><extra></extra>"
                     )
                 ))
-
             except Exception as e:
-                st.error(
-                    f"Error occurred in file processing. Please check whether your uploaded files are consistent: {e}")
+                st.error(f"Error processing file {file.name}: {e}")
 
-        fig_interactive.update_xaxes(type="linear")
-        fig_interactive.update_yaxes(type="linear")
-        fig_interactive.update_layout(
-            height=900,
-            margin=dict(t=80, b=80, l=60, r=30),
-            hovermode="closest",
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="center",
-                x=0.5,
-                font=dict(size=28),
-                title="Legend Title"
-            ),
-            xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                tickfont=dict(size=36, color='black')
-            ),
-            yaxis=dict(
-                title=dict(text=y_axis_metric, font=dict(size=36, color='black')),
-                tickfont=dict(size=36, color='black')
-            ),
-            hoverlabel=dict(font=dict(size=24)),
-            font=dict(size=18),
-            autosize=True
-        )
+                # Set axis scale
+            fig_interactive.update_xaxes(type="linear")
+            fig_interactive.update_yaxes(type="linear")
+
+            # Configure legend position based on selection
+            legend_config = {
+                "font": dict(size=legend_font_size),
+                "title": "Legend Title"
+            }
+
+            if legend_position == "Top":
+                legend_config.update({
+                    "orientation": "h",
+                    "yanchor": "bottom",
+                    "y": 1.02,
+                    "xanchor": "center",
+                    "x": 0.5
+                })
+            elif legend_position == "Bottom":
+                legend_config.update({
+                    "orientation": "h",
+                    "yanchor": "top",
+                    "y": -0.2,
+                    "xanchor": "center",
+                    "x": 0.5
+                })
+            elif legend_position == "Left":
+                legend_config.update({
+                    "orientation": "v",
+                    "yanchor": "middle",
+                    "y": 0.5,
+                    "xanchor": "right",
+                    "x": -0.1
+                })
+            elif legend_position == "Right":
+                legend_config.update({
+                    "orientation": "v",
+                    "yanchor": "middle",
+                    "y": 0.5,
+                    "xanchor": "left",
+                    "x": 1.05
+                })
+
+            # Update layout with all customized settings
+            fig_interactive.update_layout(
+                height=graph_height,
+                width=graph_width,
+                margin=dict(t=80, b=80, l=60, r=30),
+                hovermode="closest",
+                showlegend=True,
+                legend=legend_config,
+                xaxis=dict(
+                    title=dict(text=custom_x_label, font=dict(size=axis_label_font_size, color='black'), standoff=20),
+                    tickfont=dict(size=tick_font_size, color='black'),
+                    fixedrange=fix_x_axis
+                ),
+                yaxis=dict(
+                    title=dict(text=custom_y_label, font=dict(size=axis_label_font_size, color='black')),
+                    tickfont=dict(size=tick_font_size, color='black')
+                ),
+                title=dict(
+                    text="Interactive Data Plot",
+                    font=dict(size=title_font_size, color='black')
+                ),
+                hoverlabel=dict(font=dict(size=tick_font_size)),
+                font=dict(size=18),
+                autosize=False
+            )
+
+
+
+        if user_pattern_file:
+            files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
+
+            if has_header:
+                try:
+                    sample_file = files[0]
+                    sample_file.seek(0)
+                    df_sample = pd.read_csv(
+                        sample_file,
+                        sep=r'\s+|,|;',
+                        engine='python',
+                        header=0
+                    )
+                    x_axis_metric = df_sample.columns[0]
+                    y_axis_metric = df_sample.columns[1]
+                except Exception as e:
+                    st.error(f"Error reading header from file {sample_file.name}: {e}")
+                    x_axis_metric = "X-data"
+                    y_axis_metric = "Y-data"
+            else:
+                x_axis_metric = "X-data"
+                y_axis_metric = "Y-data"
+
+
 
         if fix_x_axis == True:
             fig_interactive.update_xaxes(range=[x_axis_min, x_axis_max])
 
-        st.plotly_chart(fig_interactive)
+        with plot_placeholder.container():
+            st.plotly_chart(fig_interactive)
 
         import io
 
@@ -5435,9 +5614,29 @@ if "📈 Interactive Data Plot" in calc_mode:
         delimiter_option = delimiter_label_to_value[delimiter_label]
 
         for i, file in enumerate(files):
+            x_data = fig_interactive.data[i].x
+            y_data = fig_interactive.data[i].y
+
+            if fix_x_axis:
+                if x_axis_log:
+                    x_values = 10 ** x_data
+                else:
+                    x_values = x_data
+
+                if x_axis_log:
+                    mask = (x_values >= x_axis_min) & (x_values <= x_axis_max)
+                else:
+                    mask = (x_data >= x_axis_min) & (x_data <= x_axis_max)
+
+                filtered_x = x_data[mask]
+                filtered_y = y_data[mask]
+            else:
+                filtered_x = x_data
+                filtered_y = y_data
+
             df_out = pd.DataFrame({
-                x_axis_metric: fig_interactive.data[i].x,
-                y_axis_metric: fig_interactive.data[i].y
+                x_axis_metric: filtered_x,
+                y_axis_metric: filtered_y
             })
 
             buffer = io.StringIO()
@@ -5446,8 +5645,12 @@ if "📈 Interactive Data Plot" in calc_mode:
             base_name = file.name.rsplit(".", 1)[0]
             download_name = f"{base_name}_processed.txt"
 
+            download_info = ""
+            if fix_x_axis:
+                download_info = f" (filtered to x-range: {x_axis_min}-{x_axis_max})"
+
             st.download_button(
-                label=f"⬇️ Download processed data for {file.name}",
+                label=f"⬇️ Download processed data for {file.name}{download_info}",
                 data=buffer.getvalue(),
                 file_name=download_name,
                 mime="text/plain"
