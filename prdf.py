@@ -3956,7 +3956,11 @@ def toggle_animation():
 
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
-    uploaded_files = st.session_state.uploaded_files
+    if 'uploaded_files_user_sidebar' in locals() and uploaded_files_user_sidebar:
+        uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
+    else:
+        uploaded_files = st.session_state['uploaded_files']
+    #uploaded_files = st.session_state.uploaded_files
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
