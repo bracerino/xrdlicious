@@ -24,6 +24,8 @@ from pymatgen.analysis.diffraction.neutron import NDCalculator
 from collections import defaultdict
 from itertools import combinations
 import streamlit.components.v1 as components
+from pymatgen.analysis.prototypes import AflowPrototypeMatcher
+
 import py3Dmol
 from io import StringIO
 import pandas as pd
@@ -157,76 +159,79 @@ st.markdown("""
 <div class="hello-container">
   <div class="hello-message">
       <span class="wave-emoji">👋</span> Hello there! Welcome to <span style="color:#0066cc;">XRDlicious</span>.<br>
-  Let's do some delicious diffraction! 🐣
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-@keyframes fadeInOut {
-  0%   { opacity: 0; transform: translateY(-10px); }
-  5%   { opacity: 1; transform: translateY(0); }
-  95%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
 
-.onboarding-tip {
-  background-color: #ffffff;
-  border-left: 5px solid #3399ff;
-  padding: 18px 22px;
-  border-radius: 14px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  font-size: 1.1em;
-  font-weight: 500;
-  position: fixed;
-  top: 100px;
-  right: 40px;
-  z-index: 9999;
-  max-width: 400px;
-  width: 100%;
-  opacity: 0;
-}
 
-/* Adjust timing: each lasts 7s now */
-.tip1 { animation: fadeInOut 7s ease-in-out 7s forwards; }
-.tip2 { animation: fadeInOut 7s ease-in-out 15s forwards; }
-.tip3 { animation: fadeInOut 7s ease-in-out 23s forwards; }
-
-.tip-label {
-  font-size: 0.9em;
-  font-weight: 600;
-  color: #0066cc;
-  margin-bottom: 6px;
-  display: block;
-}
-</style>
-
-<!-- Tip 1 -->
-<div class="onboarding-tip tip1">
-  <span class="tip-label">Tip 1/3</span>
-  🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
-</div>
-
-<!-- Tip 2 -->
-<div class="onboarding-tip tip2">
-  <span class="tip-label">Tip 2/3</span>
-  📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
-</div>
-
-<!-- Tip 3 -->
-<div class="onboarding-tip tip3">
-  <span class="tip-label">Tip 3/3</span>
-  🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
-</div>
-""", unsafe_allow_html=True)
-
-col1, col2 = st.columns([1.25, 1])
+col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0)"
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
+        "lebedmi2@cvut.cz"
     )
+with col3:
+    if st.button("💡 Need Help?"):
+        st.markdown("""
+        <style>
+        @keyframes fadeInOut {
+          0%   { opacity: 0; transform: translateY(-10px); }
+          5%   { opacity: 1; transform: translateY(0); }
+          95%  { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        .onboarding-tip {
+          background-color: #ffffff;
+          border-left: 5px solid #3399ff;
+          padding: 18px 22px;
+          border-radius: 14px;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+          font-size: 1.1em;
+          font-weight: 500;
+          position: fixed;
+          top: 100px;
+          right: 40px;
+          z-index: 9999;
+          max-width: 400px;
+          width: 100%;
+          opacity: 0;
+        }
+
+        .tip1 { animation: fadeInOut 7s ease-in-out 0s forwards; }
+        .tip2 { animation: fadeInOut 7s ease-in-out 7s forwards; }
+        .tip3 { animation: fadeInOut 7s ease-in-out 14s forwards; }
+
+        .tip-label {
+          font-size: 0.9em;
+          font-weight: 600;
+          color: #0066cc;
+          margin-bottom: 6px;
+          display: block;
+        }
+        </style>
+
+        <!-- Tip 1 -->
+        <div class="onboarding-tip tip1">
+          <span class="tip-label">Tip 1/3</span>
+          🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
+        </div>
+
+        <!-- Tip 2 -->
+        <div class="onboarding-tip tip2">
+          <span class="tip-label">Tip 2/3</span>
+          📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
+        </div>
+
+        <!-- Tip 3 -->
+        <div class="onboarding-tip tip3">
+          <span class="tip-label">Tip 3/3</span>
+          🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
+        </div>
+        """, unsafe_allow_html=True)
+
 with col1:
     with st.expander("Read here about this appllication.", icon="📖"):
         st.info(
@@ -290,34 +295,25 @@ def update_element_indices(df):
     return df
 
 
-# Initialize session state keys
 if 'mp_options' not in st.session_state:
     st.session_state['mp_options'] = None
 if 'selected_structure' not in st.session_state:
     st.session_state['selected_structure'] = None
 if 'uploaded_files' not in st.session_state or st.session_state['uploaded_files'] is None:
-    st.session_state['uploaded_files'] = []  # List to store multiple fetched structures
+    st.session_state['uploaded_files'] = []
 
 
 def remove_fractional_occupancies_safely(structure):
-    # Create lists to hold the new structure data
     species = []
     coords = []
 
-    # Process each site
     for site in structure:
         if site.is_ordered:
-            # Just add ordered sites directly
             species.append(site.specie)
         else:
-            # For disordered sites, find the dominant species
             dominant_sp = max(site.species.items(), key=lambda x: x[1])[0]
             species.append(dominant_sp)
-
-        # Keep the coordinates
         coords.append(site.frac_coords)
-
-    # Create a new, ordered structure
     ordered_structure = Structure(
         lattice=structure.lattice,
         species=species,
@@ -362,376 +358,385 @@ if uploaded_files_user_sidebar:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
             except Exception as e:
-                st.error(f"Failed to parse {file.name}: {e}")
+                #st.error(f"Failed to parse {file.name}: {e}")
+                st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
+                         f"and please remove this wrongly placed file. 😊")
 
-structure_cell_choice = st.sidebar.radio(
-    "Structure Cell Type:",
-    options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)", "Primitive Cell (no reduction)"],
-    index=0,  # default to Conventional
-    help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
-         "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
-)
-convert_to_conventional = structure_cell_choice == "Conventional Cell"
-pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
-pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
-pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
 
-if "📈 Interactive Data Plot" not in calc_mode:
-    with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=False):
-        cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
-        with cols:
 
-            db_choices = st.multiselect(
-                "Select Database(s)",
-                options=["Materials Project", "AFLOW", "COD"],
-                default=["Materials Project", "AFLOW", "COD"],
-                help="Choose which databases to search for structures. You can select multiple databases."
-            )
+#if "📈 Interactive Data Plot" not in calc_mode:
+with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=False):
+    cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
+    with cols:
 
-            if not db_choices:
-                st.warning("Please select at least one database to search.")
+        db_choices = st.multiselect(
+            "Select Database(s)",
+            options=["Materials Project", "AFLOW", "COD"],
+            default=["Materials Project", "AFLOW", "COD"],
+            help="Choose which databases to search for structures. You can select multiple databases."
+        )
 
-        with cols2:
-            search_query = st.text_input(
-                "Enter elements separated by spaces (e.g., Sr Ti O):",
-                value="Sr Ti O"
-            )
+        if not db_choices:
+            st.warning("Please select at least one database to search.")
 
-        if st.button("Search Selected Databases"):
-            if not db_choices:
-                st.error("Please select at least one database to search.")
+    with cols2:
+        search_query = st.text_input(
+            "Enter elements separated by spaces (e.g., Sr Ti O):",
+            value="Sr Ti O"
+        )
+
+    if st.button("Search Selected Databases"):
+        if not db_choices:
+            st.error("Please select at least one database to search.")
+        else:
+            elements_list = [el.strip() for el in search_query.split() if el.strip()]
+            if not elements_list:
+                st.error("Please enter at least one element for the search.")
             else:
-                elements_list = [el.strip() for el in search_query.split() if el.strip()]
-                if not elements_list:
-                    st.error("Please enter at least one element for the search.")
-                else:
-                    for db_choice in db_choices:
-                        if db_choice == "Materials Project":
-                            with st.spinner(f"Searching **the MP database**, please wait. 😊"):
-                                elements_list_sorted = sorted(set(elements_list))
-                                try:
-                                    with MPRester(MP_API_KEY) as mpr:
-                                        docs = mpr.materials.summary.search(
-                                            elements=elements_list_sorted,
-                                            num_elements=len(elements_list_sorted),
-                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
-                                        )
-                                        if docs:
-                                            status_placeholder = st.empty()
-                                            st.session_state.mp_options = []
-                                            st.session_state.full_structures_see = {}
-
-                                            for doc in docs:
-                                                full_structure = mpr.get_structure_by_material_id(doc.material_id,
-                                                                                                  conventional_unit_cell=True)
-                                                structure_to_use = full_structure
-                                                st.session_state.full_structures_see[doc.material_id] = full_structure
-                                                lattice = structure_to_use.lattice
-                                                leng = len(structure_to_use)
-                                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                                               f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
-                                                st.session_state.mp_options.append(
-                                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
-                                                )
-                                                status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
-                                                )
-                                            st.success(
-                                                f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
-                                        else:
-                                            st.session_state.mp_options = []
-                                            st.warning("No matching structures found in Materials Project.")
-                                except Exception as e:
-                                    st.error(
-                                        f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
-
-                        elif db_choice == "AFLOW":
-                            with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
-                                try:
-                                    ordered_elements = sorted(elements_list)
-                                    ordered_str = ",".join(ordered_elements)
-                                    aflow_nspecies = len(ordered_elements)
-
-                                    results = list(
-                                        search(catalog="icsd")
-                                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
-                                        .select(
-                                            AFLOW_K.auid,
-                                            AFLOW_K.compound,
-                                            AFLOW_K.geometry,
-                                            AFLOW_K.spacegroup_relax,
-                                            AFLOW_K.aurl,
-                                            AFLOW_K.files,
-                                        )
+                for db_choice in db_choices:
+                    if db_choice == "Materials Project":
+                        with st.spinner(f"Searching **the MP database**, please wait. 😊"):
+                            elements_list_sorted = sorted(set(elements_list))
+                            try:
+                                with MPRester(MP_API_KEY) as mpr:
+                                    docs = mpr.materials.summary.search(
+                                        elements=elements_list_sorted,
+                                        num_elements=len(elements_list_sorted),
+                                        fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
                                     )
-                                    st.session_state.entrys = {}
-
-                                    if results:
+                                    if docs:
                                         status_placeholder = st.empty()
-                                        st.session_state.aflow_options = []
-                                        st.session_state.entrys = {}  # store full AFLOW entry objects
-                                        for entry in results:
-                                            st.session_state.entrys[entry.auid] = entry
-                                            st.session_state.aflow_options.append(
-                                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                        st.session_state.mp_options = []
+                                        st.session_state.full_structures_see = {}
+
+                                        for doc in docs:
+                                            full_structure = mpr.get_structure_by_material_id(doc.material_id,
+                                                                                              conventional_unit_cell=True)
+                                            structure_to_use = full_structure
+                                            st.session_state.full_structures_see[doc.material_id] = full_structure
+                                            lattice = structure_to_use.lattice
+                                            leng = len(structure_to_use)
+                                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                                           f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
+                                            st.session_state.mp_options.append(
+                                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
                                             )
                                             status_placeholder.markdown(
-                                                f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
+                                                f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
                                             )
-                                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                                        st.success(
+                                            f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
                                     else:
-                                        st.session_state.aflow_options = []
-                                        st.warning("No matching structures found in AFLOW.")
-                                except Exception as e:
+                                        st.session_state.mp_options = []
+                                        st.warning("No matching structures found in Materials Project.")
+                            except Exception as e:
+                                st.error(
+                                    f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
+
+                    elif db_choice == "AFLOW":
+                        with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
+                            try:
+                                ordered_elements = sorted(elements_list)
+                                ordered_str = ",".join(ordered_elements)
+                                aflow_nspecies = len(ordered_elements)
+
+                                results = list(
+                                    search(catalog="icsd")
+                                    .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                                    .select(
+                                        AFLOW_K.auid,
+                                        AFLOW_K.compound,
+                                        AFLOW_K.geometry,
+                                        AFLOW_K.spacegroup_relax,
+                                        AFLOW_K.aurl,
+                                        AFLOW_K.files,
+                                    )
+                                )
+                                st.session_state.entrys = {}
+
+                                if results:
+                                    status_placeholder = st.empty()
+                                    st.session_state.aflow_options = []
+                                    st.session_state.entrys = {}  # store full AFLOW entry objects
+                                    for entry in results:
+                                        st.session_state.entrys[entry.auid] = entry
+                                        st.session_state.aflow_options.append(
+                                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                        )
+                                        status_placeholder.markdown(
+                                            f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
+                                        )
+                                    st.success(f"Found {len(st.session_state.aflow_options)} structures.")
+                                else:
+                                    st.session_state.aflow_options = []
                                     st.warning("No matching structures found in AFLOW.")
+                            except Exception as e:
+                                st.warning("No matching structures found in AFLOW.")
 
-                        elif db_choice == "COD":
-                            with st.spinner(f"Searching **the COD database**, please wait. 😊"):
-                                elements = elements_list
-                                if elements:
-                                    params = {'format': 'json', 'detail': '1'}
-                                    for i, el in enumerate(elements, start=1):
-                                        params[f'el{i}'] = el
-                                    params['strictmin'] = str(len(elements))
-                                    params['strictmax'] = str(len(elements))
-                                    cod_entries = get_cod_entries(params)
-                                    if cod_entries:
-                                        status_placeholder = st.empty()
-                                        st.session_state.cod_options = []
-                                        st.session_state.full_structures_see_cod = {}
-                                        for entry in cod_entries:
-                                            cif_content = get_cif_from_cod(entry)
-                                            if cif_content:
-                                                try:
-                                                    # structure = get_full_conventional_structure(
-                                                    #    get_cod_str(cif_content))
-                                                    structure = get_cod_str(cif_content)
-                                                    cod_id = f"cod_{entry.get('file')}"
-                                                    st.session_state.full_structures_see_cod[cod_id] = structure
-                                                    spcs = entry.get("sg")
-                                                    spcs_number = entry.get("sgNumber")
-                                                    # Listing all keywords in the entry
-                                                    # all_keys = list(entry.keys())
-                                                    # st.write(all_keys)
+                    elif db_choice == "COD":
+                        with st.spinner(f"Searching **the COD database**, please wait. 😊"):
+                            elements = elements_list
+                            if elements:
+                                params = {'format': 'json', 'detail': '1'}
+                                for i, el in enumerate(elements, start=1):
+                                    params[f'el{i}'] = el
+                                params['strictmin'] = str(len(elements))
+                                params['strictmax'] = str(len(elements))
+                                cod_entries = get_cod_entries(params)
+                                if cod_entries:
+                                    status_placeholder = st.empty()
+                                    st.session_state.cod_options = []
+                                    st.session_state.full_structures_see_cod = {}
+                                    for entry in cod_entries:
+                                        cif_content = get_cif_from_cod(entry)
+                                        if cif_content:
+                                            try:
+                                                # structure = get_full_conventional_structure(
+                                                #    get_cod_str(cif_content))
+                                                structure = get_cod_str(cif_content)
+                                                cod_id = f"cod_{entry.get('file')}"
+                                                st.session_state.full_structures_see_cod[cod_id] = structure
+                                                spcs = entry.get("sg")
+                                                spcs_number = entry.get("sgNumber")
+                                                # Listing all keywords in the entry
+                                                # all_keys = list(entry.keys())
+                                                # st.write(all_keys)
 
-                                                    cell_volume = structure.lattice.volume
-                                                    st.session_state.cod_options.append(
-                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
-                                                    )
-                                                    status_placeholder.markdown(
-                                                        f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                                except Exception as e:
-                                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+                                                cell_volume = structure.lattice.volume
+                                                st.session_state.cod_options.append(
+                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
+                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
+                                                )
+                                                status_placeholder.markdown(
+                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
+                                            except Exception as e:
+                                                st.error(f"Error processing COD entry {entry.get('file')}: {e}")
 
-                                        if st.session_state.cod_options:
-                                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
-                                        else:
-                                            st.warning("COD: No matching structures found.")
+                                    if st.session_state.cod_options:
+                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
                                     else:
-                                        st.session_state.cod_options = []
                                         st.warning("COD: No matching structures found.")
                                 else:
-                                    st.error("Please enter at least one element for the COD search.")
+                                    st.session_state.cod_options = []
+                                    st.warning("COD: No matching structures found.")
+                            else:
+                                st.error("Please enter at least one element for the COD search.")
+        with cols2:
+            image = Image.open("images/Rabbit2.png")
+            st.image(image, use_container_width =True)
 
-        # Display results from all searched databases in separate sections
-        with cols3:
-            # Create tabs for each database's results
-            if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
-                tabs = []
+
+
+    with cols3:
+        if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
+            tabs = []
+            if 'mp_options' in st.session_state and st.session_state.mp_options:
+                tabs.append("Materials Project")
+            if 'aflow_options' in st.session_state and st.session_state.aflow_options:
+                tabs.append("AFLOW")
+            if 'cod_options' in st.session_state and st.session_state.cod_options:
+                tabs.append("COD")
+
+            if tabs:
+                selected_tab = st.tabs(tabs)
+
+                tab_index = 0
                 if 'mp_options' in st.session_state and st.session_state.mp_options:
-                    tabs.append("Materials Project")
-                if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                    tabs.append("AFLOW")
-                if 'cod_options' in st.session_state and st.session_state.cod_options:
-                    tabs.append("COD")
+                    with selected_tab[tab_index]:
+                        st.subheader("🧬 Structures Found in Materials Project")
+                        selected_structure = st.selectbox("Select a structure from MP:",
+                                                          st.session_state.mp_options)
+                        selected_id = selected_structure.split(":")[0].strip()
+                        composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+                        file_name = f"{selected_id}_{composition}.cif"
+                        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
-                if tabs:
-                    selected_tab = st.tabs(tabs)
+                        if selected_id in st.session_state.full_structures_see:
+                            selected_entry = st.session_state.full_structures_see[selected_id]
 
-                    # Materials Project tab
-                    tab_index = 0
-                    if 'mp_options' in st.session_state and st.session_state.mp_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in Materials Project")
-                            selected_structure = st.selectbox("Select a structure from MP:",
-                                                              st.session_state.mp_options)
-                            selected_id = selected_structure.split(":")[0].strip()
-                            composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
-                            file_name = f"{selected_id}_{composition}.cif"
-                            file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+                            conv_lattice = selected_entry.lattice
+                            cell_volume = selected_entry.lattice.volume
+                            density = str(selected_entry.density).split()[0]
+                            n_atoms = len(selected_entry)
+                            atomic_den = n_atoms / cell_volume
 
-                            if selected_id in st.session_state.full_structures_see:
-                                selected_entry = st.session_state.full_structures_see[selected_id]
+                            structure_type = identify_structure_type(selected_entry)
+                            st.write(f"**Structure type:** {structure_type}")
+                            analyzer = SpacegroupAnalyzer(selected_entry)
+                            st.write(
+                                f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
-                                conv_lattice = selected_entry.lattice
-                                cell_volume = selected_entry.lattice.volume
-                                density = str(selected_entry.density).split()[0]
-                                n_atoms = len(selected_entry)
-                                atomic_den = n_atoms / cell_volume
-                                st.write(
-                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
-                                st.write(
-                                    f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-                                analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-                                mp_url = f"https://materialsproject.org/materials/{selected_id}"
-                                st.write(f"**Link:** {mp_url}")
+                            st.write(
+                                f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
-                                col_mpd, col_mpb = st.columns([2, 1])
-                                with col_mpd:
-                                    if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
-                                        pmg_structure = st.session_state.full_structures_see[selected_id]
-                                        st.session_state.full_structures[file_name] = pmg_structure
-                                        cif_writer = CifWriter(pmg_structure)
-                                        cif_content = cif_writer.__str__()
-                                        cif_file = io.BytesIO(cif_content.encode('utf-8'))
-                                        cif_file.name = file_name
-                                        if 'uploaded_files' not in st.session_state:
-                                            st.session_state.uploaded_files = []
-                                        if all(f.name != file_name for f in st.session_state.uploaded_files):
-                                            st.session_state.uploaded_files.append(cif_file)
-                                        st.success("Structure added from Materials Project!")
-                                with col_mpb:
-                                    st.download_button(
-                                        label="Download MP CIF",
-                                        data=str(
-                                            CifWriter(st.session_state.full_structures_see[selected_id], symprec=0.01)),
-                                        file_name=file_name,
-                                        type="primary",
-                                        mime="chemical/x-cif"
-                                    )
-                        tab_index += 1
+                            st.write(
+                                f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
+                            st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
 
-                    # AFLOW tab
-                    if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in AFLOW")
-                            st.warning(
-                                "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
-                            selected_structure = st.selectbox("Select a structure from AFLOW:",
-                                                              st.session_state.aflow_options)
-                            selected_auid = selected_structure.split(": ")[0].strip()
-                            selected_entry = next(
-                                (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
-                                None)
-                            if selected_entry:
+                            mp_url = f"https://materialsproject.org/materials/{selected_id}"
+                            st.write(f"**Link:** {mp_url}")
 
-                                cif_files = [f for f in selected_entry.files if
-                                             f.endswith("_sprim.cif") or f.endswith(".cif")]
-
-                                if cif_files:
-
-                                    cif_filename = cif_files[0]
-
-                                    # Correct the AURL: replace the first ':' with '/'
-
-                                    host_part, path_part = selected_entry.aurl.split(":", 1)
-
-                                    corrected_aurl = f"{host_part}/{path_part}"
-
-                                    file_url = f"http://{corrected_aurl}/{cif_filename}"
-                                    response = requests.get(file_url)
-                                    cif_content = response.content
-
-                                    structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
-                                    converted_structure = get_full_conventional_structure(structure_from_aflow,
-                                                                                          symprec=0.1)
-
-                                    conv_lattice = converted_structure.lattice
-                                    cell_volume = converted_structure.lattice.volume
-                                    density = str(converted_structure.density).split()[0]
-                                    n_atoms = len(converted_structure)
-                                    atomic_den = n_atoms / cell_volume
-                                    st.write(
-                                        f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}, **N. of Atoms:** {n_atoms}")
-                                    st.write(
-                                        f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, "
-                                        f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                                    st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-                                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                                    st.write(
-                                        f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                                    linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
-                                    st.write("**Link:**", linnk)
-
-                                    if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
-                                        if 'uploaded_files' not in st.session_state:
-                                            st.session_state.uploaded_files = []
-                                        cif_file = io.BytesIO(cif_content)
-                                        cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
-
-                                        st.session_state.full_structures[cif_file.name] = structure_from_aflow
-                                        if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
-                                            st.session_state.uploaded_files.append(cif_file)
-                                        st.success("Structure added from AFLOW!")
-
-                                    st.download_button(
-                                        label="Download AFLOW CIF",
-                                        data=cif_content,
-                                        file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
-                                        type="primary",
-                                        mime="chemical/x-cif"
-                                    )
-                                else:
-                                    st.warning("No CIF file found for this AFLOW entry.")
-                        tab_index += 1
-
-                    # COD tab
-                    if 'cod_options' in st.session_state and st.session_state.cod_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in COD")
-                            selected_cod_structure = st.selectbox(
-                                "Select a structure from COD:",
-                                st.session_state.cod_options,
-                                key='sidebar_select_cod'
-                            )
-                            cod_id = selected_cod_structure.split(":")[0].strip()
-                            if cod_id in st.session_state.full_structures_see_cod:
-                                selected_entry = st.session_state.full_structures_see_cod[cod_id]
-                                lattice = selected_entry.lattice
-                                cell_volume = selected_entry.lattice.volume
-                                density = str(selected_entry.density).split()[0]
-                                n_atoms = len(selected_entry)
-                                atomic_den = n_atoms / cell_volume
-
-                                idcodd = cod_id.removeprefix("cod_")
-                                st.write(
-                                    f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
-                                st.write(
-                                    f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-                                analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                                cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
-                                st.write(f"**Link:** {cod_url}")
-
-                                file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
-
-                                if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
-                                    cif_writer = CifWriter(selected_entry, symprec=0.01)
-                                    cif_data = str(cif_writer)
-                                    st.session_state.full_structures[file_name] = selected_entry
-                                    cif_file = io.BytesIO(cif_data.encode('utf-8'))
+                            col_mpd, col_mpb = st.columns([2, 1])
+                            with col_mpd:
+                                if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
+                                    pmg_structure = st.session_state.full_structures_see[selected_id]
+                                    st.session_state.full_structures[file_name] = pmg_structure
+                                    cif_writer = CifWriter(pmg_structure)
+                                    cif_content = cif_writer.__str__()
+                                    cif_file = io.BytesIO(cif_content.encode('utf-8'))
                                     cif_file.name = file_name
                                     if 'uploaded_files' not in st.session_state:
                                         st.session_state.uploaded_files = []
                                     if all(f.name != file_name for f in st.session_state.uploaded_files):
                                         st.session_state.uploaded_files.append(cif_file)
-                                    st.success("Structure added from COD!")
+                                    st.success("Structure added from Materials Project!")
+                            with col_mpb:
+                                st.download_button(
+                                    label="Download MP CIF",
+                                    data=str(
+                                        CifWriter(st.session_state.full_structures_see[selected_id], symprec=0.01)),
+                                    file_name=file_name,
+                                    type="primary",
+                                    mime="chemical/x-cif"
+                                )
+                    tab_index += 1
+
+                if 'aflow_options' in st.session_state and st.session_state.aflow_options:
+                    with selected_tab[tab_index]:
+                        st.subheader("🧬 Structures Found in AFLOW")
+                        st.warning(
+                            "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
+                        selected_structure = st.selectbox("Select a structure from AFLOW:",
+                                                          st.session_state.aflow_options)
+                        selected_auid = selected_structure.split(": ")[0].strip()
+                        selected_entry = next(
+                            (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
+                            None)
+                        if selected_entry:
+
+                            cif_files = [f for f in selected_entry.files if
+                                         f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+                            if cif_files:
+
+                                cif_filename = cif_files[0]
+
+                                # Correct the AURL: replace the first ':' with '/'
+
+                                host_part, path_part = selected_entry.aurl.split(":", 1)
+
+                                corrected_aurl = f"{host_part}/{path_part}"
+
+                                file_url = f"http://{corrected_aurl}/{cif_filename}"
+                                response = requests.get(file_url)
+                                cif_content = response.content
+
+                                structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+                                converted_structure = get_full_conventional_structure(structure_from_aflow,
+                                                                                      symprec=0.1)
+
+                                conv_lattice = converted_structure.lattice
+                                cell_volume = converted_structure.lattice.volume
+                                density = str(converted_structure.density).split()[0]
+                                n_atoms = len(converted_structure)
+                                atomic_den = n_atoms / cell_volume
+
+                                structure_type = identify_structure_type(converted_structure)
+                                st.write(f"**Structure type:** {structure_type}")
+                                analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                                st.write(
+                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+                                st.write(
+                                    f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}, **N. of Atoms:** {n_atoms}")
+                                st.write(
+                                    f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, "
+                                    f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
+                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+
+
+                                linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
+                                st.write("**Link:**", linnk)
+
+                                if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                                    if 'uploaded_files' not in st.session_state:
+                                        st.session_state.uploaded_files = []
+                                    cif_file = io.BytesIO(cif_content)
+                                    cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+                                    st.session_state.full_structures[cif_file.name] = structure_from_aflow
+                                    if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                                        st.session_state.uploaded_files.append(cif_file)
+                                    st.success("Structure added from AFLOW!")
 
                                 st.download_button(
-                                    label="Download COD CIF",
-                                    data=str(CifWriter(selected_entry, symprec=0.01)),
-                                    file_name=file_name,
-                                    mime="chemical/x-cif", type="primary",
+                                    label="Download AFLOW CIF",
+                                    data=cif_content,
+                                    file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                                    type="primary",
+                                    mime="chemical/x-cif"
                                 )
+                            else:
+                                st.warning("No CIF file found for this AFLOW entry.")
+                    tab_index += 1
+
+                # COD tab
+                if 'cod_options' in st.session_state and st.session_state.cod_options:
+                    with selected_tab[tab_index]:
+                        st.subheader("🧬 Structures Found in COD")
+                        selected_cod_structure = st.selectbox(
+                            "Select a structure from COD:",
+                            st.session_state.cod_options,
+                            key='sidebar_select_cod'
+                        )
+                        cod_id = selected_cod_structure.split(":")[0].strip()
+                        if cod_id in st.session_state.full_structures_see_cod:
+                            selected_entry = st.session_state.full_structures_see_cod[cod_id]
+                            lattice = selected_entry.lattice
+                            cell_volume = selected_entry.lattice.volume
+                            density = str(selected_entry.density).split()[0]
+                            n_atoms = len(selected_entry)
+                            atomic_den = n_atoms / cell_volume
+
+                            idcodd = cod_id.removeprefix("cod_")
+
+                            structure_type = identify_structure_type(selected_entry)
+                            st.write(f"**Structure type:** {structure_type}")
+                            analyzer = SpacegroupAnalyzer(selected_entry)
+                            st.write(
+                                f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+
+                            st.write(
+                                f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
+                            st.write(
+                                f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
+                            st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+
+
+                            cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
+                            st.write(f"**Link:** {cod_url}")
+
+                            file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
+
+                            if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
+                                cif_writer = CifWriter(selected_entry, symprec=0.01)
+                                cif_data = str(cif_writer)
+                                st.session_state.full_structures[file_name] = selected_entry
+                                cif_file = io.BytesIO(cif_data.encode('utf-8'))
+                                cif_file.name = file_name
+                                if 'uploaded_files' not in st.session_state:
+                                    st.session_state.uploaded_files = []
+                                if all(f.name != file_name for f in st.session_state.uploaded_files):
+                                    st.session_state.uploaded_files.append(cif_file)
+                                st.success("Structure added from COD!")
+
+                            st.download_button(
+                                label="Download COD CIF",
+                                data=str(CifWriter(selected_entry, symprec=0.01)),
+                                file_name=file_name,
+                                mime="chemical/x-cif", type="primary",
+                            )
 
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
@@ -914,6 +919,13 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
         return False
 
 
+
+if "removal_message" not in st.session_state:
+    st.session_state.removal_message = ""
+if not isinstance(st.session_state.removal_message, str):
+    st.session_state.removal_message = str(st.session_state.removal_message)
+
+
 def wrap_coordinates(frac_coords):
     coords = np.array(frac_coords)
     return coords % 1
@@ -989,6 +1001,7 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                                         min_dist=0.5):
     from pymatgen.analysis.defects.generators import VoronoiInterstitialGenerator
     with colb3:
+        st.session_state.removal_message = ""
         with st.spinner(f"Calculating available interstitials positions, please wait. 😊"):
             generator = VoronoiInterstitialGenerator(clustering_tol=clustering_tol,
                                                      min_dist=min_dist)
@@ -1003,14 +1016,24 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                 unique_int.append(interstitial.site.frac_coords)
                 label = classify_interstitial_site(structure, interstitial.site.frac_coords)
                 rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                st.write(
-                    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+                #st.write(
+                #    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
+
+                new_msg = f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)\n"
+                st.session_state.removal_message += new_msg + "\n"
                 for site in interstitial.equivalent_sites:
                     frac_coords.append(site.frac_coords)
                     frac_coords_dict[idx].append(site.frac_coords)
                 idx += 1
 
-            st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+            #st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+            new_msg = f"**Total number of available interstitial positions:** {len(frac_coords)}\n"
+            st.session_state.removal_message += new_msg + "\n"
+
+
+            if st.session_state.removal_message:
+                st.write(st.session_state.removal_message)
+
 
             if which_interstitial == 0:
                 frac_coords_use = frac_coords
@@ -1180,10 +1203,23 @@ if "🔬 Structure Modification" in calc_mode:
                 else:
                     selected_file = st.radio("", file_options)
             with col_mod:
-                apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+                #apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
-                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost information about occupancies)",
+                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
                     value=False)
+                if cell_convert_or:
+                    structure_cell_choice = st.radio(
+                        "Structure Cell Type:",
+                        options=["Conventional Cell", "Primitive Cell (Niggli)", "Primitive Cell (LLL)",
+                                 "Primitive Cell (no reduction)"],
+                        index=0,  # default to Conventional
+                        help="Choose whether to use the crystallographic Primitive Cell or the Conventional Unit Cell for the structures. For Primitive Cell, you can select whether to use Niggli or LLL (Lenstra–Lenstra–Lovász) "
+                             "lattice basis reduction algorithm to produce less skewed representation of the lattice. The MP database is using Niggli-reduced Primitive Cells."
+                    )
+                    convert_to_conventional = structure_cell_choice == "Conventional Cell"
+                    pymatgen_prim_cell_niggli = structure_cell_choice == "Primitive Cell (Niggli)"
+                    pymatgen_prim_cell_lll = structure_cell_choice == "Primitive Cell (LLL)"
+                    pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
             if selected_file != st.session_state["selected_file"]:
 
                 #IF SELECTED FILE CHANGED, RESETTING ALL MODIFICATIONS
@@ -1256,83 +1292,86 @@ if "🔬 Structure Modification" in calc_mode:
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
             value=False)
+        #with col_mod:
+            # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+           #if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
+            #    mp_struct = st.session_state["current_structure"]
+                #converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+                #st.session_state["current_structure"] = converted_structure
+            #    analyzer = SpacegroupAnalyzer(mp_struct, symprec=0.1)
+
+                # Get the conventional standard structure
+            #    converted_structure = analyzer.get_conventional_standard_structure()
+
+                # Print symmetry information
+            #    spacegroup = analyzer.get_space_group_symbol()
+            #    st.write(f"Structure converted to conventional cell with spacegroup: {spacegroup}")
+
+                # Update the session state with the new structure
+            #    st.session_state["current_structure"] = converted_structure
+
+                # Display information about the new structure
+            #    st.write(f"Lattice parameters: {converted_structure.lattice.abc}")
+            #    st.write(f"Lattice angles: {converted_structure.lattice.angles}")
+            #    st.write(f"Number of sites: {len(converted_structure)}")
+            #    st.session_state["current_structure"] = converted_structure
         if create_defects:
-            with st.expander(
-                    f"### Create Supercells (uncheck the find a new symmetry and conversion between cell representations)",
-                    icon="🧊", expanded=st.session_state["expander_supercell"]):
-                col1, col2, col3 = st.columns(3)
-                st.session_state["expander_supercell"] = True
-                n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_a"], step=1)
-                n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_b"], step=1)
-                n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
-                                        value=st.session_state["supercell_n_c"], step=1)
-
-            st.session_state["supercell_n_a"] = n_a
-            st.session_state["supercell_n_b"] = n_b
-            st.session_state["supercell_n_c"] = n_c
-
-            supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
-
-            if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-                transformer = SupercellTransformation(supercell_matrix)
-
-                from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
-
-                mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
-                mp_struct = transformer.apply_transformation(mp_struct)
-
-                st.session_state["current_structure"] = mp_struct
-                st.session_state["auto_saved_structure"] = mp_struct
-                st.rerun()
-
-            if apply_cell_conversion:
-                if convert_to_conventional:
-
-                    converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-                elif pymatgen_prim_cell_niggli:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="niggli")
-                elif pymatgen_prim_cell_lll:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                    converted_structure = converted_structure.get_reduced_structure(reduction_algo="LLL")
-                else:
-                    analyzer = SpacegroupAnalyzer(mp_struct)
-                    converted_structure = analyzer.get_primitive_standard_structure()
-                st.session_state["current_structure"] = converted_structure
-
-
-
-            else:
-                print("DIDNT APPLY ANYTHING")
-                converted_structure = mp_struct
-
-
-            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
-
-            st.write("Cell representation conversion is now applied!")
-            mp_struct = converted_structure
-            visual_pmg_structure = mp_struct
-            st.session_state["current_structure"] = mp_struct
-
-
             from pymatgen.core import Structure, Element
 
-            with st.expander("Create Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
+            with st.expander("Create Supercell (Uncheck the conversion between cells) and Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
 
                 colb1, colb2, colb3 = st.columns(3)
+
+                with colb1:
+                    col1, col2, col3 = st.columns(3)
+                    st.session_state["expander_supercell"] = True
+                    n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_a"], step=1)
+                    n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_b"], step=1)
+                    n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                                            value=st.session_state["supercell_n_c"], step=1)
+
+                st.session_state["supercell_n_a"] = n_a
+                st.session_state["supercell_n_b"] = n_b
+                st.session_state["supercell_n_c"] = n_c
+
+                supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
+
+                if (n_a, n_b, n_c) != (old_a, old_b, old_c):
+                    transformer = SupercellTransformation(supercell_matrix)
+
+                    from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+
+                    mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
+                    mp_struct = transformer.apply_transformation(mp_struct)
+
+                    st.session_state["current_structure"] = mp_struct
+                    st.session_state["auto_saved_structure"] = mp_struct
+
+                    converted_structure = mp_struct
+                    # st.rerun()
+
+
+
+
+                else:
+                    print("DIDNT APPLY ANYTHING")
+                    converted_structure = mp_struct
+
+                st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
+
+                st.write("Cell representation conversion is now applied!")
+                mp_struct = converted_structure
+                visual_pmg_structure = mp_struct
+                st.session_state["current_structure"] = mp_struct
+
 
                 with colb2:
                     st.session_state["expander_defects"] = True
                     # ==================== Substitute Functions ====================
                     with colb3:
                         st.markdown(f"### Log output:")
-                    # ==================== Streamlit UI ====================
-
-                    # Choose among the three operation modes.
 
                     operation_mode = st.selectbox("Choose Operation Mode",
                                                   ["Insert Interstitials (Voronoi method)", "Create Vacancies",
@@ -1530,7 +1569,7 @@ if "🔬 Structure Modification" in calc_mode:
 
         with col_g1:
             show_plot_str = st.checkbox(f"Show 3D structure plot", value = True)
-            allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
+            #allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
                 value=False)
@@ -1607,7 +1646,7 @@ if "🔬 Structure Modification" in calc_mode:
             edited_df_reset = edited_df.reset_index(drop=True)
             display_df_reset = display_df.reset_index(drop=True)
 
-            if not edited_df_reset.equals(display_df_reset) and allow_atomic_mod:
+            if not edited_df_reset.equals(display_df_reset): #and allow_atomic_mod:
                 edited_df = edited_df.reset_index(drop=True)
                 display_df = display_df.reset_index(drop=True)
                 st.session_state.modified_atom_df_help = edited_df
@@ -1618,10 +1657,7 @@ if "🔬 Structure Modification" in calc_mode:
 
                     for i, row in edited_df.iterrows():
                         original_row = st.session_state.df_last_before_wyck.iloc[i].copy()
-
-                        # Extract the Wyckoff site information
                         display_wyckoff = row['Wyckoff']
-                        # Extract just the letter part (a, b, c, etc.) from the Wyckoff symbol
                         match = re.match(r'\d*(\D+)', display_wyckoff)
                         if match:
                             wyckoff_letter = match.group(1)
@@ -1630,41 +1666,26 @@ if "🔬 Structure Modification" in calc_mode:
 
                         element = row['Element']
                         original_element = original_row['Element']
-
-                        # Detect what properties have changed
                         changed_props = {}
                         for col in ['Element', 'Frac X', 'Frac Y', 'Frac Z', 'Occupancy']:
                             if col in row and col in original_row and row[col] != original_row[col]:
                                 changed_props[col] = row[col]
-
-                        # If nothing changed, skip this row
                         if not changed_props:
                             continue
-
-                        # Find all atoms in the full dataframe with the same Wyckoff letter
-                        # We match based on the letter at the end of the Wyckoff position
                         wyckoff_mask = full_df_copy['Wyckoff'].str.endswith(wyckoff_letter)
-
-                        # If element changed, update all atoms with matching Wyckoff letter and original element
                         if 'Element' in changed_props:
                             # Find all atoms with same Wyckoff letter and original element
                             element_mask = wyckoff_mask & (full_df_copy['Element'] == original_element)
 
                             if element_mask.sum() > 0:
-                                # Update the element
                                 full_df_copy.loc[element_mask, 'Element'] = changed_props['Element']
-                                # Update element indices for proper labeling
                                 update_element_indices(full_df_copy)
-                                # Remember the new element for other property updates
                                 element = changed_props['Element']
 
                                 #st.info(
                                 #    f"Updated {element_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Element changed from {original_element} to {element}")
 
-                        # Update occupancy for matching atoms
                         if 'Occupancy' in changed_props:
-                            # For occupancy, we need to find all atoms with the same Wyckoff letter and element
-                            # If the element was just changed, use the new element
                             occ_mask = wyckoff_mask & (full_df_copy['Element'] == element)
 
                             if occ_mask.sum() > 0:
@@ -1672,36 +1693,23 @@ if "🔬 Structure Modification" in calc_mode:
 
                                 #st.info(
                                 #    f"Updated {occ_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Occupancy changed to {changed_props['Occupancy']}")
-
-                        # Check if position was changed
                         position_changed = any(col in changed_props for col in ['Frac X', 'Frac Y', 'Frac Z'])
 
                         if position_changed:
-                            # For position changes we need to be more careful
-                            # We want to update only the specific atom that was edited in the asymmetric unit
 
-                            # First find the exact atom in the full dataframe that corresponds to this row
-                            # We can match using original coordinates and element
                             x_orig = original_row['Frac X']
                             y_orig = original_row['Frac Y']
                             z_orig = original_row['Frac Z']
-
-                            # Create a mask for the atom with exact match of coordinates
                             coord_mask = (
                                     (abs(full_df_copy['Frac X'] - x_orig) < 1e-5) &
                                     (abs(full_df_copy['Frac Y'] - y_orig) < 1e-5) &
                                     (abs(full_df_copy['Frac Z'] - z_orig) < 1e-5)
                             )
 
-                            # The original element might have changed, so match based on original element
-                            # and coordinates
                             exact_match = coord_mask & (full_df_copy['Element'] == original_element) & wyckoff_mask
 
                             if exact_match.sum() >= 1:
-                                # Get the first matching index (should only be one)
                                 match_idx = full_df_copy[exact_match].index[0]
-
-                                # Update position for just this specific atom
                                 if 'Frac X' in changed_props:
                                     full_df_copy.at[match_idx, 'Frac X'] = changed_props['Frac X']
                                 if 'Frac Y' in changed_props:
@@ -1716,7 +1724,6 @@ if "🔬 Structure Modification" in calc_mode:
                                 #st.error(
                                 #    f"Could not find exact matching atom to update position. Found {exact_match.sum()} matches.")
 
-                    # Use the fully updated dataframe for the structure
                     st.session_state.modified_atom_df = recalc_computed_columns(full_df_copy, visual_pmg_structure.lattice)
                     df_plot = full_df_copy.copy()
                     try:
@@ -1744,19 +1751,16 @@ if "🔬 Structure Modification" in calc_mode:
                                 else:
                                     species_dict[element] = occupancy
 
-                            # Get Wyckoff position if available
                             props = {}
                             if "Wyckoff" in group.columns:
                                 props["wyckoff"] = group.iloc[0]["Wyckoff"]
 
-                            # Add the site to the structure
                             new_struct.append(
                                 species=species_dict,
                                 coords=position,
                                 coords_are_cartesian=False,
                                 properties=props
                             )
-                            #print(new_struct)
 
 
                         visual_pmg_structure = new_struct
@@ -1804,19 +1808,16 @@ if "🔬 Structure Modification" in calc_mode:
                                 else:
                                     species_dict[element] = occupancy
 
-                            # Get Wyckoff position if available
                             props = {}
                             if "Wyckoff" in group.columns:
                                 props["wyckoff"] = group.iloc[0]["Wyckoff"]
 
-                            # Add the site to the structure
                             new_struct.append(
                                 species=species_dict,
                                 coords=position,
                                 coords_are_cartesian=False,
                                 properties=props
                             )
-                            #print(new_struct)
 
 
                         visual_pmg_structure = new_struct
@@ -2423,7 +2424,7 @@ if "🔬 Structure Modification" in calc_mode:
                 st.error(f"Error reconstructing structure: {e}")
                 st.error(
                     f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
-
+            st.rerun()
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
         b_para = lattice.b
@@ -2452,6 +2453,9 @@ if "🔬 Structure Modification" in calc_mode:
                 spg_number = sg_analyzer.get_space_group_number()
                 space_group_str = f"{spg_symbol} ({spg_number})"
 
+                structure_type = identify_structure_type(visual_pmg_structure)
+                str_type = f"{structure_type}"
+
                 same_lattice = lattice_same_conventional_vs_primitive(visual_pmg_structure)
                 if same_lattice is None:
                     cell_note = "⚠️ Could not determine if cells are identical."
@@ -2477,6 +2481,7 @@ if "🔬 Structure Modification" in calc_mode:
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
                 <p><strong>Number of Atoms:</strong> {len(visual_pmg_structure)}</p>
                 <p><strong>Space Group:</strong> {space_group_str}</p>
+                <p><strong>Structure Type:</strong> {str_type}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -3224,13 +3229,9 @@ if "💥 Powder Diffraction" in calc_mode:
         if not st.session_state.calc_xrd:
             st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
         if user_pattern_file:
-            # Create a separate Plotly figure for experimental data
-
-            # Process the experimental files:
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
                     try:
-                        # Adjust the separator if necessary—here we use a regex separator that accepts comma, semicolon, or whitespace.
                         df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
 
                         x_user = df.iloc[:, 0].values
@@ -3239,11 +3240,9 @@ if "💥 Powder Diffraction" in calc_mode:
                         #  st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
-                    # If using 'Normalized' intensity scale, normalize the experimental intensities.
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
-                    # Optional: filter data to only include points within your current two-theta range.
                     mask_user = (x_user >= st.session_state.two_theta_min) & (
                             x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
@@ -3296,7 +3295,6 @@ if "💥 Powder Diffraction" in calc_mode:
                     x_user, y_user = None, None
 
     if st.session_state.calc_xrd and uploaded_files:
-        # Sidebar: Let the user select which structures to include in the diffraction plot
 
         multi_component_presets = {
             "Cu(Ka1+Ka2)": {
@@ -3368,13 +3366,10 @@ if "💥 Powder Diffraction" in calc_mode:
         for idx, file in enumerate(uploaded_files):
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
-
-            # Create Debye-Waller factors dictionary specific to this file if enabled
             debye_waller_dict = None
             if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
                 file_key = file.name
                 if file_key in st.session_state.debye_waller_factors_per_file:
-                    # Get the B-factors specific to this file
                     debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
 
             if is_multi_component:
@@ -3456,7 +3451,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 all_filtered_hkls = filtered_hkls
                 all_peak_types = ["Kα1"] * len(filtered_x)
 
-            # Intensity scaling.
             if intensity_scale_option == "Normalized":
                 norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
                 y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
@@ -3464,7 +3458,6 @@ if "💥 Powder Diffraction" in calc_mode:
             else:
                 displayed_intensity_array = np.array(all_filtered_y)
 
-            # Convert discrete peak positions.
             peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
                                            diffraction_choice)
             ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
@@ -3474,8 +3467,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
             else:
                 annotate_indices = set()
-
-            # Save the diffraction pattern details for later use in the interactive plot.
             pattern_details[file.name] = {
                 "peak_vals": peak_vals,
                 "intensities": displayed_intensity_array,
@@ -3682,7 +3673,6 @@ if "💥 Powder Diffraction" in calc_mode:
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
                     except Exception as e:
-                        # st.error(f"Error processing experimental file {file.name}: {e}")
                         continue
 
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
@@ -3905,6 +3895,7 @@ if "💥 Powder Diffraction" in calc_mode:
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
+
 # Add these session state initializations at the beginning of your script
 
 
@@ -3940,14 +3931,15 @@ def update_selected_frame():
 
 def update_display_mode():
     st.session_state.display_mode = st.session_state.display_mode_radio
-    # Reset animation when switching display modes
     st.session_state.animate = False
 
 
 def trigger_calculation():
     st.session_state.calc_rdf = True
     st.session_state.do_calculation = True
-    # Clear existing data
+    for key in ["all_prdf_dict", "all_distance_dict", "global_rdf_list"]:
+        if key in st.session_state.processed_data:
+            del st.session_state.processed_data[key]
     st.session_state.frame_indices = []
     st.session_state.processed_data = {
         "all_prdf_dict": {},
@@ -3958,21 +3950,13 @@ def trigger_calculation():
     import gc
     gc.collect()
 
-
 def toggle_animation():
     st.session_state.animate = not st.session_state.animate
 
 
-if "📊 (P)RDF" not in calc_mode:
-    for key in [
-        "calc_rdf", "display_mode", "selected_frame_idx", "frame_indices",
-        "processed_data", "animate", "do_calculation", "download_prepared"
-    ]:
-        if key in st.session_state:
-            del st.session_state[key]
-            
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
+    uploaded_files = st.session_state.uploaded_files
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
@@ -4030,7 +4014,8 @@ if "📊 (P)RDF" in calc_mode:
             if use_lammps_traj and lammps_file:
                 st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
                 progress_bar = st.progress(0)
-                with st.expander("Log from reading LAMMPS trajectory file"):
+                #with st.expander("Log from reading LAMMPS trajectory file"):
+                with st.status("Reading LAMMPS trajectory file..."):
                     file_content_sample = lammps_file.read(2048)
                     lammps_file.seek(0)
                     try:
@@ -4214,26 +4199,25 @@ if "📊 (P)RDF" in calc_mode:
                     except Exception as e:
                         st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
 
+                lammps_file = None
+                bytes_data = None
+
                 total_frames = len(frames)
                 st.write(f"Found {total_frames} frames in the trajectory")
 
-                # Use selected frames based on sampling rate
                 selected_frames = frames[::frame_sampling]
                 st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
 
-                # Store frame indices and reset animation state
                 frame_indices = [i * frame_sampling for i in range(len(selected_frames))]
                 st.session_state.frame_indices = frame_indices
                 st.session_state.animate = False
 
-                # Process each frame
                 for i, frame in enumerate(selected_frames):
                     progress_bar.progress((i + 1) / len(selected_frames))
 
                     try:
                         mg_structure = AseAtomsAdaptor.get_structure(frame)
 
-                        # Calculate PRDF for this frame
                         prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                         prdf_featurizer.fit([mg_structure])
                         prdf_data = prdf_featurizer.featurize(mg_structure)
@@ -4842,7 +4826,7 @@ if "📈 Interactive Data Plot" in calc_mode:
 
     col_line, col_marker = st.columns([1, 1])
     show_lines = col_line.checkbox("Show Lines", value=True)
-    show_markers = col_marker.checkbox("Show Markers", value=True)
+    show_markers = col_marker.checkbox("Show Markers", value=False)
 
     col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([1, 1, 1, 1, 1])
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
@@ -4922,54 +4906,98 @@ if "📈 Interactive Data Plot" in calc_mode:
                     wave_col, slit_col = st.columns(2)
 
                     with wave_col:
-                        st.markdown("**Wavelength/d-spacing conversion:**")
+                        st.markdown("**Diffraction data conversion:**")
                         input_format = st.selectbox(
                             "Convert from:",
                             [
                                 "No conversion",
+                                "d-spacing (Å)",
                                 "2theta (Copper CuKa1)",
                                 "2theta (Cobalt CoKa1)",
                                 "2theta (Custom)",
-                                "d-spacing (Å)"
+                                "q-vector (Å⁻¹)"
                             ],
-                            key=f"input_format_{i}"
+                            key=f"input_format_{i}",
+                            help=f"Copper (CuKa1): 1.5406 Å\n\n"
+                                 " Molybdenum (MoKa1): 0.7093 Å\n\n"
+                                 " Chromium (CrKa1): 2.2897 Å\n\n"
+                                 " Iron (FeKa1): 1.9360 Å\n\n"
+                                 " Cobalt (CoKa1): 1.7889 Å\n\n"
+                                 " Silver (AgKa1): 0.5594 Å\n\n"
+                                 " q-vector = 4π·sin(θ)/λ\n"
                         )
-                        output_format = None
-                        custom_wavelength = None
+
+                        all_output_options = [
+                            "No conversion",
+                            "d-spacing (Å)",
+                            "2theta (Copper CuKa1)",
+                            "2theta (Cobalt CoKa1)",
+                            "2theta (Custom)",
+                            "q-vector (Å⁻¹)"
+                        ]
 
                         if input_format != "No conversion":
-                            if input_format == "d-spacing (Å)":
-                                output_options = [
-                                    "2theta (Copper CuKa1)",
-                                    "2theta (Cobalt CoKa1)",
-                                    "2theta (Custom)"
-                                ]
-                            elif "2theta" in input_format:
-                                output_options = [
-                                    "d-spacing (Å)",
-                                    "2theta (Copper CuKa1)",
-                                    "2theta (Cobalt CoKa1)",
-                                    "2theta (Custom)"
-                                ]
-                                if input_format in output_options:
-                                    output_options.remove(input_format)
+                            filtered_options = all_output_options.copy()
+                            if input_format in filtered_options and input_format != "2theta (Custom)":
+                                filtered_options.remove(input_format)
+                        else:
+                            filtered_options = all_output_options
 
-                            output_format = st.selectbox(
-                                "Convert to:",
-                                output_options,
-                                key=f"output_format_{i}"
-                            )
-                        if (input_format == "2theta (Custom)" or
-                                output_format == "2theta (Custom)"):
-                            custom_wavelength = st.number_input(
-                                "Custom wavelength (Å)",
+                        output_format = st.selectbox(
+                            "Convert to:",
+                            filtered_options,
+                            index=0,
+                            key=f"output_format_{i}"
+                        )
+
+                        input_custom_wavelength = None
+                        output_custom_wavelength = None
+
+                        if input_format == "2theta (Custom)":
+                            input_custom_wavelength = st.number_input(
+                                "Input custom wavelength (Å)",
                                 min_value=0.1,
                                 max_value=10.0,
                                 value=1.54056,
                                 step=0.01,
                                 format="%.5f",
-                                key=f"custom_wl_{i}"
+                                key=f"input_custom_wl_{i}"
                             )
+
+                        if output_format == "2theta (Custom)":
+                            output_custom_wavelength = st.number_input(
+                                "Output custom wavelength (Å)",
+                                min_value=0.1,
+                                max_value=10.0,
+                                value=1.54056 if input_custom_wavelength is None else input_custom_wavelength * 0.9,
+                                step=0.01,
+                                format="%.5f",
+                                key=f"output_custom_wl_{i}"
+                            )
+
+                        if input_format == "q-vector (Å⁻¹)" and "2theta" in output_format and output_custom_wavelength is None:
+                            if "Custom" in output_format:
+                                output_custom_wavelength = st.number_input(
+                                    "Output wavelength for q-vector to 2theta conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"q_to_2theta_wl_{i}"
+                                )
+
+                        if "2theta" in input_format and output_format == "q-vector (Å⁻¹)" and input_custom_wavelength is None:
+                            if "Custom" in input_format:
+                                input_custom_wavelength = st.number_input(
+                                    "Input wavelength for 2theta to q-vector conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"2theta_to_q_wl_{i}"
+                                )
 
                     with slit_col:
 
@@ -5011,7 +5039,8 @@ if "📈 Interactive Data Plot" in calc_mode:
                         "conversion_type": "No conversion" if input_format == "No conversion" or not output_format else f"{input_format} to {output_format}",
                         "input_format": input_format,
                         "output_format": output_format,
-                        "custom_wavelength": custom_wavelength,
+                        "input_custom_wavelength": input_custom_wavelength,
+                        "output_custom_wavelength": output_custom_wavelength,
                         "slit_conversion_type": slit_conversion_type,
                         "fixed_slit_size": fixed_slit_size,
                         "irradiated_length": irradiated_length
@@ -5051,12 +5080,24 @@ if "📈 Interactive Data Plot" in calc_mode:
                     )
                 else:
                     if skip_header:
+                        file.seek(0)
+                        try:
+                            file_content = file.read().decode('utf-8')
+                        except UnicodeDecodeError:
+                            file_content = file.read().decode('latin-1')
+
+                        lines = file_content.splitlines()
+                        comment_line_indices = [i for i, line in enumerate(lines) if line.strip().startswith('#')]
+                        lines_to_skip = [0] + comment_line_indices
+                        lines_to_skip = sorted(set(lines_to_skip))
+                        file.seek(0)
+
                         df = pd.read_csv(
                             file,
                             sep=r'\s+|,|;',
                             engine='python',
                             header=None,
-                            skiprows=1
+                            skiprows=lines_to_skip
                         )
                     else:
                         df = pd.read_csv(
@@ -5076,62 +5117,121 @@ if "📈 Interactive Data Plot" in calc_mode:
                     if conversion_type == "No conversion":
                         pass
                     else:
-                        def convert_data(x_values, conversion_type, custom_wavelength=None):
-                            import numpy as np
+                        def convert_data(x_values, conversion_type, input_custom_wavelength=None,
+                                         output_custom_wavelength=None):
 
                             wavelength_map = {
-                                "Cu": 1.54056,
-                                "Co": 1.78897
+                                "Copper": 1.54056,
+                                "CuKa1": 1.54056,
+                                "Cobalt": 1.78897,
+                                "CoKa1": 1.78897
                             }
+
                             parts = conversion_type.split(" to ")
                             if len(parts) != 2:
-                                st.error("Invalid conversion type format.")
+                                print(f"Invalid conversion type format: {conversion_type}")
                                 return x_values
 
-                            input_format = parts[0]
-                            output_format = parts[1]
+                            input_format = parts[0].strip()
+                            output_format = parts[1].strip()
 
                             lambda_in = None
-                            for label in wavelength_map:
-                                if label in input_format:
-                                    lambda_in = wavelength_map[label]
-                            if "Custom" in input_format:
-                                lambda_in = custom_wavelength
+                            if "Copper" in input_format or "CuKa1" in input_format:
+                                lambda_in = wavelength_map["Copper"]
+                            elif "Cobalt" in input_format or "CoKa1" in input_format:
+                                lambda_in = wavelength_map["Cobalt"]
+                            elif "Custom" in input_format and input_custom_wavelength is not None:
+                                lambda_in = input_custom_wavelength
+
                             lambda_out = None
-                            for label in wavelength_map:
-                                if label in output_format:
-                                    lambda_out = wavelength_map[label]
-                            if "Custom" in output_format:
-                                lambda_out = custom_wavelength
-                            if "2theta" in input_format and "d-spacing" in output_format:
+                            if "Copper" in output_format or "CuKa1" in output_format:
+                                lambda_out = wavelength_map["Copper"]
+                            elif "Cobalt" in output_format or "CoKa1" in output_format:
+                                lambda_out = wavelength_map["Cobalt"]
+                            elif "Custom" in output_format and output_custom_wavelength is not None:
+                                lambda_out = output_custom_wavelength
+
+                            if "q-vector" in input_format and "d-spacing" in output_format:
+                                valid = x_values > 0
+                                d_values = np.zeros_like(x_values)
+                                d_values[valid] = 2 * np.pi / x_values[valid]
+                                d_values[~valid] = np.nan
+                                return d_values
+
+                            elif "d-spacing" in input_format and "q-vector" in output_format:
+                                valid = x_values > 0
+                                q_values = np.zeros_like(x_values)
+                                q_values[valid] = 2 * np.pi / x_values[valid]
+                                q_values[~valid] = np.nan
+                                return q_values
+
+                            elif "q-vector" in input_format and "2theta" in output_format:
+                                if lambda_out is None:
+                                    print(f"Missing output wavelength for q-vector to 2theta conversion")
+                                    return x_values
+
+                                valid = x_values >= 0
+                                sin_arg = (x_values[valid] * lambda_out) / (4 * np.pi)
+
+                                mask = (sin_arg >= -1) & (sin_arg <= 1)
+                                sin_arg = sin_arg[mask]
+
+                                theta = np.arcsin(sin_arg)
+                                twotheta = 2 * np.degrees(theta)
+
+                                result = np.zeros_like(x_values)
+                                result_indices = np.where(valid)[0][mask]
+                                result[result_indices] = twotheta
+                                result[~valid] = np.nan
+
+                                return result
+
+                            elif "2theta" in input_format and "q-vector" in output_format:
                                 if lambda_in is None:
-                                    st.error("Missing input wavelength for 2θ → d-spacing conversion.")
+                                    print(f"Missing input wavelength for 2theta to q-vector conversion")
+                                    return x_values
+
+                                theta_rad = np.radians(x_values) / 2
+                                q_values = (4 * np.pi * np.sin(theta_rad)) / lambda_in
+
+                                return q_values
+
+                            elif ("2theta" in input_format) and ("d-spacing" in output_format):
+                                if lambda_in is None:
+                                    print(f"Missing input wavelength for conversion: {input_format}")
                                     return x_values
 
                                 theta_rad = np.radians(x_values / 2)
                                 valid = np.abs(np.sin(theta_rad)) > 1e-6
+
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
                                 d[~valid] = np.nan
-                                return d
-                            elif "d-spacing" in input_format and "2theta" in output_format:
-                                if lambda_out is None:
-                                    st.error("Missing output wavelength for d-spacing → 2θ conversion.")
-                                    return x_values
 
+                                return d
+
+                            elif ("d-spacing" in input_format) and ("2theta" in output_format):
+                                if lambda_out is None:
+                                    print(f"Missing output wavelength for conversion: {output_format}")
+                                    return x_values
                                 valid = x_values > 0
                                 sin_arg = lambda_out / (2 * x_values[valid])
                                 sin_arg = np.clip(sin_arg, 0, 1)
+
                                 theta = np.degrees(np.arcsin(sin_arg))
                                 result = np.zeros_like(x_values)
                                 result[valid] = 2 * theta
                                 result[~valid] = np.nan
+
                                 return result
 
-
-                            elif "2theta" in input_format and "2theta" in output_format:
+                            elif ("2theta" in input_format) and ("2theta" in output_format):
                                 if lambda_in is None or lambda_out is None:
-                                    st.error("Missing wavelength for 2θ to 2θ conversion.")
+                                    print(
+                                        f"Missing wavelength for 2θ to 2θ conversion. Input λ: {lambda_in}, Output λ: {lambda_out}")
+                                    return x_values
+
+                                if abs(lambda_in - lambda_out) < 1e-6:
                                     return x_values
 
                                 theta_rad = np.radians(x_values / 2)
@@ -5139,18 +5239,18 @@ if "📈 Interactive Data Plot" in calc_mode:
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
 
-                                # Now d → 2θ (at new wavelength)
                                 sin_arg = lambda_out / (2 * d[valid])
                                 sin_arg = np.clip(sin_arg, 0, 1)
                                 theta_new = np.degrees(np.arcsin(sin_arg))
 
-                                result = np.copy(x_values)
+                                result = np.zeros_like(x_values)
                                 result[valid] = 2 * theta_new
                                 result[~valid] = np.nan
+
                                 return result
 
                             else:
-                                st.warning("No matching conversion logic applied.")
+                                print(f"No matching conversion logic for: {conversion_type}")
                                 return x_values
 
 
@@ -5158,20 +5258,25 @@ if "📈 Interactive Data Plot" in calc_mode:
                             x_data = convert_data(
                                 x_values=x_data,
                                 conversion_type=conversion_type,
-                                custom_wavelength=settings["custom_wavelength"]
+                                input_custom_wavelength=settings["input_custom_wavelength"],
+                                output_custom_wavelength=settings["output_custom_wavelength"]
                             )
 
-                            if "to d-spacing" in conversion_type:
+                            if "to q-vector" in conversion_type:
+                                x_axis_metric = "q (Å⁻¹)"
+                            elif "to d-spacing" in conversion_type:
                                 x_axis_metric = "d-spacing (Å)"
                             elif "to 2theta" in conversion_type:
                                 if "Copper" in conversion_type:
                                     x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
                                 elif "Cobalt" in conversion_type:
                                     x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
-                                elif "custom" in conversion_type:
-                                    x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
-                            elif conversion_type == "Auto slit to fixed slit":
-                                x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
+                                elif "custom" in conversion_type or "Custom" in conversion_type:
+                                    wavelength = settings['output_custom_wavelength']
+                                    if wavelength:
+                                        x_axis_metric = f"2θ (λ={wavelength}Å)"
+                                    else:
+                                        x_axis_metric = "2θ (°)"
 
                             st.success(f"Converted {file.name}: {conversion_type}")
 
@@ -5368,6 +5473,9 @@ st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
 **The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
 """)
+
+
+
 def get_memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
@@ -5375,8 +5483,8 @@ def get_memory_usage():
 
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free Streamlit Community Cloud with resource limit of 2.7 GBs. If there will be demand for more, "
-         "we will upgrade to paid server to have more resources. :]")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
+
 
 st.markdown("""
 
