@@ -4260,7 +4260,7 @@ if "📊 (P)RDF" in calc_mode:
                         structure = read(file.name)
                         mg_structure = AseAtomsAdaptor.get_structure(structure)
                     except Exception as e:
-                        mg_structure = load_structure(file.name)
+                        mg_structure = load_structure(file)
 
                     prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                     prdf_featurizer.fit([mg_structure])
