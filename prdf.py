@@ -5011,7 +5011,7 @@ if "📈 Interactive Data Plot" in calc_mode:
 
                 """)
             for i, file in enumerate(files):
-                with st.expander(f"🔄 Conversion settings for {file.name}", expanded=(i == 0)):
+                with st.expander(f"🔄 Conversion settings for **{file.name}**", expanded=(i == 0)):
                     wave_col, slit_col = st.columns(2)
 
                     with wave_col:
