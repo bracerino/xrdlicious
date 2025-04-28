@@ -742,10 +742,15 @@ if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
 if st.session_state["first_run_note"] == True:
-    st.info("""
-    From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
-    If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases** above 🐣.
-    """)
+    colh1, colh2 = st.columns([1,3])
+    with colh1:
+        image = Image.open("images/Rb.png")
+        st.image(image)
+    with colh2:
+        st.info("""
+        From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
+        If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases** above 🐣.
+        """)
     st.session_state["first_run_note"] = False
 
 
