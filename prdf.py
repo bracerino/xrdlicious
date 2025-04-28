@@ -1614,9 +1614,9 @@ if "🔬 Structure Modification" in calc_mode:
                 column_config={
                     "Occupancy": st.column_config.NumberColumn(
                         "Occupancy",
-                        min_value=0.01,
-                        max_value=1.00,
-                        step=0.01,
+                        min_value=0.001,
+                        max_value=1.000,
+                        step=0.001,
                         format="%.3f",  # ensures decimals
                     ),
                     "Frac X": st.column_config.NumberColumn(format="%.5f"),
