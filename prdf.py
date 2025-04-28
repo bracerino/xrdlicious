@@ -2144,11 +2144,11 @@ if "🔬 Structure Modification" in calc_mode:
                     element = row['Element']
                     occ = row['Occupancy']
                     if occ > 0.01:
-                        label_parts.append(f"{element}{occ:.1f}")
+                        label_parts.append(f"{element}{occ:.3f}")
 
 
                 if vacancy > 0.01:
-                    label_parts.append(f"□{vacancy:.1f}")  # Square symbol for vacancy
+                    label_parts.append(f"□{vacancy:.3f}")  # Square symbol for vacancy
 
                 atom_labels_dict[position_key] = "/".join(label_parts)
 
