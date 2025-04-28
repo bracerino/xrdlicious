@@ -793,7 +793,7 @@ if uploaded_files:
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
-st.sidebar.markdown("### 🗑️ Remove structure(s) added from online databases")
+st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
 
 files_to_remove = []
 for i, file in enumerate(st.session_state['uploaded_files']):
@@ -871,6 +871,8 @@ def recalc_computed_columns(df, lattice):
 
     return df
 
+if "xrd_download_prepared" not in st.session_state:
+    st.session_state.xrd_download_prepared = False
 
 def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
     try:
@@ -2731,7 +2733,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 "(1+cos²(2θ))/(sin²θ cosθ) is applied."
             )
         )
-        st.session_state["expander_diff_settings"] = False
+        st.session_state["expander_diff_settings"] = True
 
         # --- Diffraction Calculator Selection ---
         col2, col3, col4 = st.columns(3)
@@ -3804,7 +3806,7 @@ if "💥 Powder Diffraction" in calc_mode:
             annotate_indices = details["annotate_indices"]
             x_dense_full = details["x_dense_full"]
             y_dense = details["y_dense"]
-            with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
+            with st.expander(f"View Peak Data for Diffraction Pattern: **{file.name}**"):
                 table_str = "#X-axis    Intensity    hkl\n"
                 for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
                     if len(hkl_group[0]['hkl']) == 3:
@@ -3821,7 +3823,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 hkl_group])
                     table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str, language="text")
-            with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: {file.name}", expanded=True):
+            with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
                 table_str2 = "#X-axis    Intensity    hkl\n"
                 for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
                     if i in annotate_indices:
@@ -3839,11 +3841,30 @@ if "💥 Powder Diffraction" in calc_mode:
                                     h in hkl_group])
                         table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str2, language="text")
-            with st.expander(f"View Continuous Curve Data for Diffraction Pattern: {file.name}"):
-                table_str3 = "#X-axis    Y-value\n"
-                for x_val, y_val in zip(x_dense_full, y_dense):
-                    table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
-                st.code(table_str3, language="text")
+
+            button_key = f"prepare_download_{file.name}"
+            if button_key not in st.session_state:
+                st.session_state[button_key] = False
+            def prepare_xrd_download(file_key):
+                st.session_state[file_key] = True
+
+            st.button(f"Download Continuous Curve Data for {file.name}",
+                      key=f"button_{file.name}",
+                      on_click=prepare_xrd_download,
+                      args=(button_key,))
+            if st.session_state[button_key]:
+                import base64
+
+                # Prepare the data for download
+                df = pd.DataFrame({
+                    "X-axis": x_dense_full,
+                    "Y-value": y_dense
+                })
+                csv = df.to_csv(index=False)
+                b64 = base64.b64encode(csv.encode()).decode()
+                filename = f"continuous_curve_data_{file.name.replace('.', '_')}.csv"
+                download_link = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download Continuous Curve Data for {file.name}</a>'
+                st.markdown(download_link, unsafe_allow_html=True)
 
 
         combined_data = {}
@@ -4863,6 +4884,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             y_axis_metric = "Y-data"
 
     plot_placeholder = st.empty()
+    st.sidebar.markdown("### Interactive Data Plot layout")
     customize_layout = st.sidebar.checkbox(f"Modify the **graph layout**", value=False)
     if customize_layout:
         #st.sidebar.markdown("### Graph Appearance Settings")
