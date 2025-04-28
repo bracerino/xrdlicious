@@ -2436,6 +2436,9 @@ if "🔬 Structure Modification" in calc_mode:
         gamma = lattice.gamma
         volume = lattice.volume
 
+        density_g =  str(visual_pmg_structure.density).split()[0]
+        density_a = len(visual_pmg_structure) / volume
+
         # Get lattice parameters
 
         lattice_str = (
@@ -2483,6 +2486,7 @@ if "🔬 Structure Modification" in calc_mode:
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
                 <p><strong>Number of Atoms:</strong> {len(visual_pmg_structure)}</p>
                 <p><strong>Space Group:</strong> {space_group_str}</p>
+                <p><strong>Density:</strong> {density_g} g/cm³ ({density_a} 1/Å³) </p>
                 <p><strong>Structure Type:</strong> {str_type}</p>
             </div>
             """, unsafe_allow_html=True)
