@@ -323,7 +323,7 @@ if st.session_state["first_run_note"] == True:
     with colh2:
         st.info("""
         From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
-        If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases** above 🐣.
+        If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
         """)
     st.session_state["first_run_note"] = False
 
