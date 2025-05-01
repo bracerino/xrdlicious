@@ -1012,7 +1012,7 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
 def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
                                     target_value=0.5):
     with colb3:
-        with st.spinner(f"Creating substitutes, please wait. 😊"):
+        with st.spinner(f"Creating vacancies, please wait. 😊"):
             new_structure = structure.copy()
             indices_to_remove = []
             for el, perc in vacancy_percentages.items():
