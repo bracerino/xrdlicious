@@ -183,20 +183,21 @@ with col3:
         """, unsafe_allow_html=True)
 
 with col1:
-    with st.expander("Read here about this appllication.", icon="📖"):
+    with st.expander("About the app.", icon="📖"):
         st.info(
             "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
             "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
             "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
             "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
-            "Additionally, there is option to interactively plot and modify your two-columns data. "
+            "There is also option to interactively plot and modify your two-columns data. In case of XRD data, you can convert between different wavelenghts, d-space, or q-space, and between fixed and automatic divergence slits. "
         )
         st.warning(
             "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
-            "**Structure Visualization** lets you view, convert (primitive ⇄ conventional), create **supercell and point defects**, and download structures (**CIF, POSCAR, LMP, XYZ**).\n\n "
-            "**Diffraction** computes patterns on uploaded structures or shows **experimental data**.\n\n "
-            "**PRDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
-            "**Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
+            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), create **supercell and point defects**, modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**).\n\n "
+            "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
+            "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
+            "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
+            "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
             f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
             "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy)."
         )
@@ -205,6 +206,9 @@ with col1:
 
         image = Image.open("images/ts4.png")
         st.image(image)
+        if st.button("Clear Cache"):
+            st.cache_data.clear()
+            st.cache_resource.clear()
 
 pattern_details = None
 
