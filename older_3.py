@@ -111,57 +111,7 @@ components.html(
 
 st.markdown("#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 
-st.markdown("""
-<style>
-@keyframes wave {
-  0% { transform: rotate(0.0deg); }
-  10% { transform: rotate(14.0deg); }
-  20% { transform: rotate(-8.0deg); }
-  30% { transform: rotate(14.0deg); }
-  40% { transform: rotate(-4.0deg); }
-  50% { transform: rotate(10.0deg); }
-  60% { transform: rotate(0.0deg); }
-  100% { transform: rotate(0.0deg); }
-}
 
-@keyframes fadeOut {
-  0%   { opacity: 1; }
-  80%  { opacity: 1; }
-  100% { opacity: 0; display: none; }
-}
-
-.hello-container {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  animation: fadeOut 7s ease-out forwards;
-}
-
-.hello-message {
-  font-size: 2.5em;
-  font-weight: bold;
-  text-align: center;
-  background-color: #f0f2f6;
-  padding: 20px 30px;
-  border-radius: 20px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
-}
-
-.wave-emoji {
-  display: inline-block;
-  animation: wave 2s infinite;
-  transform-origin: 70% 70%;
-}
-</style>
-
-<div class="hello-container">
-  <div class="hello-message">
-      <span class="wave-emoji">👋</span> Hello there! Welcome to <span style="color:#0066cc;">XRDlicious</span>.<br>
-  </div>
-</div>
-""", unsafe_allow_html=True)
 
 
 
@@ -169,7 +119,7 @@ col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/ZiRbcgS_cd0) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
         "lebedmi2@cvut.cz"
     )
 with col3:
@@ -338,7 +288,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, XSF, PW, CFG, ...):",
+    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, ...):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
@@ -362,10 +312,23 @@ if uploaded_files_user_sidebar:
                 st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
                          f"and please remove this wrongly placed file. 😊")
 
+if "first_run_note" not in st.session_state:
+    st.session_state["first_run_note"] = True
 
+if st.session_state["first_run_note"] == True:
+    colh1, colh2 = st.columns([1,3])
+    with colh1:
+        image = Image.open("images/Rb.png")
+        st.image(image)
+    with colh2:
+        st.info("""
+        From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
+        If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
+        """)
+    st.session_state["first_run_note"] = False
 
 #if "📈 Interactive Data Plot" not in calc_mode:
-with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=False):
+with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
     cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
     with cols:
 
@@ -524,6 +487,7 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
         with cols2:
             image = Image.open("images/Rabbit2.png")
             st.image(image, use_container_width =True)
+
 
 
     with cols3:
@@ -737,15 +701,7 @@ with st.expander("Search for Structures Online in Databases", icon="🔍", expan
                                 mime="chemical/x-cif", type="primary",
                             )
 
-if "first_run_note" not in st.session_state:
-    st.session_state["first_run_note"] = True
 
-if st.session_state["first_run_note"] == True:
-    st.info("""
-    From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
-    If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases** above 🐣.
-    """)
-    st.session_state["first_run_note"] = False
 
 
 def validate_atom_dataframe(df):
@@ -792,7 +748,7 @@ if uploaded_files:
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
-st.sidebar.markdown("### 🗑️ Remove structure(s) added from online databases")
+st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
 
 files_to_remove = []
 for i, file in enumerate(st.session_state['uploaded_files']):
@@ -870,6 +826,8 @@ def recalc_computed_columns(df, lattice):
 
     return df
 
+if "xrd_download_prepared" not in st.session_state:
+    st.session_state.xrd_download_prepared = False
 
 def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
     try:
@@ -1054,7 +1012,7 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
 def remove_vacancies_from_structure(structure, vacancy_percentages, selection_mode="farthest",
                                     target_value=0.5):
     with colb3:
-        with st.spinner(f"Creating substitutes, please wait. 😊"):
+        with st.spinner(f"Creating vacancies, please wait. 😊"):
             new_structure = structure.copy()
             indices_to_remove = []
             for el, perc in vacancy_percentages.items():
@@ -1611,10 +1569,10 @@ if "🔬 Structure Modification" in calc_mode:
                 column_config={
                     "Occupancy": st.column_config.NumberColumn(
                         "Occupancy",
-                        min_value=0.01,
-                        max_value=1.00,
-                        step=0.01,
-                        format="%.2f",  # ensures decimals
+                        min_value=0.001,
+                        max_value=1.000,
+                        step=0.001,
+                        format="%.3f",  # ensures decimals
                     ),
                     "Frac X": st.column_config.NumberColumn(format="%.5f"),
                     "Frac Y": st.column_config.NumberColumn(format="%.5f"),
@@ -2141,11 +2099,11 @@ if "🔬 Structure Modification" in calc_mode:
                     element = row['Element']
                     occ = row['Occupancy']
                     if occ > 0.01:
-                        label_parts.append(f"{element}{occ:.1f}")
+                        label_parts.append(f"{element}{occ:.3f}")
 
 
                 if vacancy > 0.01:
-                    label_parts.append(f"□{vacancy:.1f}")  # Square symbol for vacancy
+                    label_parts.append(f"□{vacancy:.3f}")  # Square symbol for vacancy
 
                 atom_labels_dict[position_key] = "/".join(label_parts)
 
@@ -2433,6 +2391,9 @@ if "🔬 Structure Modification" in calc_mode:
         gamma = lattice.gamma
         volume = lattice.volume
 
+        density_g =  str(visual_pmg_structure.density).split()[0]
+        density_a = len(visual_pmg_structure) / volume
+
         # Get lattice parameters
 
         lattice_str = (
@@ -2480,6 +2441,7 @@ if "🔬 Structure Modification" in calc_mode:
                 <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
                 <p><strong>Number of Atoms:</strong> {len(visual_pmg_structure)}</p>
                 <p><strong>Space Group:</strong> {space_group_str}</p>
+                <p><strong>Density:</strong> {float(density_g):.2f} g/cm³ ({float(density_a):.4f} 1/Å³) </p>
                 <p><strong>Structure Type:</strong> {str_type}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -2730,7 +2692,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 "(1+cos²(2θ))/(sin²θ cosθ) is applied."
             )
         )
-        st.session_state["expander_diff_settings"] = False
+        st.session_state["expander_diff_settings"] = True
 
         # --- Diffraction Calculator Selection ---
         col2, col3, col4 = st.columns(3)
@@ -3556,7 +3518,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             mode='lines',
                             name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=pt_color, width=3, dash=dash_type),
+                            line=dict(color=pt_color, width=4, dash=dash_type),
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
@@ -3588,7 +3550,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         mode='lines',
                         name=file_name,
                         showlegend=True,
-                        line=dict(color=base_color, width=2, dash="solid"),
+                        line=dict(color=base_color, width=3, dash="solid"),
                         hoverinfo="text",
                         text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
@@ -3687,7 +3649,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=file.name,
-                        line=dict(dash='solid', width=2, color=color),
+                        line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>{file.name}:</b><br>"
@@ -3717,7 +3679,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         y=y_user_filtered,
                         mode="lines+markers",
                         name=user_pattern_file.name,
-                        line=dict(dash='solid', width=2, color=color),
+                        line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
                             f"<span style='color:{color};'><b>User XRD Data:</b><br>"
@@ -3803,7 +3765,7 @@ if "💥 Powder Diffraction" in calc_mode:
             annotate_indices = details["annotate_indices"]
             x_dense_full = details["x_dense_full"]
             y_dense = details["y_dense"]
-            with st.expander(f"View Peak Data for XRD Pattern: {file.name}"):
+            with st.expander(f"View Peak Data for Diffraction Pattern: **{file.name}**"):
                 table_str = "#X-axis    Intensity    hkl\n"
                 for theta, intensity, hkl_group in zip(peak_vals, intensities, hkls):
                     if len(hkl_group[0]['hkl']) == 3:
@@ -3820,7 +3782,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 hkl_group])
                     table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str, language="text")
-            with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: {file.name}", expanded=True):
+            with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
                 table_str2 = "#X-axis    Intensity    hkl\n"
                 for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
                     if i in annotate_indices:
@@ -3838,11 +3800,30 @@ if "💥 Powder Diffraction" in calc_mode:
                                     h in hkl_group])
                         table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                 st.code(table_str2, language="text")
-            with st.expander(f"View Continuous Curve Data for Diffraction Pattern: {file.name}"):
-                table_str3 = "#X-axis    Y-value\n"
-                for x_val, y_val in zip(x_dense_full, y_dense):
-                    table_str3 += f"{x_val:<12.5f} {y_val:<12.5f}\n"
-                st.code(table_str3, language="text")
+
+            button_key = f"prepare_download_{file.name}"
+            if button_key not in st.session_state:
+                st.session_state[button_key] = False
+            def prepare_xrd_download(file_key):
+                st.session_state[file_key] = True
+
+            st.button(f"Download Continuous Curve Data for {file.name}",
+                      key=f"button_{file.name}",
+                      on_click=prepare_xrd_download,
+                      args=(button_key,))
+            if st.session_state[button_key]:
+                import base64
+
+                # Prepare the data for download
+                df = pd.DataFrame({
+                    "X-axis": x_dense_full,
+                    "Y-value": y_dense
+                })
+                csv = df.to_csv(index=False)
+                b64 = base64.b64encode(csv.encode()).decode()
+                filename = f"continuous_curve_data_{file.name.replace('.', '_')}.csv"
+                download_link = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download Continuous Curve Data for {file.name}</a>'
+                st.markdown(download_link, unsafe_allow_html=True)
 
 
         combined_data = {}
@@ -3955,7 +3936,11 @@ def toggle_animation():
 
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
-    uploaded_files = st.session_state.uploaded_files
+    if 'uploaded_files_user_sidebar' in locals() and uploaded_files_user_sidebar:
+        uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
+    else:
+        uploaded_files = st.session_state['uploaded_files']
+    #uploaded_files = st.session_state.uploaded_files
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
@@ -4259,7 +4244,7 @@ if "📊 (P)RDF" in calc_mode:
                         structure = read(file.name)
                         mg_structure = AseAtomsAdaptor.get_structure(structure)
                     except Exception as e:
-                        mg_structure = load_structure(file.name)
+                        mg_structure = load_structure(file)
 
                     prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                     prdf_featurizer.fit([mg_structure])
@@ -4823,19 +4808,129 @@ if "📈 Interactive Data Plot" in calc_mode:
     x_axis_log = colc.checkbox("Logarithmic X-axis", value=False)
     y_axis_log = cold.checkbox("Logarithmic Y-axis", value=False)
 
-    col_line, col_marker = st.columns([1, 1])
-    show_lines = col_line.checkbox("Show Lines", value=True)
-    show_markers = col_marker.checkbox("Show Markers", value=False)
 
-    col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([1, 1, 1, 1, 1])
+
+    col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([2, 1, 1, 1, 1])
+    with col_thick:
+        st.info(f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot.")
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
     if fix_x_axis == True:
         x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
         x_axis_max = col_xmax.number_input("X-axis Maximum", value=10.0)
-    line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0, step=0.3)
-    marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0, step=1.0)
+    x_axis_metric = "X-data"
+    y_axis_metric = "Y-data"
+    if user_pattern_file:
+        files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
 
-    enable_conversion = st.checkbox("Enable powder XRD data conversion", value=False)
+        if has_header:
+            try:
+                sample_file = files[0]
+                sample_file.seek(0)
+                df_sample = pd.read_csv(
+                    sample_file,
+                    sep=r'\s+|,|;',
+                    engine='python',
+                    header=0
+                )
+                x_axis_metric = df_sample.columns[0]
+                y_axis_metric = df_sample.columns[1]
+            except Exception as e:
+                st.error(f"Error reading header from file {sample_file.name}: {e}")
+                x_axis_metric = "X-data"
+                y_axis_metric = "Y-data"
+        else:
+            x_axis_metric = "X-data"
+            y_axis_metric = "Y-data"
+
+    plot_placeholder = st.empty()
+    st.sidebar.markdown("### Interactive Data Plot layout")
+    customize_layout = st.sidebar.checkbox(f"Modify the **graph layout**", value=False)
+    if customize_layout:
+        #st.sidebar.markdown("### Graph Appearance Settings")
+
+        col_line, col_marker = st.sidebar.columns(2)
+        show_lines = col_line.checkbox("Show Lines", value=True, key="show_lines")
+        show_markers = col_marker.checkbox("Show Markers", value=False, key="show_markers")
+
+        col_thick, col_size = st.sidebar.columns(2)
+        line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0,
+                                                step=0.3,
+                                                key="line_thickness")
+        marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0,
+                                            step=1.0,
+                                            key="marker_size")
+
+        col_title_font, col_axis_font, col_tick_font = st.sidebar.columns(3)
+        title_font_size = col_title_font.number_input("Title Font Size", min_value=10, max_value=50,
+                                                      value=36,
+                                                      step=2,
+                                                      key="title_font_size")
+        axis_label_font_size = col_axis_font.number_input("Axis Label Font Size", min_value=10,
+                                                          max_value=50,
+                                                          value=36,
+                                                          step=2, key="axis_font_size")
+        tick_font_size = col_tick_font.number_input("Tick Label Font Size", min_value=8, max_value=40,
+                                                    value=24,
+                                                    step=2,
+                                                    key="tick_font_size")
+
+        col_leg_font, col_leg_pos = st.sidebar.columns(2)
+        legend_font_size = col_leg_font.number_input("Legend Font Size", min_value=8, max_value=40,
+                                                     value=28,
+                                                     step=2,
+                                                     key="legend_font_size")
+        legend_position = col_leg_pos.selectbox(
+            "Legend Position",
+            options=["Top", "Bottom", "Left", "Right"],
+            index=0,
+            key="legend_position"
+        )
+
+        col_width, col_height = st.sidebar.columns(2)
+        graph_width = col_width.number_input("Graph Width (pixels)", min_value=400, max_value=2000,
+                                             value=1000,
+                                             step=50,
+                                             key="graph_width")
+        graph_height = col_height.number_input("Graph Height (pixels)", min_value=300, max_value=1500,
+                                               value=900,
+                                               step=50, key="graph_height")
+
+        st.sidebar.markdown("#### Custom Axis Labels")
+        col_x_label, col_y_label = st.sidebar.columns(2)
+        custom_x_label = col_x_label.text_input("X-axis Label", value=x_axis_metric, key="custom_x_label")
+        custom_y_label = col_y_label.text_input("Y-axis Label", value=y_axis_metric, key="custom_y_label")
+
+        if user_pattern_file:
+            st.sidebar.markdown("#### Custom Series Names")
+            series_names = {}
+
+            if isinstance(user_pattern_file, list):
+                for i, file in enumerate(user_pattern_file):
+                    series_names[i] = st.sidebar.text_input(f"Label for {file.name}", value=file.name,
+                                                    key=f"series_name_{i}")
+            else:
+                series_names[0] = st.sidebar.text_input(f"Label for {user_pattern_file.name}",
+                                                value=user_pattern_file.name,
+                                                key="series_name_0")
+    else:
+        show_lines = True
+        show_markers = False
+        line_thickness = 1.0
+        marker_size = 3.0
+        title_font_size = 36
+        axis_label_font_size = 36
+        tick_font_size = 24
+        legend_font_size = 28
+        legend_position = "Top"
+        graph_width = 1000
+        graph_height = 900
+        custom_x_label = x_axis_metric
+        custom_y_label = y_axis_metric
+        series_names = {}
+
+    enable_conversion = st.checkbox(f"Enable powder **XRD data conversion**", value=False)
+
+
 
     if user_pattern_file:
         files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
@@ -4901,71 +4996,102 @@ if "📈 Interactive Data Plot" in calc_mode:
 
                 """)
             for i, file in enumerate(files):
-                with st.expander(f"🔄 Conversion settings for {file.name}", expanded=(i == 0)):
+                with st.expander(f"🔄 Conversion settings for **{file.name}**", expanded=(i == 0)):
                     wave_col, slit_col = st.columns(2)
 
                     with wave_col:
-                        st.markdown("**Wavelength/d-spacing conversion:**")
+                        st.markdown("**Diffraction data conversion:**")
                         input_format = st.selectbox(
                             "Convert from:",
                             [
                                 "No conversion",
-                                "d-spacing (Å)",  # Repositioned as suggested earlier
+                                "d-spacing (Å)",
                                 "2theta (Copper CuKa1)",
                                 "2theta (Cobalt CoKa1)",
-                                "2theta (Custom)"
+                                "2theta (Custom)",
+                                "q-vector (Å⁻¹)"
                             ],
-                            key=f"input_format_{i}", help = f"Copper (CuKa1): 1.5406 Å\n\n"
-                                " Molybdenum (MoKa1): 0.7093 Å\n"
-                                " Chromium (CrKa1): 2.2897 Å\n"
-                                " Iron (FeKa1): 1.9360 Å\n"
-                                " Cobalt (CoKa1): 1.7889 Å\n"
-                                " Silver (AgKa1): 0.5594 Å\n"
+                            key=f"input_format_{i}",
+                            help=f"Copper (CuKa1): 1.5406 Å\n\n"
+                                 " Molybdenum (MoKa1): 0.7093 Å\n\n"
+                                 " Chromium (CrKa1): 2.2897 Å\n\n"
+                                 " Iron (FeKa1): 1.9360 Å\n\n"
+                                 " Cobalt (CoKa1): 1.7889 Å\n\n"
+                                 " Silver (AgKa1): 0.5594 Å\n\n"
+                                 " q-vector = 4π·sin(θ)/λ\n"
                         )
 
-                        # Define all possible output options
                         all_output_options = [
                             "No conversion",
                             "d-spacing (Å)",
                             "2theta (Copper CuKa1)",
                             "2theta (Cobalt CoKa1)",
-                            "2theta (Custom)"
+                            "2theta (Custom)",
+                            "q-vector (Å⁻¹)"
                         ]
 
-                        # Filter output options based on input selection
                         if input_format != "No conversion":
-                            # Remove the current input format from output options to avoid redundant conversion
-                            if input_format in all_output_options:
-                                filtered_options = [opt for opt in all_output_options if opt != input_format]
-                            else:
-                                filtered_options = all_output_options
+                            filtered_options = all_output_options.copy()
+                            if input_format in filtered_options and input_format != "2theta (Custom)":
+                                filtered_options.remove(input_format)
                         else:
-                            # When "No conversion" is selected for input, show all options but make "No conversion" the default
                             filtered_options = all_output_options
 
-                        # Always display the output format dropdown
                         output_format = st.selectbox(
                             "Convert to:",
                             filtered_options,
-                            index=0,  # Default to first option ("No conversion")
+                            index=0,
                             key=f"output_format_{i}"
                         )
 
-                        # Initialize custom_wavelength with a default value
-                        custom_wavelength = None
+                        input_custom_wavelength = None
+                        output_custom_wavelength = None
 
-                        # Custom wavelength input if needed
-                        if (input_format == "2theta (Custom)" or
-                                output_format == "2theta (Custom)"):
-                            custom_wavelength = st.number_input(
-                                "Custom wavelength (Å)",
+                        if input_format == "2theta (Custom)":
+                            input_custom_wavelength = st.number_input(
+                                "Input custom wavelength (Å)",
                                 min_value=0.1,
                                 max_value=10.0,
                                 value=1.54056,
                                 step=0.01,
                                 format="%.5f",
-                                key=f"custom_wl_{i}"
+                                key=f"input_custom_wl_{i}"
                             )
+
+                        if output_format == "2theta (Custom)":
+                            output_custom_wavelength = st.number_input(
+                                "Output custom wavelength (Å)",
+                                min_value=0.1,
+                                max_value=10.0,
+                                value=1.54056 if input_custom_wavelength is None else input_custom_wavelength * 0.9,
+                                step=0.01,
+                                format="%.5f",
+                                key=f"output_custom_wl_{i}"
+                            )
+
+                        if input_format == "q-vector (Å⁻¹)" and "2theta" in output_format and output_custom_wavelength is None:
+                            if "Custom" in output_format:
+                                output_custom_wavelength = st.number_input(
+                                    "Output wavelength for q-vector to 2theta conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"q_to_2theta_wl_{i}"
+                                )
+
+                        if "2theta" in input_format and output_format == "q-vector (Å⁻¹)" and input_custom_wavelength is None:
+                            if "Custom" in input_format:
+                                input_custom_wavelength = st.number_input(
+                                    "Input wavelength for 2theta to q-vector conversion (Å)",
+                                    min_value=0.1,
+                                    max_value=10.0,
+                                    value=1.54056,
+                                    step=0.01,
+                                    format="%.5f",
+                                    key=f"2theta_to_q_wl_{i}"
+                                )
 
                     with slit_col:
 
@@ -5007,7 +5133,8 @@ if "📈 Interactive Data Plot" in calc_mode:
                         "conversion_type": "No conversion" if input_format == "No conversion" or not output_format else f"{input_format} to {output_format}",
                         "input_format": input_format,
                         "output_format": output_format,
-                        "custom_wavelength": custom_wavelength,
+                        "input_custom_wavelength": input_custom_wavelength,
+                        "output_custom_wavelength": output_custom_wavelength,
                         "slit_conversion_type": slit_conversion_type,
                         "fixed_slit_size": fixed_slit_size,
                         "irradiated_length": irradiated_length
@@ -5084,14 +5211,13 @@ if "📈 Interactive Data Plot" in calc_mode:
                     if conversion_type == "No conversion":
                         pass
                     else:
-                        def convert_data(x_values, conversion_type, custom_wavelength=None):
-
-                            import numpy as np
+                        def convert_data(x_values, conversion_type, input_custom_wavelength=None,
+                                         output_custom_wavelength=None):
 
                             wavelength_map = {
-                                "Copper": 1.54056,  # Cu Kα1
+                                "Copper": 1.54056,
                                 "CuKa1": 1.54056,
-                                "Cobalt": 1.78897,  # Co Kα1
+                                "Cobalt": 1.78897,
                                 "CoKa1": 1.78897
                             }
 
@@ -5108,24 +5234,69 @@ if "📈 Interactive Data Plot" in calc_mode:
                                 lambda_in = wavelength_map["Copper"]
                             elif "Cobalt" in input_format or "CoKa1" in input_format:
                                 lambda_in = wavelength_map["Cobalt"]
-                            elif "Custom" in input_format and custom_wavelength is not None:
-                                lambda_in = custom_wavelength
+                            elif "Custom" in input_format and input_custom_wavelength is not None:
+                                lambda_in = input_custom_wavelength
 
                             lambda_out = None
                             if "Copper" in output_format or "CuKa1" in output_format:
                                 lambda_out = wavelength_map["Copper"]
                             elif "Cobalt" in output_format or "CoKa1" in output_format:
                                 lambda_out = wavelength_map["Cobalt"]
-                            elif "Custom" in output_format and custom_wavelength is not None:
-                                lambda_out = custom_wavelength
+                            elif "Custom" in output_format and output_custom_wavelength is not None:
+                                lambda_out = output_custom_wavelength
 
-                            if ("2theta" in input_format) and ("d-spacing" in output_format):
+                            if "q-vector" in input_format and "d-spacing" in output_format:
+                                valid = x_values > 0
+                                d_values = np.zeros_like(x_values)
+                                d_values[valid] = 2 * np.pi / x_values[valid]
+                                d_values[~valid] = np.nan
+                                return d_values
+
+                            elif "d-spacing" in input_format and "q-vector" in output_format:
+                                valid = x_values > 0
+                                q_values = np.zeros_like(x_values)
+                                q_values[valid] = 2 * np.pi / x_values[valid]
+                                q_values[~valid] = np.nan
+                                return q_values
+
+                            elif "q-vector" in input_format and "2theta" in output_format:
+                                if lambda_out is None:
+                                    print(f"Missing output wavelength for q-vector to 2theta conversion")
+                                    return x_values
+
+                                valid = x_values >= 0
+                                sin_arg = (x_values[valid] * lambda_out) / (4 * np.pi)
+
+                                mask = (sin_arg >= -1) & (sin_arg <= 1)
+                                sin_arg = sin_arg[mask]
+
+                                theta = np.arcsin(sin_arg)
+                                twotheta = 2 * np.degrees(theta)
+
+                                result = np.zeros_like(x_values)
+                                result_indices = np.where(valid)[0][mask]
+                                result[result_indices] = twotheta
+                                result[~valid] = np.nan
+
+                                return result
+
+                            elif "2theta" in input_format and "q-vector" in output_format:
+                                if lambda_in is None:
+                                    print(f"Missing input wavelength for 2theta to q-vector conversion")
+                                    return x_values
+
+                                theta_rad = np.radians(x_values) / 2
+                                q_values = (4 * np.pi * np.sin(theta_rad)) / lambda_in
+
+                                return q_values
+
+                            elif ("2theta" in input_format) and ("d-spacing" in output_format):
                                 if lambda_in is None:
                                     print(f"Missing input wavelength for conversion: {input_format}")
                                     return x_values
 
-                                theta_rad = np.radians(x_values / 2)  # Convert to radians
-                                valid = np.abs(np.sin(theta_rad)) > 1e-6  # Avoid division by zero
+                                theta_rad = np.radians(x_values / 2)
+                                valid = np.abs(np.sin(theta_rad)) > 1e-6
 
                                 d = np.zeros_like(x_values)
                                 d[valid] = lambda_in / (2 * np.sin(theta_rad[valid]))
@@ -5139,7 +5310,7 @@ if "📈 Interactive Data Plot" in calc_mode:
                                     return x_values
                                 valid = x_values > 0
                                 sin_arg = lambda_out / (2 * x_values[valid])
-                                sin_arg = np.clip(sin_arg, 0, 1)  # Ensure valid arcsin input
+                                sin_arg = np.clip(sin_arg, 0, 1)
 
                                 theta = np.degrees(np.arcsin(sin_arg))
                                 result = np.zeros_like(x_values)
@@ -5181,20 +5352,25 @@ if "📈 Interactive Data Plot" in calc_mode:
                             x_data = convert_data(
                                 x_values=x_data,
                                 conversion_type=conversion_type,
-                                custom_wavelength=settings["custom_wavelength"]
+                                input_custom_wavelength=settings["input_custom_wavelength"],
+                                output_custom_wavelength=settings["output_custom_wavelength"]
                             )
 
-                            if "to d-spacing" in conversion_type:
+                            if "to q-vector" in conversion_type:
+                                x_axis_metric = "q (Å⁻¹)"
+                            elif "to d-spacing" in conversion_type:
                                 x_axis_metric = "d-spacing (Å)"
                             elif "to 2theta" in conversion_type:
                                 if "Copper" in conversion_type:
                                     x_axis_metric = "2θ (Cu Kα, λ=1.54056Å)"
                                 elif "Cobalt" in conversion_type:
                                     x_axis_metric = "2θ (Co Kα, λ=1.78897Å)"
-                                elif "custom" in conversion_type:
-                                    x_axis_metric = f"2θ (λ={settings['custom_wavelength']}Å)"
-                            elif conversion_type == "Auto slit to fixed slit":
-                                x_axis_metric = f"2θ (Fixed slit: {settings['fixed_slit_size']}°)"
+                                elif "custom" in conversion_type or "Custom" in conversion_type:
+                                    wavelength = settings['output_custom_wavelength']
+                                    if wavelength:
+                                        x_axis_metric = f"2θ (λ={wavelength}Å)"
+                                    else:
+                                        x_axis_metric = "2θ (°)"
 
                             st.success(f"Converted {file.name}: {conversion_type}")
 
@@ -5250,10 +5426,12 @@ if "📈 Interactive Data Plot" in calc_mode:
                         x_data = x_data[valid_mask]
                         y_data = y_data[valid_mask]
 
+
+            if normalized_intensity and np.max(y_data) > 0:
+                y_data = (y_data / np.max(y_data)) * 100
+
             try:
 
-                if normalized_intensity and np.max(y_data) > 0:
-                    y_data = (y_data / np.max(y_data)) * 100
 
                 if i < len(y_scales):
                     y_data = y_data * y_scales[i]
@@ -5288,56 +5466,124 @@ if "📈 Interactive Data Plot" in calc_mode:
                 if not mode_str:
                     mode_str = "markers"
 
+                trace_name = series_names.get(i, file.name) if customize_layout else file.name
+
                 fig_interactive.add_trace(go.Scatter(
                     x=x_data,
                     y=y_data,
                     mode=mode_str,
-                    name=file.name,
+                    name=trace_name,
                     line=dict(dash='solid', width=line_thickness, color=color),
                     marker=dict(color=color, size=marker_size),
                     hovertemplate=(
-                        f"<span style='color:{color};'><b>{file.name}</b><br>"
+                        f"<span style='color:{color};'><b>{trace_name}</b><br>"
                         "x = %{x:.2f}<br>y = %{y:.2f}</span><extra></extra>"
                     )
                 ))
-
             except Exception as e:
-                st.error(
-                    f"Error occurred in file processing. Please check whether your uploaded files are consistent: {e}")
+                st.error(f"Error processing file {file.name}: {e}")
 
-        fig_interactive.update_xaxes(type="linear")
-        fig_interactive.update_yaxes(type="linear")
-        fig_interactive.update_layout(
-            height=900,
-            margin=dict(t=80, b=80, l=60, r=30),
-            hovermode="closest",
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="center",
-                x=0.5,
-                font=dict(size=28),
-                title="Legend Title"
-            ),
-            xaxis=dict(
-                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                tickfont=dict(size=36, color='black')
-            ),
-            yaxis=dict(
-                title=dict(text=y_axis_metric, font=dict(size=36, color='black')),
-                tickfont=dict(size=36, color='black')
-            ),
-            hoverlabel=dict(font=dict(size=24)),
-            font=dict(size=18),
-            autosize=True
-        )
+                # Set axis scale
+            fig_interactive.update_xaxes(type="linear")
+            fig_interactive.update_yaxes(type="linear")
+
+            # Configure legend position based on selection
+            legend_config = {
+                "font": dict(size=legend_font_size),
+                "title": "Legend Title"
+            }
+
+            if legend_position == "Top":
+                legend_config.update({
+                    "orientation": "h",
+                    "yanchor": "bottom",
+                    "y": 1.02,
+                    "xanchor": "center",
+                    "x": 0.5
+                })
+            elif legend_position == "Bottom":
+                legend_config.update({
+                    "orientation": "h",
+                    "yanchor": "top",
+                    "y": -0.2,
+                    "xanchor": "center",
+                    "x": 0.5
+                })
+            elif legend_position == "Left":
+                legend_config.update({
+                    "orientation": "v",
+                    "yanchor": "middle",
+                    "y": 0.5,
+                    "xanchor": "right",
+                    "x": -0.1
+                })
+            elif legend_position == "Right":
+                legend_config.update({
+                    "orientation": "v",
+                    "yanchor": "middle",
+                    "y": 0.5,
+                    "xanchor": "left",
+                    "x": 1.05
+                })
+
+            # Update layout with all customized settings
+            fig_interactive.update_layout(
+                height=graph_height,
+                width=graph_width,
+                margin=dict(t=80, b=80, l=60, r=30),
+                hovermode="closest",
+                showlegend=True,
+                legend=legend_config,
+                xaxis=dict(
+                    title=dict(text=custom_x_label, font=dict(size=axis_label_font_size, color='black'), standoff=20),
+                    tickfont=dict(size=tick_font_size, color='black'),
+                    fixedrange=fix_x_axis
+                ),
+                yaxis=dict(
+                    title=dict(text=custom_y_label, font=dict(size=axis_label_font_size, color='black')),
+                    tickfont=dict(size=tick_font_size, color='black')
+                ),
+                title=dict(
+                    text="Interactive Data Plot",
+                    font=dict(size=title_font_size, color='black')
+                ),
+                hoverlabel=dict(font=dict(size=tick_font_size)),
+                font=dict(size=18),
+                autosize=False
+            )
+
+
+
+        if user_pattern_file:
+            files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
+
+            if has_header:
+                try:
+                    sample_file = files[0]
+                    sample_file.seek(0)
+                    df_sample = pd.read_csv(
+                        sample_file,
+                        sep=r'\s+|,|;',
+                        engine='python',
+                        header=0
+                    )
+                    x_axis_metric = df_sample.columns[0]
+                    y_axis_metric = df_sample.columns[1]
+                except Exception as e:
+                    st.error(f"Error reading header from file {sample_file.name}: {e}")
+                    x_axis_metric = "X-data"
+                    y_axis_metric = "Y-data"
+            else:
+                x_axis_metric = "X-data"
+                y_axis_metric = "Y-data"
+
+
 
         if fix_x_axis == True:
             fig_interactive.update_xaxes(range=[x_axis_min, x_axis_max])
 
-        st.plotly_chart(fig_interactive)
+        with plot_placeholder.container():
+            st.plotly_chart(fig_interactive)
 
         import io
 
@@ -5353,9 +5599,29 @@ if "📈 Interactive Data Plot" in calc_mode:
         delimiter_option = delimiter_label_to_value[delimiter_label]
 
         for i, file in enumerate(files):
+            x_data = fig_interactive.data[i].x
+            y_data = fig_interactive.data[i].y
+
+            if fix_x_axis:
+                if x_axis_log:
+                    x_values = 10 ** x_data
+                else:
+                    x_values = x_data
+
+                if x_axis_log:
+                    mask = (x_values >= x_axis_min) & (x_values <= x_axis_max)
+                else:
+                    mask = (x_data >= x_axis_min) & (x_data <= x_axis_max)
+
+                filtered_x = x_data[mask]
+                filtered_y = y_data[mask]
+            else:
+                filtered_x = x_data
+                filtered_y = y_data
+
             df_out = pd.DataFrame({
-                x_axis_metric: fig_interactive.data[i].x,
-                y_axis_metric: fig_interactive.data[i].y
+                x_axis_metric: filtered_x,
+                y_axis_metric: filtered_y
             })
 
             buffer = io.StringIO()
@@ -5364,8 +5630,12 @@ if "📈 Interactive Data Plot" in calc_mode:
             base_name = file.name.rsplit(".", 1)[0]
             download_name = f"{base_name}_processed.txt"
 
+            download_info = ""
+            if fix_x_axis:
+                download_info = f" (filtered to x-range: {x_axis_min}-{x_axis_max})"
+
             st.download_button(
-                label=f"⬇️ Download processed data for {file.name}",
+                label=f"⬇️ Download processed data for {file.name}{download_info}",
                 data=buffer.getvalue(),
                 file_name=download_name,
                 mime="text/plain"
@@ -5408,7 +5678,6 @@ st.markdown("""
 
 ### Acknowledgments
 
-This project uses several open-source tools and datasets. We gratefully acknowledge their authors and maintainers: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE).**[Pymatgen](https://github.com/materialsproject/pymatgen)** "
-" Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE)."
-" **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).
+This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE)."
+ **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).
 """)
