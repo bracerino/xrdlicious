@@ -2677,6 +2677,11 @@ if mode == "Basic":
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
 
+
+
+
+if "parsed_exp_data" not in st.session_state:
+    st.session_state.parsed_exp_data = {}
 #
 if "💥 Powder Diffraction" in calc_mode:
     with st.expander("Diffraction Settings", icon="⚙️", expanded = st.session_state["expander_diff_settings"]):
@@ -3189,27 +3194,288 @@ if "💥 Powder Diffraction" in calc_mode:
             if st.button("Calculate XRD"):
                 st.session_state.calc_xrd = True
 
+        st.sidebar.subheader(
+            "📉 Experimental Data Background Subtraction",
+            help=(
+                "This section allows you to subtract background from your uploaded experimental diffraction data. "
+                "You can choose from different background estimation methods and adjust parameters."
+            )
+        )
+        if user_pattern_file:
+            bg_subtraction_container = st.container()
+
+            with bg_subtraction_container:
+                if isinstance(user_pattern_file, list) and len(user_pattern_file) > 1:
+                    selected_exp_file = st.sidebar.selectbox(
+                        "Select experimental data file for background subtraction",
+                        options=[file.name for file in user_pattern_file],
+                        index=0
+                    )
+                    selected_file_obj = next((file for file in user_pattern_file if file.name == selected_exp_file),
+                                             None)
+                else:
+                    selected_file_obj = user_pattern_file[0] if isinstance(user_pattern_file,
+                                                                           list) else user_pattern_file
+                    selected_exp_file = selected_file_obj.name
+
+
+                try:
+                    df = pd.read_csv(selected_file_obj, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                    x_exp = df.iloc[:, 0].values
+                    y_exp = df.iloc[:, 1].values
+
+                    if "original_exp_data" not in st.session_state:
+                        st.session_state.original_exp_data = {}
+
+                    if selected_exp_file not in st.session_state.original_exp_data:
+                        st.session_state.original_exp_data[selected_exp_file] = {
+                            "x": x_exp.copy(),
+                            "y": y_exp.copy()
+                        }
+
+                    # Background subtraction method selection
+                    bg_method = st.sidebar.radio(
+                        "Background Estimation Method",
+                        ["None", "Polynomial Fit", "SNIP Algorithm", "Rolling Ball Algorithm"],
+                        index=0,
+                        key="bg_method",
+                        help=(
+                            "Choose a method to estimate the background:\n"
+                            "- Polynomial Fit: Fits a polynomial of specified degree to the data\n"
+                            "- SNIP Algorithm: Statistics-sensitive Non-linear Iterative Peak-clipping\n"
+                            "- Rolling Ball Algorithm: Simulates rolling a ball under the spectrum"
+                        )
+                    )
+
+                    # If any method other than "None" is selected
+                    if bg_method != "None":
+                        param_col1, param_col2 = st.columns(2)
+
+                        if "bg_subtracted_data" not in st.session_state:
+                            st.session_state.bg_subtracted_data = {}
+
+                        if bg_method == "Polynomial Fit":
+                            with param_col1:
+                                poly_degree = st.slider("Polynomial Degree", 1, 10, 3, 1,
+                                                        help="Higher degree allows more complex background shapes")
+
+                            with param_col2:
+                                smoothing_factor = st.slider("Smoothing Factor", 0.0, 1.0, 0.0, 0.01,
+                                                             help="Higher values create smoother fits (0=exact fit)")
+
+                            def poly_bg(x, y, degree, smoothing):
+                                sort_idx = np.argsort(x)
+                                x_sorted = x[sort_idx]
+                                y_sorted = y[sort_idx]
+
+                                if smoothing > 0:
+                                    from scipy.signal import savgol_filter
+                                    window = max(3, int(len(x) * smoothing / 5) * 2 + 1)  # Must be odd
+                                    window = min(window, len(x) - 1)
+                                    if window >= 3:
+                                        y_smoothed = savgol_filter(y_sorted, window, min(degree, window - 1))
+                                    else:
+                                        y_smoothed = y_sorted
+                                else:
+                                    y_smoothed = y_sorted
+
+                                coeffs = np.polyfit(x_sorted, y_smoothed, degree)
+                                background = np.polyval(coeffs, x)
+
+                                return background
+
+
+                            background = poly_bg(x_exp, y_exp, poly_degree, smoothing_factor)
+
+                        elif bg_method == "SNIP Algorithm":
+                            with param_col1:
+                                snip_iterations = st.slider("SNIP Iterations", 1, 100, 20, 1,
+                                                            help="Number of iterations for the SNIP algorithm")
+
+                            with param_col2:
+                                snip_window = st.slider("Window Size", 3, 101, 21, 2,
+                                                        help="Window size for the SNIP algorithm (must be odd)")
+                                if snip_window % 2 == 0:
+                                    snip_window += 1  # Ensure window is odd
+
+                            def snip_bg(y, iterations, window_size):
+                                if window_size % 2 == 0:
+                                    window_size += 1
+
+                                half_window = window_size // 2
+                                y_bg = y.copy()
+
+                                # SNIP algorithm
+                                for _ in range(iterations):
+                                    for i in range(half_window, len(y) - half_window):
+                                        left_val = y_bg[i - half_window]
+                                        right_val = y_bg[i + half_window]
+                                        min_val = min(left_val, right_val)
+                                        y_bg[i] = min(y_bg[i], min_val)
+
+                                return y_bg
+
+
+                            background = snip_bg(y_exp, snip_iterations, snip_window)
+
+                        elif bg_method == "Rolling Ball Algorithm":
+                            with param_col1:
+                                ball_radius = st.slider("Ball Radius", 1, 100, 30, 1,
+                                                        help="Radius of the rolling ball (larger = smoother background)")
+
+                            with param_col2:
+                                ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1,
+                                                           help="Number of smoothing passes before background estimation")
+
+
+                            # Apply the Rolling Ball background estimation
+                            def rolling_ball_bg(y, radius, smoothing_passes):
+
+                                y_smoothed = y.copy()
+                                if smoothing_passes > 0:
+                                    window_size = min(len(y) // 10, 20)
+                                    if window_size % 2 == 0:
+                                        window_size += 1  # Ensure window is odd
+
+                                    if window_size >= 3:
+                                        from scipy.signal import savgol_filter
+                                        for _ in range(smoothing_passes):
+                                            y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+
+                                y_bg = np.zeros_like(y_smoothed)
+                                for i in range(len(y_smoothed)):
+                                    start = max(0, i - radius)
+                                    end = min(len(y_smoothed), i + radius + 1)
+
+                                    window_min = np.min(y_smoothed[start:end])
+
+                                    y_bg[i] = window_min
+
+                                return y_bg
+
+
+                            background = rolling_ball_bg(y_exp, ball_radius, ball_smoothing)
+
+                        y_bg_subtracted = np.maximum(0, y_exp - background)
+
+                        # Store the background-subtracted data
+                        st.session_state.bg_subtracted_data[selected_exp_file] = {
+                            "x": x_exp,
+                            "y": y_bg_subtracted,
+                            "background": background,
+                            "method": bg_method,
+                            "params": {
+                                "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
+                                "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
+                                "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
+                                "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
+                                "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
+                                "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
+                            }
+                        }
+
+                        apply_permanent = st.button("Permanently Apply This Background Subtraction", type='primary',
+                                                    help="This will permanently modify the data for this file. The background-subtracted data will be used for all future operations, even if you change parameters or work with other files.")
+
+                        if apply_permanent:
+                            if "permanent_exp_data" not in st.session_state:
+                                st.session_state.permanent_exp_data = {}
+                            st.session_state.permanent_exp_data[selected_exp_file] = {
+                                "x": x_exp.copy(),
+                                "y": y_bg_subtracted.copy(),
+                                "original_x": x_exp.copy(),
+                                "original_y": y_exp.copy(),
+                                "background": background.copy(),
+                                "method": bg_method,
+                                "params": {
+                                    "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
+                                    "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
+                                    "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
+                                    "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
+                                    "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
+                                    "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
+                                }
+                            }
+                            st.success(f"Background subtraction has been permanently applied to {selected_exp_file}!")
+
+                        col1, col2, col3 = st.columns([1, 2, 1])
+
+                        with col2:
+                            fig_bg = plt.figure(figsize=(4, 3))
+                            plt.plot(x_exp, y_exp, 'k-', label='Original Data')
+                            plt.plot(x_exp, background, 'r-', label='Estimated Background')
+                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='Background Subtracted')
+                            plt.xlabel(x_axis_metric, fontsize=8)
+                            plt.ylabel('Intensity (a.u.)', fontsize=8)
+                            plt.title(f'Background Subtraction', fontsize=10)
+                            plt.xticks(fontsize=7)
+                            plt.yticks(fontsize=7)
+                            plt.legend(fontsize=7)
+                            plt.tight_layout(pad=0.5)
+                            st.pyplot(fig_bg, use_container_width=False)
+
+                        use_bg_subtracted = st.checkbox("Use background-subtracted data for visualization", value=True,
+                                                        help="When checked, the background-subtracted data will be used in the main plot")
+
+                        if use_bg_subtracted:
+
+                            st.session_state.use_bg_subtracted = True
+                            st.session_state.active_bg_subtracted_file = selected_exp_file
+                        else:
+                            st.session_state.use_bg_subtracted = False
+                except Exception as e:
+                    st.error(f"Error processing experimental file {selected_exp_file}: {e}")
+
+
         # --- XRD Calculation ---
         colors = ["black", "brown", "grey", "purple"]
         if not st.session_state.calc_xrd:
             st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
-        if user_pattern_file:
+
+        if user_pattern_file and (not st.session_state.calc_xrd or not uploaded_files):
+            if "parsed_exp_data" not in st.session_state:
+                st.session_state.parsed_exp_data = {}
+
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
-                    try:
-                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                    file_name = file.name
 
+                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                        display_name = file_name + " (BG removed)"
+
+                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                          "active_bg_subtracted_file" in st.session_state and
+                          st.session_state.active_bg_subtracted_file == file_name and
+                          "bg_subtracted_data" in st.session_state and
+                          file_name in st.session_state.bg_subtracted_data):
+
+                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                        display_name = file_name + " (temp BG removed)"
+                    else:
+                        file.seek(0)
+
+                        file_contents = file.read()
+
+                        if isinstance(file_contents, bytes):
+                            file_contents = file_contents.decode('utf-8')
+
+                        from io import StringIO
+
+                        data_io = StringIO(file_contents)
+
+                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
-                    except Exception as e:
-                        #  st.error(f"Error processing experimental file {file.name}: {e}")
-                        continue
+                        display_name = file_name
 
+                        file.seek(0)
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
-                    mask_user = (x_user >= st.session_state.two_theta_min) & (
-                            x_user <= st.session_state.two_theta_max)
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
 
@@ -3218,11 +3484,14 @@ if "💥 Powder Diffraction" in calc_mode:
                         x=x_user_filtered,
                         y=y_user_filtered,
                         mode="lines+markers",
-                        name=file.name,
+                        name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
+                                                                 st.session_state.use_bg_subtracted and
+                                                                 "active_bg_subtracted_file" in st.session_state and
+                                                                 st.session_state.active_bg_subtracted_file == file_name) else ""),
                         line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
-                            f"<span style='color::{color};'><b>{file.name}:</b><br>"
+                            f"<span style='color:{color};'><b>{file.name}:</b><br>"
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
@@ -3251,12 +3520,68 @@ if "💥 Powder Diffraction" in calc_mode:
                         autosize=True
                     )
             else:
+                file_name = user_pattern_file.name
                 try:
-                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
-                    x_user = df.iloc[:, 0].values
-                    y_user = df.iloc[:, 1].values
+                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                        # Use the permanently background-subtracted data
+                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                        display_name = file_name + " (BG removed)"
+
+                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                          "active_bg_subtracted_file" in st.session_state and
+                          st.session_state.active_bg_subtracted_file == file_name and
+                          "bg_subtracted_data" in st.session_state and
+                          file_name in st.session_state.bg_subtracted_data):
+
+                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                        display_name = file_name + " (temp BG removed)"
+                    else:
+                        user_pattern_file.seek(0)
+
+                        file_contents = user_pattern_file.read()
+
+                        if isinstance(file_contents, bytes):
+                            file_contents = file_contents.decode('utf-8')
+
+                        from io import StringIO
+
+                        data_io = StringIO(file_contents)
+
+                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                        x_user = df.iloc[:, 0].values
+                        y_user = df.iloc[:, 1].values
+                        display_name = file_name
+
+                        user_pattern_file.seek(0)
+
+                    if x_user is not None and y_user is not None:
+                        if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                            y_user = (y_user / np.max(y_user)) * 100
+
+
+                        mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                    x_user <= st.session_state.two_theta_max)
+                        x_user_filtered = x_user[mask_user]
+                        y_user_filtered = y_user[mask_user]
+
+
+                        color = "black"
+                        fig_interactive.add_trace(go.Scatter(
+                            x=x_user_filtered,
+                            y=y_user_filtered,
+                            mode="lines+markers",
+                            name=display_name,
+                            line=dict(dash='solid', width=1, color=color),
+                            marker=dict(color=color, size=3),
+                            hovertemplate=(
+                                f"<span style='color:{color};'><b>{display_name}:</b><br>"
+                                "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                            )
+                        ))
                 except Exception as e:
-                    # st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                    st.error(f"Error processing file {file_name}: {e}")
                     x_user, y_user = None, None
 
     if st.session_state.calc_xrd and uploaded_files:
@@ -3442,7 +3767,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 "y_dense": y_dense_total
             }
 
-        show_user_pattern = st.sidebar.checkbox("Show uploaded XRD pattern", value=True, key="show_user_pattern")
         if peak_representation != "Delta":
             if preset_choice in multi_component_presets:
                 st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
@@ -3629,30 +3953,63 @@ if "💥 Powder Diffraction" in calc_mode:
                                                 wavelength_nm, diffraction_choice)
         colors = ["black", "brown", "grey", "purple"]
         if user_pattern_file:
+            # Initialize parsed data cache if not already done
+            if "parsed_exp_data" not in st.session_state:
+                st.session_state.parsed_exp_data = {}
+
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
-                    try:
+                    file_name = file.name
 
-                        df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                        display_name = file_name + " (BG removed)"
 
+                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                          "active_bg_subtracted_file" in st.session_state and
+                          st.session_state.active_bg_subtracted_file == file_name and
+                          "bg_subtracted_data" in st.session_state and
+                          file_name in st.session_state.bg_subtracted_data):
+
+                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                        display_name = file_name + " (temp BG removed)"
+                    else:
+
+                        file.seek(0)
+                        file_contents = file.read()
+
+                        if isinstance(file_contents, bytes):
+                            file_contents = file_contents.decode('utf-8')
+
+                        from io import StringIO
+
+                        data_io = StringIO(file_contents)
+
+                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                         x_user = df.iloc[:, 0].values
                         y_user = df.iloc[:, 1].values
-                    except Exception as e:
-                        continue
+                        display_name = file_name
+
+                        file.seek(0)
 
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
-                    mask_user = (x_user >= st.session_state.two_theta_min) & (
-                            x_user <= st.session_state.two_theta_max)
+                    mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
                     x_user_filtered = x_user[mask_user]
                     y_user_filtered = y_user[mask_user]
+
                     color = colors[i % len(colors)]
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
                         mode="lines+markers",
-                        name=file.name,
+                        name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
+                                                                 st.session_state.use_bg_subtracted and
+                                                                 "active_bg_subtracted_file" in st.session_state and
+                                                                 st.session_state.active_bg_subtracted_file == file_name) else ""),
                         line=dict(dash='solid', width=1, color=color),
                         marker=dict(color=color, size=3),
                         hovertemplate=(
@@ -3660,36 +4017,91 @@ if "💥 Powder Diffraction" in calc_mode:
                             "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                         )
                     ))
+                    fig_interactive.update_layout(
+                        height=800,
+                        margin=dict(t=80, b=80, l=60, r=30),
+                        hovermode="x",
+                        legend=dict(
+                            orientation="h",
+                            yanchor="top",
+                            y=-0.2,
+                            xanchor="center",
+                            x=0.5,
+                            font=dict(size=24)
+                        ),
+                        xaxis=dict(
+                            title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                            tickfont=dict(size=36, color='black')
+                        ),
+                        yaxis=dict(
+                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            tickfont=dict(size=36, color='black')
+                        ),
+                        hoverlabel=dict(font=dict(size=24)),
+                        font=dict(size=18),
+                        autosize=True
+                    )
             else:
+                file_name = user_pattern_file.name
                 try:
-                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
-                    x_user = df.iloc[:, 0].values
-                    y_user = df.iloc[:, 1].values
+
+                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                        display_name = file_name + " (BG removed)"
+
+                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                          "active_bg_subtracted_file" in st.session_state and
+                          st.session_state.active_bg_subtracted_file == file_name and
+                          "bg_subtracted_data" in st.session_state and
+                          file_name in st.session_state.bg_subtracted_data):
+
+                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                        display_name = file_name + " (temp BG removed)"
+                    else:
+                        user_pattern_file.seek(0)
+                        file_contents = user_pattern_file.read()
+
+                        if isinstance(file_contents, bytes):
+                            file_contents = file_contents.decode('utf-8')
+
+                        from io import StringIO
+
+                        data_io = StringIO(file_contents)
+
+                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                        x_user = df.iloc[:, 0].values
+                        y_user = df.iloc[:, 1].values
+                        display_name = file_name
+
+                        user_pattern_file.seek(0)
+
+                    if x_user is not None and y_user is not None:
+                        if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                            y_user = (y_user / np.max(y_user)) * 100
+
+                        mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                x_user <= st.session_state.two_theta_max)
+                        x_user_filtered = x_user[mask_user]
+                        y_user_filtered = y_user[mask_user]
+
+                        color = "black"  # Default color for single file
+                        fig_interactive.add_trace(go.Scatter(
+                            x=x_user_filtered,
+                            y=y_user_filtered,
+                            mode="lines+markers",
+                            name=display_name,
+                            line=dict(dash='solid', width=1, color=color),
+                            marker=dict(color=color, size=3),
+                            hovertemplate=(
+                                f"<span style='color:{color};'><b>{display_name}:</b><br>"
+                                "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                            )
+                        ))
                 except Exception as e:
-                    # st.error(f"Error processing experimental file {user_pattern_file.name}: {e}")
+                    st.error(f"Error processing file {file_name}: {e}")
                     x_user, y_user = None, None
-
-                if x_user is not None and y_user is not None:
-                    if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
-                        y_user = (y_user / np.max(y_user)) * 100
-
-                    mask_user = (x_user >= st.session_state.two_theta_min) & (
-                            x_user <= st.session_state.two_theta_max)
-                    x_user_filtered = x_user[mask_user]
-                    y_user_filtered = y_user[mask_user]
-
-                    fig_interactive.add_trace(go.Scatter(
-                        x=x_user_filtered,
-                        y=y_user_filtered,
-                        mode="lines+markers",
-                        name=user_pattern_file.name,
-                        line=dict(dash='solid', width=1, color=color),
-                        marker=dict(color=color, size=3),
-                        hovertemplate=(
-                            f"<span style='color:{color};'><b>User XRD Data:</b><br>"
-                            "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
-                        )
-                    ))
 
             fig_interactive.update_layout(
                 xaxis_title="2θ (°)",
@@ -3880,13 +4292,7 @@ if "💥 Powder Diffraction" in calc_mode:
             st.dataframe(combined_df)
 
 
-# Add these session state initializations at the beginning of your script
 
-
-# Add these session state initializations at the beginning of your script
-# Make sure these are executed before any other Streamlit code
-
-# Initialize session state variables
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
 if "display_mode" not in st.session_state:
@@ -3908,7 +4314,6 @@ if "do_calculation" not in st.session_state:
     st.session_state.do_calculation = False
 
 
-# Callback functions
 def update_selected_frame():
     st.session_state.selected_frame_idx = st.session_state.frame_slider
 
