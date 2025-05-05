@@ -3430,6 +3430,7 @@ if "💥 Powder Diffraction" in calc_mode:
         # --- XRD Calculation ---
         colors = ["black", "brown", "grey", "purple"]
         if not st.session_state.calc_xrd:
+            st.info(f"Hint: You can **remove background** from the **experimental files** using sidebar."
             st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
 
         if user_pattern_file and (not st.session_state.calc_xrd or not uploaded_files):
