@@ -102,7 +102,7 @@ def identify_structure_type(structure):
             return f"**{structure_type}**"
 
         pearson = f"{crystal_system[0]}{structure.num_sites}"
-        return f"**{crystal_system.capitalize()}** (Formula type: {formula_type}, Pearson symbol: {pearson})"
+        return f"**{crystal_system.capitalize()}** (Formula: {formula_type}, Pearson: {pearson})"
 
     except Exception as e:
         return f"Error identifying structure: {str(e)}"
