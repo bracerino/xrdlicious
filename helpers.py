@@ -682,3 +682,28 @@ jmol_colors = {
     "Hs": "#E6002E",
     "Mt": "#EB0026"
 }
+
+def apply_y_scale(y_values, scale_type):
+    if scale_type == "Logarithmic":
+        # Add 1 to avoid log(0) and return 0 for 0 values
+        return np.log10(y_values + 1)
+    elif scale_type == "Square Root":
+        return np.sqrt(y_values)
+    else:  # Linear
+        return y_values
+
+
+def convert_intensity_scale(intensity_values, scale_type):
+    if intensity_values is None or len(intensity_values) == 0:
+        return intensity_values
+
+    converted = np.copy(intensity_values)
+    min_positive = 1
+
+    if scale_type == "Square Root":
+        converted[converted < 0] = 0
+        converted = np.sqrt(converted)
+    elif scale_type == "Logarithmic":
+        converted[converted <= 1] = 1
+        converted = np.log10(converted)
+    return converted
