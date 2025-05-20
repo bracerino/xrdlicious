@@ -2704,7 +2704,7 @@ if "💥 Powder Diffraction" in calc_mode:
         st.session_state["expander_diff_settings"] = True
 
         # --- Diffraction Calculator Selection ---
-        col2, col3, col4 = st.columns(3)
+        col2, col3, col4, colhhh = st.columns(4)
 
         with col2:
             peak_representation = st.radio(
@@ -2718,14 +2718,14 @@ if "💥 Powder Diffraction" in calc_mode:
             )
         with col3:
             intensity_scale_option = st.radio(
-                "Select intensity scale",
+                "Intensity scale",
                 options=["Normalized", "Absolute"],
                 index=0,
                 help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
             )
         with col4:
             diffraction_choice = st.radio(
-                "Select Diffraction Calculator",
+                "Diffraction Calculator",
                 ["XRD (X-ray)", "ND (Neutron)"],
                 index=0,
                 help="🔬 The X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
@@ -2734,6 +2734,15 @@ if "💥 Powder Diffraction" in calc_mode:
                      "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
                      "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
                      " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
+            )
+        with colhhh:
+            line_thickness = st.slider(
+                "⚙️ Line thickness for peaks:",
+                min_value=0.5,
+                max_value=6.0,
+                value=1.5,
+                step=0.1,
+                help="Adjust the thickness of diffraction peak lines."
             )
         use_debye_waller = st.checkbox(
             "✓ Apply Debye-Waller temperature factors",
@@ -3901,7 +3910,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             mode='lines',
                             name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=pt_color, width=4, dash=dash_type),
+                            line=dict(color=pt_color, width=line_thickness, dash=dash_type),
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
@@ -3933,7 +3942,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         mode='lines',
                         name=file_name,
                         showlegend=True,
-                        line=dict(color=base_color, width=3, dash="solid"),
+                        line=dict(color=base_color, width=line_thickness, dash="solid"),
                         hoverinfo="text",
                         text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
@@ -3945,7 +3954,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     y=y_dense_range,
                     mode='lines',
                     name=file_name,
-                    line=dict(color=base_color, width=2),
+                    line=dict(color=base_color, width=line_thickness),
                     hoverinfo='skip'
                 ))
                 peak_vals_in_range = []
@@ -6139,7 +6148,7 @@ def get_memory_usage():
 
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
 
 
 st.markdown("""
