@@ -2740,7 +2740,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 "⚙️ Line thickness for peaks:",
                 min_value=0.5,
                 max_value=6.0,
-                value=1.5,
+                value=2.0,
                 step=0.1,
                 help="Adjust the thickness of diffraction peak lines."
             )
