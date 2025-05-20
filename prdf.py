@@ -3438,7 +3438,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             fig_bg = plt.figure(figsize=(4, 3))
                             plt.plot(x_exp, y_exp, 'k-', label='Original Data')
                             plt.plot(x_exp, background, 'r-', label='Estimated Background')
-                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='Background Subtracted')
+                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='After Subtraction')
                             plt.xlabel(x_axis_metric, fontsize=8)
                             plt.ylabel('Intensity (a.u.)', fontsize=8)
                             plt.title(f'Background Subtraction', fontsize=10)
