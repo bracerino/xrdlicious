@@ -3131,7 +3131,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 ["Linear", "Square Root", "Logarithmic"],
                 index=0,
                 key="y_axis_scale",
-                help="Choose how to display intensity values. Linear shows original values. Square Root (√I) compresses the dynamic range and enhances weak peaks. Logarithmic (log10(I)) shows the full range of intensities and is useful for patterns with both very strong and very weak peaks."
+                help="Choose how to display intensity values. Linear shows original values. Square Root (√I) enhances weak intensity peaks. Logarithmic (log10(I)) can be useful to enhance both strong and very weak peaks."
             )
         if y_axis_scale == "Linear":
             y_axis_title = "Intensity (a.u.)"
