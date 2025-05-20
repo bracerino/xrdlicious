@@ -3037,6 +3037,8 @@ if "💥 Powder Diffraction" in calc_mode:
             'Hot Neutrons': 0.087
         }
 
+
+
         if diffraction_choice == "XRD (X-ray)":
             with col1:
                 preset_choice = st.selectbox(
@@ -3100,7 +3102,7 @@ if "💥 Powder Diffraction" in calc_mode:
             "d (Å)", "d (nm)",
         ]
         # --- X-axis Metric Selection ---
-        colx, colx2, colx3 = st.columns([1, 1, 1])
+        colx, colx1, colx2, colx3 = st.columns([1,1, 1, 1])
         with colx:
             if diffraction_choice == "ND (Neutron)":
                 if "x_axis_metric" not in st.session_state:
@@ -3123,7 +3125,20 @@ if "💥 Powder Diffraction" in calc_mode:
                     key="x_axis_metric",
                     help=conversion_info[st.session_state.x_axis_metric]
                 )
-
+        with colx1:
+            y_axis_scale = st.selectbox(
+                "⚙️ Y-axis Scale",
+                ["Linear", "Square Root", "Logarithmic"],
+                index=0,
+                key="y_axis_scale",
+                help="Choose how to display intensity values. Linear shows original values. Square Root (√I) compresses the dynamic range and enhances weak peaks. Logarithmic (log10(I)) shows the full range of intensities and is useful for patterns with both very strong and very weak peaks."
+            )
+        if y_axis_scale == "Linear":
+            y_axis_title = "Intensity (a.u.)"
+        elif y_axis_scale == "Square Root":
+            y_axis_title = "√Intensity (a.u.)"
+        elif y_axis_scale == "Logarithmic":
+            y_axis_title = "log₁₀(Intensity) (a.u.)"
         # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
         if "two_theta_min" not in st.session_state:
             if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
@@ -3183,6 +3198,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                            max_value=30,
                                            value=5,
                                            step=1)
+
         with col4h:
             intensity_filter = st.slider(
                 "⚙️ Filter peaks (% of max intensity):",
@@ -3522,7 +3538,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             tickfont=dict(size=36, color='black')
                         ),
                         yaxis=dict(
-                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                             tickfont=dict(size=36, color='black')
                         ),
                         hoverlabel=dict(font=dict(size=24)),
@@ -3718,9 +3734,20 @@ if "💥 Powder Diffraction" in calc_mode:
                         for peak, intensity in zip(filtered_x, filtered_y):
                             idx_closest = np.argmin(np.abs(x_dense_full - peak))
                             y_dense_comp[idx_closest] += intensity
+                    if y_axis_scale != "Linear":
+                        y_dense_comp = convert_intensity_scale(y_dense_comp, y_axis_scale)
+                    if y_axis_scale != "Linear":
+                        filtered_y = convert_intensity_scale(filtered_y, y_axis_scale)
+
                     y_dense_total += y_dense_comp
+                    #if y_axis_scale != "Linear":
+                    #    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
                     all_filtered_x.extend(filtered_x)
                     all_filtered_y.extend(filtered_y)
+                    #if y_axis_scale != "Linear":
+                    #    for i in range(len(all_filtered_y)):
+                    #        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+
                     all_filtered_hkls.extend(filtered_hkls)
             else:
                 if diffraction_choice == "ND (Neutron)":
@@ -3757,8 +3784,15 @@ if "💥 Powder Diffraction" in calc_mode:
                     for peak, intensity in zip(filtered_x, filtered_y):
                         idx_closest = np.argmin(np.abs(x_dense_full - peak))
                         y_dense_total[idx_closest] += intensity
+                if y_axis_scale != "Linear":
+                    # Convert the dense y values (continuous curve)
+                    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
                 all_filtered_x = filtered_x
                 all_filtered_y = filtered_y
+                if y_axis_scale != "Linear":
+                    for i in range(len(all_filtered_y)):
+                        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+
                 all_filtered_hkls = filtered_hkls
                 all_peak_types = ["Kα1"] * len(filtered_x)
 
@@ -4015,6 +4049,8 @@ if "💥 Powder Diffraction" in calc_mode:
 
                         file.seek(0)
 
+                    if y_axis_scale != "Linear":
+                        y_user = convert_intensity_scale(y_user, y_axis_scale)
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
@@ -4055,7 +4091,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             tickfont=dict(size=36, color='black')
                         ),
                         yaxis=dict(
-                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                             tickfont=dict(size=36, color='black')
                         ),
                         hoverlabel=dict(font=dict(size=24)),
@@ -4099,6 +4135,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         user_pattern_file.seek(0)
 
                     if x_user is not None and y_user is not None:
+                        if y_axis_scale != "Linear":
+                            y_user = convert_intensity_scale(y_user, y_axis_scale)
                         if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                             y_user = (y_user / np.max(y_user)) * 100
 
@@ -4153,7 +4191,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     tickfont=dict(size=36, color='black')
                 ),
                 yaxis=dict(
-                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black'), range=[0, 125]
                 ),
                 hoverlabel=dict(font=dict(size=24)),
@@ -4178,7 +4216,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     tickfont=dict(size=36, color='black')
                 ),
                 yaxis=dict(
-                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black')
                 ),
                 hoverlabel=dict(font=dict(size=24)),
