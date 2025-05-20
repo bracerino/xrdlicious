@@ -3029,7 +3029,7 @@ if "💥 Powder Diffraction" in calc_mode:
             'AgKb1': 0.0496,
             'Ag(Ka1+Ka2+Kb1)': 0.0557006
         }
-        col1, col2, col3h = st.columns(3)
+        col1, col2, col3h, col4h = st.columns(4)
         preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
         preset_wavelengths_neutrons = {
             'Thermal Neutrons': 0.154,
@@ -3178,11 +3178,20 @@ if "💥 Powder Diffraction" in calc_mode:
         else:
             sigma = 0.5
         with col3h:
-            num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table (by intensity):",
+            num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table:",
                                            min_value=0,
                                            max_value=30,
                                            value=5,
                                            step=1)
+        with col4h:
+            intensity_filter = st.slider(
+                "⚙️ Filter peaks (% of max intensity):",
+                min_value=0.0,
+                max_value=50.0,
+                value=0.0,
+                step=0.1,
+                help="Filter out peaks with intensity below this percentage of the maximum peak intensity. Set to 0 to show all peaks."
+            )
 
         if "calc_xrd" not in st.session_state:
             st.session_state.calc_xrd = False
@@ -3684,10 +3693,16 @@ if "💥 Powder Diffraction" in calc_mode:
                     filtered_x = []
                     filtered_y = []
                     filtered_hkls = []
+                    max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
+                    intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+
                     for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                         if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                             continue
                         if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                            continue
+
+                        if intensity_filter > 0 and y_val < intensity_threshold:
                             continue
                         filtered_x.append(x_val)
                         filtered_y.append(y_val * factor)  # scale intensity
@@ -3716,10 +3731,15 @@ if "💥 Powder Diffraction" in calc_mode:
                 filtered_x = []
                 filtered_y = []
                 filtered_hkls = []
+
+                max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
+                intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
                 for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                     if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                         continue
                     if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                        continue
+                    if intensity_filter > 0 and y_val < intensity_threshold:
                         continue
                     filtered_x.append(x_val)
                     filtered_y.append(y_val)
