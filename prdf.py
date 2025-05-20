@@ -301,7 +301,7 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
-    type=["csv", "txt", "xy"],
+    type=["csv", "txt", "xy", "data", "dat"],
     key="user_xrd", accept_multiple_files=True
 )
 
@@ -1248,8 +1248,16 @@ if "🔬 Structure Modification" in calc_mode:
         old_a = st.session_state.get("supercell_n_a", 1)
         old_b = st.session_state.get("supercell_n_b", 1)
         old_c = st.session_state.get("supercell_n_c", 1)
-        st.subheader("Edit Structure if Needed")
+        structure_type = identify_structure_type(visual_pmg_structure)
 
+        composition = visual_pmg_structure.composition
+        formula = composition.reduced_formula
+        full_formula = composition.formula
+        element_counts = composition.get_el_amt_dict()
+
+        composition_str = " ".join([f"{el}{count:.2f}" if count % 1 != 0 else f"{el}{int(count)}"
+                                    for el, count in element_counts.items()])
+        st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
             value=False)
@@ -1286,12 +1294,32 @@ if "🔬 Structure Modification" in calc_mode:
                 with colb1:
                     col1, col2, col3 = st.columns(3)
                     st.session_state["expander_supercell"] = True
-                    n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                    n_a = col1.number_input("Repeat a-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_a"], step=1)
-                    n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                    n_b = col2.number_input("Repeat b-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_b"], step=1)
-                    n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                    n_c = col3.number_input("Repeat c-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_c"], step=1)
+
+                    current_atom_count = len(st.session_state["current_structure"])
+                    original_atom_count = len(st.session_state["original_for_supercell"])
+                    estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
+                    st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
+
+                    if st.button("Reset to Original Structure", type="primary"):
+                        selected_file = st.session_state.get("selected_file")
+                        if selected_file and selected_file in st.session_state["original_structures"]:
+                            original_structure = st.session_state["original_structures"][selected_file]
+                            mp_struct = original_structure.copy()
+                            st.session_state["current_structure"] = mp_struct
+                            st.session_state["original_for_supercell"] = mp_struct
+                            st.session_state["supercell_n_a"] = 1
+                            st.session_state["supercell_n_b"] = 1
+                            st.session_state["supercell_n_c"] = 1
+                            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(
+                                mp_struct)
+                            st.success("Structure has been reset to original!")
+                            st.rerun()
 
                 st.session_state["supercell_n_a"] = n_a
                 st.session_state["supercell_n_b"] = n_b
