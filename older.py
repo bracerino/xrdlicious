@@ -301,7 +301,7 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
-    type=["csv", "txt", "xy"],
+    type=["csv", "txt", "xy", "data", "dat"],
     key="user_xrd", accept_multiple_files=True
 )
 
@@ -1248,8 +1248,16 @@ if "🔬 Structure Modification" in calc_mode:
         old_a = st.session_state.get("supercell_n_a", 1)
         old_b = st.session_state.get("supercell_n_b", 1)
         old_c = st.session_state.get("supercell_n_c", 1)
-        st.subheader("Edit Structure if Needed")
+        structure_type = identify_structure_type(visual_pmg_structure)
 
+        composition = visual_pmg_structure.composition
+        formula = composition.reduced_formula
+        full_formula = composition.formula
+        element_counts = composition.get_el_amt_dict()
+
+        composition_str = " ".join([f"{el}{count:.2f}" if count % 1 != 0 else f"{el}{int(count)}"
+                                    for el, count in element_counts.items()])
+        st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
             value=False)
@@ -1286,12 +1294,32 @@ if "🔬 Structure Modification" in calc_mode:
                 with colb1:
                     col1, col2, col3 = st.columns(3)
                     st.session_state["expander_supercell"] = True
-                    n_a = col1.number_input("Repeat along a-axis", min_value=1, max_value=50,
+                    n_a = col1.number_input("Repeat a-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_a"], step=1)
-                    n_b = col2.number_input("Repeat along b-axis", min_value=1, max_value=50,
+                    n_b = col2.number_input("Repeat b-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_b"], step=1)
-                    n_c = col3.number_input("Repeat along c-axis", min_value=1, max_value=50,
+                    n_c = col3.number_input("Repeat c-axis", min_value=1, max_value=50,
                                             value=st.session_state["supercell_n_c"], step=1)
+
+                    current_atom_count = len(st.session_state["current_structure"])
+                    original_atom_count = len(st.session_state["original_for_supercell"])
+                    estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
+                    st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
+
+                    if st.button("Reset to Original Structure", type="primary"):
+                        selected_file = st.session_state.get("selected_file")
+                        if selected_file and selected_file in st.session_state["original_structures"]:
+                            original_structure = st.session_state["original_structures"][selected_file]
+                            mp_struct = original_structure.copy()
+                            st.session_state["current_structure"] = mp_struct
+                            st.session_state["original_for_supercell"] = mp_struct
+                            st.session_state["supercell_n_a"] = 1
+                            st.session_state["supercell_n_b"] = 1
+                            st.session_state["supercell_n_c"] = 1
+                            st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(
+                                mp_struct)
+                            st.success("Structure has been reset to original!")
+                            st.rerun()
 
                 st.session_state["supercell_n_a"] = n_a
                 st.session_state["supercell_n_b"] = n_b
@@ -2704,7 +2732,7 @@ if "💥 Powder Diffraction" in calc_mode:
         st.session_state["expander_diff_settings"] = True
 
         # --- Diffraction Calculator Selection ---
-        col2, col3, col4 = st.columns(3)
+        col2, col3, col4, colhhh = st.columns(4)
 
         with col2:
             peak_representation = st.radio(
@@ -2718,14 +2746,14 @@ if "💥 Powder Diffraction" in calc_mode:
             )
         with col3:
             intensity_scale_option = st.radio(
-                "Select intensity scale",
+                "Intensity scale",
                 options=["Normalized", "Absolute"],
                 index=0,
                 help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
             )
         with col4:
             diffraction_choice = st.radio(
-                "Select Diffraction Calculator",
+                "Diffraction Calculator",
                 ["XRD (X-ray)", "ND (Neutron)"],
                 index=0,
                 help="🔬 The X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
@@ -2734,6 +2762,15 @@ if "💥 Powder Diffraction" in calc_mode:
                      "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
                      "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
                      " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
+            )
+        with colhhh:
+            line_thickness = st.slider(
+                "⚙️ Line thickness for peaks:",
+                min_value=0.5,
+                max_value=6.0,
+                value=2.0,
+                step=0.1,
+                help="Adjust the thickness of diffraction peak lines."
             )
         use_debye_waller = st.checkbox(
             "✓ Apply Debye-Waller temperature factors",
@@ -3029,13 +3066,15 @@ if "💥 Powder Diffraction" in calc_mode:
             'AgKb1': 0.0496,
             'Ag(Ka1+Ka2+Kb1)': 0.0557006
         }
-        col1, col2, col3h = st.columns(3)
+        col1, col2, col3h, col4h = st.columns(4)
         preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
         preset_wavelengths_neutrons = {
             'Thermal Neutrons': 0.154,
             'Cold Neutrons': 0.475,
             'Hot Neutrons': 0.087
         }
+
+
 
         if diffraction_choice == "XRD (X-ray)":
             with col1:
@@ -3100,7 +3139,7 @@ if "💥 Powder Diffraction" in calc_mode:
             "d (Å)", "d (nm)",
         ]
         # --- X-axis Metric Selection ---
-        colx, colx2, colx3 = st.columns([1, 1, 1])
+        colx, colx1, colx2, colx3 = st.columns([1,1, 1, 1])
         with colx:
             if diffraction_choice == "ND (Neutron)":
                 if "x_axis_metric" not in st.session_state:
@@ -3123,7 +3162,20 @@ if "💥 Powder Diffraction" in calc_mode:
                     key="x_axis_metric",
                     help=conversion_info[st.session_state.x_axis_metric]
                 )
-
+        with colx1:
+            y_axis_scale = st.selectbox(
+                "⚙️ Y-axis Scale",
+                ["Linear", "Square Root", "Logarithmic"],
+                index=0,
+                key="y_axis_scale",
+                help="Choose how to display intensity values. Linear shows original values. Square Root (√I) enhances weak intensity peaks. Logarithmic (log10(I)) can be useful to enhance both strong and very weak peaks."
+            )
+        if y_axis_scale == "Linear":
+            y_axis_title = "Intensity (a.u.)"
+        elif y_axis_scale == "Square Root":
+            y_axis_title = "√Intensity (a.u.)"
+        elif y_axis_scale == "Logarithmic":
+            y_axis_title = "log₁₀(Intensity) (a.u.)"
         # --- Initialize canonical two_theta_range in session_state (always in degrees) ---
         if "two_theta_min" not in st.session_state:
             if x_axis_metric in ["energy (keV)", "frequency (PHz)"]:
@@ -3178,11 +3230,21 @@ if "💥 Powder Diffraction" in calc_mode:
         else:
             sigma = 0.5
         with col3h:
-            num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table (by intensity):",
+            num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table:",
                                            min_value=0,
                                            max_value=30,
                                            value=5,
                                            step=1)
+
+        with col4h:
+            intensity_filter = st.slider(
+                "⚙️ Filter peaks (% of max intensity):",
+                min_value=0.0,
+                max_value=50.0,
+                value=0.0,
+                step=0.1,
+                help="Filter out peaks with intensity below this percentage of the maximum peak intensity. Set to 0 to show all peaks."
+            )
 
         if "calc_xrd" not in st.session_state:
             st.session_state.calc_xrd = False
@@ -3404,7 +3466,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             fig_bg = plt.figure(figsize=(4, 3))
                             plt.plot(x_exp, y_exp, 'k-', label='Original Data')
                             plt.plot(x_exp, background, 'r-', label='Estimated Background')
-                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='Background Subtracted')
+                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='After Subtraction')
                             plt.xlabel(x_axis_metric, fontsize=8)
                             plt.ylabel('Intensity (a.u.)', fontsize=8)
                             plt.title(f'Background Subtraction', fontsize=10)
@@ -3513,7 +3575,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             tickfont=dict(size=36, color='black')
                         ),
                         yaxis=dict(
-                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                             tickfont=dict(size=36, color='black')
                         ),
                         hoverlabel=dict(font=dict(size=24)),
@@ -3684,10 +3746,16 @@ if "💥 Powder Diffraction" in calc_mode:
                     filtered_x = []
                     filtered_y = []
                     filtered_hkls = []
+                    max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
+                    intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+
                     for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                         if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                             continue
                         if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                            continue
+
+                        if intensity_filter > 0 and y_val < intensity_threshold:
                             continue
                         filtered_x.append(x_val)
                         filtered_y.append(y_val * factor)  # scale intensity
@@ -3703,9 +3771,20 @@ if "💥 Powder Diffraction" in calc_mode:
                         for peak, intensity in zip(filtered_x, filtered_y):
                             idx_closest = np.argmin(np.abs(x_dense_full - peak))
                             y_dense_comp[idx_closest] += intensity
+                    if y_axis_scale != "Linear":
+                        y_dense_comp = convert_intensity_scale(y_dense_comp, y_axis_scale)
+                    if y_axis_scale != "Linear":
+                        filtered_y = convert_intensity_scale(filtered_y, y_axis_scale)
+
                     y_dense_total += y_dense_comp
+                    #if y_axis_scale != "Linear":
+                    #    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
                     all_filtered_x.extend(filtered_x)
                     all_filtered_y.extend(filtered_y)
+                    #if y_axis_scale != "Linear":
+                    #    for i in range(len(all_filtered_y)):
+                    #        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+
                     all_filtered_hkls.extend(filtered_hkls)
             else:
                 if diffraction_choice == "ND (Neutron)":
@@ -3716,10 +3795,15 @@ if "💥 Powder Diffraction" in calc_mode:
                 filtered_x = []
                 filtered_y = []
                 filtered_hkls = []
+
+                max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
+                intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
                 for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                     if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                         continue
                     if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                        continue
+                    if intensity_filter > 0 and y_val < intensity_threshold:
                         continue
                     filtered_x.append(x_val)
                     filtered_y.append(y_val)
@@ -3737,8 +3821,15 @@ if "💥 Powder Diffraction" in calc_mode:
                     for peak, intensity in zip(filtered_x, filtered_y):
                         idx_closest = np.argmin(np.abs(x_dense_full - peak))
                         y_dense_total[idx_closest] += intensity
+                if y_axis_scale != "Linear":
+                    # Convert the dense y values (continuous curve)
+                    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
                 all_filtered_x = filtered_x
                 all_filtered_y = filtered_y
+                if y_axis_scale != "Linear":
+                    for i in range(len(all_filtered_y)):
+                        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+
                 all_filtered_hkls = filtered_hkls
                 all_peak_types = ["Kα1"] * len(filtered_x)
 
@@ -3847,7 +3938,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             mode='lines',
                             name=f"{file_name} - {pt}",
                             showlegend=True,
-                            line=dict(color=pt_color, width=4, dash=dash_type),
+                            line=dict(color=pt_color, width=line_thickness, dash=dash_type),
                             hoverinfo=hover_info,
                             text=vertical_hover,
                             hovertemplate=hover_template,
@@ -3879,7 +3970,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         mode='lines',
                         name=file_name,
                         showlegend=True,
-                        line=dict(color=base_color, width=3, dash="solid"),
+                        line=dict(color=base_color, width=line_thickness, dash="solid"),
                         hoverinfo="text",
                         text=vertical_hover,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
@@ -3891,7 +3982,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     y=y_dense_range,
                     mode='lines',
                     name=file_name,
-                    line=dict(color=base_color, width=2),
+                    line=dict(color=base_color, width=line_thickness),
                     hoverinfo='skip'
                 ))
                 peak_vals_in_range = []
@@ -3995,6 +4086,8 @@ if "💥 Powder Diffraction" in calc_mode:
 
                         file.seek(0)
 
+                    if y_axis_scale != "Linear":
+                        y_user = convert_intensity_scale(y_user, y_axis_scale)
                     if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                         y_user = (y_user / np.max(y_user)) * 100
 
@@ -4035,7 +4128,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             tickfont=dict(size=36, color='black')
                         ),
                         yaxis=dict(
-                            title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                            title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                             tickfont=dict(size=36, color='black')
                         ),
                         hoverlabel=dict(font=dict(size=24)),
@@ -4079,6 +4172,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         user_pattern_file.seek(0)
 
                     if x_user is not None and y_user is not None:
+                        if y_axis_scale != "Linear":
+                            y_user = convert_intensity_scale(y_user, y_axis_scale)
                         if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                             y_user = (y_user / np.max(y_user)) * 100
 
@@ -4133,7 +4228,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     tickfont=dict(size=36, color='black')
                 ),
                 yaxis=dict(
-                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black'), range=[0, 125]
                 ),
                 hoverlabel=dict(font=dict(size=24)),
@@ -4158,7 +4253,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     tickfont=dict(size=36, color='black')
                 ),
                 yaxis=dict(
-                    title=dict(text="Intensity (a.u.)", font=dict(size=36, color='black')),
+                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
                     tickfont=dict(size=36, color='black')
                 ),
                 hoverlabel=dict(font=dict(size=24)),
@@ -6081,7 +6176,7 @@ def get_memory_usage():
 
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are currently using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
+st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
 
 
 st.markdown("""
