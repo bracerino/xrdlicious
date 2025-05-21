@@ -749,8 +749,7 @@ else:
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 
-st.sidebar.markdown("### Final List of Structure Files:")
-st.sidebar.write([f.name for f in uploaded_files])
+
 
 
 
@@ -2764,6 +2763,9 @@ if mode == "Basic":
             """, unsafe_allow_html=True)
 
 # with col_settings:
+
+st.sidebar.markdown("### Final List of Structure Files:")
+st.sidebar.write([f.name for f in uploaded_files])
 
 st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
 
