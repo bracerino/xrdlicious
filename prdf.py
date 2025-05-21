@@ -764,7 +764,7 @@ for i, file in enumerate(st.session_state['uploaded_files']):
 if files_to_remove:
     for f in files_to_remove:
         st.session_state['uploaded_files'].remove(f)
-    st.rerun()
+    #st.rerun()
 
 if uploaded_files:
     species_set = set()
