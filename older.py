@@ -764,7 +764,7 @@ for i, file in enumerate(st.session_state['uploaded_files']):
 if files_to_remove:
     for f in files_to_remove:
         st.session_state['uploaded_files'].remove(f)
-    st.rerun()
+    #st.rerun()
 
 if uploaded_files:
     species_set = set()
@@ -2068,7 +2068,7 @@ if "🔬 Structure Modification" in calc_mode:
 
                     except Exception as e:
                         st.error(f"Error updating lattice parameters: {e}")
-                    st.rerun()
+                    #st.rerun()
         else:
             st.info(f'If you wish to directly modify lattice parameters, uncheck first the Create Supercell and Point Defects')
 
@@ -2399,7 +2399,8 @@ if "🔬 Structure Modification" in calc_mode:
                                                        f.name != custom_filename]
 
                 st.session_state.uploaded_files.append(cif_file)
-
+                uploaded_files.append(cif_file)
+ #               uploaded_files = st.session_state.uploaded_files
                 if "final_structures" not in st.session_state:
                     st.session_state.final_structures = {}
 
@@ -2409,11 +2410,25 @@ if "🔬 Structure Modification" in calc_mode:
                 st.success(f"Modified structure added as '{new_key}'!")
                 st.write("Final list of structures in calculator:")
                 st.write(list(st.session_state.final_structures.keys()))
+
+                if "calc_xrd" not in st.session_state:
+                    st.session_state.calc_xrd = False
+                if "new_structure_added" not in st.session_state:
+                    st.session_state.new_structure_added = False
+                if "intensity_scale_option" not in st.session_state:
+                    st.session_state.intensity_scale_option = "Normalized"
+
+                st.session_state.new_structure_added = True
+                st.session_state.calc_xrd = True
+
+                # Store the new structure name for feedback
+                st.session_state.new_structure_name = new_key
             except Exception as e:
                 st.error(f"Error reconstructing structure: {e}")
                 st.error(
                     f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
-            st.rerun()
+
+            #st.rerun()
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
         b_para = lattice.b
@@ -2731,6 +2746,60 @@ if "💥 Powder Diffraction" in calc_mode:
         )
         st.session_state["expander_diff_settings"] = True
 
+
+        # --- Save all diffraction parameters to session state ---
+        def save_params_to_session_state():
+            # This will run every time the diffraction section is processed
+            # Getting values from widgets and storing them in session state
+            if "peak_representation" in st.session_state:
+                peak_representation = st.session_state.peak_representation
+            if "intensity_scale_option" in st.session_state:
+                #intensity_scale_option = st.session_state.intensity_scale_option
+                pass
+            if "diffraction_choice" in st.session_state:
+                diffraction_choice = st.session_state.diffraction_choice
+            if "line_thickness" in st.session_state:
+                line_thickness = st.session_state.line_thickness
+            if "use_debye_waller" in st.session_state:
+                use_debye_waller = st.session_state.use_debye_waller
+            if "wavelength_value" in st.session_state:
+                wavelength_value = st.session_state.wavelength_value
+            if "sigma" in st.session_state and peak_representation == "Gaussian":
+                sigma = st.session_state.sigma
+            if "x_axis_metric" in st.session_state:
+                x_axis_metric = st.session_state.x_axis_metric
+            if "y_axis_scale" in st.session_state:
+                y_axis_scale = st.session_state.y_axis_scale
+            if "intensity_filter" in st.session_state:
+                intensity_filter = st.session_state.intensity_filter
+            if "num_annotate" in st.session_state:
+                num_annotate = st.session_state.num_annotate
+
+
+        # Initialize parameters if not already in session state
+        if "peak_representation" not in st.session_state:
+            st.session_state.peak_representation = "Delta"
+     #   if "intensity_scale_option" not in st.session_state:
+     #       st.session_state.intensity_scale_option = "Normalized"
+        if "diffraction_choice" not in st.session_state:
+            st.session_state.diffraction_choice = "XRD (X-ray)"
+        if "line_thickness" not in st.session_state:
+            st.session_state.line_thickness = 2.0
+        if "use_debye_waller" not in st.session_state:
+            st.session_state.use_debye_waller = False
+        if "wavelength_value" not in st.session_state:
+            st.session_state.wavelength_value = 0.15406  # Default to CuKa1
+        if "sigma" not in st.session_state:
+            st.session_state.sigma = 0.5
+        if "x_axis_metric" not in st.session_state:
+            st.session_state.x_axis_metric = "2θ (°)"
+        if "y_axis_scale" not in st.session_state:
+            st.session_state.y_axis_scale = "Linear"
+        if "intensity_filter" not in st.session_state:
+            st.session_state.intensity_filter = 0.0
+        if "num_annotate" not in st.session_state:
+            st.session_state.num_annotate = 5
+
         # --- Diffraction Calculator Selection ---
         col2, col3, col4, colhhh = st.columns(4)
 
@@ -2738,49 +2807,53 @@ if "💥 Powder Diffraction" in calc_mode:
             peak_representation = st.radio(
                 "Peak Representation",
                 ["Delta", "Gaussian"],
-                index=0,
                 key="peak_representation",
                 help=("Choose whether to represent each diffraction peak as a delta function "
                       "or as a Gaussian. When using Gaussian, the area under each peak equals "
                       "the calculated intensity, and overlapping Gaussians are summed.")
             )
+            #st.session_state.peak_representation = peak_representation
         with col3:
             intensity_scale_option = st.radio(
                 "Intensity scale",
                 options=["Normalized", "Absolute"],
-                index=0,
+                key="intensity_scale_option",
                 help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
             )
+            #st.session_state.intensity_scale_option = intensity_scale_option
         with col4:
             diffraction_choice = st.radio(
                 "Diffraction Calculator",
                 ["XRD (X-ray)", "ND (Neutron)"],
-                index=0,
                 help="🔬 The X-ray diffraction (XRD) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
                      "The calculator applies the **Lorentz-polarization correction**: `LP(θ) = (1 + cos²(2θ)) / (sin²θ cosθ)`. It does not account for other corrections, such as preferred orientation, absorption, "
                      "instrumental broadening, or temperature effects (Debye-Waller factors). 🔬 The neutron diffraction (ND) patterns are for **powder samples**, assuming **randomly oriented crystallites**. "
                      "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
                      "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
-                     " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary."
+                     " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.",
+                key = "diffraction_choice"
             )
+            #st.session_state.diffraction_choice = diffraction_choice
         with colhhh:
             line_thickness = st.slider(
                 "⚙️ Line thickness for peaks:",
                 min_value=0.5,
                 max_value=6.0,
-                value=2.0,
                 step=0.1,
+                key="line_thickness",
                 help="Adjust the thickness of diffraction peak lines."
             )
+            #st.session_state.line_thickness = line_thickness
         use_debye_waller = st.checkbox(
             "✓ Apply Debye-Waller temperature factors",
-            value=False,
+            key = "use_debye_waller",
             help="Apply temperature-dependent intensity correction using Debye-Waller factors (B-factors) for each element. "
                  "This accounts for thermal motion of atoms, which reduces diffraction peak intensities. "
                  "Enter B-factor values for each element in Å² for each structure file. Typical values range from 0.5 to 3.0 Å² "
                  "Higher values (2-3 Å²) represent more thermal motion or disorder. Lower values (0.5-1 Å²) represent less thermal motion (e.g., at low temperatures). "
                  "The intensity correction is applied as: exp(-B·sin²θ/λ²)."
         )
+        #st.session_state.use_debye_waller = use_debye_waller
 
         if use_debye_waller:
             st.markdown(f"### 🔥 Debye-Waller B-factors")
@@ -3028,11 +3101,11 @@ if "💥 Powder Diffraction" in calc_mode:
             'Cobalt (CoKa1)', 'Copper (CuKa1)', 'Molybdenum (MoKa1)', 'Chromium (CrKa1)', 'Iron (FeKa1)',
             'Silver (AgKa1)',
             'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
-            'MoKa1', 'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
-            'CuKa1', 'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
-            'CrKa1', 'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
-            'FeKa1', 'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
-            'AgKa1', 'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
+             'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
+             'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
+             'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
+             'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
+             'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
         ]
         preset_wavelengths = {
             'Cu(Ka1+Ka2)': 0.154,
@@ -3074,55 +3147,56 @@ if "💥 Powder Diffraction" in calc_mode:
             'Hot Neutrons': 0.087
         }
 
-
-
         if diffraction_choice == "XRD (X-ray)":
             with col1:
                 preset_choice = st.selectbox(
                     "🌊 Preset Wavelength",
                     options=preset_options,
-                    index=0,
+                    key="preset_choice",
                     help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
                 )
 
-            hide_input_for = [
-                'Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)',
-                'Mo(Ka1+Ka2+Kb1)', 'Mo(Ka1+Ka2)',
-                'Cr(Ka1+Ka2+Kb1)', 'Cr(Ka1+Ka2)',
-                'Fe(Ka1+Ka2+Kb1)', 'Fe(Ka1+Ka2)',
-                'Co(Ka1+Ka2+Kb1)', 'Co(Ka1+Ka2)',
-                'Ag(Ka1+Ka2+Kb1)', 'Ag(Ka1+Ka2)'
-            ]
+            hide_input_for = ['Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)']
 
             with col2:
+                if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get("previous_preset", ""):
+                    st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
+                    st.session_state.previous_preset = st.session_state.preset_choice
+
                 if preset_choice not in hide_input_for:
                     wavelength_value = st.number_input(
                         "🌊 Wavelength (nm)",
-                        value=preset_wavelengths[preset_choice],
                         min_value=0.001,
                         step=0.001,
-                        format="%.5f"
+                        format="%.5f",
+                        key="wavelength_value"
                     )
                 else:
                     wavelength_value = preset_wavelengths[preset_choice]
-
+                    st.session_state.wavelength_value = wavelength_value
 
         elif diffraction_choice == "ND (Neutron)":
             with col1:
                 preset_choice = st.selectbox(
                     "Preset Wavelength",
                     options=preset_options_neutron,
-                    index=0,
+                    key="preset_choice_neutron",
                     help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
                 )
             with col2:
+                if "preset_choice_neutron" in st.session_state and st.session_state.preset_choice_neutron != st.session_state.get("previous_preset_neutron", ""):
+                    st.session_state.wavelength_value = preset_wavelengths_neutrons[st.session_state.preset_choice_neutron]
+                    st.session_state.previous_preset_neutron = st.session_state.preset_choice_neutron
+
                 wavelength_value = st.number_input(
                     "Wavelength (nm)",
-                    value=preset_wavelengths_neutrons[preset_choice],
                     min_value=0.001,
                     step=0.001,
-                    format="%.5f"
+                    format="%.5f",
+                    key="wavelength_value"
                 )
+
+
 
         wavelength_A = wavelength_value * 10  # Convert nm to Å
         wavelength_nm = wavelength_value
@@ -3142,33 +3216,25 @@ if "💥 Powder Diffraction" in calc_mode:
         colx, colx1, colx2, colx3 = st.columns([1,1, 1, 1])
         with colx:
             if diffraction_choice == "ND (Neutron)":
-                if "x_axis_metric" not in st.session_state:
-                    st.session_state.x_axis_metric = x_axis_options_neutron[0]
                 x_axis_metric = st.selectbox(
                     "⚙️ ND x-axis Metric",
                     x_axis_options_neutron,
-                    index=x_axis_options_neutron.index(st.session_state.x_axis_metric)
-                    if st.session_state.x_axis_metric in x_axis_options_neutron else 0,
                     key="x_axis_metric",
-                    help=conversion_info[st.session_state.x_axis_metric]
+                    #help=conversion_info.get(x_axis_metric, "X-axis metric selection")
                 )
             else:
-                if "x_axis_metric" not in st.session_state:
-                    st.session_state.x_axis_metric = x_axis_options[0]
                 x_axis_metric = st.selectbox(
                     "⚙️ XRD x-axis Metric",
                     x_axis_options,
-                    index=x_axis_options.index(st.session_state.x_axis_metric),
                     key="x_axis_metric",
-                    help=conversion_info[st.session_state.x_axis_metric]
+                    #help=conversion_info.get(x_axis_metric, "X-axis metric selection")
                 )
         with colx1:
             y_axis_scale = st.selectbox(
                 "⚙️ Y-axis Scale",
                 ["Linear", "Square Root", "Logarithmic"],
-                index=0,
                 key="y_axis_scale",
-                help="Choose how to display intensity values. Linear shows original values. Square Root (√I) enhances weak intensity peaks. Logarithmic (log10(I)) can be useful to enhance both strong and very weak peaks."
+                help="Choose how to display intensity values. Linear shows original values. Square Root..."
             )
         if y_axis_scale == "Linear":
             y_axis_title = "Intensity (a.u.)"
@@ -3223,28 +3289,39 @@ if "💥 Powder Diffraction" in calc_mode:
                                                             diffraction_choice)
         two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
-        if peak_representation != "Delta":
-            sigma = st.number_input("⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
-                                    min_value=0.01,
-                                    max_value=1.5, value=0.5, step=0.01)
+        if st.session_state.peak_representation != "Delta":
+            sigma = st.number_input(
+                "⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
+                min_value=0.2,
+                max_value=1.5,
+                step=0.01,
+                key="sigma"
+            )
+            #st.session_state.sigma = sigma
         else:
-            sigma = 0.5
+            sigma = st.session_state.sigma = 0.5
         with col3h:
-            num_annotate = st.number_input("⚙️ How many highest peaks to annotate in table:",
-                                           min_value=0,
-                                           max_value=30,
-                                           value=5,
-                                           step=1)
+            num_annotate = st.number_input(
+                "⚙️ How many highest peaks to annotate in table:",
+                min_value=0,
+                max_value=30,
+                value=st.session_state.num_annotate,
+                step=1,
+                key="num_annotate_widget"
+            )
+            st.session_state.num_annotate = num_annotate
 
         with col4h:
             intensity_filter = st.slider(
                 "⚙️ Filter peaks (% of max intensity):",
                 min_value=0.0,
                 max_value=50.0,
-                value=0.0,
+                value=st.session_state.intensity_filter,
                 step=0.1,
+                key="intensity_filter_widget",
                 help="Filter out peaks with intensity below this percentage of the maximum peak intensity. Set to 0 to show all peaks."
             )
+            st.session_state.intensity_filter = intensity_filter
 
         if "calc_xrd" not in st.session_state:
             st.session_state.calc_xrd = False
@@ -3649,6 +3726,30 @@ if "💥 Powder Diffraction" in calc_mode:
 
     if st.session_state.calc_xrd and uploaded_files:
 
+        if "new_structure_added" in st.session_state and st.session_state.new_structure_added:
+            # Show a success message at the top of the XRD section
+            if "new_structure_name" in st.session_state:
+                st.success(
+                    f"Modified structure '{st.session_state.new_structure_name}' has been added to the calculation.")
+
+            # Reset the flag so the message doesn't show again
+            st.session_state.new_structure_added = False
+
+        save_params_to_session_state()
+        peak_representation = st.session_state.peak_representation
+        intensity_scale_option = st.session_state.intensity_scale_option
+        diffraction_choice = st.session_state.diffraction_choice
+        line_thickness = st.session_state.line_thickness
+        use_debye_waller = st.session_state.use_debye_waller
+        wavelength_value = st.session_state.wavelength_value
+        wavelength_A = wavelength_value * 10  # Convert nm to Å
+        wavelength_nm = wavelength_value
+        sigma = st.session_state.sigma
+        x_axis_metric = st.session_state.x_axis_metric
+        y_axis_scale = st.session_state.y_axis_scale
+        intensity_filter = st.session_state.intensity_filter
+        num_annotate = st.session_state.num_annotate
+
         multi_component_presets = {
             "Cu(Ka1+Ka2)": {
                 "wavelengths": [0.15406, 0.15444],
@@ -3717,6 +3818,7 @@ if "💥 Powder Diffraction" in calc_mode:
         full_range = (0.01, 179.9)
 
         for idx, file in enumerate(uploaded_files):
+
             mg_structure = load_structure(file)
             mg_structure = get_full_conventional_structure_diffra(mg_structure)
             debye_waller_dict = None
@@ -4260,12 +4362,11 @@ if "💥 Powder Diffraction" in calc_mode:
                 font=dict(size=18),
                 autosize=True
             )
-
+    #st.rerun()
     st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
     st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
                                                           use_container_width=True)
-
     st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
     if pattern_details is not None:
         st.subheader("Quantitative Data for Calculated Diffraction Patterns")
