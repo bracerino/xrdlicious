@@ -752,19 +752,7 @@ if uploaded_files:
 st.sidebar.markdown("### Final List of Structure Files:")
 st.sidebar.write([f.name for f in uploaded_files])
 
-st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
 
-files_to_remove = []
-for i, file in enumerate(st.session_state['uploaded_files']):
-    col1, col2 = st.sidebar.columns([4, 1])
-    col1.write(file.name)
-    if col2.button("❌", key=f"remove_{i}"):
-        files_to_remove.append(file)
-
-if files_to_remove:
-    for f in files_to_remove:
-        st.session_state['uploaded_files'].remove(f)
-    #st.rerun()
 
 if uploaded_files:
     species_set = set()
@@ -1834,6 +1822,86 @@ if "🔬 Structure Modification" in calc_mode:
         with col_g1:
             show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=True)
 
+        custom_filename = st.text_input("Enter a name for the modified structure file:", value="MODIFIED_STR")
+        if not custom_filename.endswith(".cif"):
+            custom_filename += ".cif"
+
+        if st.button("Add Modified Structure to Calculator"):
+            try:
+                grouped_data = st.session_state.modified_atom_df.copy()
+                grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
+                grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
+                grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
+
+                position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
+
+                new_struct = Structure(visual_pmg_structure.lattice, [], [])
+
+                for (x, y, z), group in position_groups:
+                    position = (float(x), float(y), float(z))
+                    species_dict = {}
+                    for _, row in group.iterrows():
+                        element = row['Element']
+                        occupancy = float(row['Occupancy'])
+
+                        if element in species_dict:
+                            species_dict[element] += occupancy
+                        else:
+                            species_dict[element] = occupancy
+                    props = {"wyckoff": group.iloc[0]["Wyckoff"]}
+
+                    new_struct.append(
+                        species=species_dict,
+                        coords=position,
+                        coords_are_cartesian=False,
+                        properties=props
+                    )
+
+                cif_writer = CifWriter(new_struct, symprec=0.1, write_site_properties=True)
+                cif_content = cif_writer.__str__()
+                cif_file = io.BytesIO(cif_content.encode('utf-8'))
+                cif_file.name = custom_filename
+
+                if 'uploaded_files' not in st.session_state:
+                    st.session_state.uploaded_files = []
+
+                if any(f.name == custom_filename for f in st.session_state.uploaded_files):
+                    st.warning(f"A file named '{custom_filename}' already exists. The new version will replace it.")
+
+                    st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                       f.name != custom_filename]
+
+                st.session_state.uploaded_files.append(cif_file)
+                uploaded_files.append(cif_file)
+                #               uploaded_files = st.session_state.uploaded_files
+                if "final_structures" not in st.session_state:
+                    st.session_state.final_structures = {}
+
+                new_key = custom_filename.replace(".cif", "")
+                st.session_state.final_structures[new_key] = new_struct
+
+                st.success(f"Modified structure added as '{new_key}'!")
+                st.write("Final list of structures in calculator:")
+                st.write(list(st.session_state.final_structures.keys()))
+
+                if "calc_xrd" not in st.session_state:
+                    st.session_state.calc_xrd = False
+                if "new_structure_added" not in st.session_state:
+                    st.session_state.new_structure_added = False
+                if "intensity_scale_option" not in st.session_state:
+                    st.session_state.intensity_scale_option = "Normalized"
+
+                st.session_state.new_structure_added = True
+                st.session_state.calc_xrd = True
+
+                # Store the new structure name for feedback
+                st.session_state.new_structure_name = new_key
+            except Exception as e:
+                st.error(f"Error reconstructing structure: {e}")
+                st.error(
+                    f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
+
+            # st.rerun()
 
         if create_defects == False:
             with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
@@ -1851,12 +1919,35 @@ if "🔬 Structure Modification" in calc_mode:
                 if "lattice_gamma" not in st.session_state:
                     st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
 
+                if selected_file != st.session_state.get("previous_selected_file"):
+                    st.session_state["previous_selected_file"] = selected_file
+
+                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
+                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
+                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
+                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
+                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
+                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
+
                 old_a = visual_pmg_structure.lattice.a
                 old_b = visual_pmg_structure.lattice.b
                 old_c = visual_pmg_structure.lattice.c
                 old_alpha = visual_pmg_structure.lattice.alpha
                 old_beta = visual_pmg_structure.lattice.beta
                 old_gamma = visual_pmg_structure.lattice.gamma
+
+                if "lattice_a" not in st.session_state:
+                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
+                if "lattice_b" not in st.session_state:
+                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
+                if "lattice_c" not in st.session_state:
+                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
+                if "lattice_alpha" not in st.session_state:
+                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
+                if "lattice_beta" not in st.session_state:
+                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
+                if "lattice_gamma" not in st.session_state:
+                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
 
                 try:
                     sga = SpacegroupAnalyzer(visual_pmg_structure)
@@ -1920,20 +2011,23 @@ if "🔬 Structure Modification" in calc_mode:
 
                 with col_a:
                     new_a = st.number_input("a (Å)",
-                                            value=float(old_a),
+                                            value=float(st.session_state["lattice_a"]),
                                             min_value=0.1,
                                             max_value=100.0,
                                             step=0.01,
-                                            format="%.5f")
+                                            format="%.5f",
+                                            key="lattice_a")
+                    #st.session_state["lattice_a"] = new_a
 
                 with col_b:
                     if "b" in modifiable:
                         new_b = st.number_input("b (Å)",
-                                                value=float(old_b),
+                                                value=float(st.session_state["lattice_b"]),
                                                 min_value=0.1,
                                                 max_value=100.0,
                                                 step=0.01,
-                                                format="%.5f")
+                                                format="%.5f",
+                                                key="lattice_b")
                     else:
 
                         if crystal_system in ["cubic", "tetragonal", "hexagonal", "trigonal"]:
@@ -1946,11 +2040,12 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_c:
                     if "c" in modifiable:
                         new_c = st.number_input("c (Å)",
-                                                value=float(old_c),
+                                                value=float(st.session_state["lattice_c"]),
                                                 min_value=0.1,
                                                 max_value=100.0,
                                                 step=0.01,
-                                                format="%.5f")
+                                                format="%.5f",
+                                                key="lattice_c")
                     else:
                         if crystal_system == "cubic":
                             st.text_input("c (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
@@ -1962,11 +2057,12 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_alpha:
                     if "alpha" in modifiable:
                         new_alpha = st.number_input("α (°)",
-                                                    value=float(old_alpha),
+                                                    value=float(st.session_state["lattice_alpha"]),
                                                     min_value=0.1,
                                                     max_value=179.9,
                                                     step=0.1,
-                                                    format="%.5f")
+                                                    format="%.5f",
+                                                    key="lattice_alpha")
                     else:
                         if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal", "monoclinic"]:
                             st.text_input("α (°)", value="90.00000", disabled=True)
@@ -1978,11 +2074,12 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_beta:
                     if "beta" in modifiable:
                         new_beta = st.number_input("β (°)",
-                                                   value=float(old_beta),
+                                                   value=float(st.session_state["lattice_beta"]),
                                                    min_value=0.1,
                                                    max_value=179.9,
                                                    step=0.1,
-                                                   format="%.5f")
+                                                   format="%.5f",
+                                                   key="lattice_beta")
                     else:
                         if crystal_system in ["cubic", "tetragonal", "orthorhombic", "hexagonal"]:
                             st.text_input("β (°)", value="90.00000", disabled=True)
@@ -1997,11 +2094,12 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_gamma:
                     if "gamma" in modifiable:
                         new_gamma = st.number_input("γ (°)",
-                                                    value=float(old_gamma),
+                                                    value=float(st.session_state["lattice_gamma"]),
                                                     min_value=0.1,
                                                     max_value=179.9,
                                                     step=0.1,
-                                                    format="%.5f")
+                                                    format="%.5f",
+                                                    key="lattice_gamma")
                     else:
                         if crystal_system in ["cubic", "tetragonal", "orthorhombic", "monoclinic"]:
                             st.text_input("γ (°)", value="90.00000", disabled=True)
@@ -2016,12 +2114,12 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("γ (°)", value=f"{float(old_gamma):.5f}", disabled=True)
                             new_gamma = old_gamma
 
-                st.session_state["lattice_a"] = new_a
-                st.session_state["lattice_b"] = new_b
-                st.session_state["lattice_c"] = new_c
-                st.session_state["lattice_alpha"] = new_alpha
-                st.session_state["lattice_beta"] = new_beta
-                st.session_state["lattice_gamma"] = new_gamma
+                #st.session_state["lattice_a"] = new_a
+                #st.session_state["lattice_b"] = new_b
+                #st.session_state["lattice_c"] = new_c
+                #st.session_state["lattice_alpha"] = new_alpha
+                #st.session_state["lattice_beta"] = new_beta
+                #st.session_state["lattice_gamma"] = new_gamma
 
                 if st.button("Apply Lattice Changes"):
                     try:
@@ -2063,7 +2161,35 @@ if "🔬 Structure Modification" in calc_mode:
                                 updated_structure.lattice
                             )
 
-                        st.success("Lattice parameters updated successfully!")
+                        try:
+                            cif_writer = CifWriter(updated_structure, symprec=0.1, write_site_properties=True)
+                            cif_content = cif_writer.__str__()
+                            cif_file = io.BytesIO(cif_content.encode('utf-8'))
+                            cif_file.name = custom_filename
+
+                            if 'uploaded_files' not in st.session_state:
+                                st.session_state.uploaded_files = []
+
+                            # Remove existing file with the same name if it exists
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                               f.name != custom_filename]
+
+                            # Add the new file
+                            st.session_state.uploaded_files.append(cif_file)
+                            uploaded_files.append(cif_file)
+
+                            # Update other necessary session state variables
+                            if "final_structures" not in st.session_state:
+                                st.session_state.final_structures = {}
+
+                            file_key = custom_filename.replace(".cif", "")
+                            st.session_state.final_structures[file_key] = updated_structure
+                            st.session_state["original_structures"][file_key] = updated_structure
+
+                            st.success(f"Lattice parameters updated and structure saved as '{custom_filename}'!")
+                        except Exception as e:
+                            st.error(f"Error saving structure: {e}")
+                            st.success("Lattice parameters updated successfully, but structure could not be saved.")
 
 
                     except Exception as e:
@@ -2071,6 +2197,7 @@ if "🔬 Structure Modification" in calc_mode:
                     #st.rerun()
         else:
             st.info(f'If you wish to directly modify lattice parameters, uncheck first the Create Supercell and Point Defects')
+
 
         df_plot = df_plot.copy()
 
@@ -2349,86 +2476,7 @@ if "🔬 Structure Modification" in calc_mode:
             with col_g2:
                 st.plotly_chart(fig, use_container_width=True)
 
-        custom_filename = st.text_input("Enter a name for the modified structure file:", value="MODIFIED_STR")
-        if not custom_filename.endswith(".cif"):
-            custom_filename += ".cif"
 
-        if st.button("Add Modified Structure to Calculator"):
-            try:
-                grouped_data = st.session_state.modified_atom_df.copy()
-                grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
-                grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
-                grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
-
-                position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
-                new_struct = Structure(visual_pmg_structure.lattice, [], [])
-
-                for (x, y, z), group in position_groups:
-                    position = (float(x), float(y), float(z))
-                    species_dict = {}
-                    for _, row in group.iterrows():
-                        element = row['Element']
-                        occupancy = float(row['Occupancy'])
-
-                        if element in species_dict:
-                            species_dict[element] += occupancy
-                        else:
-                            species_dict[element] = occupancy
-                    props = {"wyckoff": group.iloc[0]["Wyckoff"]}
-
-                    new_struct.append(
-                        species=species_dict,
-                        coords=position,
-                        coords_are_cartesian=False,
-                        properties=props
-                    )
-
-                cif_writer = CifWriter(new_struct, symprec=0.1, write_site_properties=True)
-                cif_content = cif_writer.__str__()
-                cif_file = io.BytesIO(cif_content.encode('utf-8'))
-                cif_file.name = custom_filename
-
-                if 'uploaded_files' not in st.session_state:
-                    st.session_state.uploaded_files = []
-
-                if any(f.name == custom_filename for f in st.session_state.uploaded_files):
-                    st.warning(f"A file named '{custom_filename}' already exists. The new version will replace it.")
-
-                    st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
-                                                       f.name != custom_filename]
-
-                st.session_state.uploaded_files.append(cif_file)
-                uploaded_files.append(cif_file)
- #               uploaded_files = st.session_state.uploaded_files
-                if "final_structures" not in st.session_state:
-                    st.session_state.final_structures = {}
-
-                new_key = custom_filename.replace(".cif", "")
-                st.session_state.final_structures[new_key] = new_struct
-
-                st.success(f"Modified structure added as '{new_key}'!")
-                st.write("Final list of structures in calculator:")
-                st.write(list(st.session_state.final_structures.keys()))
-
-                if "calc_xrd" not in st.session_state:
-                    st.session_state.calc_xrd = False
-                if "new_structure_added" not in st.session_state:
-                    st.session_state.new_structure_added = False
-                if "intensity_scale_option" not in st.session_state:
-                    st.session_state.intensity_scale_option = "Normalized"
-
-                st.session_state.new_structure_added = True
-                st.session_state.calc_xrd = True
-
-                # Store the new structure name for feedback
-                st.session_state.new_structure_name = new_key
-            except Exception as e:
-                st.error(f"Error reconstructing structure: {e}")
-                st.error(
-                    f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
-
-            #st.rerun()
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
         b_para = lattice.b
@@ -2716,6 +2764,20 @@ if mode == "Basic":
             """, unsafe_allow_html=True)
 
 # with col_settings:
+
+st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
+
+files_to_remove = []
+for i, file in enumerate(st.session_state['uploaded_files']):
+    col1, col2 = st.sidebar.columns([4, 1])
+    col1.write(file.name)
+    if col2.button("❌", key=f"remove_{i}"):
+        files_to_remove.append(file)
+
+if files_to_remove:
+    for f in files_to_remove:
+        st.session_state['uploaded_files'].remove(f)
+    #st.rerun()
 
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
