@@ -2773,42 +2773,80 @@ if mode == "Basic":
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
 
-
-
-st.sidebar.markdown("### 🗑️ Remove database/modified structure(s)")
 current_user_file_names = set()
 if uploaded_files_user_sidebar:
     current_user_file_names = {f.name for f in uploaded_files_user_sidebar}
 
-
-removable_files = [f for f in uploaded_files if f.name not in current_user_file_names]
-
-if removable_files:
-    files_to_remove = []
-
-    for i, file in enumerate(removable_files):
-        col1, col2 = st.sidebar.columns([4, 1])
-        col1.write(file.name)
-
-        if col2.button("❌", key=f"remove_db_{i}"):
-            files_to_remove.append(file)
+if 'files_marked_for_removal' not in st.session_state:
+    st.session_state.files_marked_for_removal = set()
 
 
-    if files_to_remove:
-        for f in files_to_remove:
-            if f in st.session_state['uploaded_files']:
-                st.session_state['uploaded_files'].remove(f)
-            if f in uploaded_files:
-                uploaded_files.remove(f)
-        st.rerun()
-else:
-    st.sidebar.info("No database or modified structures to remove")
+removable_files = [f for f in uploaded_files
+                   if f.name not in current_user_file_names
+                   and f.name not in st.session_state.files_marked_for_removal]
 
-st.sidebar.markdown("### Final List of Structure Files:")
 
-unique_files = {f.name: f for f in uploaded_files}.values()
-st.sidebar.write([f.name for f in unique_files])
-uploaded_files = list({f.name: f for f in uploaded_files}.values())
+with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expanded=False):
+    if removable_files:
+        st.write(f"**{len(removable_files)} removable file(s):**")
+
+        for i, file in enumerate(removable_files):
+            col1, col2 = st.columns([4, 1])
+            col1.write(file.name)
+
+            if col2.button("❌", key=f"remove_db_{i}"):
+                st.session_state.files_marked_for_removal.add(file.name)
+
+                st.session_state['uploaded_files'] = [f for f in st.session_state['uploaded_files']
+                                                      if f.name != file.name]
+
+                uploaded_files[:] = [f for f in uploaded_files if f.name != file.name]
+
+                st.success(f"✅ Removed: {file.name}")
+
+        remaining_count = len([f for f in uploaded_files
+                               if f.name not in current_user_file_names
+                               and f.name not in st.session_state.files_marked_for_removal])
+
+        if remaining_count != len(removable_files):
+            st.info(f"📊 {remaining_count} files remaining to remove")
+
+    else:
+        removed_count = len(st.session_state.files_marked_for_removal)
+        if removed_count > 0:
+            st.success(f"✅ All database/modified structures removed ({removed_count} total)")
+        else:
+            st.info("No database or modified structures to remove")
+    if st.session_state.files_marked_for_removal:
+        if st.button("🔄 Update list of files", help="Update the list of files to be removed"):
+            pass
+
+
+unique_files = {f.name: f for f in uploaded_files
+                if f.name not in st.session_state.files_marked_for_removal}.values()
+uploaded_files[:] = list(unique_files)
+
+
+with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
+    if uploaded_files:
+        st.write(f"**Total: {len(uploaded_files)} file(s)**")
+
+        for i, file in enumerate(uploaded_files, 1):
+            source_icon = "👤" if file.name in current_user_file_names else "🌐"
+            st.write(f"{i}. {source_icon} {file.name}")
+
+
+        user_count = len([f for f in uploaded_files if f.name in current_user_file_names])
+        db_count = len(uploaded_files) - user_count
+
+        st.caption(f"👤 User: {user_count} | 🌐 Database/Modified: {db_count}")
+
+    else:
+        st.info("No files uploaded yet")
+
+
+
+    st.session_state.files_marked_for_removal.clear()
 
 
 
