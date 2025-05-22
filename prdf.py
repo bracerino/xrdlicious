@@ -50,6 +50,12 @@ from PIL import Image
 import os
 import psutil
 
+import warnings
+
+# Suppersing pymatgen warning about rounding coordinates from CIF
+warnings.filterwarnings("ignore", message=".*fractional coordinates rounded.*")
+
+
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
@@ -1048,7 +1054,7 @@ if "expander_defects" not in st.session_state:
 def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
     try:
         sga = SpacegroupAnalyzer(structure, symprec=0.1)
-        wyckoffs = sga.get_symmetry_dataset()["wyckoffs"]
+        wyckoffs = sga.get_symmetry_dataset().wyckoffs
     except Exception as e:
         wyckoffs = ["-"] * len(structure.sites)
 
@@ -1147,9 +1153,9 @@ if "🔬 Structure Modification" in calc_mode:
                 file_options = [file.name for file in uploaded_files]
                 st.subheader("Select Structure for Interactive Visualization:")
                 if len(file_options) > 5:
-                    selected_file = st.selectbox("", file_options)
+                    selected_file = st.selectbox("Select file", file_options, label_visibility="collapsed")
                 else:
-                    selected_file = st.radio("", file_options)
+                    selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 #apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
@@ -1884,8 +1890,8 @@ if "🔬 Structure Modification" in calc_mode:
                 st.session_state.final_structures[new_key] = new_struct
 
                 st.success(f"Modified structure added as '{new_key}'!")
-                st.write("Final list of structures in calculator:")
-                st.write(list(st.session_state.final_structures.keys()))
+                #st.write("Final list of structures in calculator:")
+                #st.write(list(st.session_state.final_structures.keys()))
 
                 if "calc_xrd" not in st.session_state:
                     st.session_state.calc_xrd = False
