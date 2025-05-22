@@ -1870,6 +1870,10 @@ if "🔬 Structure Modification" in calc_mode:
                     st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                        f.name != custom_filename]
 
+                st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                   f.name != custom_filename]
+                if 'uploaded_files' in locals():
+                    uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
                 st.session_state.uploaded_files.append(cif_file)
                 uploaded_files.append(cif_file)
                 #               uploaded_files = st.session_state.uploaded_files
@@ -2169,15 +2173,16 @@ if "🔬 Structure Modification" in calc_mode:
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
 
-                            # Remove existing file with the same name if it exists
                             st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                                f.name != custom_filename]
 
-                            # Add the new file
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                               f.name != custom_filename]
+                            if 'uploaded_files' in locals():
+                                uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
                             st.session_state.uploaded_files.append(cif_file)
                             uploaded_files.append(cif_file)
 
-                            # Update other necessary session state variables
                             if "final_structures" not in st.session_state:
                                 st.session_state.final_structures = {}
 
@@ -2762,24 +2767,44 @@ if mode == "Basic":
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
 
-# with col_settings:
+
+
+st.sidebar.markdown("### 🗑️ Remove database/modified structure(s)")
+current_user_file_names = set()
+if uploaded_files_user_sidebar:
+    current_user_file_names = {f.name for f in uploaded_files_user_sidebar}
+
+
+removable_files = [f for f in uploaded_files if f.name not in current_user_file_names]
+
+if removable_files:
+    files_to_remove = []
+
+    for i, file in enumerate(removable_files):
+        col1, col2 = st.sidebar.columns([4, 1])
+        col1.write(file.name)
+
+        if col2.button("❌", key=f"remove_db_{i}"):
+            files_to_remove.append(file)
+
+
+    if files_to_remove:
+        for f in files_to_remove:
+            if f in st.session_state['uploaded_files']:
+                st.session_state['uploaded_files'].remove(f)
+            if f in uploaded_files:
+                uploaded_files.remove(f)
+        st.rerun()
+else:
+    st.sidebar.info("No database or modified structures to remove")
 
 st.sidebar.markdown("### Final List of Structure Files:")
-st.sidebar.write([f.name for f in uploaded_files])
 
-st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
+unique_files = {f.name: f for f in uploaded_files}.values()
+st.sidebar.write([f.name for f in unique_files])
+uploaded_files = list({f.name: f for f in uploaded_files}.values())
 
-files_to_remove = []
-for i, file in enumerate(st.session_state['uploaded_files']):
-    col1, col2 = st.sidebar.columns([4, 1])
-    col1.write(file.name)
-    if col2.button("❌", key=f"remove_{i}"):
-        files_to_remove.append(file)
 
-if files_to_remove:
-    for f in files_to_remove:
-        st.session_state['uploaded_files'].remove(f)
-    #st.rerun()
 
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
