@@ -390,9 +390,9 @@ def get_full_conventional_structure_diffra(structure, symprec=1e-3):
 
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
 
-    std_lattice = dataset['std_lattice']
-    std_positions = dataset['std_positions']
-    std_types = dataset['std_types']
+    std_lattice = dataset.std_lattice
+    std_positions = dataset.std_positions
+    std_types = dataset.std_types
 
     new_species_list = [type_to_species[t] for t in std_types]
 
