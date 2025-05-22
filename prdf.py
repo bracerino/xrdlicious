@@ -215,6 +215,8 @@ with col1:
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
+    with st.expander("Roadmap", icon="🧭"):
+        st.info("The roadmap will be updated soon.")
 
 pattern_details = None
 
