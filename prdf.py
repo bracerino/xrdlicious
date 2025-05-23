@@ -768,7 +768,7 @@ if uploaded_files_user_sidebar:
         try:
             structure = load_structure(file)
             st.session_state['full_structures'][file.name] = structure
-            check_structure_size_and_warn(structure, file.name)
+            #check_structure_size_and_warn(structure, file.name)
         except Exception as e:
             st.error(f"Failed to parse {file.name}: {e}")
 else:
