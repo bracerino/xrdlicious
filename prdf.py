@@ -4714,6 +4714,14 @@ if "📊 (P)RDF" in calc_mode:
 
     use_lammps_traj = st.checkbox("📈 Use LAMMPS Trajectory File",
                                   help="Enable this for a LAMMPS dump trajectory file with multiple frames")
+    plot_display_mode = st.radio(
+        "Plot Display Mode",
+        ["Separate plots for each pair", "Combined plot with all pairs"],
+        index=0,
+        key="plot_display_mode",
+        horizontal=True,
+        help="Choose whether to show separate plots for each element pair or combine all pairs in one plot"
+    )
 
     line_style = st.radio(
         "Line Style",
@@ -5086,180 +5094,227 @@ if "📊 (P)RDF" in calc_mode:
                       on_change=update_speed,
                       help="Seconds per frame")
 
-        for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+        if not use_lammps_traj and 'plot_display_mode' in locals() and plot_display_mode == "Combined plot with all pairs":
+            fig_combined = go.Figure()
 
-            hex_color = rgb_to_hex(colors[idx % len(colors)])
+            for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+                hex_color = rgb_to_hex(colors[idx % len(colors)])
+                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
 
-            valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
-
-            if not valid_prdf:
-
-                prdf_data = np.zeros_like(all_distance_dict[comb])
-                title_str = f"PRDF: {comb[0]}-{comb[1]}"
-
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=prdf_data,
-                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                ))
-
-            elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
-
-                fig = go.Figure()
-
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=valid_prdf[0],  # First frame data
-                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color, width=2),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                ))
-
-                frames = []
-                for i, frame_data in enumerate(valid_prdf):
-                    frame = go.Frame(
-                        data=[go.Scatter(
-                            x=all_distance_dict[comb],
-                            y=frame_data,
-                            mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                            line=dict(color=hex_color, width=2),
-                            marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                        )],
-                        name=f"frame_{i}"
-                    )
-                    frames.append(frame)
-
-                fig.frames = frames
-
-                updatemenus = [
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        x=0.1,
-                        y=-0.1,
-                        showactive=False,
-                        buttons=[
-                            dict(
-                                label="▶️ Play",
-                                method="animate",
-                                args=[None, {
-                                    "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
-                                    "fromcurrent": True, "mode": "immediate"}],
-                            ),
-                            dict(
-                                label="⏹️ Pause",
-                                method="animate",
-                                args=[[None], {"frame": {"duration": 0, "redraw": True},
-                                               "mode": "immediate", "transition": {"duration": 0}}],
-                            ),
-                        ],
-                    )
-                ]
-
-                sliders = [
-                    dict(
-                        active=0,
-                        yanchor="top",
-                        xanchor="left",
-                        currentvalue=dict(
-                            font=dict(size=16),
-                            prefix="Frame: ",
-                            visible=True,
-                            xanchor="right"
-                        ),
-                        pad=dict(b=10, t=50),
-                        len=0.9,
-                        x=0.1,
-                        y=0,
-                        steps=[
-                            dict(
-                                method="animate",
-                                args=[
-                                    [f"frame_{k}"],
-                                    {"frame": {"duration": 100, "redraw": True},
-                                     "mode": "immediate",
-                                     "transition": {"duration": 0}}
-                                ],
-                                label=f"{frame_indices[k]}"
-                            )
-                            for k in range(len(valid_prdf))
-                        ]
-                    )
-                ]
-
-                all_y_values = [y for data in valid_prdf for y in data]
-                max_y = max(all_y_values) * 1.1 if all_y_values else 1.0
-
-                title_str = f"PRDF: {comb[0]}-{comb[1]} Animation"
-
-                fig.update_layout(
-                    title={'text': title_str, 'font': font_dict},
-                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                    hovermode='x',
-                    updatemenus=updatemenus,
-                    sliders=sliders,
-                    font=font_dict,
-                    xaxis=dict(tickfont=font_dict),
-                    yaxis=dict(tickfont=font_dict, range=[0, max_y]),
-                    hoverlabel=dict(font=font_dict)
-                )
-
-            else:
-                prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
-                prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
-
-                if use_lammps_traj and lammps_file:
-                    title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+                if not valid_prdf:
+                    prdf_data = np.zeros_like(all_distance_dict[comb])
                 else:
-                    title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+                    prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
+                    prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
+                fig_combined.add_trace(go.Scatter(
                     x=all_distance_dict[comb],
                     y=prdf_data,
                     mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
                     name=f"{comb[0]}-{comb[1]}",
                     line=dict(color=hex_color, width=2),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    marker=dict(size=8) if st.session_state.line_style == "Lines + Markers" else dict()
                 ))
 
-                if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
-                    prdf_std = np.std(prdf_array, axis=0)
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=prdf_data + prdf_std,
-                        mode='lines',
-                        line=dict(width=0),
-                        showlegend=False
-                    ))
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=np.maximum(0, prdf_data - prdf_std),
-                        mode='lines',
-                        line=dict(width=0),
-                        fillcolor='rgba(100,100,100,0.2)',
-                        fill='tonexty',
-                        showlegend=False
-                    ))
 
-                fig.update_layout(
-                    title={'text': title_str, 'font': font_dict},
-                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                    hovermode='x',
-                    font=font_dict,
-                    xaxis=dict(tickfont=font_dict),
-                    yaxis=dict(tickfont=font_dict, range=[0, None]),
-                    hoverlabel=dict(font=font_dict)
+            title_str = "Combined Averaged PRDF: All Pairs" if multi_structures else "Combined PRDF: All Pairs"
+
+            fig_combined.update_layout(
+                title={'text': title_str, 'font': font_dict},
+                xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                hovermode='x',
+                font=font_dict,
+                xaxis=dict(tickfont=font_dict),
+                yaxis=dict(tickfont=font_dict, range=[0, None]),
+                hoverlabel=dict(font=font_dict),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.3,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=24)
                 )
+            )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_combined, use_container_width=True)
+
+        else:
+            for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+
+                hex_color = rgb_to_hex(colors[idx % len(colors)])
+
+                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
+
+                if not valid_prdf:
+
+                    prdf_data = np.zeros_like(all_distance_dict[comb])
+                    title_str = f"PRDF: {comb[0]}-{comb[1]}"
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
+
+                    fig = go.Figure()
+
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=valid_prdf[0],  # First frame data
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                    frames = []
+                    for i, frame_data in enumerate(valid_prdf):
+                        frame = go.Frame(
+                            data=[go.Scatter(
+                                x=all_distance_dict[comb],
+                                y=frame_data,
+                                mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                                line=dict(color=hex_color, width=2),
+                                marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                            )],
+                            name=f"frame_{i}"
+                        )
+                        frames.append(frame)
+
+                    fig.frames = frames
+
+                    updatemenus = [
+                        dict(
+                            type="buttons",
+                            direction="right",
+                            x=0.1,
+                            y=-0.1,
+                            showactive=False,
+                            buttons=[
+                                dict(
+                                    label="▶️ Play",
+                                    method="animate",
+                                    args=[None, {
+                                        "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
+                                        "fromcurrent": True, "mode": "immediate"}],
+                                ),
+                                dict(
+                                    label="⏹️ Pause",
+                                    method="animate",
+                                    args=[[None], {"frame": {"duration": 0, "redraw": True},
+                                                   "mode": "immediate", "transition": {"duration": 0}}],
+                                ),
+                            ],
+                        )
+                    ]
+
+                    sliders = [
+                        dict(
+                            active=0,
+                            yanchor="top",
+                            xanchor="left",
+                            currentvalue=dict(
+                                font=dict(size=16),
+                                prefix="Frame: ",
+                                visible=True,
+                                xanchor="right"
+                            ),
+                            pad=dict(b=10, t=50),
+                            len=0.9,
+                            x=0.1,
+                            y=0,
+                            steps=[
+                                dict(
+                                    method="animate",
+                                    args=[
+                                        [f"frame_{k}"],
+                                        {"frame": {"duration": 100, "redraw": True},
+                                         "mode": "immediate",
+                                         "transition": {"duration": 0}}
+                                    ],
+                                    label=f"{frame_indices[k]}"
+                                )
+                                for k in range(len(valid_prdf))
+                            ]
+                        )
+                    ]
+
+                    all_y_values = [y for data in valid_prdf for y in data]
+                    max_y = max(all_y_values) * 1.1 if all_y_values else 1.0
+
+                    title_str = f"PRDF: {comb[0]}-{comb[1]} Animation"
+
+                    fig.update_layout(
+                        title={'text': title_str, 'font': font_dict},
+                        xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                        yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                        hovermode='x',
+                        updatemenus=updatemenus,
+                        sliders=sliders,
+                        font=font_dict,
+                        xaxis=dict(tickfont=font_dict),
+                        yaxis=dict(tickfont=font_dict, range=[0, max_y]),
+                        hoverlabel=dict(font=font_dict)
+                    )
+
+                else:
+                    prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
+                    prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
+
+                    if use_lammps_traj and lammps_file:
+                        title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+                    else:
+                        title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                    if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
+                        prdf_std = np.std(prdf_array, axis=0)
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=prdf_data + prdf_std,
+                            mode='lines',
+                            line=dict(width=0),
+                            showlegend=False
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=np.maximum(0, prdf_data - prdf_std),
+                            mode='lines',
+                            line=dict(width=0),
+                            fillcolor='rgba(100,100,100,0.2)',
+                            fill='tonexty',
+                            showlegend=False
+                        ))
+
+                    fig.update_layout(
+                        title={'text': title_str, 'font': font_dict},
+                        xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                        yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                        hovermode='x',
+                        font=font_dict,
+                        xaxis=dict(tickfont=font_dict),
+                        yaxis=dict(tickfont=font_dict, range=[0, None]),
+                        hoverlabel=dict(font=font_dict)
+                    )
+
+                st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Total RDF Plot:")
         global_bins_set = set()
