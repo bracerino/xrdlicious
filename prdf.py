@@ -319,6 +319,8 @@ if uploaded_files_user_sidebar:
             try:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
+
+                check_structure_size_and_warn(structure, file.name)
             except Exception as e:
                 #st.error(f"Failed to parse {file.name}: {e}")
                 st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
@@ -566,6 +568,7 @@ if show_database_search:
                                 with col_mpd:
                                     if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
                                         pmg_structure = st.session_state.full_structures_see[selected_id]
+                                        check_structure_size_and_warn(pmg_structure, f"MP structure {selected_id}")
                                         st.session_state.full_structures[file_name] = pmg_structure
                                         cif_writer = CifWriter(pmg_structure)
                                         cif_content = cif_writer.__str__()
@@ -649,7 +652,11 @@ if show_database_search:
                                         cif_file = io.BytesIO(cif_content)
                                         cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
 
+
+
                                         st.session_state.full_structures[cif_file.name] = structure_from_aflow
+
+                                        check_structure_size_and_warn(structure_from_aflow, cif_file.name)
                                         if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
                                             st.session_state.uploaded_files.append(cif_file)
                                         st.success("Structure added from AFLOW!")
@@ -714,6 +721,8 @@ if show_database_search:
                                         st.session_state.uploaded_files = []
                                     if all(f.name != file_name for f in st.session_state.uploaded_files):
                                         st.session_state.uploaded_files.append(cif_file)
+
+                                    check_structure_size_and_warn(selected_entry, file_name)
                                     st.success("Structure added from COD!")
 
                                 st.download_button(
@@ -759,6 +768,7 @@ if uploaded_files_user_sidebar:
         try:
             structure = load_structure(file)
             st.session_state['full_structures'][file.name] = structure
+            check_structure_size_and_warn(structure, file.name)
         except Exception as e:
             st.error(f"Failed to parse {file.name}: {e}")
 else:
