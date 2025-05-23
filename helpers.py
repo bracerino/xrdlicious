@@ -88,7 +88,7 @@ def get_formula_type(formula):
 def check_structure_size_and_warn(structure, structure_name="structure"):
     n_atoms = len(structure)
 
-    if n_atoms > 50:
+    if n_atoms > 75:
         st.info(f"ℹ️ **Structure Notice**: {structure_name} contains a large number of **{n_atoms} atoms**. "
                 f"Calculations may take longer depending on selected parameters. Please be careful to "
                 f"not consume much memory, we are hosted on a free server. 😊")
