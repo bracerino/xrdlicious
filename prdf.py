@@ -5678,7 +5678,7 @@ if "📈 Interactive Data Plot" in calc_mode:
         col_thick, col_size = st.sidebar.columns(2)
         line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0,
                                                 step=0.3,
-                                                key="line_thickness")
+                                                key="line_thickness2")
         marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0,
                                             step=1.0,
                                             key="marker_size")
