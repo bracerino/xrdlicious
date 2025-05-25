@@ -388,7 +388,7 @@ if show_database_search:
             )
             search_query = " ".join(selected_elements) if selected_elements else ""
     
-            show_element_info = st.checkbox("ℹ️ Show a note about element groups")
+            show_element_info = st.checkbox("ℹ️ Show information about element groups")
             
             if show_element_info:
                 st.markdown("""
