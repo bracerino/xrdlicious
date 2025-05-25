@@ -387,6 +387,26 @@ if show_database_search:
                 help="Choose one or more chemical elements"
             )
             search_query = " ".join(selected_elements) if selected_elements else ""
+            with st.expander("📋 Element groups note"):
+                st.markdown("""
+                **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca
+                
+                **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn
+                
+                **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr
+                
+                **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
+                
+                **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn
+                
+                **Halogens (5):** F, Cl, Br, I, At
+                
+                **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu
+                
+                **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr
+                
+                **Other Elements (51):** Includes metalloids, post-transition metals, and synthetic elements
+                """)
     
     
     
