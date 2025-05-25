@@ -387,34 +387,39 @@ if show_database_search:
                 help="Choose one or more chemical elements"
             )
             search_query = " ".join(selected_elements) if selected_elements else ""
-            with st.expander("📋 Element groups note"):
+    
+            show_element_info = st.checkbox("ℹ️ Show a note about element groups")
+            
+            if show_element_info:
                 st.markdown("""
-                **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca
+                **Element groups note:**
                 
-                **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn
+                **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca  
+                *Frequently encountered in everyday chemistry*
                 
-                **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr
+                **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn  
+                *Known for catalytic properties and colored compounds*
+                
+                **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr  
+                *Highly reactive metals that form ionic compounds*
                 
                 **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
+                *Less reactive than alkali metals, form ionic compounds*
                 
-                **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn
+                **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn  
+                *Chemically inert under normal conditions*
                 
-                **Halogens (5):** F, Cl, Br, I, At
+                **Halogens (5):** F, Cl, Br, I, At  
+                *Highly reactive non-metals that form salts*
                 
-                **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu
+                **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu  
+                *Rare earth elements with similar properties*
                 
-                **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr
+                **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr  
+                *Radioactive elements, many synthetic*
                 
-                **Other Elements (51):** Includes metalloids, post-transition metals, and synthetic elements
+                **Other Elements (51):** All remaining elements including metalloids, post-transition metals, and synthetic superheavy elements
                 """)
-    
-    
-    
-       # with cols2:
-       #     search_query = st.text_input(
-       #         "Enter elements separated by spaces (e.g., Sr Ti O):",
-       #         value="Sr Ti O"
-       #     )
 
         if st.button("Search Selected Databases"):
             if not db_choices:
