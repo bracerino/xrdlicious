@@ -49,7 +49,7 @@ import requests
 from PIL import Image
 import os
 import psutil
-
+import time
 import warnings
 
 # Suppersing pymatgen warning about rounding coordinates from CIF
