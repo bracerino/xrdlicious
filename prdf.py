@@ -135,6 +135,8 @@ if memory_usage > 500:
    
    # Wait 10 seconds
    time.sleep(10)
+   for key in list(st.session_state.keys()):
+       del st.session_state[key]
    st.cache_data.clear()
    st.cache_resource.clear()
    gc.collect()
