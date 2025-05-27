@@ -137,6 +137,8 @@ if memory_usage > 500:
    time.sleep(10)
    for key in list(st.session_state.keys()):
        del st.session_state[key]
+   if hasattr(st.session_state, 'sidebar_uploader'):
+       del st.session_state.sidebar_uploader
    st.cache_data.clear()
    st.cache_resource.clear()
    gc.collect()
