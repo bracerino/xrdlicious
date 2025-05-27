@@ -61,6 +61,32 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
+# Get current memory usage
+process = psutil.Process(os.getpid())
+mem_info = process.memory_info()
+memory_usage = mem_info.rss / (1024 ** 2)  # in MB
+
+# Check if memory exceeds 1600 MB
+if memory_usage > 600:
+   # Show warning message
+   st.warning(f"⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[
+   In 10 seconds, there will be
+   a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. 
+   Cleaning cache and restarting in 10 seconds...")
+   
+   # Wait 10 seconds
+   time.sleep(10)
+   
+   # Clear all cache
+   st.cache_data.clear()
+   st.cache_resource.clear()
+   
+   # Force garbage collection
+   gc.collect()
+   
+   # Rerun the app
+   st.rerun()
+    
 st.markdown(
     """
     <style>
