@@ -50,6 +50,12 @@ from PIL import Image
 import os
 import psutil
 
+import warnings
+
+# Suppersing pymatgen warning about rounding coordinates from CIF
+warnings.filterwarnings("ignore", message=".*fractional coordinates rounded.*")
+
+
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
@@ -209,6 +215,8 @@ with col1:
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
+    with st.expander("Roadmap", icon="🧭"):
+        st.info("The roadmap will be updated soon.")
 
 pattern_details = None
 
@@ -311,6 +319,8 @@ if uploaded_files_user_sidebar:
             try:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
+
+                #check_structure_size_and_warn(structure, file.name)
             except Exception as e:
                 #st.error(f"Failed to parse {file.name}: {e}")
                 st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
@@ -318,6 +328,13 @@ if uploaded_files_user_sidebar:
 
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
+
+
+
+st.markdown("##### 🔍 Search for structures in online databases?")
+show_database_search = st.checkbox("Enable database search",
+                                   value=False,
+                                   help="Enable to search in Materials Project, AFLOW, and COD databases")
 
 if st.session_state["first_run_note"] == True:
     colh1, colh2 = st.columns([1,3])
@@ -332,378 +349,437 @@ if st.session_state["first_run_note"] == True:
     st.session_state["first_run_note"] = False
 
 #if "📈 Interactive Data Plot" not in calc_mode:
-with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
-    cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
-    with cols:
 
-        db_choices = st.multiselect(
-            "Select Database(s)",
-            options=["Materials Project", "AFLOW", "COD"],
-            default=["Materials Project", "AFLOW", "COD"],
-            help="Choose which databases to search for structures. You can select multiple databases."
-        )
 
-        if not db_choices:
-            st.warning("Please select at least one database to search.")
+if show_database_search:
+    with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
+        cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
+        with cols:
 
-    with cols2:
-        search_query = st.text_input(
-            "Enter elements separated by spaces (e.g., Sr Ti O):",
-            value="Sr Ti O"
-        )
+            db_choices = st.multiselect(
+                "Select Database(s)",
+                options=["Materials Project", "AFLOW", "COD"],
+                default=["Materials Project", "AFLOW", "COD"],
+                help="Choose which databases to search for structures. You can select multiple databases."
+            )
 
-    if st.button("Search Selected Databases"):
-        if not db_choices:
-            st.error("Please select at least one database to search.")
-        else:
-            elements_list = [el.strip() for el in search_query.split() if el.strip()]
-            if not elements_list:
-                st.error("Please enter at least one element for the search.")
+            if not db_choices:
+                st.warning("Please select at least one database to search.")
+        ELEMENTS = [
+                    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+                    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
+                    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+                    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
+                    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+                    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+                    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
+                    'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+                    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
+                    'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
+                    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+                    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
+                ]
+        with cols2:
+            selected_elements = st.multiselect(
+                "Select elements for search:",
+                options=ELEMENTS,
+                default=["Sr", "Ti", "O"],
+                help="Choose one or more chemical elements"
+            )
+            search_query = " ".join(selected_elements) if selected_elements else ""
+    
+            show_element_info = st.checkbox("ℹ️ Show information about element groups")
+            
+            if show_element_info:
+                st.markdown("""
+                **Element groups note:**
+                
+                **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca  
+                *Frequently encountered in everyday chemistry*
+                
+                **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn  
+                *Known for catalytic properties and colored compounds*
+                
+                **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr  
+                *Highly reactive metals that form ionic compounds*
+                
+                **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
+                *Less reactive than alkali metals, form ionic compounds*
+                
+                **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn  
+                *Chemically inert under normal conditions*
+                
+                **Halogens (5):** F, Cl, Br, I, At  
+                *Highly reactive non-metals that form salts*
+                
+                **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu  
+                *Rare earth elements with similar properties*
+                
+                **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr  
+                *Radioactive elements, many synthetic*
+                
+                **Other Elements (51):** All remaining elements including metalloids, post-transition metals, and synthetic superheavy elements
+                """)
+
+        if st.button("Search Selected Databases"):
+            if not db_choices:
+                st.error("Please select at least one database to search.")
             else:
-                for db_choice in db_choices:
-                    if db_choice == "Materials Project":
-                        with st.spinner(f"Searching **the MP database**, please wait. 😊"):
-                            elements_list_sorted = sorted(set(elements_list))
-                            try:
-                                with MPRester(MP_API_KEY) as mpr:
-                                    docs = mpr.materials.summary.search(
-                                        elements=elements_list_sorted,
-                                        num_elements=len(elements_list_sorted),
-                                        fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
-                                    )
-                                    if docs:
-                                        status_placeholder = st.empty()
-                                        st.session_state.mp_options = []
-                                        st.session_state.full_structures_see = {}
-
-                                        for doc in docs:
-                                            full_structure = mpr.get_structure_by_material_id(doc.material_id,
-                                                                                              conventional_unit_cell=True)
-                                            structure_to_use = full_structure
-                                            st.session_state.full_structures_see[doc.material_id] = full_structure
-                                            lattice = structure_to_use.lattice
-                                            leng = len(structure_to_use)
-                                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                                           f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
-                                            st.session_state.mp_options.append(
-                                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
-                                            )
-                                            status_placeholder.markdown(
-                                                f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
-                                            )
-                                        st.success(
-                                            f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
-                                    else:
-                                        st.session_state.mp_options = []
-                                        st.warning("No matching structures found in Materials Project.")
-                            except Exception as e:
-                                st.error(
-                                    f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
-
-                    elif db_choice == "AFLOW":
-                        with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
-                            try:
-                                ordered_elements = sorted(elements_list)
-                                ordered_str = ",".join(ordered_elements)
-                                aflow_nspecies = len(ordered_elements)
-
-                                results = list(
-                                    search(catalog="icsd")
-                                    .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
-                                    .select(
-                                        AFLOW_K.auid,
-                                        AFLOW_K.compound,
-                                        AFLOW_K.geometry,
-                                        AFLOW_K.spacegroup_relax,
-                                        AFLOW_K.aurl,
-                                        AFLOW_K.files,
-                                    )
-                                )
-                                st.session_state.entrys = {}
-
-                                if results:
-                                    status_placeholder = st.empty()
-                                    st.session_state.aflow_options = []
-                                    st.session_state.entrys = {}  # store full AFLOW entry objects
-                                    for entry in results:
-                                        st.session_state.entrys[entry.auid] = entry
-                                        st.session_state.aflow_options.append(
-                                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                if not elements_list:
+                    st.error("Please enter at least one element for the search.")
+                else:
+                    for db_choice in db_choices:
+                        if db_choice == "Materials Project":
+                            with st.spinner(f"Searching **the MP database**, please wait. 😊"):
+                                elements_list_sorted = sorted(set(elements_list))
+                                try:
+                                    with MPRester(MP_API_KEY) as mpr:
+                                        docs = mpr.materials.summary.search(
+                                            elements=elements_list_sorted,
+                                            num_elements=len(elements_list_sorted),
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
                                         )
-                                        status_placeholder.markdown(
-                                            f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
-                                        )
-                                    st.success(f"Found {len(st.session_state.aflow_options)} structures.")
-                                else:
-                                    st.session_state.aflow_options = []
-                                    st.warning("No matching structures found in AFLOW.")
-                            except Exception as e:
-                                st.warning("No matching structures found in AFLOW.")
+                                        if docs:
+                                            status_placeholder = st.empty()
+                                            st.session_state.mp_options = []
+                                            st.session_state.full_structures_see = {}
 
-                    elif db_choice == "COD":
-                        with st.spinner(f"Searching **the COD database**, please wait. 😊"):
-                            elements = elements_list
-                            if elements:
-                                params = {'format': 'json', 'detail': '1'}
-                                for i, el in enumerate(elements, start=1):
-                                    params[f'el{i}'] = el
-                                params['strictmin'] = str(len(elements))
-                                params['strictmax'] = str(len(elements))
-                                cod_entries = get_cod_entries(params)
-                                if cod_entries:
-                                    status_placeholder = st.empty()
-                                    st.session_state.cod_options = []
-                                    st.session_state.full_structures_see_cod = {}
-                                    for entry in cod_entries:
-                                        cif_content = get_cif_from_cod(entry)
-                                        if cif_content:
-                                            try:
-                                                # structure = get_full_conventional_structure(
-                                                #    get_cod_str(cif_content))
-                                                structure = get_cod_str(cif_content)
-                                                cod_id = f"cod_{entry.get('file')}"
-                                                st.session_state.full_structures_see_cod[cod_id] = structure
-                                                spcs = entry.get("sg")
-                                                spcs_number = entry.get("sgNumber")
-                                                # Listing all keywords in the entry
-                                                # all_keys = list(entry.keys())
-                                                # st.write(all_keys)
-
-                                                cell_volume = structure.lattice.volume
-                                                st.session_state.cod_options.append(
-                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
+                                            for doc in docs:
+                                                full_structure = mpr.get_structure_by_material_id(doc.material_id,
+                                                                                                  conventional_unit_cell=True)
+                                                structure_to_use = full_structure
+                                                st.session_state.full_structures_see[doc.material_id] = full_structure
+                                                lattice = structure_to_use.lattice
+                                                leng = len(structure_to_use)
+                                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                                               f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
+                                                st.session_state.mp_options.append(
+                                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
                                                 )
                                                 status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                            except Exception as e:
-                                                st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+                                                    f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
+                                                )
+                                            st.success(
+                                                f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                        else:
+                                            st.session_state.mp_options = []
+                                            st.warning("No matching structures found in Materials Project.")
+                                except Exception as e:
+                                    st.error(
+                                        f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
 
-                                    if st.session_state.cod_options:
-                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                        elif db_choice == "AFLOW":
+                            with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
+                                try:
+                                    ordered_elements = sorted(elements_list)
+                                    ordered_str = ",".join(ordered_elements)
+                                    aflow_nspecies = len(ordered_elements)
+
+                                    results = list(
+                                        search(catalog="icsd")
+                                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
+                                        .select(
+                                            AFLOW_K.auid,
+                                            AFLOW_K.compound,
+                                            AFLOW_K.geometry,
+                                            AFLOW_K.spacegroup_relax,
+                                            AFLOW_K.aurl,
+                                            AFLOW_K.files,
+                                        )
+                                    )
+                                    st.session_state.entrys = {}
+
+                                    if results:
+                                        status_placeholder = st.empty()
+                                        st.session_state.aflow_options = []
+                                        st.session_state.entrys = {}  # store full AFLOW entry objects
+                                        for entry in results:
+                                            st.session_state.entrys[entry.auid] = entry
+                                            st.session_state.aflow_options.append(
+                                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                            )
+                                            status_placeholder.markdown(
+                                                f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
+                                            )
+                                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
                                     else:
+                                        st.session_state.aflow_options = []
+                                        st.warning("No matching structures found in AFLOW.")
+                                except Exception as e:
+                                    st.warning("No matching structures found in AFLOW.")
+
+                        elif db_choice == "COD":
+                            with st.spinner(f"Searching **the COD database**, please wait. 😊"):
+                                elements = elements_list
+                                if elements:
+                                    params = {'format': 'json', 'detail': '1'}
+                                    for i, el in enumerate(elements, start=1):
+                                        params[f'el{i}'] = el
+                                    params['strictmin'] = str(len(elements))
+                                    params['strictmax'] = str(len(elements))
+                                    cod_entries = get_cod_entries(params)
+                                    if cod_entries:
+                                        status_placeholder = st.empty()
+                                        st.session_state.cod_options = []
+                                        st.session_state.full_structures_see_cod = {}
+                                        for entry in cod_entries:
+                                            cif_content = get_cif_from_cod(entry)
+                                            if cif_content:
+                                                try:
+                                                    # structure = get_full_conventional_structure(
+                                                    #    get_cod_str(cif_content))
+                                                    structure = get_cod_str(cif_content)
+                                                    cod_id = f"cod_{entry.get('file')}"
+                                                    st.session_state.full_structures_see_cod[cod_id] = structure
+                                                    spcs = entry.get("sg")
+                                                    spcs_number = entry.get("sgNumber")
+                                                    # Listing all keywords in the entry
+                                                    # all_keys = list(entry.keys())
+                                                    # st.write(all_keys)
+
+                                                    cell_volume = structure.lattice.volume
+                                                    st.session_state.cod_options.append(
+                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
+                                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
+                                                    )
+                                                    status_placeholder.markdown(
+                                                        f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
+                                                except Exception as e:
+                                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+
+                                        if st.session_state.cod_options:
+                                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                                        else:
+                                            st.warning("COD: No matching structures found.")
+                                    else:
+                                        st.session_state.cod_options = []
                                         st.warning("COD: No matching structures found.")
                                 else:
-                                    st.session_state.cod_options = []
-                                    st.warning("COD: No matching structures found.")
-                            else:
-                                st.error("Please enter at least one element for the COD search.")
-        with cols2:
-            image = Image.open("images/Rabbit2.png")
-            st.image(image, use_container_width =True)
+                                    st.error("Please enter at least one element for the COD search.")
+            with cols2:
+                image = Image.open("images/Rabbit2.png")
+                st.image(image, use_container_width =True)
 
 
 
-    with cols3:
-        if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
-            tabs = []
-            if 'mp_options' in st.session_state and st.session_state.mp_options:
-                tabs.append("Materials Project")
-            if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                tabs.append("AFLOW")
-            if 'cod_options' in st.session_state and st.session_state.cod_options:
-                tabs.append("COD")
-
-            if tabs:
-                selected_tab = st.tabs(tabs)
-
-                tab_index = 0
+        with cols3:
+            if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
+                tabs = []
                 if 'mp_options' in st.session_state and st.session_state.mp_options:
-                    with selected_tab[tab_index]:
-                        st.subheader("🧬 Structures Found in Materials Project")
-                        selected_structure = st.selectbox("Select a structure from MP:",
-                                                          st.session_state.mp_options)
-                        selected_id = selected_structure.split(":")[0].strip()
-                        composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
-                        file_name = f"{selected_id}_{composition}.cif"
-                        file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+                    tabs.append("Materials Project")
+                if 'aflow_options' in st.session_state and st.session_state.aflow_options:
+                    tabs.append("AFLOW")
+                if 'cod_options' in st.session_state and st.session_state.cod_options:
+                    tabs.append("COD")
 
-                        if selected_id in st.session_state.full_structures_see:
-                            selected_entry = st.session_state.full_structures_see[selected_id]
+                if tabs:
+                    selected_tab = st.tabs(tabs)
 
-                            conv_lattice = selected_entry.lattice
-                            cell_volume = selected_entry.lattice.volume
-                            density = str(selected_entry.density).split()[0]
-                            n_atoms = len(selected_entry)
-                            atomic_den = n_atoms / cell_volume
+                    tab_index = 0
+                    if 'mp_options' in st.session_state and st.session_state.mp_options:
+                        with selected_tab[tab_index]:
+                            st.subheader("🧬 Structures Found in Materials Project")
+                            selected_structure = st.selectbox("Select a structure from MP:",
+                                                              st.session_state.mp_options)
+                            selected_id = selected_structure.split(":")[0].strip()
+                            composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+                            file_name = f"{selected_id}_{composition}.cif"
+                            file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
-                            structure_type = identify_structure_type(selected_entry)
-                            st.write(f"**Structure type:** {structure_type}")
-                            analyzer = SpacegroupAnalyzer(selected_entry)
-                            st.write(
-                                f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+                            if selected_id in st.session_state.full_structures_see:
+                                selected_entry = st.session_state.full_structures_see[selected_id]
+
+                                conv_lattice = selected_entry.lattice
+                                cell_volume = selected_entry.lattice.volume
+                                density = str(selected_entry.density).split()[0]
+                                n_atoms = len(selected_entry)
+                                atomic_den = n_atoms / cell_volume
+
+                                structure_type = identify_structure_type(selected_entry)
+                                st.write(f"**Structure type:** {structure_type}")
+                                analyzer = SpacegroupAnalyzer(selected_entry)
+                                st.write(
+                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
 
-                            st.write(
-                                f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
+                                st.write(
+                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
-                            st.write(
-                                f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                            st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+                                st.write(
+                                    f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
+                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
 
-                            mp_url = f"https://materialsproject.org/materials/{selected_id}"
-                            st.write(f"**Link:** {mp_url}")
+                                mp_url = f"https://materialsproject.org/materials/{selected_id}"
+                                st.write(f"**Link:** {mp_url}")
 
-                            col_mpd, col_mpb = st.columns([2, 1])
-                            with col_mpd:
-                                if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
-                                    pmg_structure = st.session_state.full_structures_see[selected_id]
-                                    st.session_state.full_structures[file_name] = pmg_structure
-                                    cif_writer = CifWriter(pmg_structure)
-                                    cif_content = cif_writer.__str__()
-                                    cif_file = io.BytesIO(cif_content.encode('utf-8'))
+                                col_mpd, col_mpb = st.columns([2, 1])
+                                with col_mpd:
+                                    if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
+                                        pmg_structure = st.session_state.full_structures_see[selected_id]
+                                        check_structure_size_and_warn(pmg_structure, f"MP structure {selected_id}")
+                                        st.session_state.full_structures[file_name] = pmg_structure
+                                        cif_writer = CifWriter(pmg_structure)
+                                        cif_content = cif_writer.__str__()
+                                        cif_file = io.BytesIO(cif_content.encode('utf-8'))
+                                        cif_file.name = file_name
+                                        if 'uploaded_files' not in st.session_state:
+                                            st.session_state.uploaded_files = []
+                                        if all(f.name != file_name for f in st.session_state.uploaded_files):
+                                            st.session_state.uploaded_files.append(cif_file)
+                                        st.success("Structure added from Materials Project!")
+                                with col_mpb:
+                                    st.download_button(
+                                        label="Download MP CIF",
+                                        data=str(
+                                            CifWriter(st.session_state.full_structures_see[selected_id], symprec=0.01)),
+                                        file_name=file_name,
+                                        type="primary",
+                                        mime="chemical/x-cif"
+                                    )
+                        tab_index += 1
+
+                    if 'aflow_options' in st.session_state and st.session_state.aflow_options:
+                        with selected_tab[tab_index]:
+                            st.subheader("🧬 Structures Found in AFLOW")
+                            st.warning(
+                                "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
+                            selected_structure = st.selectbox("Select a structure from AFLOW:",
+                                                              st.session_state.aflow_options)
+                            selected_auid = selected_structure.split(": ")[0].strip()
+                            selected_entry = next(
+                                (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
+                                None)
+                            if selected_entry:
+
+                                cif_files = [f for f in selected_entry.files if
+                                             f.endswith("_sprim.cif") or f.endswith(".cif")]
+
+                                if cif_files:
+
+                                    cif_filename = cif_files[0]
+
+                                    # Correct the AURL: replace the first ':' with '/'
+
+                                    host_part, path_part = selected_entry.aurl.split(":", 1)
+
+                                    corrected_aurl = f"{host_part}/{path_part}"
+
+                                    file_url = f"http://{corrected_aurl}/{cif_filename}"
+                                    response = requests.get(file_url)
+                                    cif_content = response.content
+
+                                    structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
+                                    converted_structure = get_full_conventional_structure(structure_from_aflow,
+                                                                                          symprec=0.1)
+
+                                    conv_lattice = converted_structure.lattice
+                                    cell_volume = converted_structure.lattice.volume
+                                    density = str(converted_structure.density).split()[0]
+                                    n_atoms = len(converted_structure)
+                                    atomic_den = n_atoms / cell_volume
+
+                                    structure_type = identify_structure_type(converted_structure)
+                                    st.write(f"**Structure type:** {structure_type}")
+                                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
+                                    st.write(
+                                        f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+                                    st.write(
+                                        f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}, **N. of Atoms:** {n_atoms}")
+                                    st.write(
+                                        f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, "
+                                        f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
+                                    st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+
+
+                                    linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
+                                    st.write("**Link:**", linnk)
+
+                                    if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
+                                        if 'uploaded_files' not in st.session_state:
+                                            st.session_state.uploaded_files = []
+                                        cif_file = io.BytesIO(cif_content)
+                                        cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
+
+
+
+                                        st.session_state.full_structures[cif_file.name] = structure_from_aflow
+
+                                        check_structure_size_and_warn(structure_from_aflow, cif_file.name)
+                                        if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
+                                            st.session_state.uploaded_files.append(cif_file)
+                                        st.success("Structure added from AFLOW!")
+
+                                    st.download_button(
+                                        label="Download AFLOW CIF",
+                                        data=cif_content,
+                                        file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
+                                        type="primary",
+                                        mime="chemical/x-cif"
+                                    )
+                                else:
+                                    st.warning("No CIF file found for this AFLOW entry.")
+                        tab_index += 1
+
+                    # COD tab
+                    if 'cod_options' in st.session_state and st.session_state.cod_options:
+                        with selected_tab[tab_index]:
+                            st.subheader("🧬 Structures Found in COD")
+                            selected_cod_structure = st.selectbox(
+                                "Select a structure from COD:",
+                                st.session_state.cod_options,
+                                key='sidebar_select_cod'
+                            )
+                            cod_id = selected_cod_structure.split(":")[0].strip()
+                            if cod_id in st.session_state.full_structures_see_cod:
+                                selected_entry = st.session_state.full_structures_see_cod[cod_id]
+                                lattice = selected_entry.lattice
+                                cell_volume = selected_entry.lattice.volume
+                                density = str(selected_entry.density).split()[0]
+                                n_atoms = len(selected_entry)
+                                atomic_den = n_atoms / cell_volume
+
+                                idcodd = cod_id.removeprefix("cod_")
+
+                                structure_type = identify_structure_type(selected_entry)
+                                st.write(f"**Structure type:** {structure_type}")
+                                analyzer = SpacegroupAnalyzer(selected_entry)
+                                st.write(
+                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+
+                                st.write(
+                                    f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
+                                st.write(
+                                    f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
+                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+
+
+                                cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
+                                st.write(f"**Link:** {cod_url}")
+
+                                file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
+
+                                if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
+                                    cif_writer = CifWriter(selected_entry, symprec=0.01)
+                                    cif_data = str(cif_writer)
+                                    st.session_state.full_structures[file_name] = selected_entry
+                                    cif_file = io.BytesIO(cif_data.encode('utf-8'))
                                     cif_file.name = file_name
                                     if 'uploaded_files' not in st.session_state:
                                         st.session_state.uploaded_files = []
                                     if all(f.name != file_name for f in st.session_state.uploaded_files):
                                         st.session_state.uploaded_files.append(cif_file)
-                                    st.success("Structure added from Materials Project!")
-                            with col_mpb:
+
+                                    check_structure_size_and_warn(selected_entry, file_name)
+                                    st.success("Structure added from COD!")
+
                                 st.download_button(
-                                    label="Download MP CIF",
-                                    data=str(
-                                        CifWriter(st.session_state.full_structures_see[selected_id], symprec=0.01)),
+                                    label="Download COD CIF",
+                                    data=str(CifWriter(selected_entry, symprec=0.01)),
                                     file_name=file_name,
-                                    type="primary",
-                                    mime="chemical/x-cif"
+                                    mime="chemical/x-cif", type="primary",
                                 )
-                    tab_index += 1
-
-                if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                    with selected_tab[tab_index]:
-                        st.subheader("🧬 Structures Found in AFLOW")
-                        st.warning(
-                            "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
-                        selected_structure = st.selectbox("Select a structure from AFLOW:",
-                                                          st.session_state.aflow_options)
-                        selected_auid = selected_structure.split(": ")[0].strip()
-                        selected_entry = next(
-                            (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
-                            None)
-                        if selected_entry:
-
-                            cif_files = [f for f in selected_entry.files if
-                                         f.endswith("_sprim.cif") or f.endswith(".cif")]
-
-                            if cif_files:
-
-                                cif_filename = cif_files[0]
-
-                                # Correct the AURL: replace the first ':' with '/'
-
-                                host_part, path_part = selected_entry.aurl.split(":", 1)
-
-                                corrected_aurl = f"{host_part}/{path_part}"
-
-                                file_url = f"http://{corrected_aurl}/{cif_filename}"
-                                response = requests.get(file_url)
-                                cif_content = response.content
-
-                                structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
-                                converted_structure = get_full_conventional_structure(structure_from_aflow,
-                                                                                      symprec=0.1)
-
-                                conv_lattice = converted_structure.lattice
-                                cell_volume = converted_structure.lattice.volume
-                                density = str(converted_structure.density).split()[0]
-                                n_atoms = len(converted_structure)
-                                atomic_den = n_atoms / cell_volume
-
-                                structure_type = identify_structure_type(converted_structure)
-                                st.write(f"**Structure type:** {structure_type}")
-                                analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-                                st.write(
-                                    f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}, **N. of Atoms:** {n_atoms}")
-                                st.write(
-                                    f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, "
-                                    f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-
-                                linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
-                                st.write("**Link:**", linnk)
-
-                                if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
-                                    if 'uploaded_files' not in st.session_state:
-                                        st.session_state.uploaded_files = []
-                                    cif_file = io.BytesIO(cif_content)
-                                    cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
-
-                                    st.session_state.full_structures[cif_file.name] = structure_from_aflow
-                                    if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
-                                        st.session_state.uploaded_files.append(cif_file)
-                                    st.success("Structure added from AFLOW!")
-
-                                st.download_button(
-                                    label="Download AFLOW CIF",
-                                    data=cif_content,
-                                    file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
-                                    type="primary",
-                                    mime="chemical/x-cif"
-                                )
-                            else:
-                                st.warning("No CIF file found for this AFLOW entry.")
-                    tab_index += 1
-
-                # COD tab
-                if 'cod_options' in st.session_state and st.session_state.cod_options:
-                    with selected_tab[tab_index]:
-                        st.subheader("🧬 Structures Found in COD")
-                        selected_cod_structure = st.selectbox(
-                            "Select a structure from COD:",
-                            st.session_state.cod_options,
-                            key='sidebar_select_cod'
-                        )
-                        cod_id = selected_cod_structure.split(":")[0].strip()
-                        if cod_id in st.session_state.full_structures_see_cod:
-                            selected_entry = st.session_state.full_structures_see_cod[cod_id]
-                            lattice = selected_entry.lattice
-                            cell_volume = selected_entry.lattice.volume
-                            density = str(selected_entry.density).split()[0]
-                            n_atoms = len(selected_entry)
-                            atomic_den = n_atoms / cell_volume
-
-                            idcodd = cod_id.removeprefix("cod_")
-
-                            structure_type = identify_structure_type(selected_entry)
-                            st.write(f"**Structure type:** {structure_type}")
-                            analyzer = SpacegroupAnalyzer(selected_entry)
-                            st.write(
-                                f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-
-                            st.write(
-                                f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
-                            st.write(
-                                f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
-                            st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-
-                            cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
-                            st.write(f"**Link:** {cod_url}")
-
-                            file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
-
-                            if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
-                                cif_writer = CifWriter(selected_entry, symprec=0.01)
-                                cif_data = str(cif_writer)
-                                st.session_state.full_structures[file_name] = selected_entry
-                                cif_file = io.BytesIO(cif_data.encode('utf-8'))
-                                cif_file.name = file_name
-                                if 'uploaded_files' not in st.session_state:
-                                    st.session_state.uploaded_files = []
-                                if all(f.name != file_name for f in st.session_state.uploaded_files):
-                                    st.session_state.uploaded_files.append(cif_file)
-                                st.success("Structure added from COD!")
-
-                            st.download_button(
-                                label="Download COD CIF",
-                                data=str(CifWriter(selected_entry, symprec=0.01)),
-                                file_name=file_name,
-                                mime="chemical/x-cif", type="primary",
-                            )
 
 
 
@@ -741,6 +817,7 @@ if uploaded_files_user_sidebar:
         try:
             structure = load_structure(file)
             st.session_state['full_structures'][file.name] = structure
+            check_structure_size_and_warn(structure, file.name)
         except Exception as e:
             st.error(f"Failed to parse {file.name}: {e}")
 else:
@@ -1048,7 +1125,7 @@ if "expander_defects" not in st.session_state:
 def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
     try:
         sga = SpacegroupAnalyzer(structure, symprec=0.1)
-        wyckoffs = sga.get_symmetry_dataset()["wyckoffs"]
+        wyckoffs = sga.get_symmetry_dataset().wyckoffs
     except Exception as e:
         wyckoffs = ["-"] * len(structure.sites)
 
@@ -1147,9 +1224,9 @@ if "🔬 Structure Modification" in calc_mode:
                 file_options = [file.name for file in uploaded_files]
                 st.subheader("Select Structure for Interactive Visualization:")
                 if len(file_options) > 5:
-                    selected_file = st.selectbox("", file_options)
+                    selected_file = st.selectbox("Select file", file_options, label_visibility="collapsed")
                 else:
-                    selected_file = st.radio("", file_options)
+                    selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 #apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
@@ -1870,6 +1947,10 @@ if "🔬 Structure Modification" in calc_mode:
                     st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                        f.name != custom_filename]
 
+                st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                   f.name != custom_filename]
+                if 'uploaded_files' in locals():
+                    uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
                 st.session_state.uploaded_files.append(cif_file)
                 uploaded_files.append(cif_file)
                 #               uploaded_files = st.session_state.uploaded_files
@@ -1880,8 +1961,8 @@ if "🔬 Structure Modification" in calc_mode:
                 st.session_state.final_structures[new_key] = new_struct
 
                 st.success(f"Modified structure added as '{new_key}'!")
-                st.write("Final list of structures in calculator:")
-                st.write(list(st.session_state.final_structures.keys()))
+                #st.write("Final list of structures in calculator:")
+                #st.write(list(st.session_state.final_structures.keys()))
 
                 if "calc_xrd" not in st.session_state:
                     st.session_state.calc_xrd = False
@@ -2169,15 +2250,16 @@ if "🔬 Structure Modification" in calc_mode:
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
 
-                            # Remove existing file with the same name if it exists
                             st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                                f.name != custom_filename]
 
-                            # Add the new file
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                               f.name != custom_filename]
+                            if 'uploaded_files' in locals():
+                                uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
                             st.session_state.uploaded_files.append(cif_file)
                             uploaded_files.append(cif_file)
 
-                            # Update other necessary session state variables
                             if "final_structures" not in st.session_state:
                                 st.session_state.final_structures = {}
 
@@ -2762,24 +2844,82 @@ if mode == "Basic":
             <hr style="height:3px;border:none;color:#333;background-color:#333;" />
             """, unsafe_allow_html=True)
 
-# with col_settings:
+current_user_file_names = set()
+if uploaded_files_user_sidebar:
+    current_user_file_names = {f.name for f in uploaded_files_user_sidebar}
 
-st.sidebar.markdown("### Final List of Structure Files:")
-st.sidebar.write([f.name for f in uploaded_files])
+if 'files_marked_for_removal' not in st.session_state:
+    st.session_state.files_marked_for_removal = set()
 
-st.sidebar.markdown("### 🗑️ Remove modified or added from databases structure(s) ")
 
-files_to_remove = []
-for i, file in enumerate(st.session_state['uploaded_files']):
-    col1, col2 = st.sidebar.columns([4, 1])
-    col1.write(file.name)
-    if col2.button("❌", key=f"remove_{i}"):
-        files_to_remove.append(file)
+removable_files = [f for f in uploaded_files
+                   if f.name not in current_user_file_names
+                   and f.name not in st.session_state.files_marked_for_removal]
 
-if files_to_remove:
-    for f in files_to_remove:
-        st.session_state['uploaded_files'].remove(f)
-    #st.rerun()
+
+with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expanded=False):
+    if removable_files:
+        st.write(f"**{len(removable_files)} removable file(s):**")
+
+        for i, file in enumerate(removable_files):
+            col1, col2 = st.columns([4, 1])
+            col1.write(file.name)
+
+            if col2.button("❌", key=f"remove_db_{i}"):
+                st.session_state.files_marked_for_removal.add(file.name)
+
+                st.session_state['uploaded_files'] = [f for f in st.session_state['uploaded_files']
+                                                      if f.name != file.name]
+
+                uploaded_files[:] = [f for f in uploaded_files if f.name != file.name]
+
+                st.success(f"✅ Removed: {file.name}")
+
+        remaining_count = len([f for f in uploaded_files
+                               if f.name not in current_user_file_names
+                               and f.name not in st.session_state.files_marked_for_removal])
+
+        if remaining_count != len(removable_files):
+            st.info(f"📊 {remaining_count} files remaining to remove")
+
+    else:
+        removed_count = len(st.session_state.files_marked_for_removal)
+        if removed_count > 0:
+            st.success(f"✅ All database/modified structures removed ({removed_count} total)")
+        else:
+            st.info("No database or modified structures to remove")
+    if st.session_state.files_marked_for_removal:
+        if st.button("🔄 Update list of files", help="Update the list of files to be removed"):
+            pass
+
+
+unique_files = {f.name: f for f in uploaded_files
+                if f.name not in st.session_state.files_marked_for_removal}.values()
+uploaded_files[:] = list(unique_files)
+
+
+with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
+    if uploaded_files:
+        st.write(f"**Total: {len(uploaded_files)} file(s)**")
+
+        for i, file in enumerate(uploaded_files, 1):
+            source_icon = "👤" if file.name in current_user_file_names else "🌐"
+            st.write(f"{i}. {source_icon} {file.name}")
+
+
+        user_count = len([f for f in uploaded_files if f.name in current_user_file_names])
+        db_count = len(uploaded_files) - user_count
+
+        st.caption(f"👤 User: {user_count} | 🌐 Database/Modified: {db_count}")
+
+    else:
+        st.info("No files uploaded yet")
+
+
+
+    st.session_state.files_marked_for_removal.clear()
+
+
 
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
@@ -4622,7 +4762,22 @@ if "📊 (P)RDF" in calc_mode:
                       "Peak width = disorder. Height = relative likelihood.")
 
     use_lammps_traj = st.checkbox("📈 Use LAMMPS Trajectory File",
-                                  help="Enable this for a LAMMPS dump trajectory file with multiple frames")
+                                  help="Enable this for a LAMMPS dump trajectory file with multiple frames",
+                                  disabled=True)
+
+    st.warning(
+        "⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
+        "This feature may become available online if the server is upgraded, or you can use this feature if the code is compiled on a local computer. "
+        "To enable locally, remove in the 'prdf.py' code the 'disabled=True' in 'use_lammps_traj' checkbox")
+
+    plot_display_mode = st.radio(
+        "Plot Display Mode",
+        ["Separate plots for each pair", "Combined plot with all pairs"],
+        index=0,
+        key="plot_display_mode",
+        horizontal=True,
+        help="Choose whether to show separate plots for each element pair or combine all pairs in one plot"
+    )
 
     line_style = st.radio(
         "Line Style",
@@ -4995,180 +5150,227 @@ if "📊 (P)RDF" in calc_mode:
                       on_change=update_speed,
                       help="Seconds per frame")
 
-        for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+        if not use_lammps_traj and 'plot_display_mode' in locals() and plot_display_mode == "Combined plot with all pairs":
+            fig_combined = go.Figure()
 
-            hex_color = rgb_to_hex(colors[idx % len(colors)])
+            for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+                hex_color = rgb_to_hex(colors[idx % len(colors)])
+                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
 
-            valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
-
-            if not valid_prdf:
-
-                prdf_data = np.zeros_like(all_distance_dict[comb])
-                title_str = f"PRDF: {comb[0]}-{comb[1]}"
-
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=prdf_data,
-                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                ))
-
-            elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
-
-                fig = go.Figure()
-
-                fig.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=valid_prdf[0],  # First frame data
-                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color, width=2),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                ))
-
-                frames = []
-                for i, frame_data in enumerate(valid_prdf):
-                    frame = go.Frame(
-                        data=[go.Scatter(
-                            x=all_distance_dict[comb],
-                            y=frame_data,
-                            mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                            line=dict(color=hex_color, width=2),
-                            marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                        )],
-                        name=f"frame_{i}"
-                    )
-                    frames.append(frame)
-
-                fig.frames = frames
-
-                updatemenus = [
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        x=0.1,
-                        y=-0.1,
-                        showactive=False,
-                        buttons=[
-                            dict(
-                                label="▶️ Play",
-                                method="animate",
-                                args=[None, {
-                                    "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
-                                    "fromcurrent": True, "mode": "immediate"}],
-                            ),
-                            dict(
-                                label="⏹️ Pause",
-                                method="animate",
-                                args=[[None], {"frame": {"duration": 0, "redraw": True},
-                                               "mode": "immediate", "transition": {"duration": 0}}],
-                            ),
-                        ],
-                    )
-                ]
-
-                sliders = [
-                    dict(
-                        active=0,
-                        yanchor="top",
-                        xanchor="left",
-                        currentvalue=dict(
-                            font=dict(size=16),
-                            prefix="Frame: ",
-                            visible=True,
-                            xanchor="right"
-                        ),
-                        pad=dict(b=10, t=50),
-                        len=0.9,
-                        x=0.1,
-                        y=0,
-                        steps=[
-                            dict(
-                                method="animate",
-                                args=[
-                                    [f"frame_{k}"],
-                                    {"frame": {"duration": 100, "redraw": True},
-                                     "mode": "immediate",
-                                     "transition": {"duration": 0}}
-                                ],
-                                label=f"{frame_indices[k]}"
-                            )
-                            for k in range(len(valid_prdf))
-                        ]
-                    )
-                ]
-
-                all_y_values = [y for data in valid_prdf for y in data]
-                max_y = max(all_y_values) * 1.1 if all_y_values else 1.0
-
-                title_str = f"PRDF: {comb[0]}-{comb[1]} Animation"
-
-                fig.update_layout(
-                    title={'text': title_str, 'font': font_dict},
-                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                    hovermode='x',
-                    updatemenus=updatemenus,
-                    sliders=sliders,
-                    font=font_dict,
-                    xaxis=dict(tickfont=font_dict),
-                    yaxis=dict(tickfont=font_dict, range=[0, max_y]),
-                    hoverlabel=dict(font=font_dict)
-                )
-
-            else:
-                prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
-                prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
-
-                if use_lammps_traj and lammps_file:
-                    title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+                if not valid_prdf:
+                    prdf_data = np.zeros_like(all_distance_dict[comb])
                 else:
-                    title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+                    prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
+                    prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
+                fig_combined.add_trace(go.Scatter(
                     x=all_distance_dict[comb],
                     y=prdf_data,
                     mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
                     name=f"{comb[0]}-{comb[1]}",
                     line=dict(color=hex_color, width=2),
-                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    marker=dict(size=8) if st.session_state.line_style == "Lines + Markers" else dict()
                 ))
 
-                if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
-                    prdf_std = np.std(prdf_array, axis=0)
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=prdf_data + prdf_std,
-                        mode='lines',
-                        line=dict(width=0),
-                        showlegend=False
-                    ))
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=np.maximum(0, prdf_data - prdf_std),
-                        mode='lines',
-                        line=dict(width=0),
-                        fillcolor='rgba(100,100,100,0.2)',
-                        fill='tonexty',
-                        showlegend=False
-                    ))
 
-                fig.update_layout(
-                    title={'text': title_str, 'font': font_dict},
-                    xaxis_title={'text': "Distance (Å)", 'font': font_dict},
-                    yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
-                    hovermode='x',
-                    font=font_dict,
-                    xaxis=dict(tickfont=font_dict),
-                    yaxis=dict(tickfont=font_dict, range=[0, None]),
-                    hoverlabel=dict(font=font_dict)
+            title_str = "Combined Averaged PRDF: All Pairs" if multi_structures else "Combined PRDF: All Pairs"
+
+            fig_combined.update_layout(
+                title={'text': title_str, 'font': font_dict},
+                xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                hovermode='x',
+                font=font_dict,
+                xaxis=dict(tickfont=font_dict),
+                yaxis=dict(tickfont=font_dict, range=[0, None]),
+                hoverlabel=dict(font=font_dict),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.3,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=24)
                 )
+            )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_combined, use_container_width=True)
+
+        else:
+            for idx, (comb, prdf_list) in enumerate(all_prdf_dict.items()):
+
+                hex_color = rgb_to_hex(colors[idx % len(colors)])
+
+                valid_prdf = [np.array(p) for p in prdf_list if isinstance(p, list)]
+
+                if not valid_prdf:
+
+                    prdf_data = np.zeros_like(all_distance_dict[comb])
+                    title_str = f"PRDF: {comb[0]}-{comb[1]}"
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
+
+                    fig = go.Figure()
+
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=valid_prdf[0],  # First frame data
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                    frames = []
+                    for i, frame_data in enumerate(valid_prdf):
+                        frame = go.Frame(
+                            data=[go.Scatter(
+                                x=all_distance_dict[comb],
+                                y=frame_data,
+                                mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                                line=dict(color=hex_color, width=2),
+                                marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                            )],
+                            name=f"frame_{i}"
+                        )
+                        frames.append(frame)
+
+                    fig.frames = frames
+
+                    updatemenus = [
+                        dict(
+                            type="buttons",
+                            direction="right",
+                            x=0.1,
+                            y=-0.1,
+                            showactive=False,
+                            buttons=[
+                                dict(
+                                    label="▶️ Play",
+                                    method="animate",
+                                    args=[None, {
+                                        "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
+                                        "fromcurrent": True, "mode": "immediate"}],
+                                ),
+                                dict(
+                                    label="⏹️ Pause",
+                                    method="animate",
+                                    args=[[None], {"frame": {"duration": 0, "redraw": True},
+                                                   "mode": "immediate", "transition": {"duration": 0}}],
+                                ),
+                            ],
+                        )
+                    ]
+
+                    sliders = [
+                        dict(
+                            active=0,
+                            yanchor="top",
+                            xanchor="left",
+                            currentvalue=dict(
+                                font=dict(size=16),
+                                prefix="Frame: ",
+                                visible=True,
+                                xanchor="right"
+                            ),
+                            pad=dict(b=10, t=50),
+                            len=0.9,
+                            x=0.1,
+                            y=0,
+                            steps=[
+                                dict(
+                                    method="animate",
+                                    args=[
+                                        [f"frame_{k}"],
+                                        {"frame": {"duration": 100, "redraw": True},
+                                         "mode": "immediate",
+                                         "transition": {"duration": 0}}
+                                    ],
+                                    label=f"{frame_indices[k]}"
+                                )
+                                for k in range(len(valid_prdf))
+                            ]
+                        )
+                    ]
+
+                    all_y_values = [y for data in valid_prdf for y in data]
+                    max_y = max(all_y_values) * 1.1 if all_y_values else 1.0
+
+                    title_str = f"PRDF: {comb[0]}-{comb[1]} Animation"
+
+                    fig.update_layout(
+                        title={'text': title_str, 'font': font_dict},
+                        xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                        yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                        hovermode='x',
+                        updatemenus=updatemenus,
+                        sliders=sliders,
+                        font=font_dict,
+                        xaxis=dict(tickfont=font_dict),
+                        yaxis=dict(tickfont=font_dict, range=[0, max_y]),
+                        hoverlabel=dict(font=font_dict)
+                    )
+
+                else:
+                    prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
+                    prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
+
+                    if use_lammps_traj and lammps_file:
+                        title_str = f"Trajectory-Averaged PRDF: {comb[0]}-{comb[1]}"
+                    else:
+                        title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2),
+                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
+
+                    if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
+                        prdf_std = np.std(prdf_array, axis=0)
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=prdf_data + prdf_std,
+                            mode='lines',
+                            line=dict(width=0),
+                            showlegend=False
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=np.maximum(0, prdf_data - prdf_std),
+                            mode='lines',
+                            line=dict(width=0),
+                            fillcolor='rgba(100,100,100,0.2)',
+                            fill='tonexty',
+                            showlegend=False
+                        ))
+
+                    fig.update_layout(
+                        title={'text': title_str, 'font': font_dict},
+                        xaxis_title={'text': "Distance (Å)", 'font': font_dict},
+                        yaxis_title={'text': "PRDF Intensity", 'font': font_dict},
+                        hovermode='x',
+                        font=font_dict,
+                        xaxis=dict(tickfont=font_dict),
+                        yaxis=dict(tickfont=font_dict, range=[0, None]),
+                        hoverlabel=dict(font=font_dict)
+                    )
+
+                st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Total RDF Plot:")
         global_bins_set = set()
@@ -5525,7 +5727,7 @@ if "📈 Interactive Data Plot" in calc_mode:
         col_thick, col_size = st.sidebar.columns(2)
         line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0,
                                                 step=0.3,
-                                                key="line_thickness")
+                                                key="line_thickness2")
         marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0,
                                             step=1.0,
                                             key="marker_size")
