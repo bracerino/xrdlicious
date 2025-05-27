@@ -69,10 +69,7 @@ memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 # Check if memory exceeds 1600 MB
 if memory_usage > 600:
    # Show warning message
-   st.warning(f"⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[
-   In 10 seconds, there will be
-   a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. 
-   Cleaning cache and restarting in 10 seconds...")
+   st.warning(f"⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
    
    # Wait 10 seconds
    time.sleep(10)
