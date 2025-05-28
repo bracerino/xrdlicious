@@ -14,6 +14,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 from helpers import *
 
+import gc
 import numpy as np
 import matplotlib.pyplot as plt
 from ase.io import read, write
@@ -49,7 +50,7 @@ import requests
 from PIL import Image
 import os
 import psutil
-
+import time
 import warnings
 
 # Suppersing pymatgen warning about rounding coordinates from CIF
@@ -61,6 +62,7 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
+    
 st.markdown(
     """
     <style>
@@ -121,6 +123,27 @@ st.markdown("#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns,
 
 
 
+# Get current memory usage
+process = psutil.Process(os.getpid())
+mem_info = process.memory_info()
+memory_usage = mem_info.rss / (1024 ** 2)  # in MB
+
+# Check if memory exceeds 1600 MB
+if memory_usage > 1600:
+   # Show warning message
+   st.markdown(f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
+   
+   # Wait 10 seconds
+   time.sleep(10)
+   for key in list(st.session_state.keys()):
+       del st.session_state[key]
+   if hasattr(st.session_state, 'sidebar_uploader'):
+       del st.session_state.sidebar_uploader
+   st.cache_data.clear()
+   st.cache_resource.clear()
+   gc.collect()
+   st.rerun()
+    
 col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
 
 with col2:
@@ -365,12 +388,61 @@ if show_database_search:
 
             if not db_choices:
                 st.warning("Please select at least one database to search.")
-
+        ELEMENTS = [
+                    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+                    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
+                    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+                    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
+                    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+                    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+                    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
+                    'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+                    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
+                    'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
+                    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+                    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
+                ]
         with cols2:
-            search_query = st.text_input(
-                "Enter elements separated by spaces (e.g., Sr Ti O):",
-                value="Sr Ti O"
+            selected_elements = st.multiselect(
+                "Select elements for search:",
+                options=ELEMENTS,
+                default=["Sr", "Ti", "O"],
+                help="Choose one or more chemical elements"
             )
+            search_query = " ".join(selected_elements) if selected_elements else ""
+    
+            show_element_info = st.checkbox("ℹ️ Show information about element groups")
+            
+            if show_element_info:
+                st.markdown("""
+                **Element groups note:**
+                
+                **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca  
+                *Frequently encountered in everyday chemistry*
+                
+                **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn  
+                *Known for catalytic properties and colored compounds*
+                
+                **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr  
+                *Highly reactive metals that form ionic compounds*
+                
+                **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
+                *Less reactive than alkali metals, form ionic compounds*
+                
+                **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn  
+                *Chemically inert under normal conditions*
+                
+                **Halogens (5):** F, Cl, Br, I, At  
+                *Highly reactive non-metals that form salts*
+                
+                **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu  
+                *Rare earth elements with similar properties*
+                
+                **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr  
+                *Radioactive elements, many synthetic*
+                
+                **Other Elements (51):** All remaining elements including metalloids, post-transition metals, and synthetic superheavy elements
+                """)
 
         if st.button("Search Selected Databases"):
             if not db_choices:
@@ -4713,7 +4785,14 @@ if "📊 (P)RDF" in calc_mode:
                       "Peak width = disorder. Height = relative likelihood.")
 
     use_lammps_traj = st.checkbox("📈 Use LAMMPS Trajectory File",
-                                  help="Enable this for a LAMMPS dump trajectory file with multiple frames")
+                                  help="Enable this for a LAMMPS dump trajectory file with multiple frames",
+                                  disabled=True)
+
+    st.warning(
+        "⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
+        "This feature may become available online if the server is upgraded, or you can use this feature if the code is compiled on a local computer. "
+        "To enable locally, remove in the 'prdf.py' code the 'disabled=True' in 'use_lammps_traj' checkbox")
+
     plot_display_mode = st.radio(
         "Plot Display Mode",
         ["Separate plots for each pair", "Combined plot with all pairs"],
@@ -5671,7 +5750,7 @@ if "📈 Interactive Data Plot" in calc_mode:
         col_thick, col_size = st.sidebar.columns(2)
         line_thickness = col_thick.number_input("Line Thickness", min_value=0.1, max_value=15.0, value=1.0,
                                                 step=0.3,
-                                                key="line_thickness")
+                                                key="line_thickness2")
         marker_size = col_size.number_input("Marker Size", min_value=0.5, max_value=50.0, value=3.0,
                                             step=1.0,
                                             key="marker_size")
