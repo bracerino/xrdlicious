@@ -260,10 +260,10 @@ calc_mode = st.sidebar.multiselect(
 )
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
-        st.subheader("This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
+    st.subheader("This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
     st.markdown(
-        '<p style="font-size:24px;">🔗 <a href="https://github.com/bracerino/PRDF-CP2K-LAMMPS" target="_blank">Downlaod the PRDF calculator for LAMMPS/XYZ trajectories</a></p>',
-        unsafe_allow_html=True
+    '<p style="font-size:24px;">🔗 <a href="https://github.com/bracerino/PRDF-CP2K-LAMMPS" target="_blank">Downlaod the PRDF calculator for LAMMPS/XYZ trajectories</a></p>',
+    unsafe_allow_html=True
     )
 
 if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)" in calc_mode:
