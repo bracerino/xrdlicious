@@ -1,13 +1,17 @@
 **XRDlicious: Powder XRD/ND Patterns and PRDF Online Calculator**
 
 An online, web-based tool for calculating powder X-ray and neutron diffraction (XRD and ND) patterns, as well as partial radial distribution functions, from crystal structures.
-It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP) and AFLOW databases. Users can also interactively visualize uploaded structures, convert between conventional and primitive cells, and download the corresponding CIF files.
+It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), AFLOW, and COD databases. Users can also interactively visualize uploaded structures, convert between conventional and primitive cells, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ).
 
 🔗 Try it here: [XRD/ND/PRDF Calculator](https://rdf-xrd-calculator.streamlit.app/)
 🔗 [Tutorial how to use it HERE](https://implant.fs.cvut.cz/xrdlicious/)
 
+For more computationally demanding calculations with more data, please compile the code locally
 
-**How It Works**
-1) Upload one or more crystal structure files (e.g., CIF or POSCAR formats), or add structures directly using the integrated search interface connected to the Materials Project and AFLOW databases. If you upload more than one file, averaging of PRDF for the corresponding combinations of elements between the structures will be performed. 
-2) The tool will compute XRD/ND patterns or PRDF.
-3) View the plotted graphs and download the corresponding data. 
+**How to compile:**
+1) git clone https://github.com/bracerino/prdf-calculator-online.git
+2) cd prdf-calculator-online/
+3) python3 -m venv sqs_env
+4) source sqs_env/bin/activate
+5) pip install -r requirements.txt
+6) streamlit run app.py
