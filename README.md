@@ -7,6 +7,7 @@ It features an integrated search interface for directly accessing and importing 
 🔗 [Tutorial how to use it HERE](https://implant.fs.cvut.cz/xrdlicious/)
 
 For more computationally demanding calculations with more extensive data, please compile the code locally.
+
 **How to compile and run the app:** (with activating the virtual environment to prevent possible conflicts between packages)
 1) git clone https://github.com/bracerino/prdf-calculator-online.git
 2) cd prdf-calculator-online/
