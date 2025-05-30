@@ -39,6 +39,5 @@ Open your terminal console and write the following commands:
 5) Install all the necessary Python packages:  
       **pip install -r requirements.txt**
 
-**Run the app**  
 6) Run the XRDlicious app (always before running it, make sure to activate its Python virtual environment (Step 4):  
       **streamlit run app.py**
