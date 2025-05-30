@@ -424,7 +424,7 @@ if show_database_search:
             if not db_choices:
                 st.warning("Please select at least one database to search.")
 
-            st.markdown("**Maximum number of structures to be found in each database (for improving the performance):**")
+            st.markdown("**Maximum number of structures to be found in each database (for improving performance):**")
             col_limits = st.columns(3)
 
             search_limits = {}
