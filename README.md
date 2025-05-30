@@ -19,22 +19,22 @@ For more computationally demanding calculations with more extensive data, please
 2) sudo apt install git 
 
 **Compile the app**
-- Into the console, write the following commands 
-Download the XRDlicious code from GitHub (or download it manually without Git on the GitHub):
+Into the console, write the following commands 
+- Download the XRDlicious code from GitHub (or download it manually without Git on the GitHub):
 1) git clone https://github.com/bracerino/xrdlicious.git
    
-Go to the downloaded folder:
+- Go to the downloaded folder:
 2) cd xrdlicious/
 
-Set a Python virtual environment to prevent possible conflicts between packages:
+- Set a Python virtual environment to prevent possible conflicts between packages:
 3) python3 -m venv xrdlicious_env
 
-Activate the Python virtual environment:
+- Activate the Python virtual environment:
 4) source prdf_env/bin/activate
 
-Install all the necessary Python packages:
+- Install all the necessary Python packages:
 5) pip install -r requirements.txt
 
 **Run the app**
-Run the XRDlicious app:
+- Run the XRDlicious app:
 6) streamlit run app.py
