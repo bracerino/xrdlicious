@@ -146,6 +146,21 @@ with col2:
         "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
         "lebedmi2@cvut.cz"
     )
+ELEMENTS = [
+    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
+    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
+    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
+    'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
+    'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
+    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
+]
+
 with col3:
     if st.button("💡 Need Help?"):
         st.markdown("""
@@ -357,6 +372,21 @@ if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
 st.markdown("##### 🔍 Search for structures in online databases?")
+
+
+def display_structure_types():
+
+
+    if st.checkbox("See Crystal Structure Types"):
+        with st.expander("Structure Types by Space Group", expanded=True):
+            for sg, types in sorted(STRUCTURE_TYPES.items()):
+                sg_symbol = SPACE_GROUP_SYMBOLS.get(sg, "Unknown")
+                header = f"**Space Group {sg} ({sg_symbol})**"
+                line = " | ".join([f"`{formula}` → {name}" for formula, name in types.items()])
+                st.markdown(f"{header}: {line}")
+
+# Then in Streamlit main block
+display_structure_types()
 show_database_search = st.checkbox("Enable database search",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
@@ -373,14 +403,17 @@ if st.session_state["first_run_note"] == True:
         """)
     st.session_state["first_run_note"] = False
 
-# if "📈 Interactive Data Plot" not in calc_mode:
+
+
+def get_space_group_info(number):
+    symbol = SPACE_GROUP_SYMBOLS.get(number, f"SG#{number}")
+    return symbol
 
 
 if show_database_search:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
         cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
         with cols:
-
             db_choices = st.multiselect(
                 "Select Database(s)",
                 options=["Materials Project", "AFLOW", "COD"],
@@ -390,113 +423,271 @@ if show_database_search:
 
             if not db_choices:
                 st.warning("Please select at least one database to search.")
-        ELEMENTS = [
-            'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
-            'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
-            'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
-            'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
-            'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
-            'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
-            'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
-            'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
-            'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
-            'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
-            'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
-            'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
-        ]
+
+            st.markdown("**Search Limits (max 500 each):**")
+            col_limits = st.columns(3)
+
+            search_limits = {}
+            if "Materials Project" in db_choices:
+                with col_limits[0]:
+                    search_limits["Materials Project"] = st.number_input(
+                        "MP Limit:", min_value=1, max_value=500, value=300, step=10,
+                        help="Maximum results from Materials Project"
+                    )
+            if "AFLOW" in db_choices:
+                with col_limits[1]:
+                    search_limits["AFLOW"] = st.number_input(
+                        "AFLOW Limit:", min_value=1, max_value=500, value=300, step=10,
+                        help="Maximum results from AFLOW"
+                    )
+            if "COD" in db_choices:
+                with col_limits[2]:
+                    search_limits["COD"] = st.number_input(
+                        "COD Limit:", min_value=1, max_value=500, value=300, step=10,
+                        help="Maximum results from COD"
+                    )
+
         with cols2:
-            selected_elements = st.multiselect(
-                "Select elements for search:",
-                options=ELEMENTS,
-                default=["Sr", "Ti", "O"],
-                help="Choose one or more chemical elements"
+            search_mode = st.radio(
+                "Search by:",
+                options=["Elements", "Structure ID", "Space Group + Elements", "Formula", "Search Mineral"],
+                help="Choose your search strategy"
             )
-            search_query = " ".join(selected_elements) if selected_elements else ""
+
+            if search_mode == "Elements":
+                selected_elements = st.multiselect(
+                    "Select elements for search:",
+                    options=ELEMENTS,
+                    default=["Sr", "Ti", "O"],
+                    help="Choose one or more chemical elements"
+                )
+                search_query = " ".join(selected_elements) if selected_elements else ""
+
+            elif search_mode == "Structure ID":
+                structure_ids = st.text_area(
+                    "Enter Structure IDs (one per line):",
+                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5",
+                    help="Enter structure IDs. Examples:\n- Materials Project: mp-5229\n- COD: cod_1512124 (with cod_ prefix)\n- AFLOW: aflow:010158cb2b41a1a5 (AUID format)"
+                )
+
+            elif search_mode == "Space Group + Elements":
+                col_sg1, col_sg2 = st.columns(2)
+                with col_sg1:
+                    all_space_groups_help = "Enter space group number (1-230)\n\nAll space groups:\n\n"
+                    for num in sorted(SPACE_GROUP_SYMBOLS.keys()):
+                        all_space_groups_help += f"• {num}: {SPACE_GROUP_SYMBOLS[num]}\n\n"
+
+                    space_group_number = st.number_input(
+                        "Space Group Number:",
+                        min_value=1,
+                        max_value=230,
+                        value=221,
+                        help=all_space_groups_help
+                    )
+                    sg_symbol = get_space_group_info(space_group_number)
+                    st.info(f"#:**{sg_symbol}**")
+
+                selected_elements = st.multiselect(
+                    "Select elements for search:",
+                    options=ELEMENTS,
+                    default=["Sr", "Ti", "O"],
+                    help="Choose one or more chemical elements"
+                )
+
+            elif search_mode == "Formula":
+                formula_input = st.text_input(
+                    "Enter Chemical Formula:",
+                    value="Sr Ti O3",
+                    help="Enter chemical formula with spaces between elements. Examples:\n- Sr Ti O3 (strontium titanate)\n- Ca C O3 (calcium carbonate)\n- Al2 O3 (alumina)"
+                )
+
+            elif search_mode == "Search Mineral":
+                mineral_options = []
+                mineral_mapping = {}
+
+                for space_group, minerals in MINERALS.items():
+                    for mineral_name, formula in minerals.items():
+                        option_text = f"{mineral_name} - SG #{space_group}"
+                        mineral_options.append(option_text)
+                        mineral_mapping[option_text] = {
+                            'space_group': space_group,
+                            'formula': formula,
+                            'mineral_name': mineral_name
+                        }
+
+                # Sort mineral options alphabetically
+                mineral_options.sort()
+
+                selected_mineral = st.selectbox(
+                    "Select Mineral Structure:",
+                    options= mineral_options,
+                    help="Choose a mineral structure type. The exact formula and space group will be automatically set.",
+                    index = 2
+                )
+
+                if selected_mineral:
+                    mineral_info = mineral_mapping[selected_mineral]
+
+                    col_mineral1, col_mineral2 = st.columns(2)
+                    with col_mineral1:
+                        st.info(f"**Space Group:** {mineral_info['space_group']}")
+                        sg_symbol = get_space_group_info(mineral_info['space_group'])
+                        st.info(f"**Symbol:** {sg_symbol}")
+
+                    with col_mineral2:
+                        st.info(f"**Formula:** {mineral_info['formula']}")
+                        st.info(f"**Structure:** {mineral_info['mineral_name']}")
+
+                    space_group_number = mineral_info['space_group']
+                    formula_input = mineral_info['formula']
+
+                    st.success(f"**Search will use:** Formula = {formula_input}, Space Group = {space_group_number}")
 
             show_element_info = st.checkbox("ℹ️ Show information about element groups")
-
             if show_element_info:
                 st.markdown("""
                 **Element groups note:**
-
                 **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca  
-                *Frequently encountered in everyday chemistry*
-
                 **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn  
-                *Known for catalytic properties and colored compounds*
-
                 **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr  
-                *Highly reactive metals that form ionic compounds*
-
                 **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
-                *Less reactive than alkali metals, form ionic compounds*
-
                 **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn  
-                *Chemically inert under normal conditions*
-
                 **Halogens (5):** F, Cl, Br, I, At  
-                *Highly reactive non-metals that form salts*
-
                 **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu  
-                *Rare earth elements with similar properties*
-
                 **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr  
-                *Radioactive elements, many synthetic*
-
-                **Other Elements (51):** All remaining elements including metalloids, post-transition metals, and synthetic superheavy elements
+                **Other Elements (51):** All remaining elements
                 """)
 
         if st.button("Search Selected Databases"):
             if not db_choices:
                 st.error("Please select at least one database to search.")
             else:
-                elements_list = [el.strip() for el in search_query.split() if el.strip()]
-                if not elements_list:
-                    st.error("Please enter at least one element for the search.")
-                else:
-                    for db_choice in db_choices:
-                        if db_choice == "Materials Project":
-                            with st.spinner(f"Searching **the MP database**, please wait. 😊"):
-                                elements_list_sorted = sorted(set(elements_list))
-                                try:
-                                    with MPRester(MP_API_KEY) as mpr:
+                for db_choice in db_choices:
+                    if db_choice == "Materials Project":
+                        mp_limit = search_limits.get("Materials Project", 50)
+                        with st.spinner(f"Searching **the MP database** (limit: {mp_limit}), please wait. 😊"):
+                            try:
+                                with MPRester(MP_API_KEY) as mpr:
+                                    docs = None
+
+                                    if search_mode == "Elements":
+                                        elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                                        if not elements_list:
+                                            st.error("Please enter at least one element for the search.")
+                                            continue
+                                        elements_list_sorted = sorted(set(elements_list))
                                         docs = mpr.materials.summary.search(
                                             elements=elements_list_sorted,
                                             num_elements=len(elements_list_sorted),
                                             fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
                                         )
-                                        if docs:
-                                            status_placeholder = st.empty()
-                                            st.session_state.mp_options = []
-                                            st.session_state.full_structures_see = {}
 
-                                            for doc in docs:
-                                                full_structure = mpr.get_structure_by_material_id(doc.material_id,
-                                                                                                  conventional_unit_cell=True)
-                                                structure_to_use = full_structure
-                                                st.session_state.full_structures_see[doc.material_id] = full_structure
-                                                lattice = structure_to_use.lattice
-                                                leng = len(structure_to_use)
-                                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                                               f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
-                                                st.session_state.mp_options.append(
-                                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
-                                                )
-                                                status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
-                                                )
-                                            st.success(
-                                                f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                    elif search_mode == "Structure ID":
+                                        mp_ids = [id.strip() for id in structure_ids.split('\n')
+                                                  if id.strip() and id.strip().startswith('mp-')]
+                                        if not mp_ids:
+                                            st.warning("No valid Materials Project IDs found (should start with 'mp-')")
+                                            continue
+                                        docs = mpr.materials.summary.search(
+                                            material_ids=mp_ids,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    elif search_mode == "Space Group + Elements":
+                                        elements_list = sorted(set(selected_elements))
+                                        if not elements_list:
+                                            st.warning(
+                                                "Please select elements for Materials Project space group search.")
+                                            continue
+
+                                        search_params = {
+                                            "elements": elements_list,
+                                            "num_elements": len(elements_list),
+                                            "fields": ["material_id", "formula_pretty", "symmetry", "nsites", "volume"],
+                                            "spacegroup_number": space_group_number
+                                        }
+
+                                        docs = mpr.materials.summary.search(**search_params)
+
+                                    elif search_mode == "Formula":
+                                        if not formula_input.strip():
+                                            st.warning("Please enter a chemical formula for Materials Project search.")
+                                            continue
+
+                                        # Convert space-separated format to compact format (Sr Ti O3 -> SrTiO3)
+                                        clean_formula = formula_input.strip()
+                                        if ' ' in clean_formula:
+                                            parts = clean_formula.split()
+                                            compact_formula = ''.join(parts)
                                         else:
-                                            st.session_state.mp_options = []
-                                            st.warning("No matching structures found in Materials Project.")
-                                except Exception as e:
-                                    st.error(
-                                        f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
+                                            compact_formula = clean_formula
 
-                        elif db_choice == "AFLOW":
-                            with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
-                                try:
+                                        docs = mpr.materials.summary.search(
+                                            formula=compact_formula,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    elif search_mode == "Search Mineral":
+                                        if not selected_mineral:
+                                            st.warning(
+                                                "Please select a mineral structure for Materials Project search.")
+                                            continue
+                                        clean_formula = formula_input.strip()
+                                        if ' ' in clean_formula:
+                                            parts = clean_formula.split()
+                                            compact_formula = ''.join(parts)
+                                        else:
+                                            compact_formula = clean_formula
+
+                                        # Search by formula and space group
+                                        docs = mpr.materials.summary.search(
+                                            formula=compact_formula,
+                                            spacegroup_number=space_group_number,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    if docs:
+                                        status_placeholder = st.empty()
+                                        st.session_state.mp_options = []
+                                        st.session_state.full_structures_see = {}
+                                        limited_docs = docs[:mp_limit]
+
+                                        for doc in limited_docs:
+                                            full_structure = mpr.get_structure_by_material_id(doc.material_id,
+                                                                                              conventional_unit_cell=True)
+                                            st.session_state.full_structures_see[doc.material_id] = full_structure
+                                            lattice = full_structure.lattice
+                                            leng = len(full_structure)
+                                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                                           f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
+                                            st.session_state.mp_options.append(
+                                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
+                                            )
+                                            status_placeholder.markdown(
+                                                f"- **Structure loaded:** `{full_structure.composition.reduced_formula}` ({doc.material_id})"
+                                            )
+                                        if len(limited_docs) < len(docs):
+                                            st.info(
+                                                f"Showing first {mp_limit} of {len(docs)} total Materials Project results. Increase limit to see more.")
+                                        st.success(
+                                            f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                    else:
+                                        st.session_state.mp_options = []
+                                        st.warning("No matching structures found in Materials Project.")
+                            except Exception as e:
+                                st.error(f"An error occurred with Materials Project: {e}")
+
+                    elif db_choice == "AFLOW":
+                        aflow_limit = search_limits.get("AFLOW", 50)
+                        with st.spinner(f"Searching **the AFLOW database** (limit: {aflow_limit}), please wait. 😊"):
+                            try:
+                                results = []
+
+                                if search_mode == "Elements":
+                                    elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                                    if not elements_list:
+                                        st.warning("Please enter elements for AFLOW search.")
+                                        continue
                                     ordered_elements = sorted(elements_list)
                                     ordered_str = ",".join(ordered_elements)
                                     aflow_nspecies = len(ordered_elements)
@@ -513,78 +704,386 @@ if show_database_search:
                                             AFLOW_K.files,
                                         )
                                     )
+
+                                elif search_mode == "Structure ID":
+                                    aflow_auids = []
+                                    for id_line in structure_ids.split('\n'):
+                                        id_line = id_line.strip()
+                                        if id_line.startswith('aflow:'):
+                                            auid = id_line.replace('aflow:', '').strip()
+                                            aflow_auids.append(auid)
+
+                                    if not aflow_auids:
+                                        st.warning("No valid AFLOW AUIDs found (should start with 'aflow:')")
+                                        continue
+
+                                    results = []
+                                    for auid in aflow_auids:
+                                        try:
+                                            result = list(search(catalog="icsd")
+                                                          .filter(AFLOW_K.auid == f"aflow:{auid}")
+                                                          .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                                  AFLOW_K.spacegroup_relax, AFLOW_K.aurl,
+                                                                  AFLOW_K.files))
+                                            results.extend(result)
+                                        except Exception as e:
+                                            st.warning(f"AFLOW search failed for AUID '{auid}': {e}")
+                                            continue
+
+                                elif search_mode == "Space Group + Elements":
+                                    if not selected_elements:
+                                        st.warning("Please select elements for AFLOW space group search.")
+                                        continue
+                                    ordered_elements = sorted(selected_elements)
+                                    ordered_str = ",".join(ordered_elements)
+                                    aflow_nspecies = len(ordered_elements)
+
+
+                                    try:
+                                        results = list(search(catalog="icsd")
+                                                       .filter((AFLOW_K.species % ordered_str) &
+                                                               (AFLOW_K.nspecies == aflow_nspecies) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+                                    except Exception as e:
+                                        st.warning(f"AFLOW space group search failed: {e}")
+                                        results = []
+
+
+                                elif search_mode == "Formula":
+
+                                    if not formula_input.strip():
+                                        st.warning("Please enter a chemical formula for AFLOW search.")
+
+                                        continue
+
+
+
+                                    def convert_to_aflow_formula(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = match.group(2) if match.group(
+                                                    2) else "1"  # Add "1" if no number
+
+                                                elements_dict[element] = count
+
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+
+                                    # Generate 2x multiplied formula
+                                    def multiply_formula_by_2(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = int(match.group(2)) if match.group(2) else 1
+
+                                                elements_dict[element] = str(count * 2)  # Multiply by 2
+
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+
+                                    aflow_formula = convert_to_aflow_formula(formula_input)
+
+                                    aflow_formula_2x = multiply_formula_by_2(formula_input)
+
+
+                                    if aflow_formula_2x != aflow_formula:
+
+                                        results = list(search(catalog="icsd")
+
+                                                       .filter((AFLOW_K.compound == aflow_formula) |
+
+                                                               (AFLOW_K.compound == aflow_formula_2x))
+
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching for both {aflow_formula} and {aflow_formula_2x} formulas simultaneously")
+
+                                    else:
+                                        results = list(search(catalog="icsd")
+                                                       .filter(AFLOW_K.compound == aflow_formula)
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(f"Searching for formula {aflow_formula}")
+
+
+                                elif search_mode == "Search Mineral":
+                                    if not selected_mineral:
+                                        st.warning("Please select a mineral structure for AFLOW search.")
+                                        continue
+
+                                    def convert_to_aflow_formula_mineral(formula_input):
+                                        import re
+                                        formula_parts = formula_input.strip().split()
+                                        elements_dict = {}
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = match.group(2) if match.group(
+                                                    2) else "1"  # Always add "1" for single atoms
+
+                                                elements_dict[element] = count
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+                                    def multiply_mineral_formula_by_2(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+                                            if match:
+                                                element = match.group(1)
+                                                count = int(match.group(2)) if match.group(2) else 1
+                                                elements_dict[element] = str(count * 2)  # Multiply by 2
+                                        aflow_parts = []
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+                                        return "".join(aflow_parts)
+
+                                    aflow_formula = convert_to_aflow_formula_mineral(formula_input)
+
+                                    aflow_formula_2x = multiply_mineral_formula_by_2(formula_input)
+
+                                    # Search for both formulas with space group constraint in a single query
+
+                                    if aflow_formula_2x != aflow_formula:
+                                        results = list(search(catalog="icsd")
+                                                       .filter(((AFLOW_K.compound == aflow_formula) |
+                                                                (AFLOW_K.compound == aflow_formula_2x)) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching {mineral_info['mineral_name']} for both {aflow_formula} and {aflow_formula_2x} with space group {space_group_number}")
+
+                                    else:
+                                        results = list(search(catalog="icsd")
+                                                       .filter((AFLOW_K.compound == aflow_formula) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching {mineral_info['mineral_name']} for formula {aflow_formula} with space group {space_group_number}")
+
+                                if results:
+                                    status_placeholder = st.empty()
+                                    st.session_state.aflow_options = []
                                     st.session_state.entrys = {}
 
-                                    if results:
-                                        status_placeholder = st.empty()
-                                        st.session_state.aflow_options = []
-                                        st.session_state.entrys = {}  # store full AFLOW entry objects
-                                        for entry in results:
-                                            st.session_state.entrys[entry.auid] = entry
-                                            st.session_state.aflow_options.append(
-                                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
-                                            )
-                                            status_placeholder.markdown(
-                                                f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
-                                            )
-                                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
-                                    else:
-                                        st.session_state.aflow_options = []
-                                        st.warning("No matching structures found in AFLOW.")
-                                except Exception as e:
-                                    st.warning("No matching structures found in AFLOW.")
+                                    limited_results = results[:aflow_limit]
 
-                        elif db_choice == "COD":
-                            with st.spinner(f"Searching **the COD database**, please wait. 😊"):
-                                elements = elements_list
-                                if elements:
-                                    params = {'format': 'json', 'detail': '1'}
-                                    for i, el in enumerate(elements, start=1):
-                                        params[f'el{i}'] = el
-                                    params['strictmin'] = str(len(elements))
-                                    params['strictmax'] = str(len(elements))
+                                    for entry in limited_results:
+                                        st.session_state.entrys[entry.auid] = entry
+                                        st.session_state.aflow_options.append(
+                                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                        )
+                                        status_placeholder.markdown(
+                                            f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
+                                        )
+                                    if len(limited_results) < len(results):
+                                        st.info(
+                                            f"Showing first {aflow_limit} of {len(results)} total AFLOW results. Increase limit to see more.")
+                                    st.success(f"Found {len(st.session_state.aflow_options)} structures in AFLOW.")
+                                else:
+                                    st.session_state.aflow_options = []
+                                    st.warning("No matching structures found in AFLOW.")
+                            except Exception as e:
+                                st.warning(f"No matching structures found in AFLOW.")
+                                st.session_state.aflow_options = []
+
+                    elif db_choice == "COD":
+                        cod_limit = search_limits.get("COD", 50)
+                        with st.spinner(f"Searching **the COD database** (limit: {cod_limit}), please wait. 😊"):
+                            try:
+                                cod_entries = []
+
+                                if search_mode == "Elements":
+                                    elements = [el.strip() for el in search_query.split() if el.strip()]
+                                    if elements:
+                                        params = {'format': 'json', 'detail': '1'}
+                                        for i, el in enumerate(elements, start=1):
+                                            params[f'el{i}'] = el
+                                        params['strictmin'] = str(len(elements))
+                                        params['strictmax'] = str(len(elements))
+                                        cod_entries = get_cod_entries(params)
+                                    else:
+                                        st.warning("Please enter elements for COD search.")
+                                        continue
+
+                                elif search_mode == "Structure ID":
+                                    cod_ids = []
+                                    for id_line in structure_ids.split('\n'):
+                                        id_line = id_line.strip()
+                                        if id_line.startswith('cod_'):
+                                            # Extract numeric ID from cod_XXXXX format
+                                            numeric_id = id_line.replace('cod_', '').strip()
+                                            if numeric_id.isdigit():
+                                                cod_ids.append(numeric_id)
+
+                                    if not cod_ids:
+                                        st.warning(
+                                            "No valid COD IDs found (should start with 'cod_' followed by numbers)")
+                                        continue
+
+                                    cod_entries = []
+                                    for cod_id in cod_ids:
+                                        try:
+                                            params = {'format': 'json', 'detail': '1', 'id': cod_id}
+                                            entry = get_cod_entries(params)
+                                            if entry:
+                                                if isinstance(entry, list):
+                                                    cod_entries.extend(entry)
+                                                else:
+                                                    cod_entries.append(entry)
+                                        except Exception as e:
+                                            st.warning(f"COD search failed for ID {cod_id}: {e}")
+                                            continue
+
+                                elif search_mode == "Space Group + Elements":
+                                    elements = selected_elements
+                                    if elements:
+                                        params = {'format': 'json', 'detail': '1'}
+                                        for i, el in enumerate(elements, start=1):
+                                            params[f'el{i}'] = el
+                                        params['strictmin'] = str(len(elements))
+                                        params['strictmax'] = str(len(elements))
+                                        params['space_group_number'] = str(space_group_number)
+
+                                        cod_entries = get_cod_entries(params)
+                                    else:
+                                        st.warning("Please select elements for COD space group search.")
+                                        continue
+
+                                elif search_mode == "Formula":
+                                    if not formula_input.strip():
+                                        st.warning("Please enter a chemical formula for COD search.")
+                                        continue
+
+                                    # alphabet sorting
+                                    alphabet_form = sort_formula_alphabetically(formula_input)
+                                    print(alphabet_form)
+                                    params = {'format': 'json', 'detail': '1', 'formula': alphabet_form}
                                     cod_entries = get_cod_entries(params)
-                                    if cod_entries:
-                                        status_placeholder = st.empty()
-                                        st.session_state.cod_options = []
-                                        st.session_state.full_structures_see_cod = {}
-                                        for entry in cod_entries:
+
+                                elif search_mode == "Search Mineral":
+                                    if not selected_mineral:
+                                        st.warning("Please select a mineral structure for COD search.")
+                                        continue
+
+                                    # Use both formula and space group for COD search
+                                    alphabet_form = sort_formula_alphabetically(formula_input)
+                                    params = {
+                                        'format': 'json',
+                                        'detail': '1',
+                                        'formula': alphabet_form,
+                                        'space_group_number': str(space_group_number)
+                                    }
+                                    cod_entries = get_cod_entries(params)
+
+                                if cod_entries and isinstance(cod_entries, list):
+                                    status_placeholder = st.empty()
+                                    st.session_state.cod_options = []
+                                    st.session_state.full_structures_see_cod = {}
+
+                                    limited_entries = cod_entries[:cod_limit]
+
+                                    for entry in limited_entries:
+                                        try:
                                             cif_content = get_cif_from_cod(entry)
                                             if cif_content:
-                                                try:
-                                                    # structure = get_full_conventional_structure(
-                                                    #    get_cod_str(cif_content))
-                                                    structure = get_cod_str(cif_content)
-                                                    cod_id = f"cod_{entry.get('file')}"
-                                                    st.session_state.full_structures_see_cod[cod_id] = structure
-                                                    spcs = entry.get("sg")
-                                                    spcs_number = entry.get("sgNumber")
-                                                    # Listing all keywords in the entry
-                                                    # all_keys = list(entry.keys())
-                                                    # st.write(all_keys)
+                                                structure = get_cod_str(cif_content)
+                                                cod_id = f"cod_{entry.get('file')}"
+                                                st.session_state.full_structures_see_cod[cod_id] = structure
+                                                spcs = entry.get("sg", "Unknown")
+                                                spcs_number = entry.get("sgNumber", "Unknown")
 
-                                                    cell_volume = structure.lattice.volume
-                                                    st.session_state.cod_options.append(
-                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
-                                                    )
-                                                    status_placeholder.markdown(
-                                                        f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                                except Exception as e:
-                                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+                                                cell_volume = structure.lattice.volume
+                                                st.session_state.cod_options.append(
+                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
+                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
+                                                )
+                                                status_placeholder.markdown(
+                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
+                                        except Exception as e:
+                                            st.warning(
+                                                f"Error processing COD entry {entry.get('file', 'unknown')}: {e}")
+                                            continue
 
-                                        if st.session_state.cod_options:
-                                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
-                                        else:
-                                            st.warning("COD: No matching structures found.")
+                                    if st.session_state.cod_options:
+                                        if len(limited_entries) < len(cod_entries):
+                                            st.info(
+                                                f"Showing first {cod_limit} of {len(cod_entries)} total COD results. Increase limit to see more.")
+                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
                                     else:
-                                        st.session_state.cod_options = []
-                                        st.warning("COD: No matching structures found.")
+                                        st.warning("COD: No valid structures could be processed.")
                                 else:
-                                    st.error("Please enter at least one element for the COD search.")
+                                    st.session_state.cod_options = []
+                                    st.warning("COD: No matching structures found.")
+                            except Exception as e:
+                                st.warning(f"COD search error: {e}")
+                                st.session_state.cod_options = []
+
             with cols2:
                 image = Image.open("images/Rabbit2.png")
                 st.image(image, use_container_width=True)
+
+
+
 
         with cols3:
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
@@ -659,6 +1158,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
+                                    st.info(
+                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                         tab_index += 1
 
                     if 'aflow_options' in st.session_state and st.session_state.aflow_options:
@@ -736,6 +1237,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
+                                    st.info(
+                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                                 else:
                                     st.warning("No CIF file found for this AFLOW entry.")
                         tab_index += 1
@@ -797,6 +1300,8 @@ if show_database_search:
                                     file_name=file_name,
                                     mime="chemical/x-cif", type="primary",
                                 )
+                                st.info(f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
+
 
 
 def validate_atom_dataframe(df):
