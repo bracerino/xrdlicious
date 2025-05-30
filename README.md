@@ -20,9 +20,9 @@ For more computationally demanding calculations with more extensive data, please
 
 **Compile the app**
 Open your terminal console and write the following commands: 
-0) (Optional): Install Git:  
+0) (Optional) Install Git:  
       sudo apt update  
-      sudo apt install git   
+      sudo apt install git    
       
 1) Download the XRDlicious code from GitHub (or download it manually without Git on the following link by clicking on 'Code' and 'Download ZIP', then extract the ZIP. With Git, it is automatically extracted):  
       **git clone https://github.com/bracerino/xrdlicious.git**
@@ -39,6 +39,6 @@ Open your terminal console and write the following commands:
 5) Install all the necessary Python packages:  
       **pip install -r requirements.txt**
 
-**Run the app**
+**Run the app**  
 6) Run the XRDlicious app (always before running it, make sure to activate its Python virtual environment (Step 4):  
       **streamlit run app.py**
