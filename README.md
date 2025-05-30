@@ -19,10 +19,10 @@ For more computationally demanding calculations with more extensive data, please
 
 
 ### **Compile the app**  
-Open your terminal console and write the following commands:  
+Open your terminal console and write the following commands (the bold text):  
 (Optional) Install Git:  
-      sudo apt update  
-      sudo apt install git    
+      **sudo apt update**  
+      **sudo apt install git**    
       
 1) Download the XRDlicious code from GitHub (or download it manually without Git on the following link by clicking on 'Code' and 'Download ZIP', then extract the ZIP. With Git, it is automatically extracted):  
       **git clone https://github.com/bracerino/xrdlicious.git**
