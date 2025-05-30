@@ -424,26 +424,26 @@ if show_database_search:
             if not db_choices:
                 st.warning("Please select at least one database to search.")
 
-            st.markdown("**Search Limits (max 500 each):**")
+            st.markdown("**Maximum number of structures to be found in each database (for improving the performance):**")
             col_limits = st.columns(3)
 
             search_limits = {}
             if "Materials Project" in db_choices:
                 with col_limits[0]:
                     search_limits["Materials Project"] = st.number_input(
-                        "MP Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "MP Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from Materials Project"
                     )
             if "AFLOW" in db_choices:
                 with col_limits[1]:
                     search_limits["AFLOW"] = st.number_input(
-                        "AFLOW Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "AFLOW Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from AFLOW"
                     )
             if "COD" in db_choices:
                 with col_limits[2]:
                     search_limits["COD"] = st.number_input(
-                        "COD Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "COD Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from COD"
                     )
 
