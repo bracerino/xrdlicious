@@ -1841,6 +1841,9 @@ if "🔬 Structure Modification" in calc_mode:
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
             value=False,  disabled=True)
+        st.markdown(
+            'To create **Supercell** and **Point Defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).'
+        )
         # with col_mod:
         # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
         # if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
