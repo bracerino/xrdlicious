@@ -19,7 +19,7 @@ For more computationally demanding calculations with more extensive data, please
 
 
 **Compile the app**
-Open your terminal console and write the following commands: 
+Open your terminal console and write the following commands:  
 0) (Optional) Install Git:  
       sudo apt update  
       sudo apt install git    
