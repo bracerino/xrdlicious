@@ -13,7 +13,7 @@ For more computationally demanding calculations with more extensive data, please
 
 **Prerequisities**: 
 - Python 3.x (Tested 3.12)
-- Console (For Windows, I recommend to do it in WSL2 (Windows Subsystem for Linux)
+- Console (For Windows, I recommend to use WSL2 (Windows Subsystem for Linux)
 - Git (optional for downloading the code)
   
 
