@@ -11,14 +11,14 @@ It features an integrated search interface for directly accessing and importing 
 For more computationally demanding calculations with more extensive data, please compile the code locally on your computer (follow the manual below).
 # **How to compile and run the XRDlicious locally:** 
 
-**Prerequisities**: 
+### **Prerequisities**: 
 - Python 3.x (Tested 3.12)
 - Console (For Windows, I recommend to use WSL2 (Windows Subsystem for Linux))
 - Git (optional for downloading the code)
   
 
 
-**Compile the app**
+### **Compile the app**  
 Open your terminal console and write the following commands:  
 (Optional) Install Git:  
       sudo apt update  
