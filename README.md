@@ -1,4 +1,4 @@
-**XRDlicious: Powder XRD/ND Patterns and PRDF Online Calculator**
+# **XRDlicious: Powder XRD/ND Patterns and PRDF Online Calculator**
 
 An online, web-based tool for calculating powder X-ray and neutron diffraction (XRD and ND) patterns, as well as partial radial distribution functions, from crystal structures.
 It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), AFLOW, and COD databases. Users can also interactively visualize uploaded structures, convert between conventional and primitive cells, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ).
@@ -20,21 +20,21 @@ For more computationally demanding calculations with more extensive data, please
 
 **Compile the app**
 Into the console, write the following commands 
-- Download the XRDlicious code from GitHub (or download it manually without Git on the GitHub):
-1) git clone https://github.com/bracerino/xrdlicious.git
+1) Download the XRDlicious code from GitHub (or download it manually without Git on the GitHub):
+      git clone https://github.com/bracerino/xrdlicious.git
+
+2) Go to the downloaded folder:
+      cd xrdlicious/
+
+3) Set a Python virtual environment to prevent possible conflicts between packages:
+      python3 -m venv xrdlicious_env
+
+4) Activate the Python virtual environment (when activating, make sure you are inside the xrdlicious folder):
+      source xrdlicious_env/bin/activate
    
-- Go to the downloaded folder:
-2) cd xrdlicious/
-
-- Set a Python virtual environment to prevent possible conflicts between packages:
-3) python3 -m venv xrdlicious_env
-
-- Activate the Python virtual environment:
-4) source prdf_env/bin/activate
-
-- Install all the necessary Python packages:
-5) pip install -r requirements.txt
+5) Install all the necessary Python packages:
+      pip install -r requirements.txt
 
 **Run the app**
-- Run the XRDlicious app:
-6) streamlit run app.py
+6) Run the XRDlicious app (always before running it, do not forgot to activate its Python virtual environment (Step 4) :
+      streamlit run app.py
