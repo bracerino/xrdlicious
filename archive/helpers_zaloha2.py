@@ -44,7 +44,6 @@ def get_formula_type(formula):
     elements = []
     counts = []
 
-    # Parse formula like "Fe2O3"
     import re
     matches = re.findall(r'([A-Z][a-z]*)(\d*)', formula)
 
@@ -55,35 +54,283 @@ def get_formula_type(formula):
     if len(elements) == 1:
         return "A"
 
-    # Find the GCD to simplify
-    from math import gcd
-    from functools import reduce
-
-    def find_gcd(numbers):
-        return reduce(gcd, numbers)
-
-    divisor = find_gcd(counts)
-    counts = [c // divisor for c in counts]
-
-    # Generate formula type
-    if len(elements) == 2:
+    elif len(elements) == 2:
+        # Binary compounds
         if counts[0] == 1 and counts[1] == 1:
             return "AB"
         elif counts[0] == 1 and counts[1] == 2:
             return "AB2"
         elif counts[0] == 2 and counts[1] == 1:
             return "A2B"
+        elif counts[0] == 1 and counts[1] == 3:
+            return "AB3"
+        elif counts[0] == 3 and counts[1] == 1:
+            return "A3B"
+        elif counts[0] == 1 and counts[1] == 4:
+            return "AB4"
+        elif counts[0] == 4 and counts[1] == 1:
+            return "A4B"
+        elif counts[0] == 1 and counts[1] == 5:
+            return "AB5"
+        elif counts[0] == 5 and counts[1] == 1:
+            return "A5B"
+        elif counts[0] == 1 and counts[1] == 6:
+            return "AB6"
+        elif counts[0] == 6 and counts[1] == 1:
+            return "A6B"
+        elif counts[0] == 2 and counts[1] == 3:
+            return "A2B3"
+        elif counts[0] == 3 and counts[1] == 2:
+            return "A3B2"
+        elif counts[0] == 2 and counts[1] == 5:
+            return "A2B5"
+        elif counts[0] == 5 and counts[1] == 2:
+            return "A5B2"
+        elif counts[0] == 1 and counts[1] == 12:
+            return "AB12"
+        elif counts[0] == 12 and counts[1] == 1:
+            return "A12B"
+        elif counts[0] == 2 and counts[1] == 17:
+            return "A2B17"
+        elif counts[0] == 17 and counts[1] == 2:
+            return "A17B2"
         else:
             return f"A{counts[0]}B{counts[1]}"
+
     elif len(elements) == 3:
+        # Ternary compounds
         if counts[0] == 1 and counts[1] == 1 and counts[2] == 1:
             return "ABC"
         elif counts[0] == 1 and counts[1] == 1 and counts[2] == 3:
             return "ABC3"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 1:
+            return "AB3C"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 1:
+            return "A3BC"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 4:
+            return "AB2C4"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 4:
+            return "A2BC4"
+        elif counts[0] == 1 and counts[1] == 4 and counts[2] == 2:
+            return "AB4C2"
+        elif counts[0] == 2 and counts[1] == 4 and counts[2] == 1:
+            return "A2B4C"
+        elif counts[0] == 4 and counts[1] == 1 and counts[2] == 2:
+            return "A4BC2"
+        elif counts[0] == 4 and counts[1] == 2 and counts[2] == 1:
+            return "A4B2C"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 1:
+            return "AB2C"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 1:
+            return "A2BC"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 2:
+            return "ABC2"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 4:
+            return "ABC4"
+        elif counts[0] == 1 and counts[1] == 4 and counts[2] == 1:
+            return "AB4C"
+        elif counts[0] == 4 and counts[1] == 1 and counts[2] == 1:
+            return "A4BC"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 5:
+            return "ABC5"
+        elif counts[0] == 1 and counts[1] == 5 and counts[2] == 1:
+            return "AB5C"
+        elif counts[0] == 5 and counts[1] == 1 and counts[2] == 1:
+            return "A5BC"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 6:
+            return "ABC6"
+        elif counts[0] == 1 and counts[1] == 6 and counts[2] == 1:
+            return "AB6C"
+        elif counts[0] == 6 and counts[1] == 1 and counts[2] == 1:
+            return "A6BC"
+        elif counts[0] == 2 and counts[1] == 2 and counts[2] == 1:
+            return "A2B2C"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 2:
+            return "A2BC2"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 2:
+            return "AB2C2"
+        elif counts[0] == 3 and counts[1] == 2 and counts[2] == 1:
+            return "A3B2C"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 2:
+            return "A3BC2"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 2:
+            return "AB3C2"
+        elif counts[0] == 2 and counts[1] == 3 and counts[2] == 1:
+            return "A2B3C"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 3:
+            return "A2BC3"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 3:
+            return "AB2C3"
+        elif counts[0] == 3 and counts[1] == 3 and counts[2] == 1:
+            return "A3B3C"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 3:
+            return "A3BC3"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 3:
+            return "AB3C3"
+        elif counts[0] == 4 and counts[1] == 3 and counts[2] == 1:
+            return "A4B3C"
+        elif counts[0] == 4 and counts[1] == 1 and counts[2] == 3:
+            return "A4BC3"
+        elif counts[0] == 1 and counts[1] == 4 and counts[2] == 3:
+            return "AB4C3"
+        elif counts[0] == 3 and counts[1] == 4 and counts[2] == 1:
+            return "A3B4C"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 4:
+            return "A3BC4"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 4:
+            return "AB3C4"
         else:
             return f"A{counts[0]}B{counts[1]}C{counts[2]}"
+
+    elif len(elements) == 4:
+        # Quaternary compounds
+        if counts[0] == 1 and counts[1] == 1 and counts[2] == 1 and counts[3] == 1:
+            return "ABCD"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 1 and counts[3] == 3:
+            return "ABCD3"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 3 and counts[3] == 1:
+            return "ABC3D"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 1 and counts[3] == 1:
+            return "AB3CD"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 1 and counts[3] == 1:
+            return "A3BCD"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 1 and counts[3] == 4:
+            return "ABCD4"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 4 and counts[3] == 1:
+            return "ABC4D"
+        elif counts[0] == 1 and counts[1] == 4 and counts[2] == 1 and counts[3] == 1:
+            return "AB4CD"
+        elif counts[0] == 4 and counts[1] == 1 and counts[2] == 1 and counts[3] == 1:
+            return "A4BCD"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 1 and counts[3] == 4:
+            return "AB2CD4"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 1 and counts[3] == 4:
+            return "A2BCD4"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 2 and counts[3] == 4:
+            return "ABC2D4"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 4 and counts[3] == 1:
+            return "AB2C4D"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 4 and counts[3] == 1:
+            return "A2BC4D"
+        elif counts[0] == 2 and counts[1] == 4 and counts[2] == 1 and counts[3] == 1:
+            return "A2B4CD"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 1 and counts[3] == 1:
+            return "A2BCD"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 1 and counts[3] == 1:
+            return "AB2CD"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 2 and counts[3] == 1:
+            return "ABC2D"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 1 and counts[3] == 2:
+            return "ABCD2"
+        elif counts[0] == 3 and counts[1] == 2 and counts[2] == 1 and counts[3] == 1:
+            return "A3B2CD"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 2 and counts[3] == 1:
+            return "A3BC2D"
+        elif counts[0] == 3 and counts[1] == 1 and counts[2] == 1 and counts[3] == 2:
+            return "A3BCD2"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 2 and counts[3] == 1:
+            return "AB3C2D"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 1 and counts[3] == 2:
+            return "AB3CD2"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 3 and counts[3] == 2:
+            return "ABC3D2"
+        elif counts[0] == 2 and counts[1] == 3 and counts[2] == 1 and counts[3] == 1:
+            return "A2B3CD"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 3 and counts[3] == 1:
+            return "A2BC3D"
+        elif counts[0] == 2 and counts[1] == 1 and counts[2] == 1 and counts[3] == 3:
+            return "A2BCD3"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 3 and counts[3] == 1:
+            return "AB2C3D"
+        elif counts[0] == 1 and counts[1] == 2 and counts[2] == 1 and counts[3] == 3:
+            return "AB2CD3"
+        elif counts[0] == 1 and counts[1] == 1 and counts[2] == 2 and counts[3] == 3:
+            return "ABC2D3"
+        else:
+            return f"A{counts[0]}B{counts[1]}C{counts[2]}D{counts[3]}"
+
+    elif len(elements) == 5:
+        # Five-element compounds (complex minerals like apatite)
+        if counts == [1, 1, 1, 1, 1]:
+            return "ABCDE"
+        elif counts == [10, 6, 2, 31, 1]:  # Apatite-like: Ca10(PO4)6(OH)2
+            return "A10B6C2D31E"
+        elif counts == [5, 3, 13, 1, 1]:  # Simplified apatite: Ca5(PO4)3OH
+            return "A5B3C13DE"
+        elif counts == [5, 3, 13, 1, 1]:  # Simplified apatite: Ca5(PO4)3OH
+            return "A5B3C13"
+        elif counts == [3, 2, 3, 12, 1]:  # Garnet-like: Ca3Al2Si3O12
+            return "A3B2C3D12E"
+        else:
+            return f"A{counts[0]}B{counts[1]}C{counts[2]}D{counts[3]}E{counts[4]}"
+
+    elif len(elements) == 6:
+        # Six-element compounds (very complex minerals)
+        if counts == [1, 1, 1, 1, 1, 1]:
+            return "ABCDEF"
+        elif counts == [1, 1, 2, 6, 1, 1]:  # Complex silicate-like
+            return "ABC2D6EF"
+        else:
+            # For 6+ elements, use a more compact notation
+            element_count_pairs = []
+            for i, count in enumerate(counts):
+                element_letter = chr(65 + i)  # A, B, C, D, E, F, ...
+                if count == 1:
+                    element_count_pairs.append(element_letter)
+                else:
+                    element_count_pairs.append(f"{element_letter}{count}")
+            return "".join(element_count_pairs)
+
     else:
-        return "Complex"
+        if len(elements) <= 10:
+            element_count_pairs = []
+            for i, count in enumerate(counts):
+                element_letter = chr(65 + i)  # A, B, C, D, E, F, G, H, I, J
+                if count == 1:
+                    element_count_pairs.append(element_letter)
+                else:
+                    element_count_pairs.append(f"{element_letter}{count}")
+            return "".join(element_count_pairs)
+        else:
+            return "Complex"
+
+def check_structure_size_and_warn(structure, structure_name="structure"):
+    n_atoms = len(structure)
+
+    if n_atoms > 75:
+        st.info(f"ℹ️ **Structure Notice**: {structure_name} contains a large number of **{n_atoms} atoms**. "
+                f"Calculations may take longer depending on selected parameters. Please be careful to "
+                f"not consume much memory, we are hosted on a free server. 😊")
+        return "moderate"
+    else:
+        return "small"
+
+
+SPACE_GROUP_SYMBOLS = {
+    1: "P1", 2: "P-1", 3: "P2", 4: "P21", 5: "C2", 6: "Pm", 7: "Pc", 8: "Cm", 9: "Cc", 10: "P2/m",
+    11: "P21/m", 12: "C2/m", 13: "P2/c", 14: "P21/c", 15: "C2/c", 16: "P222", 17: "P2221", 18: "P21212", 19: "P212121", 20: "C2221",
+    21: "C222", 22: "F222", 23: "I222", 24: "I212121", 25: "Pmm2", 26: "Pmc21", 27: "Pcc2", 28: "Pma2", 29: "Pca21", 30: "Pnc2",
+    31: "Pmn21", 32: "Pba2", 33: "Pna21", 34: "Pnn2", 35: "Cmm2", 36: "Cmc21", 37: "Ccc2", 38: "Amm2", 39: "Aem2", 40: "Ama2",
+    41: "Aea2", 42: "Fmm2", 43: "Fdd2", 44: "Imm2", 45: "Iba2", 46: "Ima2", 47: "Pmmm", 48: "Pnnn", 49: "Pccm", 50: "Pban",
+    51: "Pmma", 52: "Pnna", 53: "Pmna", 54: "Pcca", 55: "Pbam", 56: "Pccn", 57: "Pbcm", 58: "Pnnm", 59: "Pmmn", 60: "Pbcn",
+    61: "Pbca", 62: "Pnma", 63: "Cmcm", 64: "Cmca", 65: "Cmmm", 66: "Cccm", 67: "Cmma", 68: "Ccca", 69: "Fmmm", 70: "Fddd",
+    71: "Immm", 72: "Ibam", 73: "Ibca", 74: "Imma", 75: "P4", 76: "P41", 77: "P42", 78: "P43", 79: "I4", 80: "I41",
+    81: "P-4", 82: "I-4", 83: "P4/m", 84: "P42/m", 85: "P4/n", 86: "P42/n", 87: "I4/m", 88: "I41/a", 89: "P422", 90: "P4212",
+    91: "P4122", 92: "P41212", 93: "P4222", 94: "P42212", 95: "P4322", 96: "P43212", 97: "I422", 98: "I4122", 99: "P4mm", 100: "P4bm",
+    101: "P42cm", 102: "P42nm", 103: "P4cc", 104: "P4nc", 105: "P42mc", 106: "P42bc", 107: "P42mm", 108: "P42cm", 109: "I4mm", 110: "I4cm",
+    111: "I41md", 112: "I41cd", 113: "P-42m", 114: "P-42c", 115: "P-421m", 116: "P-421c", 117: "P-4m2", 118: "P-4c2", 119: "P-4b2", 120: "P-4n2",
+    121: "I-4m2", 122: "I-4c2", 123: "I-42m", 124: "I-42d", 125: "P4/mmm", 126: "P4/mcc", 127: "P4/nbm", 128: "P4/nnc", 129: "P4/mbm", 130: "P4/mnc",
+    131: "P4/nmm", 132: "P4/ncc", 133: "P42/mmc", 134: "P42/mcm", 135: "P42/nbc", 136: "P42/mnm", 137: "P42/mbc", 138: "P42/mnm", 139: "I4/mmm", 140: "I4/mcm",
+    141: "I41/amd", 142: "I41/acd", 143: "P3", 144: "P31", 145: "P32", 146: "R3", 147: "P-3", 148: "R-3", 149: "P312", 150: "P321",
+    151: "P3112", 152: "P3121", 153: "P3212", 154: "P3221", 155: "R32", 156: "P3m1", 157: "P31m", 158: "P3c1", 159: "P31c", 160: "R3m",
+    161: "R3c", 162: "P-31m", 163: "P-31c", 164: "P-3m1", 165: "P-3c1", 166: "R-3m", 167: "R-3c", 168: "P6", 169: "P61", 170: "P65",
+    171: "P62", 172: "P64", 173: "P63", 174: "P-6", 175: "P6/m", 176: "P63/m", 177: "P622", 178: "P6122", 179: "P6522", 180: "P6222",
+    181: "P6422", 182: "P6322", 183: "P6mm", 184: "P6cc", 185: "P63cm", 186: "P63mc", 187: "P-6m2", 188: "P-6c2", 189: "P-62m", 190: "P-62c",
+    191: "P6/mmm", 192: "P6/mcc", 193: "P63/mcm", 194: "P63/mmc", 195: "P23", 196: "F23", 197: "I23", 198: "P213", 199: "I213", 200: "Pm-3",
+    201: "Pn-3", 202: "Fm-3", 203: "Fd-3", 204: "Im-3", 205: "Pa-3", 206: "Ia-3", 207: "P432", 208: "P4232", 209: "F432", 210: "F4132",
+    211: "I432", 212: "P4332", 213: "P4132", 214: "I4132", 215: "P-43m", 216: "F-43m", 217: "I-43m", 218: "P-43n", 219: "F-43c", 220: "I-43d",
+    221: "Pm-3m", 222: "Pn-3n", 223: "Pm-3n", 224: "Pn-3m", 225: "Fm-3m", 226: "Fm-3c", 227: "Fd-3m", 228: "Fd-3c", 229: "Im-3m", 230: "Ia-3d"
+}
 
 
 def identify_structure_type(structure):
@@ -95,9 +342,13 @@ def identify_structure_type(structure):
 
         formula = structure.composition.reduced_formula
         formula_type = get_formula_type(formula)
-
+        print("------")
+        print(formula)
+        print(formula_type)
+        print(spg_number)
         if spg_number in STRUCTURE_TYPES and formula_type in STRUCTURE_TYPES[
             spg_number]:
+            print("YES")
             structure_type = STRUCTURE_TYPES[spg_number][formula_type]
             return f"**{structure_type}**"
 
@@ -139,9 +390,13 @@ STRUCTURE_TYPES = {
         "A": "Diamond cubic",
         "A2B": "Pyrite (FeS2)",
         "AB2": "Fluorite-like",
-        "A2B4C": "Normal spinel",
+        "AB2C4": "Normal spinel",
         "AB4C2": "Inverse spinel",
-        "AB2O4": "Spinel"
+        "AB2O4": "Spinel",
+        "A8B": "Gamma-brass"
+    },
+    55: {  # Pbca
+        "AB2": "Brookite (TiO₂ polymorph)"
     },
     216: {  # F-43m
         "AB": "Zinc Blende (Sphalerite)",
@@ -234,8 +489,9 @@ STRUCTURE_TYPES = {
         "A15": "β-W structure"
     },
     141: {  # I41/amd
-        "AB2": "Anatase (TiO2)",
-        "A2": "α-Sn structure"
+        "AB2": "Anatase (TiO₂)",
+        "A2": "α-Sn structure",
+        "ABO4": "Zircon (ZrSiO₄)"
     },
     115: {  # P-4m2
         "ABC2": "Chalcopyrite (CuFeS2)"
@@ -246,12 +502,13 @@ STRUCTURE_TYPES = {
 
     # Orthorhombic Structures
     62: {  # Pnma
-        "AB": "MnP structure",
+        "ABC3": "Aragonite (CaCO₃)",  # overrides MnP structure if desired
         "AB2": "Cotunnite (PbCl2)",
         "ABX3": "Perovskite (orthorhombic)",
         "A2B": "Fe2P type",
         "ABO3": "GdFeO3-type distorted perovskite",
-        "A2BX4": "Olivine ((Mg,Fe)2SiO4)"
+        "A2BX4": "Olivine ((Mg,Fe)2SiO4)",
+        "AB2O4": "Barite (BaSO₄)"
     },
     63: {  # Cmcm
         "A": "α-U structure",
@@ -276,14 +533,16 @@ STRUCTURE_TYPES = {
     14: {  # P21/c
         "AB": "Monoclinic structure",
         "AB2": "Baddeleyite (ZrO2)",
-        "ABO3": "Monazite (CePO4)"
+        "ABC4": "Monazite (CePO4)"
     },
     12: {  # C2/m
-        "AB2": "Thortveitite (Sc2Si2O7)",
-        "A2B3": "Bixbyite"
+        "AB2": "Thortveitite (Sc2Si2O7)"
+
     },
     15: {  # C2/c
-        "ABO4": "Scheelite (CaWO4)"
+        "AB": "Gypsum (CaH4O6S)",
+        "ABO4": "Scheelite (CaWO₄)",
+        "ABO5": "Sphene (CaTiSiO₅)"
     },
 
     # Triclinic Structures
@@ -298,7 +557,7 @@ STRUCTURE_TYPES = {
         "ABCD3": "Tetragonal perovskite"
     },
     167: {  # R-3c
-        "AB": "Calcite (CaCO3)",
+        "ABC3": "Calcite (CaCO3)",
         "A2B3": "Corundum (Al2O3)"
     },
     176: {  # P6_3/m
@@ -340,7 +599,8 @@ STRUCTURE_TYPES = {
         "AB5": "CaCu5 type"
     },
     148: {  # R-3
-        "AB3": "Calcite (CaCO3)"
+        "AB3": "Calcite (CaCO₃)",
+        "AB": "Ilmenite (FeTiO₃)"
     },
     69: {  # Fmmm
         "A15": "β-W structure"
@@ -350,7 +610,8 @@ STRUCTURE_TYPES = {
     },
     206: {  # Ia-3
         "A2B": "Pyrite derivative",
-        "AB2": "Pyrochlore (defective)"
+        "AB2": "Pyrochlore (defective)",
+        "A2B3": "Bixbyite"
     },
     212: {  # P4_3 32
         "AB": "β-quartz (SiO2)",
@@ -362,9 +623,7 @@ STRUCTURE_TYPES = {
     196: {  # F23
         "AB": "FeS2 type"
     },
-    227: {  # Fd-3m
-        "A8B": "Gamma-brass"
-    }
+
 }
 
 
@@ -390,9 +649,9 @@ def get_full_conventional_structure_diffra(structure, symprec=1e-3):
 
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
 
-    std_lattice = dataset['std_lattice']
-    std_positions = dataset['std_positions']
-    std_types = dataset['std_types']
+    std_lattice = dataset.std_lattice
+    std_positions = dataset.std_positions
+    std_types = dataset.std_types
 
     new_species_list = [type_to_species[t] for t in std_types]
 
@@ -411,13 +670,11 @@ def get_full_conventional_structure(structure, symprec=1e-3):
     cell = (structure.lattice.matrix, structure.frac_coords,
             [max(site.species, key=site.species.get).number for site in structure])
 
-    # Get the symmetry dataset from spglib
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
     std_lattice = dataset['std_lattice']
     std_positions = dataset['std_positions']
     std_types = dataset['std_types']
 
-    # Build the conventional cell as a new Structure object
     conv_structure = Structure(std_lattice, std_types, std_positions)
     return conv_structure
 
@@ -707,3 +964,210 @@ def convert_intensity_scale(intensity_values, scale_type):
         converted[converted <= 1] = 1
         converted = np.log10(converted)
     return converted
+
+
+def convert_to_hill_notation(formula_input):
+    import re
+    formula_parts = formula_input.strip().split()
+    elements_dict = {}
+
+    for part in formula_parts:
+        match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+        if match:
+            element = match.group(1)
+            count = match.group(2) if match.group(2) else ""
+            elements_dict[element] = count
+
+    hill_order = []
+    if 'C' in elements_dict:
+        if elements_dict['C']:
+            hill_order.append(f"C{elements_dict['C']}")
+        else:
+            hill_order.append("C")
+        del elements_dict['C']
+    if 'H' in elements_dict:
+        if elements_dict['H']:
+            hill_order.append(f"H{elements_dict['H']}")
+        else:
+            hill_order.append("H")
+        del elements_dict['H']
+
+    for element in sorted(elements_dict.keys()):
+        if elements_dict[element]:
+            hill_order.append(f"{element}{elements_dict[element]}")
+        else:
+            hill_order.append(element)
+
+    return " ".join(hill_order)
+
+def sort_formula_alphabetically(formula_input):
+    formula_parts = formula_input.strip().split()
+    return " ".join(sorted(formula_parts))
+
+MINERALS = {
+    # Cubic structures
+    225: {  # Fm-3m
+        "Rock Salt (NaCl)": "Na Cl",
+        "Fluorite (CaF2)": "Ca F2",
+        "Anti-Fluorite (Li2O)": "Li2 O",
+        "Spinel (MgAl2O4)": "Mg Al2 O4"
+    },
+    229: {  # Im-3m
+        "BCC Iron": "Fe",
+        "Caesium chloride (CsCl)": "Cs Cl"
+    },
+    221: {  # Pm-3m
+        "Perovskite (SrTiO3)": "Sr Ti O3",
+        "ReO3 type": "Re O3"
+    },
+    227: {  # Fd-3m
+        "Diamond": "C",
+        "Pyrite (FeS2)": "Fe S2",
+        "Normal spinel (MgAl2O4)": "Mg Al2 O4",
+        "Inverse spinel (Fe3O4)": "Fe3 O4",
+
+    },
+    216: {  # F-43m
+        "Zinc Blende (ZnS)": "Zn S",
+        "Antifluorite (Na2O)": "Na2 O"
+    },
+    215: {  # P-43m
+        "Inverse-perovskite (Ca3TiN)": "Ca3 Ti N",
+        "Half-anti-fluorite (Li4Ti)": "Li4 Ti"
+    },
+    230: {  # Ia-3d
+        "Garnet (Ca3Al2Si3O12)": "Ca3 Al2 Si3 O12",
+        "Pyrochlore (Ca2NbO7)": "Ca2 Nb2 O7"
+    },
+    205: {  # Pa-3
+        "Cuprite (Cu2O)": "Cu2 O",
+        "ReO3 structure (ReO3)": "Re O3"
+    },
+
+    # Hexagonal structures
+    194: {  # P6_3/mmc
+        "HCP Magnesium": "Mg",
+        "Wurtzite (high-T ZnS)": "Zn S",
+        "AlB2 type": "Al B2",
+        "CdI2 type": "Cd I2",
+        "Ni3Sn type": "Ni3 Sn"
+    },
+    186: {  # P6_3mc
+        "Wurtzite (ZnS)": "Zn S"
+    },
+    191: {  # P6/mmm
+        "Graphite": "C",
+        "MoS2 type": "Mo S2",
+        "AlB2 type": "Al B2",
+        "CaCu5 type": "Ca Cu5"
+    },
+    187: {  # P-6m2
+        "Nickeline (NiAs)": "Ni As",
+        "CdI2 type": "Cd I2"
+    },
+    166: {  # R-3m
+        "Calcite (CaCO3)": "Ca C O3",
+        "Corundum (Al2O3)": "Al2 O3",
+        "Dolomite (CaMgC2O6)": "Ca Mg C2 O6"
+    },
+    160: {  # R3m
+        "Delafossite (CuAlO2)": "Cu Al O2"
+    },
+
+    # Tetragonal structures
+    139: {  # I4/mmm
+        "β-Tin (Sn)": "Sn",
+        "CuAu (L10)": "Cu Au",
+        "MoSi2 type": "Mo Si2"
+    },
+    136: {  # P4_2/mnm
+        "Rutile (TiO2)": "Ti O2"
+    },
+    123: {  # P4/mmm
+        "γ-CuTi": "Cu Ti",
+        "CuAu (L10)": "Cu Au"
+    },
+    141: {  # I41/amd
+        "Anatase (TiO2)": "Ti O2",
+        "Zircon (ZrSiO4)": "Zr Si O4"
+    },
+    115: {  # P-4m2
+        "Chalcopyrite (CuFeS2)": "Cu Fe S2"
+    },
+    129: {  # P4/nmm
+        "PbO structure": "Pb O"
+    },
+
+    # Orthorhombic structures
+    62: {  # Pnma
+        "Aragonite (CaCO3)": "Ca C O3",
+        "Cotunnite (PbCl2)": "Pb Cl2",
+        "Olivine (Mg2SiO4)": "Mg2 Si O4",
+        "Barite (BaSO4)": "Ba S O4",
+        "Perovskite (GdFeO3)": "Gd Fe O3"
+    },
+    63: {  # Cmcm
+        "α-Uranium": "U",
+        "CrB structure": "Cr B"
+    },
+    74: {  # Imma
+        "TlI structure": "Tl I",
+        "Marcasite": "Fe S2"
+    },
+    64: {  # Cmca
+        "α-Gallium": "Ga"
+    },
+
+    # Monoclinic structures
+    14: {  # P21/c
+        "Baddeleyite (ZrO2)": "Zr O2",
+        "Monazite (CePO4)": "Ce P O4"
+    },
+    206: {  # C2/m
+        "Bixbyite (Mn2O3)": "Mn2 O3"
+    },
+    15: {  # C2/c
+        "Gypsum (CaSO4·2H2O)": "Ca S H4 O6",
+        "Scheelite (CaWO4)": "Ca W O4"
+    },
+
+    # Triclinic structures
+    2: {  # P-1
+        "Wollastonite (CaSiO3)": "Ca Si O3",
+        "Kaolinite": "Al2 Si2 O5"
+    },
+
+    # Other important structures
+    167: {  # R-3c
+        "Calcite (CaCO3)": "Ca C O3",
+        "Corundum (Al2O3)": "Al2 O3"
+    },
+    176: {  # P6_3/m
+        "Apatite (Ca5(PO4)3OH)": "Ca5 P3 O13 H"
+    },
+    58: {  # Pnnm
+        "Marcasite (FeS2)": "Fe S2"
+    },
+    198: {  # P213
+        "FeSi structure": "Fe Si"
+    },
+    88: {  # I41/a
+        "Scheelite (CaWO4)": "Ca W O4"
+    },
+    33: {  # Pna21
+        "FeAs structure": "Fe As"
+    },
+    130: {  # P4/ncc
+        "Cristobalite (SiO2)": "Si O2"
+    },
+    152: {  # P3121
+        "Quartz (SiO2)": "Si O2"
+    },
+    148: {  # R-3
+        "Calcite (CaCO3)": "Ca C O3",
+        "Ilmenite (FeTiO3)": "Fe Ti O3"
+    },
+    212: {  # P4_3 32
+        "β-quartz (SiO2)": "Si O2"
+    }
+}
