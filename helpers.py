@@ -357,8 +357,6 @@ def identify_structure_type(structure):
 
     except Exception as e:
         return f"Error identifying structure: {str(e)}"
-
-
 STRUCTURE_TYPES = {
     # Cubic Structures
     225: {  # Fm-3m
@@ -370,13 +368,12 @@ STRUCTURE_TYPES = {
         "A3B": "AuCu3 type",
         "ABC": "Half-Heusler (C1b)",
         "AB6": "K2PtCl6 (cubic antifluorite)",
-        "A2BC4": "Spinel (MgAl2O4)"
+        "AB2C4": "Spinel (MgAl2O4)"
     },
     229: {  # Im-3m
         "A": "BCC (Body-centered cubic)",
-        "A2B": "Caesium chloride (CsCl, B2)",
         "AB12": "NaZn13 type",
-        "A6B": "Tungsten carbide (WC)"
+        "AB": "Tungsten carbide (WC)"
     },
     221: {  # Pm-3m
         "A": "Simple cubic (SC)",
@@ -388,11 +385,11 @@ STRUCTURE_TYPES = {
     },
     227: {  # Fd-3m
         "A": "Diamond cubic",
-        "A2B": "Pyrite (FeS2)",
+        "AB2": "Pyrite (FeS2)",
         "AB2": "Fluorite-like",
         "AB2C4": "Normal spinel",
         "AB4C2": "Inverse spinel",
-        "AB2O4": "Spinel",
+        "AB2C4": "Spinel",
         "A8B": "Gamma-brass"
     },
     55: {  # Pbca
@@ -408,10 +405,10 @@ STRUCTURE_TYPES = {
     },
     223: {  # Pm-3n
         "AB": "α-Mn structure",
-        "A2B": "Cr3Si-type"
+        "A3B": "Cr3Si-type"
     },
     230: {  # Ia-3d
-        "A2B3": "Garnet structure ((Ca,Mg,Fe)3(Al,Fe)2(SiO4)3)",
+        "A3B2C3D12": "Garnet structure ((Ca,Mg,Fe)3(Al,Fe)2(SiO4)3)",
         "AB2": "Pyrochlore"
     },
     217: {  # I-43m
@@ -421,7 +418,7 @@ STRUCTURE_TYPES = {
         "AB": "Sodium thallide"
     },
     205: {  # Pa-3
-        "AB2": "Cuprite (Cu2O)",
+        "A2B": "Cuprite (Cu2O)",
         "AB6": "ReO3 structure"
     },
 
@@ -429,25 +426,25 @@ STRUCTURE_TYPES = {
     194: {  # P6_3/mmc
         "A": "HCP (Hexagonal close-packed)",
         "AB": "Wurtzite (high-T)",
-        "A2B": "AlB2 type (hexagonal)",
+        "AB2": "AlB2 type (hexagonal)",
         "AB2": "CdI2 type",
-        "AB3": "Ni3Sn type",
+        "A3B": "Ni3Sn type",
         "A3B": "DO19 structure (Ni3Sn-type)"
     },
     186: {  # P6_3mc
         "AB": "Wurtzite (ZnS)",
-        "A2B": "Marcasite"
+        "AB2": "Marcasite"
     },
     191: {  # P6/mmm
         "AB": "Graphite (hexagonal)",
         "AB2": "MoS2 type",
-        "A2B": "AlB2 type",
+        "AB2": "AlB2 type",
         "AB5": "CaCu5 type",
         "A2B17": "Th2Ni17 type"
     },
     193: {  # P6_3/mcm
-        "AB3": "Na3As structure",
-        "A2B": "ZrBeSi structure"
+        "A3B": "Na3As structure",
+        "ABC": "ZrBeSi structure"
     },
     187: {  # P-6m2
         "AB": "Nickeline (NiAs)",
@@ -459,39 +456,38 @@ STRUCTURE_TYPES = {
     },
     166: {  # R-3m
         "A": "Rhombohedral",
-        "AB": "Calcite/Dolomite",
-        "AB2": "Corundum (Al2O3)",
+        "ABC3": "Calcite/Dolomite",
+        "A2B3": "Corundum (Al2O3)",
         "A2B3": "α-Al2O3 type"
     },
     160: {  # R3m
-        "A2X3": "Binary tetradymite",
-        "AX2": "Delafossite"
+        "A2B3": "Binary tetradymite",
+        "AB2": "Delafossite"
     },
 
     # Tetragonal Structures
     139: {  # I4/mmm
         "A": "Body-centered tetragonal",
         "AB": "β-Tin",
-        "A2B": "CuAu (L10)",
+        "AB": "CuAu (L10)",
         "AB2": "MoSi2 type",
         "A3B": "Ni3Ti structure"
     },
     136: {  # P4_2/mnm
-        "AB2": "Rutile (TiO2)",
-        "A2B": "MoSi2 type"
+        "AB2": "Rutile (TiO2)"
     },
     123: {  # P4/mmm
         "AB": "γ-CuTi",
-        "A2B": "CuAu (L10)"
+        "AB": "CuAu (L10)"
     },
     140: {  # I4/mcm
         "AB2": "Anatase (TiO2)",
-        "A15": "β-W structure"
+        "A": "β-W structure"
     },
     141: {  # I41/amd
         "AB2": "Anatase (TiO₂)",
-        "A2": "α-Sn structure",
-        "ABO4": "Zircon (ZrSiO₄)"
+        "A": "α-Sn structure",
+        "ABC4": "Zircon (ZrSiO₄)"
     },
     115: {  # P-4m2
         "ABC2": "Chalcopyrite (CuFeS2)"
@@ -502,13 +498,13 @@ STRUCTURE_TYPES = {
 
     # Orthorhombic Structures
     62: {  # Pnma
-        "ABC3": "Aragonite (CaCO₃)",  # overrides MnP structure if desired
+        "ABC3": "Aragonite (CaCO₃)",
         "AB2": "Cotunnite (PbCl2)",
-        "ABX3": "Perovskite (orthorhombic)",
+        "ABC3": "Perovskite (orthorhombic)",
         "A2B": "Fe2P type",
-        "ABO3": "GdFeO3-type distorted perovskite",
-        "A2BX4": "Olivine ((Mg,Fe)2SiO4)",
-        "AB2O4": "Barite (BaSO₄)"
+        "ABC3": "GdFeO3-type distorted perovskite",
+        "A2BC4": "Olivine ((Mg,Fe)2SiO4)",
+        "ABC4": "Barite (BaSO₄)"
     },
     63: {  # Cmcm
         "A": "α-U structure",
@@ -517,13 +513,13 @@ STRUCTURE_TYPES = {
     },
     74: {  # Imma
         "AB": "TlI structure",
-        "A2B": "Marcasite"
+        "AB2": "Marcasite"
     },
     64: {  # Cmca
         "A": "α-Ga structure"
     },
     65: {  # Cmmm
-        "AB2": "η-Fe2C structure"
+        "A2B": "η-Fe2C structure"
     },
     70: {  # Fddd
         "A": "Orthorhombic unit cell"
@@ -536,20 +532,19 @@ STRUCTURE_TYPES = {
         "ABC4": "Monazite (CePO4)"
     },
     12: {  # C2/m
-        "AB2": "Thortveitite (Sc2Si2O7)"
-
+        "A2B2C7": "Thortveitite (Sc2Si2O7)"
     },
     15: {  # C2/c
-        "AB": "Gypsum (CaH4O6S)",
-        "ABO4": "Scheelite (CaWO₄)",
-        "ABO5": "Sphene (CaTiSiO₅)"
+        "ABC6H4S": "Gypsum (CaH4O6S)",
+        "ABC4": "Scheelite (CaWO₄)",
+        "ABC5": "Sphene (CaTiSiO₅)"
     },
 
     # Triclinic Structures
     2: {  # P-1
         "AB": "Triclinic structure",
-        "AB3": "Wollastonite (CaSiO3)",
-        "ABO4": "Kaolinite"
+        "ABC3": "Wollastonite (CaSiO3)",
+        "ABC4": "Kaolinite"
     },
 
     # Other important structures
@@ -561,7 +556,7 @@ STRUCTURE_TYPES = {
         "A2B3": "Corundum (Al2O3)"
     },
     176: {  # P6_3/m
-        "A10B6C2X31": "Apatite (Ca10(PO4)6(OH)2)"
+        "A10B6C2D31E": "Apatite (Ca10(PO4)6(OH)2)"
     },
     58: {  # Pnnm
         "AB2": "Marcasite (FeS2)"
@@ -570,14 +565,14 @@ STRUCTURE_TYPES = {
         "A2B": "ThSi2 type"
     },
     72: {  # Ibam
-        "A2B": "MoSi2 type"
+        "AB2": "MoSi2 type"
     },
     198: {  # P213
         "AB": "FeSi structure",
         "A12": "β-Mn structure"
     },
     88: {  # I41/a
-        "ABO4": "Scheelite (CaWO4)"
+        "ABC4": "Scheelite (CaWO4)"
     },
     33: {  # Pna21
         "AB": "FeAs structure"
@@ -589,41 +584,40 @@ STRUCTURE_TYPES = {
         "AB2": "Quartz (SiO2)"
     },
     200: {  # Pm-3
-        "A6B": "Fe3W3C"
+        "A3B3C": "Fe3W3C"
     },
     224: {  # Pn-3m
         "AB": "Pyrochlore-related"
     },
     127: {  # P4/mbm
-        "A2B": "σ-phase structure",
+        "AB": "σ-phase structure",
         "AB5": "CaCu5 type"
     },
     148: {  # R-3
-        "AB3": "Calcite (CaCO₃)",
-        "AB": "Ilmenite (FeTiO₃)"
+        "ABC3": "Calcite (CaCO₃)",
+        "ABC3": "Ilmenite (FeTiO₃)"
     },
     69: {  # Fmmm
-        "A15": "β-W structure"
+        "A": "β-W structure"
     },
     128: {  # P4/mnc
-        "A15": "Cr3Si (A15)"
+        "A3B": "Cr3Si (A15)"
     },
     206: {  # Ia-3
-        "A2B": "Pyrite derivative",
+        "AB2": "Pyrite derivative",
         "AB2": "Pyrochlore (defective)",
         "A2B3": "Bixbyite"
     },
     212: {  # P4_3 32
-        "AB": "β-quartz (SiO2)",
+        "AB2": "β-quartz (SiO2)",
         "A4B3": "Mn4Si3 type"
     },
     226: {  # Fm-3c
-        "AX2": "BiF3 type"
+        "AB2": "BiF3 type"
     },
     196: {  # F23
-        "AB": "FeS2 type"
+        "AB2": "FeS2 type"
     },
-
 }
 
 
@@ -1014,18 +1008,18 @@ MINERALS = {
     },
     229: {  # Im-3m
         "BCC Iron": "Fe",
-        "Caesium chloride (CsCl)": "Cs Cl"
     },
     221: {  # Pm-3m
         "Perovskite (SrTiO3)": "Sr Ti O3",
-        "ReO3 type": "Re O3"
+        "ReO3 type": "Re O3",
+        "Cesium chloride (CsCl)": "Cs Cl"
     },
     227: {  # Fd-3m
         "Diamond": "C",
         "Pyrite (FeS2)": "Fe S2",
         "Normal spinel (MgAl2O4)": "Mg Al2 O4",
         "Inverse spinel (Fe3O4)": "Fe3 O4",
-
+        "Pyrochlore (Ca2NbO7)": "Ca2 Nb2 O7"
     },
     216: {  # F-43m
         "Zinc Blende (ZnS)": "Zn S",
@@ -1037,7 +1031,6 @@ MINERALS = {
     },
     230: {  # Ia-3d
         "Garnet (Ca3Al2Si3O12)": "Ca3 Al2 Si3 O12",
-        "Pyrochlore (Ca2NbO7)": "Ca2 Nb2 O7"
     },
     205: {  # Pa-3
         "Cuprite (Cu2O)": "Cu2 O",
@@ -1068,12 +1061,9 @@ MINERALS = {
     166: {  # R-3m
         "Calcite (CaCO3)": "Ca C O3",
         "Corundum (Al2O3)": "Al2 O3",
-        "Dolomite (CaMgC2O6)": "Ca Mg C2 O6"
+        "Dolomite (CaMgC2O6)": "Ca Mg C2 O6",
+    "Delafossite (CuAlO2)": "Cu Al O2"
     },
-    160: {  # R3m
-        "Delafossite (CuAlO2)": "Cu Al O2"
-    },
-
     # Tetragonal structures
     139: {  # I4/mmm
         "β-Tin (Sn)": "Sn",
