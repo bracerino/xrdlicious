@@ -246,6 +246,8 @@ def get_formula_type(formula):
             return "AB2CD3"
         elif counts[0] == 1 and counts[1] == 1 and counts[2] == 2 and counts[3] == 3:
             return "ABC2D3"
+        elif counts[0] == 1 and counts[1] == 4 and counts[2] == 1 and counts[3] == 6:
+            return "A1B4C1D6"
         else:
             return f"A{counts[0]}B{counts[1]}C{counts[2]}D{counts[3]}"
 
@@ -261,6 +263,7 @@ def get_formula_type(formula):
             return "A5B3C13"
         elif counts == [3, 2, 3, 12, 1]:  # Garnet-like: Ca3Al2Si3O12
             return "A3B2C3D12E"
+
         else:
             return f"A{counts[0]}B{counts[1]}C{counts[2]}D{counts[3]}E{counts[4]}"
 
@@ -535,7 +538,7 @@ STRUCTURE_TYPES = {
         "A2B2C7": "Thortveitite (Sc2Si2O7)"
     },
     15: {  # C2/c
-        "ABC6H4S": "Gypsum (CaH4O6S)",
+        "A1B4C1D6": "Gypsum (CaH4O6S)",
         "ABC4": "Scheelite (CaWO₄)",
         "ABC5": "Sphene (CaTiSiO₅)"
     },
@@ -1023,7 +1026,6 @@ MINERALS = {
     },
     216: {  # F-43m
         "Zinc Blende (ZnS)": "Zn S",
-        "Antifluorite (Na2O)": "Na2 O"
     },
     215: {  # P-43m
         "Inverse-perovskite (Ca3TiN)": "Ca3 Ti N",
@@ -1161,3 +1163,32 @@ MINERALS = {
         "β-quartz (SiO2)": "Si O2"
     }
 }
+
+def show_xrdlicious_roadmap():
+    st.markdown("""
+### Roadmap
+-------------------------------------------------------------------------------------------------------------------
+#### Code optimization 
+
+#### Wavelength Input: Energy Specification
+* ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
+
+#### Improved Database Search
+* ✅ Add search by keywords, space groups, ids... in database queries.
+
+#### Expanded Correction Factors & Peak Shapes
+* ⏳ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
+* ⏳ Introduce preferred orientation and basic absorption corrections.
+* ⏳ Instrumental broadening - introduce Caglioti formula.
+* ⏳ Calculate and apply peak shifts due to sample displacement error.
+
+#### Enhanced Background Subtraction (Experimental Data)
+* ⏳ Improve tools for background removal on uploaded experimental patterns.
+
+#### Enhanced XRD Data Conversion
+* ⏳ More accessible conversion interface - not hidden within the interactive plot.
+* ⏳ Batch operations on multiple files at once (e.g., FDS/VDS, wavelength).
+
+#### Basic Peak Fitting (Experimental Data)
+* ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
+""")
