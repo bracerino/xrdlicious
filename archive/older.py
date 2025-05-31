@@ -56,13 +56,11 @@ import warnings
 # Suppersing pymatgen warning about rounding coordinates from CIF
 warnings.filterwarnings("ignore", message=".*fractional coordinates rounded.*")
 
-
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-    
 st.markdown(
     """
     <style>
@@ -116,12 +114,8 @@ components.html(
     height=0,
 )
 
-
-st.markdown("#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
-
-
-
-
+st.markdown(
+    "#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 
 # Get current memory usage
 process = psutil.Process(os.getpid())
@@ -130,20 +124,21 @@ memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds 1600 MB
 if memory_usage > 1600:
-   # Show warning message
-   st.markdown(f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
-   
-   # Wait 10 seconds
-   time.sleep(10)
-   for key in list(st.session_state.keys()):
-       del st.session_state[key]
-   if hasattr(st.session_state, 'sidebar_uploader'):
-       del st.session_state.sidebar_uploader
-   st.cache_data.clear()
-   st.cache_resource.clear()
-   gc.collect()
-   st.rerun()
-    
+    # Show warning message
+    st.markdown(
+        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
+
+    # Wait 10 seconds
+    time.sleep(10)
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    if hasattr(st.session_state, 'sidebar_uploader'):
+        del st.session_state.sidebar_uploader
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    gc.collect()
+    st.rerun()
+
 col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
 
 with col2:
@@ -151,6 +146,21 @@ with col2:
         "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
         "lebedmi2@cvut.cz"
     )
+ELEMENTS = [
+    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
+    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
+    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
+    'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
+    'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
+    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
+]
+
 with col3:
     if st.button("💡 Need Help?"):
         st.markdown("""
@@ -256,14 +266,15 @@ calc_mode = st.sidebar.multiselect(
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories"
     ],
-    default=["🔬 Structure Modification","💥 Powder Diffraction" ]
+    default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
-    st.subheader("This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
+    st.subheader(
+        "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
     st.markdown(
-    '<p style="font-size:24px;">🔗 <a href="https://github.com/bracerino/PRDF-CP2K-LAMMPS" target="_blank">Download the PRDF calculator for LAMMPS/XYZ trajectories</a></p>',
-    unsafe_allow_html=True
+        '<p style="font-size:24px;">🔗 <a href="https://github.com/bracerino/PRDF-CP2K-LAMMPS" target="_blank">Download the PRDF calculator for LAMMPS/XYZ trajectories</a></p>',
+        unsafe_allow_html=True
     )
 
 if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)" in calc_mode:
@@ -350,24 +361,38 @@ if uploaded_files_user_sidebar:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
 
-                #check_structure_size_and_warn(structure, file.name)
+                # check_structure_size_and_warn(structure, file.name)
             except Exception as e:
-                #st.error(f"Failed to parse {file.name}: {e}")
-                st.error(f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
-                         f"and please remove this wrongly placed file. 😊")
+                # st.error(f"Failed to parse {file.name}: {e}")
+                st.error(
+                    f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
+                    f"and please remove this wrongly placed file. 😊")
 
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
-
-
 st.markdown("##### 🔍 Search for structures in online databases?")
+
+
+def display_structure_types():
+
+
+    if st.checkbox("See Crystal Structure Types"):
+        with st.expander("Structure Types by Space Group", expanded=True):
+            for sg, types in sorted(STRUCTURE_TYPES.items()):
+                sg_symbol = SPACE_GROUP_SYMBOLS.get(sg, "Unknown")
+                header = f"**Space Group {sg} ({sg_symbol})**"
+                line = " | ".join([f"`{formula}` → {name}" for formula, name in types.items()])
+                st.markdown(f"{header}: {line}")
+
+# Then in Streamlit main block
+display_structure_types()
 show_database_search = st.checkbox("Enable database search",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
 if st.session_state["first_run_note"] == True:
-    colh1, colh2 = st.columns([1,3])
+    colh1, colh2 = st.columns([1, 3])
     with colh1:
         image = Image.open("images/Rb.png")
         st.image(image)
@@ -378,14 +403,17 @@ if st.session_state["first_run_note"] == True:
         """)
     st.session_state["first_run_note"] = False
 
-#if "📈 Interactive Data Plot" not in calc_mode:
+
+
+def get_space_group_info(number):
+    symbol = SPACE_GROUP_SYMBOLS.get(number, f"SG#{number}")
+    return symbol
 
 
 if show_database_search:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
         cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
         with cols:
-
             db_choices = st.multiselect(
                 "Select Database(s)",
                 options=["Materials Project", "AFLOW", "COD"],
@@ -395,113 +423,271 @@ if show_database_search:
 
             if not db_choices:
                 st.warning("Please select at least one database to search.")
-        ELEMENTS = [
-                    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
-                    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
-                    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
-                    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr',
-                    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
-                    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
-                    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
-                    'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
-                    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
-                    'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
-                    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
-                    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
-                ]
+
+            st.markdown("**Maximum number of structures to be found in each database (for improving performance):**")
+            col_limits = st.columns(3)
+
+            search_limits = {}
+            if "Materials Project" in db_choices:
+                with col_limits[0]:
+                    search_limits["Materials Project"] = st.number_input(
+                        "MP Limit:", min_value=1, max_value=2000, value=300, step=10,
+                        help="Maximum results from Materials Project"
+                    )
+            if "AFLOW" in db_choices:
+                with col_limits[1]:
+                    search_limits["AFLOW"] = st.number_input(
+                        "AFLOW Limit:", min_value=1, max_value=2000, value=300, step=10,
+                        help="Maximum results from AFLOW"
+                    )
+            if "COD" in db_choices:
+                with col_limits[2]:
+                    search_limits["COD"] = st.number_input(
+                        "COD Limit:", min_value=1, max_value=2000, value=300, step=10,
+                        help="Maximum results from COD"
+                    )
+
         with cols2:
-            selected_elements = st.multiselect(
-                "Select elements for search:",
-                options=ELEMENTS,
-                default=["Sr", "Ti", "O"],
-                help="Choose one or more chemical elements"
+            search_mode = st.radio(
+                "Search by:",
+                options=["Elements", "Structure ID", "Space Group + Elements", "Formula", "Search Mineral"],
+                help="Choose your search strategy"
             )
-            search_query = " ".join(selected_elements) if selected_elements else ""
-    
+
+            if search_mode == "Elements":
+                selected_elements = st.multiselect(
+                    "Select elements for search:",
+                    options=ELEMENTS,
+                    default=["Sr", "Ti", "O"],
+                    help="Choose one or more chemical elements"
+                )
+                search_query = " ".join(selected_elements) if selected_elements else ""
+
+            elif search_mode == "Structure ID":
+                structure_ids = st.text_area(
+                    "Enter Structure IDs (one per line):",
+                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5",
+                    help="Enter structure IDs. Examples:\n- Materials Project: mp-5229\n- COD: cod_1512124 (with cod_ prefix)\n- AFLOW: aflow:010158cb2b41a1a5 (AUID format)"
+                )
+
+            elif search_mode == "Space Group + Elements":
+                col_sg1, col_sg2 = st.columns(2)
+                with col_sg1:
+                    all_space_groups_help = "Enter space group number (1-230)\n\nAll space groups:\n\n"
+                    for num in sorted(SPACE_GROUP_SYMBOLS.keys()):
+                        all_space_groups_help += f"• {num}: {SPACE_GROUP_SYMBOLS[num]}\n\n"
+
+                    space_group_number = st.number_input(
+                        "Space Group Number:",
+                        min_value=1,
+                        max_value=230,
+                        value=221,
+                        help=all_space_groups_help
+                    )
+                    sg_symbol = get_space_group_info(space_group_number)
+                    st.info(f"#:**{sg_symbol}**")
+
+                selected_elements = st.multiselect(
+                    "Select elements for search:",
+                    options=ELEMENTS,
+                    default=["Sr", "Ti", "O"],
+                    help="Choose one or more chemical elements"
+                )
+
+            elif search_mode == "Formula":
+                formula_input = st.text_input(
+                    "Enter Chemical Formula:",
+                    value="Sr Ti O3",
+                    help="Enter chemical formula with spaces between elements. Examples:\n- Sr Ti O3 (strontium titanate)\n- Ca C O3 (calcium carbonate)\n- Al2 O3 (alumina)"
+                )
+
+            elif search_mode == "Search Mineral":
+                mineral_options = []
+                mineral_mapping = {}
+
+                for space_group, minerals in MINERALS.items():
+                    for mineral_name, formula in minerals.items():
+                        option_text = f"{mineral_name} - SG #{space_group}"
+                        mineral_options.append(option_text)
+                        mineral_mapping[option_text] = {
+                            'space_group': space_group,
+                            'formula': formula,
+                            'mineral_name': mineral_name
+                        }
+
+                # Sort mineral options alphabetically
+                mineral_options.sort()
+
+                selected_mineral = st.selectbox(
+                    "Select Mineral Structure:",
+                    options= mineral_options,
+                    help="Choose a mineral structure type. The exact formula and space group will be automatically set.",
+                    index = 2
+                )
+
+                if selected_mineral:
+                    mineral_info = mineral_mapping[selected_mineral]
+
+                    col_mineral1, col_mineral2 = st.columns(2)
+                    with col_mineral1:
+                        st.info(f"**Space Group:** {mineral_info['space_group']}")
+                        sg_symbol = get_space_group_info(mineral_info['space_group'])
+                        st.info(f"**Symbol:** {sg_symbol}")
+
+                    with col_mineral2:
+                        st.info(f"**Formula:** {mineral_info['formula']}")
+                        st.info(f"**Structure:** {mineral_info['mineral_name']}")
+
+                    space_group_number = mineral_info['space_group']
+                    formula_input = mineral_info['formula']
+
+                    st.success(f"**Search will use:** Formula = {formula_input}, Space Group = {space_group_number}")
+
             show_element_info = st.checkbox("ℹ️ Show information about element groups")
-            
             if show_element_info:
                 st.markdown("""
                 **Element groups note:**
-                
                 **Common Elements (14):** H, C, N, O, F, Na, Mg, Al, Si, P, S, Cl, K, Ca  
-                *Frequently encountered in everyday chemistry*
-                
                 **Transition Metals (10):** Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn  
-                *Known for catalytic properties and colored compounds*
-                
                 **Alkali Metals (6):** Li, Na, K, Rb, Cs, Fr  
-                *Highly reactive metals that form ionic compounds*
-                
                 **Alkaline Earth (6):** Be, Mg, Ca, Sr, Ba, Ra  
-                *Less reactive than alkali metals, form ionic compounds*
-                
                 **Noble Gases (6):** He, Ne, Ar, Kr, Xe, Rn  
-                *Chemically inert under normal conditions*
-                
                 **Halogens (5):** F, Cl, Br, I, At  
-                *Highly reactive non-metals that form salts*
-                
                 **Lanthanides (15):** La, Ce, Pr, Nd, Pm, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu  
-                *Rare earth elements with similar properties*
-                
                 **Actinides (15):** Ac, Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr  
-                *Radioactive elements, many synthetic*
-                
-                **Other Elements (51):** All remaining elements including metalloids, post-transition metals, and synthetic superheavy elements
+                **Other Elements (51):** All remaining elements
                 """)
 
         if st.button("Search Selected Databases"):
             if not db_choices:
                 st.error("Please select at least one database to search.")
             else:
-                elements_list = [el.strip() for el in search_query.split() if el.strip()]
-                if not elements_list:
-                    st.error("Please enter at least one element for the search.")
-                else:
-                    for db_choice in db_choices:
-                        if db_choice == "Materials Project":
-                            with st.spinner(f"Searching **the MP database**, please wait. 😊"):
-                                elements_list_sorted = sorted(set(elements_list))
-                                try:
-                                    with MPRester(MP_API_KEY) as mpr:
+                for db_choice in db_choices:
+                    if db_choice == "Materials Project":
+                        mp_limit = search_limits.get("Materials Project", 50)
+                        with st.spinner(f"Searching **the MP database** (limit: {mp_limit}), please wait. 😊"):
+                            try:
+                                with MPRester(MP_API_KEY) as mpr:
+                                    docs = None
+
+                                    if search_mode == "Elements":
+                                        elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                                        if not elements_list:
+                                            st.error("Please enter at least one element for the search.")
+                                            continue
+                                        elements_list_sorted = sorted(set(elements_list))
                                         docs = mpr.materials.summary.search(
                                             elements=elements_list_sorted,
                                             num_elements=len(elements_list_sorted),
                                             fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
                                         )
-                                        if docs:
-                                            status_placeholder = st.empty()
-                                            st.session_state.mp_options = []
-                                            st.session_state.full_structures_see = {}
 
-                                            for doc in docs:
-                                                full_structure = mpr.get_structure_by_material_id(doc.material_id,
-                                                                                                  conventional_unit_cell=True)
-                                                structure_to_use = full_structure
-                                                st.session_state.full_structures_see[doc.material_id] = full_structure
-                                                lattice = structure_to_use.lattice
-                                                leng = len(structure_to_use)
-                                                lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
-                                                               f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
-                                                st.session_state.mp_options.append(
-                                                    f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
-                                                )
-                                                status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure_to_use.composition.reduced_formula}` ({doc.material_id})"
-                                                )
-                                            st.success(
-                                                f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                    elif search_mode == "Structure ID":
+                                        mp_ids = [id.strip() for id in structure_ids.split('\n')
+                                                  if id.strip() and id.strip().startswith('mp-')]
+                                        if not mp_ids:
+                                            st.warning("No valid Materials Project IDs found (should start with 'mp-')")
+                                            continue
+                                        docs = mpr.materials.summary.search(
+                                            material_ids=mp_ids,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    elif search_mode == "Space Group + Elements":
+                                        elements_list = sorted(set(selected_elements))
+                                        if not elements_list:
+                                            st.warning(
+                                                "Please select elements for Materials Project space group search.")
+                                            continue
+
+                                        search_params = {
+                                            "elements": elements_list,
+                                            "num_elements": len(elements_list),
+                                            "fields": ["material_id", "formula_pretty", "symmetry", "nsites", "volume"],
+                                            "spacegroup_number": space_group_number
+                                        }
+
+                                        docs = mpr.materials.summary.search(**search_params)
+
+                                    elif search_mode == "Formula":
+                                        if not formula_input.strip():
+                                            st.warning("Please enter a chemical formula for Materials Project search.")
+                                            continue
+
+                                        # Convert space-separated format to compact format (Sr Ti O3 -> SrTiO3)
+                                        clean_formula = formula_input.strip()
+                                        if ' ' in clean_formula:
+                                            parts = clean_formula.split()
+                                            compact_formula = ''.join(parts)
                                         else:
-                                            st.session_state.mp_options = []
-                                            st.warning("No matching structures found in Materials Project.")
-                                except Exception as e:
-                                    st.error(
-                                        f"An error occurred with Materials Project: {e}.\nThis is likely due to an error within The Materials Project API. Please try again later.")
+                                            compact_formula = clean_formula
 
-                        elif db_choice == "AFLOW":
-                            with st.spinner(f"Searching **the AFLOW database**, please wait. 😊"):
-                                try:
+                                        docs = mpr.materials.summary.search(
+                                            formula=compact_formula,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    elif search_mode == "Search Mineral":
+                                        if not selected_mineral:
+                                            st.warning(
+                                                "Please select a mineral structure for Materials Project search.")
+                                            continue
+                                        clean_formula = formula_input.strip()
+                                        if ' ' in clean_formula:
+                                            parts = clean_formula.split()
+                                            compact_formula = ''.join(parts)
+                                        else:
+                                            compact_formula = clean_formula
+
+                                        # Search by formula and space group
+                                        docs = mpr.materials.summary.search(
+                                            formula=compact_formula,
+                                            spacegroup_number=space_group_number,
+                                            fields=["material_id", "formula_pretty", "symmetry", "nsites", "volume"]
+                                        )
+
+                                    if docs:
+                                        status_placeholder = st.empty()
+                                        st.session_state.mp_options = []
+                                        st.session_state.full_structures_see = {}
+                                        limited_docs = docs[:mp_limit]
+
+                                        for doc in limited_docs:
+                                            full_structure = mpr.get_structure_by_material_id(doc.material_id,
+                                                                                              conventional_unit_cell=True)
+                                            st.session_state.full_structures_see[doc.material_id] = full_structure
+                                            lattice = full_structure.lattice
+                                            leng = len(full_structure)
+                                            lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
+                                                           f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
+                                            st.session_state.mp_options.append(
+                                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
+                                            )
+                                            status_placeholder.markdown(
+                                                f"- **Structure loaded:** `{full_structure.composition.reduced_formula}` ({doc.material_id})"
+                                            )
+                                        if len(limited_docs) < len(docs):
+                                            st.info(
+                                                f"Showing first {mp_limit} of {len(docs)} total Materials Project results. Increase limit to see more.")
+                                        st.success(
+                                            f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                    else:
+                                        st.session_state.mp_options = []
+                                        st.warning("No matching structures found in Materials Project.")
+                            except Exception as e:
+                                st.error(f"An error occurred with Materials Project: {e}")
+
+                    elif db_choice == "AFLOW":
+                        aflow_limit = search_limits.get("AFLOW", 50)
+                        with st.spinner(f"Searching **the AFLOW database** (limit: {aflow_limit}), please wait. 😊"):
+                            try:
+                                results = []
+
+                                if search_mode == "Elements":
+                                    elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                                    if not elements_list:
+                                        st.warning("Please enter elements for AFLOW search.")
+                                        continue
                                     ordered_elements = sorted(elements_list)
                                     ordered_str = ",".join(ordered_elements)
                                     aflow_nspecies = len(ordered_elements)
@@ -518,78 +704,384 @@ if show_database_search:
                                             AFLOW_K.files,
                                         )
                                     )
+
+                                elif search_mode == "Structure ID":
+                                    aflow_auids = []
+                                    for id_line in structure_ids.split('\n'):
+                                        id_line = id_line.strip()
+                                        if id_line.startswith('aflow:'):
+                                            auid = id_line.replace('aflow:', '').strip()
+                                            aflow_auids.append(auid)
+
+                                    if not aflow_auids:
+                                        st.warning("No valid AFLOW AUIDs found (should start with 'aflow:')")
+                                        continue
+
+                                    results = []
+                                    for auid in aflow_auids:
+                                        try:
+                                            result = list(search(catalog="icsd")
+                                                          .filter(AFLOW_K.auid == f"aflow:{auid}")
+                                                          .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                                  AFLOW_K.spacegroup_relax, AFLOW_K.aurl,
+                                                                  AFLOW_K.files))
+                                            results.extend(result)
+                                        except Exception as e:
+                                            st.warning(f"AFLOW search failed for AUID '{auid}': {e}")
+                                            continue
+
+                                elif search_mode == "Space Group + Elements":
+                                    if not selected_elements:
+                                        st.warning("Please select elements for AFLOW space group search.")
+                                        continue
+                                    ordered_elements = sorted(selected_elements)
+                                    ordered_str = ",".join(ordered_elements)
+                                    aflow_nspecies = len(ordered_elements)
+
+
+                                    try:
+                                        results = list(search(catalog="icsd")
+                                                       .filter((AFLOW_K.species % ordered_str) &
+                                                               (AFLOW_K.nspecies == aflow_nspecies) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+                                    except Exception as e:
+                                        st.warning(f"AFLOW space group search failed: {e}")
+                                        results = []
+
+
+                                elif search_mode == "Formula":
+
+                                    if not formula_input.strip():
+                                        st.warning("Please enter a chemical formula for AFLOW search.")
+
+                                        continue
+
+
+
+                                    def convert_to_aflow_formula(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = match.group(2) if match.group(
+                                                    2) else "1"  # Add "1" if no number
+
+                                                elements_dict[element] = count
+
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+
+                                    # Generate 2x multiplied formula
+                                    def multiply_formula_by_2(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = int(match.group(2)) if match.group(2) else 1
+
+                                                elements_dict[element] = str(count * 2)  # Multiply by 2
+
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+
+                                    aflow_formula = convert_to_aflow_formula(formula_input)
+
+                                    aflow_formula_2x = multiply_formula_by_2(formula_input)
+
+
+                                    if aflow_formula_2x != aflow_formula:
+
+                                        results = list(search(catalog="icsd")
+
+                                                       .filter((AFLOW_K.compound == aflow_formula) |
+
+                                                               (AFLOW_K.compound == aflow_formula_2x))
+
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching for both {aflow_formula} and {aflow_formula_2x} formulas simultaneously")
+
+                                    else:
+                                        results = list(search(catalog="icsd")
+                                                       .filter(AFLOW_K.compound == aflow_formula)
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(f"Searching for formula {aflow_formula}")
+
+
+                                elif search_mode == "Search Mineral":
+                                    if not selected_mineral:
+                                        st.warning("Please select a mineral structure for AFLOW search.")
+                                        continue
+
+                                    def convert_to_aflow_formula_mineral(formula_input):
+                                        import re
+                                        formula_parts = formula_input.strip().split()
+                                        elements_dict = {}
+                                        for part in formula_parts:
+
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+                                            if match:
+                                                element = match.group(1)
+
+                                                count = match.group(2) if match.group(
+                                                    2) else "1"  # Always add "1" for single atoms
+
+                                                elements_dict[element] = count
+
+                                        aflow_parts = []
+
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+
+                                        return "".join(aflow_parts)
+
+                                    def multiply_mineral_formula_by_2(formula_input):
+
+                                        import re
+
+                                        formula_parts = formula_input.strip().split()
+
+                                        elements_dict = {}
+
+                                        for part in formula_parts:
+                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
+                                            if match:
+                                                element = match.group(1)
+                                                count = int(match.group(2)) if match.group(2) else 1
+                                                elements_dict[element] = str(count * 2)  # Multiply by 2
+                                        aflow_parts = []
+                                        for element in sorted(elements_dict.keys()):
+                                            aflow_parts.append(f"{element}{elements_dict[element]}")
+                                        return "".join(aflow_parts)
+
+                                    aflow_formula = convert_to_aflow_formula_mineral(formula_input)
+
+                                    aflow_formula_2x = multiply_mineral_formula_by_2(formula_input)
+
+                                    # Search for both formulas with space group constraint in a single query
+
+                                    if aflow_formula_2x != aflow_formula:
+                                        results = list(search(catalog="icsd")
+                                                       .filter(((AFLOW_K.compound == aflow_formula) |
+                                                                (AFLOW_K.compound == aflow_formula_2x)) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching {mineral_info['mineral_name']} for both {aflow_formula} and {aflow_formula_2x} with space group {space_group_number}")
+
+                                    else:
+                                        results = list(search(catalog="icsd")
+                                                       .filter((AFLOW_K.compound == aflow_formula) &
+                                                               (AFLOW_K.spacegroup_relax == space_group_number))
+                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
+                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+
+                                        st.info(
+                                            f"Searching {mineral_info['mineral_name']} for formula {aflow_formula} with space group {space_group_number}")
+
+                                if results:
+                                    status_placeholder = st.empty()
+                                    st.session_state.aflow_options = []
                                     st.session_state.entrys = {}
 
-                                    if results:
-                                        status_placeholder = st.empty()
-                                        st.session_state.aflow_options = []
-                                        st.session_state.entrys = {}  # store full AFLOW entry objects
-                                        for entry in results:
-                                            st.session_state.entrys[entry.auid] = entry
-                                            st.session_state.aflow_options.append(
-                                                f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
-                                            )
-                                            status_placeholder.markdown(
-                                                f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
-                                            )
-                                        st.success(f"Found {len(st.session_state.aflow_options)} structures.")
-                                    else:
-                                        st.session_state.aflow_options = []
-                                        st.warning("No matching structures found in AFLOW.")
-                                except Exception as e:
-                                    st.warning("No matching structures found in AFLOW.")
+                                    limited_results = results[:aflow_limit]
 
-                        elif db_choice == "COD":
-                            with st.spinner(f"Searching **the COD database**, please wait. 😊"):
-                                elements = elements_list
-                                if elements:
-                                    params = {'format': 'json', 'detail': '1'}
-                                    for i, el in enumerate(elements, start=1):
-                                        params[f'el{i}'] = el
-                                    params['strictmin'] = str(len(elements))
-                                    params['strictmax'] = str(len(elements))
+                                    for entry in limited_results:
+                                        st.session_state.entrys[entry.auid] = entry
+                                        st.session_state.aflow_options.append(
+                                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                        )
+                                        status_placeholder.markdown(
+                                            f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
+                                        )
+                                    if len(limited_results) < len(results):
+                                        st.info(
+                                            f"Showing first {aflow_limit} of {len(results)} total AFLOW results. Increase limit to see more.")
+                                    st.success(f"Found {len(st.session_state.aflow_options)} structures in AFLOW.")
+                                else:
+                                    st.session_state.aflow_options = []
+                                    st.warning("No matching structures found in AFLOW.")
+                            except Exception as e:
+                                st.warning(f"No matching structures found in AFLOW.")
+                                st.session_state.aflow_options = []
+
+                    elif db_choice == "COD":
+                        cod_limit = search_limits.get("COD", 50)
+                        with st.spinner(f"Searching **the COD database** (limit: {cod_limit}), please wait. 😊"):
+                            try:
+                                cod_entries = []
+
+                                if search_mode == "Elements":
+                                    elements = [el.strip() for el in search_query.split() if el.strip()]
+                                    if elements:
+                                        params = {'format': 'json', 'detail': '1'}
+                                        for i, el in enumerate(elements, start=1):
+                                            params[f'el{i}'] = el
+                                        params['strictmin'] = str(len(elements))
+                                        params['strictmax'] = str(len(elements))
+                                        cod_entries = get_cod_entries(params)
+                                    else:
+                                        st.warning("Please enter elements for COD search.")
+                                        continue
+
+                                elif search_mode == "Structure ID":
+                                    cod_ids = []
+                                    for id_line in structure_ids.split('\n'):
+                                        id_line = id_line.strip()
+                                        if id_line.startswith('cod_'):
+                                            # Extract numeric ID from cod_XXXXX format
+                                            numeric_id = id_line.replace('cod_', '').strip()
+                                            if numeric_id.isdigit():
+                                                cod_ids.append(numeric_id)
+
+                                    if not cod_ids:
+                                        st.warning(
+                                            "No valid COD IDs found (should start with 'cod_' followed by numbers)")
+                                        continue
+
+                                    cod_entries = []
+                                    for cod_id in cod_ids:
+                                        try:
+                                            params = {'format': 'json', 'detail': '1', 'id': cod_id}
+                                            entry = get_cod_entries(params)
+                                            if entry:
+                                                if isinstance(entry, list):
+                                                    cod_entries.extend(entry)
+                                                else:
+                                                    cod_entries.append(entry)
+                                        except Exception as e:
+                                            st.warning(f"COD search failed for ID {cod_id}: {e}")
+                                            continue
+
+                                elif search_mode == "Space Group + Elements":
+                                    elements = selected_elements
+                                    if elements:
+                                        params = {'format': 'json', 'detail': '1'}
+                                        for i, el in enumerate(elements, start=1):
+                                            params[f'el{i}'] = el
+                                        params['strictmin'] = str(len(elements))
+                                        params['strictmax'] = str(len(elements))
+                                        params['space_group_number'] = str(space_group_number)
+
+                                        cod_entries = get_cod_entries(params)
+                                    else:
+                                        st.warning("Please select elements for COD space group search.")
+                                        continue
+
+                                elif search_mode == "Formula":
+                                    if not formula_input.strip():
+                                        st.warning("Please enter a chemical formula for COD search.")
+                                        continue
+
+                                    # alphabet sorting
+                                    alphabet_form = sort_formula_alphabetically(formula_input)
+                                    print(alphabet_form)
+                                    params = {'format': 'json', 'detail': '1', 'formula': alphabet_form}
                                     cod_entries = get_cod_entries(params)
-                                    if cod_entries:
-                                        status_placeholder = st.empty()
-                                        st.session_state.cod_options = []
-                                        st.session_state.full_structures_see_cod = {}
-                                        for entry in cod_entries:
+
+                                elif search_mode == "Search Mineral":
+                                    if not selected_mineral:
+                                        st.warning("Please select a mineral structure for COD search.")
+                                        continue
+
+                                    # Use both formula and space group for COD search
+                                    alphabet_form = sort_formula_alphabetically(formula_input)
+                                    params = {
+                                        'format': 'json',
+                                        'detail': '1',
+                                        'formula': alphabet_form,
+                                        'space_group_number': str(space_group_number)
+                                    }
+                                    cod_entries = get_cod_entries(params)
+
+                                if cod_entries and isinstance(cod_entries, list):
+                                    status_placeholder = st.empty()
+                                    st.session_state.cod_options = []
+                                    st.session_state.full_structures_see_cod = {}
+
+                                    limited_entries = cod_entries[:cod_limit]
+
+                                    for entry in limited_entries:
+                                        try:
                                             cif_content = get_cif_from_cod(entry)
                                             if cif_content:
-                                                try:
-                                                    # structure = get_full_conventional_structure(
-                                                    #    get_cod_str(cif_content))
-                                                    structure = get_cod_str(cif_content)
-                                                    cod_id = f"cod_{entry.get('file')}"
-                                                    st.session_state.full_structures_see_cod[cod_id] = structure
-                                                    spcs = entry.get("sg")
-                                                    spcs_number = entry.get("sgNumber")
-                                                    # Listing all keywords in the entry
-                                                    # all_keys = list(entry.keys())
-                                                    # st.write(all_keys)
+                                                structure = get_cod_str(cif_content)
+                                                cod_id = f"cod_{entry.get('file')}"
+                                                st.session_state.full_structures_see_cod[cod_id] = structure
+                                                spcs = entry.get("sg", "Unknown")
+                                                spcs_number = entry.get("sgNumber", "Unknown")
 
-                                                    cell_volume = structure.lattice.volume
-                                                    st.session_state.cod_options.append(
-                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                        f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
-                                                    )
-                                                    status_placeholder.markdown(
-                                                        f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                                except Exception as e:
-                                                    st.error(f"Error processing COD entry {entry.get('file')}: {e}")
+                                                cell_volume = structure.lattice.volume
+                                                st.session_state.cod_options.append(
+                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
+                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
+                                                )
+                                                status_placeholder.markdown(
+                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
+                                        except Exception as e:
+                                            st.warning(
+                                                f"Error processing COD entry {entry.get('file', 'unknown')}: {e}")
+                                            continue
 
-                                        if st.session_state.cod_options:
-                                            st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
-                                        else:
-                                            st.warning("COD: No matching structures found.")
+                                    if st.session_state.cod_options:
+                                        if len(limited_entries) < len(cod_entries):
+                                            st.info(
+                                                f"Showing first {cod_limit} of {len(cod_entries)} total COD results. Increase limit to see more.")
+                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
                                     else:
-                                        st.session_state.cod_options = []
-                                        st.warning("COD: No matching structures found.")
+                                        st.warning("COD: No valid structures could be processed.")
                                 else:
-                                    st.error("Please enter at least one element for the COD search.")
+                                    st.session_state.cod_options = []
+                                    st.warning("COD: No matching structures found.")
+                            except Exception as e:
+                                st.warning(f"COD search error: {e}")
+                                st.session_state.cod_options = []
+
             with cols2:
                 image = Image.open("images/Rabbit2.png")
-                st.image(image, use_container_width =True)
+                st.image(image, use_container_width=True)
+
 
 
 
@@ -632,7 +1124,6 @@ if show_database_search:
                                 st.write(
                                     f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
-
                                 st.write(
                                     f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
 
@@ -667,6 +1158,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
+                                    st.info(
+                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                         tab_index += 1
 
                     if 'aflow_options' in st.session_state and st.session_state.aflow_options:
@@ -721,7 +1214,6 @@ if show_database_search:
                                         f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
                                     st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
 
-
                                     linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
                                     st.write("**Link:**", linnk)
 
@@ -730,8 +1222,6 @@ if show_database_search:
                                             st.session_state.uploaded_files = []
                                         cif_file = io.BytesIO(cif_content)
                                         cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
-
-
 
                                         st.session_state.full_structures[cif_file.name] = structure_from_aflow
 
@@ -747,6 +1237,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
+                                    st.info(
+                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                                 else:
                                     st.warning("No CIF file found for this AFLOW entry.")
                         tab_index += 1
@@ -777,13 +1269,11 @@ if show_database_search:
                                 st.write(
                                     f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
-
                                 st.write(
                                     f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
                                 st.write(
                                     f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
                                 st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
 
                                 cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
                                 st.write(f"**Link:** {cod_url}")
@@ -810,7 +1300,7 @@ if show_database_search:
                                     file_name=file_name,
                                     mime="chemical/x-cif", type="primary",
                                 )
-
+                                st.info(f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
 
 
 
@@ -855,10 +1345,6 @@ else:
 
 if uploaded_files:
     st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
-
-
-
-
 
 if uploaded_files:
     species_set = set()
@@ -924,8 +1410,10 @@ def recalc_computed_columns(df, lattice):
 
     return df
 
+
 if "xrd_download_prepared" not in st.session_state:
     st.session_state.xrd_download_prepared = False
+
 
 def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
     try:
@@ -972,7 +1460,6 @@ def auto_save_structure_function(auto_save_filename, visual_pmg_structure):
     except Exception as e:
         st.error(f"Auto-saving failed: {e}")
         return False
-
 
 
 if "removal_message" not in st.session_state:
@@ -1071,7 +1558,7 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                 unique_int.append(interstitial.site.frac_coords)
                 label = classify_interstitial_site(structure, interstitial.site.frac_coords)
                 rounded_coords = [round(float(x), 3) for x in interstitial.site.frac_coords]
-                #st.write(
+                # st.write(
                 #    f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)")
 
                 new_msg = f"🧠 Unique interstitial site (**Type {idx + 1}**)  at {rounded_coords}, {label} (#{len(interstitial.equivalent_sites)} sites)\n"
@@ -1081,14 +1568,12 @@ def insert_interstitials_into_structure(structure, interstitial_element, n_inter
                     frac_coords_dict[idx].append(site.frac_coords)
                 idx += 1
 
-            #st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
+            # st.write(f"**Total number of available interstitial positions:**", len(frac_coords))
             new_msg = f"**Total number of available interstitial positions:** {len(frac_coords)}\n"
             st.session_state.removal_message += new_msg + "\n"
 
-
             if st.session_state.removal_message:
                 st.write(st.session_state.removal_message)
-
 
             if which_interstitial == 0:
                 frac_coords_use = frac_coords
@@ -1229,6 +1714,7 @@ def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="
                                       coords_are_cartesian=False)
     return new_structure
 
+
 if "run_before" not in st.session_state:
     st.session_state["run_before"] = False
 
@@ -1236,7 +1722,7 @@ if "🔬 Structure Modification" in calc_mode:
     auto_save_structure = False
     auto_save_filename = False
     show_structure = True
-    #st.info("First, upload your crystal structures or add them from online databases. ")
+    # st.info("First, upload your crystal structures or add them from online databases. ")
     if uploaded_files:
         if "helpful" not in st.session_state:
             st.session_state["helpful"] = False
@@ -1246,7 +1732,7 @@ if "🔬 Structure Modification" in calc_mode:
             if "current_structure" not in st.session_state:
                 st.session_state["current_structure"] = None
 
-            #FOR COMPARISON IF SELECTED FILE CHANGED
+            # FOR COMPARISON IF SELECTED FILE CHANGED
             if "selected_file" not in st.session_state:
                 st.session_state["selected_file"] = None
             prev_selected_file = st.session_state.get("selected_file")
@@ -1258,7 +1744,7 @@ if "🔬 Structure Modification" in calc_mode:
                 else:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
-                #apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+                # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
                     f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
                     value=False)
@@ -1277,7 +1763,7 @@ if "🔬 Structure Modification" in calc_mode:
                     pymatgen_prim_cell_no_reduce = structure_cell_choice == "Primitive Cell (no reduction)"
             if selected_file != st.session_state["selected_file"]:
 
-                #IF SELECTED FILE CHANGED, RESETTING ALL MODIFICATIONS
+                # IF SELECTED FILE CHANGED, RESETTING ALL MODIFICATIONS
                 st.session_state["current_structure"] = None
                 st.session_state["selected_file"] = selected_file
                 try:
@@ -1354,34 +1840,38 @@ if "🔬 Structure Modification" in calc_mode:
         st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
-            value=False)
-        #with col_mod:
-            # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-           #if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
-            #    mp_struct = st.session_state["current_structure"]
-                #converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
-                #st.session_state["current_structure"] = converted_structure
-            #    analyzer = SpacegroupAnalyzer(mp_struct, symprec=0.1)
+            value=False,  disabled=True)
+        st.markdown(
+            'To create **Supercell** and **Point Defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).'
+        )
+        # with col_mod:
+        # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
+        # if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
+        #    mp_struct = st.session_state["current_structure"]
+        # converted_structure = get_full_conventional_structure(mp_struct, symprec=0.1)
+        # st.session_state["current_structure"] = converted_structure
+        #    analyzer = SpacegroupAnalyzer(mp_struct, symprec=0.1)
 
-                # Get the conventional standard structure
-            #    converted_structure = analyzer.get_conventional_standard_structure()
+        # Get the conventional standard structure
+        #    converted_structure = analyzer.get_conventional_standard_structure()
 
-                # Print symmetry information
-            #    spacegroup = analyzer.get_space_group_symbol()
-            #    st.write(f"Structure converted to conventional cell with spacegroup: {spacegroup}")
+        # Print symmetry information
+        #    spacegroup = analyzer.get_space_group_symbol()
+        #    st.write(f"Structure converted to conventional cell with spacegroup: {spacegroup}")
 
-                # Update the session state with the new structure
-            #    st.session_state["current_structure"] = converted_structure
+        # Update the session state with the new structure
+        #    st.session_state["current_structure"] = converted_structure
 
-                # Display information about the new structure
-            #    st.write(f"Lattice parameters: {converted_structure.lattice.abc}")
-            #    st.write(f"Lattice angles: {converted_structure.lattice.angles}")
-            #    st.write(f"Number of sites: {len(converted_structure)}")
-            #    st.session_state["current_structure"] = converted_structure
+        # Display information about the new structure
+        #    st.write(f"Lattice parameters: {converted_structure.lattice.abc}")
+        #    st.write(f"Lattice angles: {converted_structure.lattice.angles}")
+        #    st.write(f"Number of sites: {len(converted_structure)}")
+        #    st.session_state["current_structure"] = converted_structure
         if create_defects:
             from pymatgen.core import Structure, Element
 
-            with st.expander("Create Supercell (Uncheck the conversion between cells) and Point Defects", icon='🧿', expanded=st.session_state["expander_defects"]):
+            with st.expander("Create Supercell (Uncheck the conversion between cells) and Point Defects", icon='🧿',
+                             expanded=st.session_state["expander_defects"]):
 
                 colb1, colb2, colb3 = st.columns(3)
 
@@ -1398,7 +1888,22 @@ if "🔬 Structure Modification" in calc_mode:
                     current_atom_count = len(st.session_state["current_structure"])
                     original_atom_count = len(st.session_state["original_for_supercell"])
                     estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
-                    st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
+
+                    MAX_ATOMS = 32 #Parameter for the maximum allowed number of atoms in the structure for creation of point defects
+
+                    current_atom_count = len(st.session_state["current_structure"])
+                    original_atom_count = len(st.session_state["original_for_supercell"])
+                    estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
+
+                    if estimated_supercell_atoms > MAX_ATOMS:
+                        st.error(
+                            f"⚠️ Structure would have **{estimated_supercell_atoms} atoms** - exceeds limit of {MAX_ATOMS} atoms!")
+                        st.warning(f"Please reduce the supercell dimensions to stay within the {MAX_ATOMS}-atom limit.")
+                        supercell_allowed = False
+                    else:
+                        st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
+                        supercell_allowed = True
+
 
                     if st.button("Reset to Original Structure", type="primary"):
                         selected_file = st.session_state.get("selected_file")
@@ -1422,18 +1927,28 @@ if "🔬 Structure Modification" in calc_mode:
                 supercell_matrix = [[n_a, 0, 0], [0, n_b, 0], [0, 0, n_c]]
 
                 if (n_a, n_b, n_c) != (old_a, old_b, old_c):
-                    transformer = SupercellTransformation(supercell_matrix)
+                    if estimated_supercell_atoms > MAX_ATOMS:
+                        st.error(f"❌ Cannot create supercell: Would exceed {MAX_ATOMS}-atom limit!")
+                        st.warning(
+                            f"Current settings would create {estimated_supercell_atoms} atoms. Please reduce supercell dimensions.")
+                        st.session_state["supercell_n_a"] = old_a
+                        st.session_state["supercell_n_b"] = old_b
+                        st.session_state["supercell_n_c"] = old_c
+                        st.stop()
+                    else:
+                        transformer = SupercellTransformation(supercell_matrix)
 
-                    from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
+                        from pymatgen.transformations.standard_transformations import \
+                            OrderDisorderedStructureTransformation
 
-                    mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
-                    mp_struct = transformer.apply_transformation(mp_struct)
+                        mp_struct = remove_fractional_occupancies_safely(st.session_state["original_for_supercell"])
+                        mp_struct = transformer.apply_transformation(mp_struct)
 
-                    st.session_state["current_structure"] = mp_struct
-                    st.session_state["auto_saved_structure"] = mp_struct
+                        st.session_state["current_structure"] = mp_struct
+                        st.session_state["auto_saved_structure"] = mp_struct
 
-                    converted_structure = mp_struct
-                    # st.rerun()
+                        converted_structure = mp_struct
+                        st.success(f"✅ Supercell created successfully with {len(mp_struct)} atoms!")
 
 
 
@@ -1442,13 +1957,22 @@ if "🔬 Structure Modification" in calc_mode:
                     print("DIDNT APPLY ANYTHING")
                     converted_structure = mp_struct
 
+
+                def calculate_max_supercell_dimensions(original_atom_count, max_atoms=MAX_ATOMS):
+                    max_multiplier = int(
+                        (max_atoms / original_atom_count) ** (1 / 3))  # Cubic root for equal dimensions
+                    return max(1, max_multiplier)
+
+                max_dim = calculate_max_supercell_dimensions(original_atom_count)
+                st.info(
+                    f"💡 Suggestion: For equal dimensions, use up to {max_dim}×{max_dim}×{max_dim} to stay under 32 atoms")
+
                 st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(converted_structure)
 
                 st.write("Cell representation conversion is now applied!")
                 mp_struct = converted_structure
                 visual_pmg_structure = mp_struct
                 st.session_state["current_structure"] = mp_struct
-
 
                 with colb2:
                     st.session_state["expander_defects"] = True
@@ -1501,158 +2025,197 @@ if "🔬 Structure Modification" in calc_mode:
                       Leave blank or set substitution % to 0 to skip substitution for that element.
                             """)
 
-                    if operation_mode == "Insert Interstitials (Voronoi method)":
-                        st.markdown("""
-                            **Insert Interstitials Settings**
-                            """)
 
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            interstitial_element_to_place = st.text_input("Element", value="N")
-                        with col2:
-                            number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
-                        with col3:
-                            which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
-                                                                        min_value=0)
+                    def check_atom_count_for_defects(structure, max_atoms=32):
+                        current_count = len(structure)
+                        is_allowed = current_count <= max_atoms
 
-                        col4, col5, col6 = st.columns(3)
-                        with col4:
-                            selection_mode = st.selectbox("Selection Mode",
-                                                          options=["farthest", "nearest", "moderate"],
-                                                          index=0)
-                        with col5:
-                            clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
-                        with col6:
-                            min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
-
-                    elif operation_mode == "Create Vacancies":
-                        st.markdown("""
-
-                            """)
-
-                        col1, col2 = st.columns(2)
-                        vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
-                                                                ["farthest", "nearest", "moderate"], index=0)
-                        if vacancy_selection_mode == "moderate":
-                            vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
-                                                                     format="%.2f")
+                        if not is_allowed:
+                            message = f"❌ Cannot create point defects: Structure has {current_count} atoms (limit: {max_atoms})"
                         else:
-                            vacancy_target_value = 0.5
+                            message = f"✅ Structure has {current_count} atoms - defect operations allowed"
 
-                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                        cols = st.columns(len(elements))
-                        vacancy_percentages = {
-                            el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
-                                                     max_value=100.0,
-                                                     step=1.0, format="%.1f")
-                            for i, el in enumerate(elements)}
+                        return is_allowed, current_count, message
+                    defects_allowed, current_atom_count, atom_count_message = check_atom_count_for_defects(mp_struct, MAX_ATOMS)
 
-                    elif operation_mode == "Substitute Atoms":
-                        st.markdown("""
-                            **Substitution Settings**
-                            """)
+                    if current_atom_count > MAX_ATOMS:
+                        st.error(f"🔴 Current structure: **{current_atom_count} atoms** - Exceeds 32-atom limit!"
+                                 f"Due to the free hosting, this is limited. Please visit GitHub for this application and "
+                                 f"compile it locally, where you can use it without limitation ")
 
-                        col1, col2 = st.columns(2)
-                        substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
-                                                                     ["farthest", "nearest", "moderate"], index=0)
-                        if substitution_selection_mode == "moderate":
-                            substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
-                                                                          step=0.05,
-                                                                          format="%.2f")
-                        else:
-                            substitution_target_value = 0.5
+                    if not defects_allowed:
+                        st.error(atom_count_message)
+                        st.warning("**Options to proceed:**")
+                        st.warning("• Reduce supercell dimensions to get ≤32 atoms")
+                        st.warning("• Use the 'Reset to Original Structure' button and work with smaller supercells")
+                        st.warning("• Choose a structure with fewer atoms per unit cell")
 
-                        elements = sorted({site.specie.symbol for site in mp_struct.sites})
-                        cols = st.columns(len(elements))
-                        substitution_settings = {}
-                        for i, el in enumerate(elements):
-                            with cols[i]:
-                                sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
-                                                           max_value=100.0, step=1.0, format="%.1f",
-                                                           key=f"sub_perc_{el}")
-                                sub_target = st.text_input(f"Substitute {el} with", value="",
-                                                           key=f"sub_target_{el}")
-                            substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
+                        # Disable all defect operation buttons
+                        st.markdown("---")
+                        st.markdown(f"**All defect operations are disabled until atom count ≤ {MAX_ATOMS}**")
 
-                    # ==================== Execute Operation ====================
-                    if operation_mode == "Insert Interstitials (Voronoi method)":
+                        # Show disabled buttons as placeholders
+                        if operation_mode == "Insert Interstitials (Voronoi method)":
+                            st.button("Insert Interstitials", disabled=True,
+                                      help="Disabled: Too many atoms in structure")
+                        elif operation_mode == "Create Vacancies":
+                            st.button("Create Vacancies", disabled=True, help="Disabled: Too many atoms in structure")
+                        elif operation_mode == "Substitute Atoms":
+                            st.button("Substitute Atoms", disabled=True, help="Disabled: Too many atoms in structure")
 
-                        if st.button("Insert Interstitials"):
-                            updated_structure = insert_interstitials_into_structure(mp_struct,
-                                                                                    interstitial_element_to_place,
-                                                                                    number_of_interstitials_to_insert,
-                                                                                    which_interstitial_to_use,
-                                                                                    mode=selection_mode,
-                                                                                    clustering_tol=clustering_tol,
-                                                                                    min_dist=min_dist)
+                    else:
+                        st.success(atom_count_message)
+                        if operation_mode == "Insert Interstitials (Voronoi method)":
+                            st.markdown("""
+                                **Insert Interstitials Settings**
+                                """)
 
-                            mp_struct = updated_structure
-                            st.session_state["current_structure"] = updated_structure
-                            st.session_state["original_for_supercell"] = updated_structure
-                            st.session_state["supercell_n_a"] = 1
-                            st.session_state["supercell_n_b"] = 1
-                            st.session_state["supercell_n_c"] = 1
-                            visual_pmg_structure = mp_struct
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                interstitial_element_to_place = st.text_input("Element", value="N")
+                            with col2:
+                                number_of_interstitials_to_insert = st.number_input("# to Insert", value=2, min_value=1)
+                            with col3:
+                                which_interstitial_to_use = st.number_input("Type (0=all, 1=first...)", value=0,
+                                                                            min_value=0)
 
-                            with colb3:
-                                st.success("Interstitials inserted and structure updated!")
-                            st.session_state["helpful"] = True
-                    elif operation_mode == "Create Vacancies":
-                        if not st.session_state["modified_defects"]:
-                            mp_struct = mp_struct.copy()
-                        else:
-                            mp_struct = st.session_state["modified_defects"]
-                        if st.button("Create Vacancies"):
-                            updated_structure = remove_vacancies_from_structure(mp_struct,
-                                                                                vacancy_percentages,
-                                                                                selection_mode=vacancy_selection_mode,
-                                                                                target_value=vacancy_target_value)
+                            col4, col5, col6 = st.columns(3)
+                            with col4:
+                                selection_mode = st.selectbox("Selection Mode",
+                                                              options=["farthest", "nearest", "moderate"],
+                                                              index=0)
+                            with col5:
+                                clustering_tol = st.number_input("Clustering Tol", value=0.75, step=0.05, format="%.2f")
+                            with col6:
+                                min_dist = st.number_input("Min Dist", value=0.5, step=0.05, format="%.2f")
 
-                            mp_struct = updated_structure
-                            st.session_state["current_structure"] = updated_structure
-                            st.session_state["last_multiplier"] = (1, 1, 1)
-                            visual_pmg_structure = mp_struct
-                            st.session_state["original_for_supercell"] = updated_structure
-                            st.session_state["supercell_n_a"] = 1
-                            st.session_state["supercell_n_b"] = 1
-                            st.session_state["supercell_n_c"] = 1
-                            with colb3:
-                                st.success("Vacancies created and structure updated!")
-                            st.session_state["helpful"] = True
-                    elif operation_mode == "Substitute Atoms":
-                        if not st.session_state["modified_defects"]:
-                            mp_struct = mp_struct.copy()
-                        else:
-                            mp_struct = st.session_state["modified_defects"]
-                        if st.button("Substitute Atoms"):
-                            updated_structure = substitute_atoms_in_structure(mp_struct,
-                                                                              substitution_settings,
-                                                                              selection_mode=substitution_selection_mode,
-                                                                              target_value=substitution_target_value)
+                        elif operation_mode == "Create Vacancies":
+                            st.markdown("""
+    
+                                """)
 
-                            mp_struct = updated_structure
-                            st.session_state["current_structure"] = updated_structure
-                            st.session_state["original_for_supercell"] = updated_structure
-                            st.session_state["supercell_n_a"] = 1
-                            st.session_state["supercell_n_b"] = 1
-                            st.session_state["supercell_n_c"] = 1
-                            visual_pmg_structure = mp_struct
-                            with colb3:
-                                st.success("Substitutions applied and structure updated!")
-                            st.session_state["helpful"] = True
+                            col1, col2 = st.columns(2)
+                            vacancy_selection_mode = col1.selectbox("Vacancy Selection Mode",
+                                                                    ["farthest", "nearest", "moderate"], index=0)
+                            if vacancy_selection_mode == "moderate":
+                                vacancy_target_value = col2.number_input("Target (moderate mode)", value=0.5, step=0.05,
+                                                                         format="%.2f")
+                            else:
+                                vacancy_target_value = 0.5
+
+                            elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                            cols = st.columns(len(elements))
+                            vacancy_percentages = {
+                                el: cols[i].number_input(f"Vacancy % for {el}", value=0.0, min_value=0.0,
+                                                         max_value=100.0,
+                                                         step=1.0, format="%.1f")
+                                for i, el in enumerate(elements)}
+
+                        elif operation_mode == "Substitute Atoms":
+                            st.markdown("""
+                                **Substitution Settings**
+                                """)
+
+                            col1, col2 = st.columns(2)
+                            substitution_selection_mode = col1.selectbox("Substitution Selection Mode",
+                                                                         ["farthest", "nearest", "moderate"], index=0)
+                            if substitution_selection_mode == "moderate":
+                                substitution_target_value = col2.number_input("Target (moderate mode)", value=0.5,
+                                                                              step=0.05,
+                                                                              format="%.2f")
+                            else:
+                                substitution_target_value = 0.5
+
+                            elements = sorted({site.specie.symbol for site in mp_struct.sites})
+                            cols = st.columns(len(elements))
+                            substitution_settings = {}
+                            for i, el in enumerate(elements):
+                                with cols[i]:
+                                    sub_perc = st.number_input(f"Substitution % for {el}", value=0.0, min_value=0.0,
+                                                               max_value=100.0, step=1.0, format="%.1f",
+                                                               key=f"sub_perc_{el}")
+                                    sub_target = st.text_input(f"Substitute {el} with", value="",
+                                                               key=f"sub_target_{el}")
+                                substitution_settings[el] = {"percentage": sub_perc, "substitute": sub_target.strip()}
+
+                        # ==================== Execute Operation ====================
+                        if operation_mode == "Insert Interstitials (Voronoi method)":
+
+                            if st.button("Insert Interstitials"):
+                                updated_structure = insert_interstitials_into_structure(mp_struct,
+                                                                                        interstitial_element_to_place,
+                                                                                        number_of_interstitials_to_insert,
+                                                                                        which_interstitial_to_use,
+                                                                                        mode=selection_mode,
+                                                                                        clustering_tol=clustering_tol,
+                                                                                        min_dist=min_dist)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                st.session_state["original_for_supercell"] = updated_structure
+                                st.session_state["supercell_n_a"] = 1
+                                st.session_state["supercell_n_b"] = 1
+                                st.session_state["supercell_n_c"] = 1
+                                visual_pmg_structure = mp_struct
+
+                                with colb3:
+                                    st.success("Interstitials inserted and structure updated!")
+                                st.session_state["helpful"] = True
+                        elif operation_mode == "Create Vacancies":
+                            if not st.session_state["modified_defects"]:
+                                mp_struct = mp_struct.copy()
+                            else:
+                                mp_struct = st.session_state["modified_defects"]
+                            if st.button("Create Vacancies"):
+                                updated_structure = remove_vacancies_from_structure(mp_struct,
+                                                                                    vacancy_percentages,
+                                                                                    selection_mode=vacancy_selection_mode,
+                                                                                    target_value=vacancy_target_value)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                st.session_state["last_multiplier"] = (1, 1, 1)
+                                visual_pmg_structure = mp_struct
+                                st.session_state["original_for_supercell"] = updated_structure
+                                st.session_state["supercell_n_a"] = 1
+                                st.session_state["supercell_n_b"] = 1
+                                st.session_state["supercell_n_c"] = 1
+                                with colb3:
+                                    st.success("Vacancies created and structure updated!")
+                                st.session_state["helpful"] = True
+                        elif operation_mode == "Substitute Atoms":
+                            if not st.session_state["modified_defects"]:
+                                mp_struct = mp_struct.copy()
+                            else:
+                                mp_struct = st.session_state["modified_defects"]
+                            if st.button("Substitute Atoms"):
+                                updated_structure = substitute_atoms_in_structure(mp_struct,
+                                                                                  substitution_settings,
+                                                                                  selection_mode=substitution_selection_mode,
+                                                                                  target_value=substitution_target_value)
+
+                                mp_struct = updated_structure
+                                st.session_state["current_structure"] = updated_structure
+                                st.session_state["original_for_supercell"] = updated_structure
+                                st.session_state["supercell_n_a"] = 1
+                                st.session_state["supercell_n_b"] = 1
+                                st.session_state["supercell_n_c"] = 1
+                                visual_pmg_structure = mp_struct
+                                with colb3:
+                                    st.success("Substitutions applied and structure updated!")
+                                st.session_state["helpful"] = True
         else:
             st.session_state["current_structure"] = mp_struct
-            #st.session_state["original_for_supercell"] = mp_struct
+            # st.session_state["original_for_supercell"] = mp_struct
             visual_pmg_structure = mp_struct
-
 
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
 
         col_g1, col_g2 = st.columns([1, 4])
 
         with col_g1:
-            show_plot_str = st.checkbox(f"Show 3D structure plot", value = True)
-            #allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
+            show_plot_str = st.checkbox(f"Show 3D structure plot", value=True)
+            # allow_atomic_mod = st.checkbox(f"Allow **atomic site modifications**", value=False)
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
                 value=False)
@@ -1680,13 +2243,13 @@ if "🔬 Structure Modification" in calc_mode:
         else:
             display_df = full_df
 
-
         if unique_wyckoff_only:
             st.info(
                 "ℹ️ When editing atoms in asymmetric unit view, changes will be propagated to all symmetrically equivalent atoms with the same Wyckoff position.")
 
         editor_key = "atom_editor_unique" if unique_wyckoff_only else "atom_editor_full"
-        with st.expander("Modify atomic sites", icon='⚛️', expanded = True): #expanded=st.session_state["expander_atomic_sites"]
+        with st.expander("Modify atomic sites", icon='⚛️',
+                         expanded=True):  # expanded=st.session_state["expander_atomic_sites"]
             st.session_state["expander_open"] = True
             edited_df = st.data_editor(
                 display_df,
@@ -1706,15 +2269,13 @@ if "🔬 Structure Modification" in calc_mode:
                 }
             )
 
-
-
             if 'previous_atom_df' not in st.session_state:
                 st.session_state.previous_atom_df = st.session_state.modified_atom_df.copy()
             if not unique_wyckoff_only:
                 st.session_state.df_last_before_wyck = edited_df
 
             if not edited_df.equals(st.session_state.previous_atom_df) and unique_wyckoff_only == False:
-                #st.session_state.modified_atom_df = edited_df.copy()
+                # st.session_state.modified_atom_df = edited_df.copy()
                 pass
                 if auto_save_structure:
                     auto_save_structure_function(auto_save_filename, visual_pmg_structure)
@@ -1725,11 +2286,10 @@ if "🔬 Structure Modification" in calc_mode:
             else:
                 display_df = st.session_state.modified_atom_df_help
 
-
             edited_df_reset = edited_df.reset_index(drop=True)
             display_df_reset = display_df.reset_index(drop=True)
 
-            if not edited_df_reset.equals(display_df_reset): #and allow_atomic_mod:
+            if not edited_df_reset.equals(display_df_reset):  # and allow_atomic_mod:
                 edited_df = edited_df.reset_index(drop=True)
                 display_df = display_df.reset_index(drop=True)
                 st.session_state.modified_atom_df_help = edited_df
@@ -1765,7 +2325,7 @@ if "🔬 Structure Modification" in calc_mode:
                                 update_element_indices(full_df_copy)
                                 element = changed_props['Element']
 
-                                #st.info(
+                                # st.info(
                                 #    f"Updated {element_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Element changed from {original_element} to {element}")
 
                         if 'Occupancy' in changed_props:
@@ -1774,7 +2334,7 @@ if "🔬 Structure Modification" in calc_mode:
                             if occ_mask.sum() > 0:
                                 full_df_copy.loc[occ_mask, 'Occupancy'] = changed_props['Occupancy']
 
-                                #st.info(
+                                # st.info(
                                 #    f"Updated {occ_mask.sum()} atoms at Wyckoff positions with '{wyckoff_letter}': Occupancy changed to {changed_props['Occupancy']}")
                         position_changed = any(col in changed_props for col in ['Frac X', 'Frac Y', 'Frac Z'])
 
@@ -1800,14 +2360,15 @@ if "🔬 Structure Modification" in calc_mode:
                                 if 'Frac Z' in changed_props:
                                     full_df_copy.at[match_idx, 'Frac Z'] = changed_props['Frac Z']
 
-                                #st.info(f"Position for {element} at Wyckoff position with '{wyckoff_letter}' was updated.")
-                                #st.warning("Note: Changing atomic positions may break the crystal symmetry.")
+                                # st.info(f"Position for {element} at Wyckoff position with '{wyckoff_letter}' was updated.")
+                                # st.warning("Note: Changing atomic positions may break the crystal symmetry.")
                             else:
                                 pass
-                                #st.error(
+                                # st.error(
                                 #    f"Could not find exact matching atom to update position. Found {exact_match.sum()} matches.")
 
-                    st.session_state.modified_atom_df = recalc_computed_columns(full_df_copy, visual_pmg_structure.lattice)
+                    st.session_state.modified_atom_df = recalc_computed_columns(full_df_copy,
+                                                                                visual_pmg_structure.lattice)
                     df_plot = full_df_copy.copy()
                     try:
                         grouped_data = st.session_state.modified_atom_df.copy()
@@ -1815,7 +2376,6 @@ if "🔬 Structure Modification" in calc_mode:
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
-
 
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
@@ -1845,13 +2405,12 @@ if "🔬 Structure Modification" in calc_mode:
                                 properties=props
                             )
 
-
                         visual_pmg_structure = new_struct
 
                         mp_struct = new_struct
 
                         st.session_state["current_structure"] = mp_struct
-                        #st.session_state["original_for_supercell"] = mp_struct
+                        # st.session_state["original_for_supercell"] = mp_struct
                         st.session_state["supercell_n_a"] = 1
                         st.session_state["supercell_n_b"] = 1
                         st.session_state["supercell_n_c"] = 1
@@ -1865,14 +2424,12 @@ if "🔬 Structure Modification" in calc_mode:
                                                                                 visual_pmg_structure.lattice)
                     df_plot = edited_df.copy()
 
-
                     try:
                         grouped_data = st.session_state.modified_atom_df.copy()
                         st.session_state.df_last_before_wyck = grouped_data
                         grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                         grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                         grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
-
 
                         position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
 
@@ -1902,13 +2459,12 @@ if "🔬 Structure Modification" in calc_mode:
                                 properties=props
                             )
 
-
                         visual_pmg_structure = new_struct
 
                         mp_struct = new_struct
 
                         st.session_state["current_structure"] = mp_struct
-                        #st.session_state["original_for_supercell"] = mp_struct
+                        # st.session_state["original_for_supercell"] = mp_struct
                         st.session_state["supercell_n_a"] = 1
                         st.session_state["supercell_n_b"] = 1
                         st.session_state["supercell_n_c"] = 1
@@ -1917,8 +2473,6 @@ if "🔬 Structure Modification" in calc_mode:
                         st.session_state["run_before"] = True
                     except Exception as e:
                         st.error(f"Error rebuilding structure: {e}")
-
-
 
             df_plot = edited_df
 
@@ -1991,8 +2545,8 @@ if "🔬 Structure Modification" in calc_mode:
                 st.session_state.final_structures[new_key] = new_struct
 
                 st.success(f"Modified structure added as '{new_key}'!")
-                #st.write("Final list of structures in calculator:")
-                #st.write(list(st.session_state.final_structures.keys()))
+                # st.write("Final list of structures in calculator:")
+                # st.write(list(st.session_state.final_structures.keys()))
 
                 if "calc_xrd" not in st.session_state:
                     st.session_state.calc_xrd = False
@@ -2064,7 +2618,8 @@ if "🔬 Structure Modification" in calc_mode:
                     crystal_system = sga.get_crystal_system()
                     spg_symbol = sga.get_space_group_symbol()
                     spg_number = sga.get_space_group_number()
-                    st.info(f"Crystal system: **{crystal_system.upper()}** | Space group: **{spg_symbol} (#{spg_number})**")
+                    st.info(
+                        f"Crystal system: **{crystal_system.upper()}** | Space group: **{spg_symbol} (#{spg_number})**")
 
                     override_symmetry = st.checkbox("Override symmetry constraints (allow editing all parameters)",
                                                     value=False)
@@ -2127,7 +2682,7 @@ if "🔬 Structure Modification" in calc_mode:
                                             step=0.01,
                                             format="%.5f",
                                             key="lattice_a")
-                    #st.session_state["lattice_a"] = new_a
+                    # st.session_state["lattice_a"] = new_a
 
                 with col_b:
                     if "b" in modifiable:
@@ -2224,12 +2779,12 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("γ (°)", value=f"{float(old_gamma):.5f}", disabled=True)
                             new_gamma = old_gamma
 
-                #st.session_state["lattice_a"] = new_a
-                #st.session_state["lattice_b"] = new_b
-                #st.session_state["lattice_c"] = new_c
-                #st.session_state["lattice_alpha"] = new_alpha
-                #st.session_state["lattice_beta"] = new_beta
-                #st.session_state["lattice_gamma"] = new_gamma
+                # st.session_state["lattice_a"] = new_a
+                # st.session_state["lattice_b"] = new_b
+                # st.session_state["lattice_c"] = new_c
+                # st.session_state["lattice_alpha"] = new_alpha
+                # st.session_state["lattice_beta"] = new_beta
+                # st.session_state["lattice_gamma"] = new_gamma
 
                 if st.button("Apply Lattice Changes"):
                     try:
@@ -2263,7 +2818,7 @@ if "🔬 Structure Modification" in calc_mode:
                         mp_struct = updated_structure
                         visual_pmg_structure = updated_structure
                         st.session_state["current_structure"] = mp_struct
-                        #st.session_state["original_for_supercell"] = mp_struct
+                        # st.session_state["original_for_supercell"] = mp_struct
 
                         if "modified_atom_df" in st.session_state:
                             st.session_state.modified_atom_df = recalc_computed_columns(
@@ -2305,10 +2860,10 @@ if "🔬 Structure Modification" in calc_mode:
 
                     except Exception as e:
                         st.error(f"Error updating lattice parameters: {e}")
-                    #st.rerun()
+                    # st.rerun()
         else:
-            st.info(f'If you wish to directly modify lattice parameters, uncheck first the Create Supercell and Point Defects')
-
+            st.info(
+                f'If you wish to directly modify lattice parameters, uncheck first the Create Supercell and Point Defects')
 
         df_plot = df_plot.copy()
 
@@ -2322,13 +2877,11 @@ if "🔬 Structure Modification" in calc_mode:
                 help="Adjust the base size of atoms in the 3D visualization - size will adjust with zooming"
             )
 
-
         has_partial_occupancies = False
         for site in visual_pmg_structure:
             if not site.is_ordered:
                 has_partial_occupancies = True
                 break
-
 
         if has_partial_occupancies:
             st.info(
@@ -2346,9 +2899,7 @@ if "🔬 Structure Modification" in calc_mode:
             processed_df['Y_round'] = processed_df['Y'].round(3)
             processed_df['Z_round'] = processed_df['Z'].round(3)
 
-
             coord_groups = processed_df.groupby(['X_round', 'Y_round', 'Z_round'])
-
 
             for (x, y, z), group in coord_groups:
                 position_key = (x, y, z)
@@ -2357,11 +2908,9 @@ if "🔬 Structure Modification" in calc_mode:
                     atom_labels_dict[position_key] = group['Element_Index'].values[0]
                     continue
 
-
                 total_occ = group['Occupancy'].sum()
 
                 vacancy = 1.0 - total_occ if total_occ < 0.99 else 0
-
 
                 label_parts = []
 
@@ -2370,7 +2919,6 @@ if "🔬 Structure Modification" in calc_mode:
                     occ = row['Occupancy']
                     if occ > 0.01:
                         label_parts.append(f"{element}{occ:.3f}")
-
 
                 if vacancy > 0.01:
                     label_parts.append(f"□{vacancy:.3f}")  # Square symbol for vacancy
@@ -2587,7 +3135,6 @@ if "🔬 Structure Modification" in calc_mode:
             with col_g2:
                 st.plotly_chart(fig, use_container_width=True)
 
-
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
         b_para = lattice.b
@@ -2597,7 +3144,7 @@ if "🔬 Structure Modification" in calc_mode:
         gamma = lattice.gamma
         volume = lattice.volume
 
-        density_g =  str(visual_pmg_structure.density).split()[0]
+        density_g = str(visual_pmg_structure.density).split()[0]
         density_a = len(visual_pmg_structure) / volume
 
         # Get lattice parameters
@@ -2881,11 +3428,9 @@ if uploaded_files_user_sidebar:
 if 'files_marked_for_removal' not in st.session_state:
     st.session_state.files_marked_for_removal = set()
 
-
 removable_files = [f for f in uploaded_files
                    if f.name not in current_user_file_names
                    and f.name not in st.session_state.files_marked_for_removal]
-
 
 with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expanded=False):
     if removable_files:
@@ -2922,11 +3467,9 @@ with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expand
         if st.button("🔄 Update list of files", help="Update the list of files to be removed"):
             pass
 
-
 unique_files = {f.name: f for f in uploaded_files
                 if f.name not in st.session_state.files_marked_for_removal}.values()
 uploaded_files[:] = list(unique_files)
-
 
 with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
     if uploaded_files:
@@ -2936,7 +3479,6 @@ with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
             source_icon = "👤" if file.name in current_user_file_names else "🌐"
             st.write(f"{i}. {source_icon} {file.name}")
 
-
         user_count = len([f for f in uploaded_files if f.name in current_user_file_names])
         db_count = len(uploaded_files) - user_count
 
@@ -2945,23 +3487,16 @@ with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
     else:
         st.info("No files uploaded yet")
 
-
-
     st.session_state.files_marked_for_removal.clear()
-
-
 
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
-
-
-
 
 if "parsed_exp_data" not in st.session_state:
     st.session_state.parsed_exp_data = {}
 #
 if "💥 Powder Diffraction" in calc_mode:
-    with st.expander("Diffraction Settings", icon="⚙️", expanded = st.session_state["expander_diff_settings"]):
+    with st.expander("Diffraction Settings", icon="⚙️", expanded=st.session_state["expander_diff_settings"]):
         st.subheader(
             "⚙️ Diffraction Settings",
             help=(
@@ -2988,7 +3523,7 @@ if "💥 Powder Diffraction" in calc_mode:
             if "peak_representation" in st.session_state:
                 peak_representation = st.session_state.peak_representation
             if "intensity_scale_option" in st.session_state:
-                #intensity_scale_option = st.session_state.intensity_scale_option
+                # intensity_scale_option = st.session_state.intensity_scale_option
                 pass
             if "diffraction_choice" in st.session_state:
                 diffraction_choice = st.session_state.diffraction_choice
@@ -3013,8 +3548,8 @@ if "💥 Powder Diffraction" in calc_mode:
         # Initialize parameters if not already in session state
         if "peak_representation" not in st.session_state:
             st.session_state.peak_representation = "Delta"
-     #   if "intensity_scale_option" not in st.session_state:
-     #       st.session_state.intensity_scale_option = "Normalized"
+        #   if "intensity_scale_option" not in st.session_state:
+        #       st.session_state.intensity_scale_option = "Normalized"
         if "diffraction_choice" not in st.session_state:
             st.session_state.diffraction_choice = "XRD (X-ray)"
         if "line_thickness" not in st.session_state:
@@ -3046,7 +3581,7 @@ if "💥 Powder Diffraction" in calc_mode:
                       "or as a Gaussian. When using Gaussian, the area under each peak equals "
                       "the calculated intensity, and overlapping Gaussians are summed.")
             )
-            #st.session_state.peak_representation = peak_representation
+            # st.session_state.peak_representation = peak_representation
         with col3:
             intensity_scale_option = st.radio(
                 "Intensity scale",
@@ -3054,7 +3589,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 key="intensity_scale_option",
                 help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
             )
-            #st.session_state.intensity_scale_option = intensity_scale_option
+            # st.session_state.intensity_scale_option = intensity_scale_option
         with col4:
             diffraction_choice = st.radio(
                 "Diffraction Calculator",
@@ -3065,9 +3600,9 @@ if "💥 Powder Diffraction" in calc_mode:
                      "The calculator applies the **Lorentz correction**: `L(θ) = 1  / sin²θ cosθ`. It does not account for other corrections, such as preferred orientation, absorption, "
                      "instrumental broadening, or temperature effects (Debye-Waller factors). The main differences in the calculation from the XRD pattern are: "
                      " (1) Atomic scattering lengths are constant, and (2) Polarization correction is not necessary.",
-                key = "diffraction_choice"
+                key="diffraction_choice"
             )
-            #st.session_state.diffraction_choice = diffraction_choice
+            # st.session_state.diffraction_choice = diffraction_choice
         with colhhh:
             line_thickness = st.slider(
                 "⚙️ Line thickness for peaks:",
@@ -3077,17 +3612,17 @@ if "💥 Powder Diffraction" in calc_mode:
                 key="line_thickness",
                 help="Adjust the thickness of diffraction peak lines."
             )
-            #st.session_state.line_thickness = line_thickness
+            # st.session_state.line_thickness = line_thickness
         use_debye_waller = st.checkbox(
             "✓ Apply Debye-Waller temperature factors",
-            key = "use_debye_waller",
+            key="use_debye_waller",
             help="Apply temperature-dependent intensity correction using Debye-Waller factors (B-factors) for each element. "
                  "This accounts for thermal motion of atoms, which reduces diffraction peak intensities. "
                  "Enter B-factor values for each element in Å² for each structure file. Typical values range from 0.5 to 3.0 Å² "
                  "Higher values (2-3 Å²) represent more thermal motion or disorder. Lower values (0.5-1 Å²) represent less thermal motion (e.g., at low temperatures). "
                  "The intensity correction is applied as: exp(-B·sin²θ/λ²)."
         )
-        #st.session_state.use_debye_waller = use_debye_waller
+        # st.session_state.use_debye_waller = use_debye_waller
 
         if use_debye_waller:
             st.markdown(f"### 🔥 Debye-Waller B-factors")
@@ -3335,11 +3870,11 @@ if "💥 Powder Diffraction" in calc_mode:
             'Cobalt (CoKa1)', 'Copper (CuKa1)', 'Molybdenum (MoKa1)', 'Chromium (CrKa1)', 'Iron (FeKa1)',
             'Silver (AgKa1)',
             'Co(Ka1+Ka2)', 'Co(Ka1+Ka2+Kb1)',
-             'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
-             'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
-             'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
-             'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
-             'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
+            'Mo(Ka1+Ka2)', 'Mo(Ka1+Ka2+Kb1)',
+            'Cu(Ka1+Ka2)', 'Cu(Ka1+Ka2+Kb1)',
+            'Cr(Ka1+Ka2)', 'Cr(Ka1+Ka2+Kb1)',
+            'Fe(Ka1+Ka2)', 'Fe(Ka1+Ka2+Kb1)',
+            'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
         ]
         preset_wavelengths = {
             'Cu(Ka1+Ka2)': 0.154,
@@ -3393,7 +3928,8 @@ if "💥 Powder Diffraction" in calc_mode:
             hide_input_for = ['Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)']
 
             with col2:
-                if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get("previous_preset", ""):
+                if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get(
+                        "previous_preset", ""):
                     st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
                     st.session_state.previous_preset = st.session_state.preset_choice
 
@@ -3418,8 +3954,10 @@ if "💥 Powder Diffraction" in calc_mode:
                     help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
                 )
             with col2:
-                if "preset_choice_neutron" in st.session_state and st.session_state.preset_choice_neutron != st.session_state.get("previous_preset_neutron", ""):
-                    st.session_state.wavelength_value = preset_wavelengths_neutrons[st.session_state.preset_choice_neutron]
+                if "preset_choice_neutron" in st.session_state and st.session_state.preset_choice_neutron != st.session_state.get(
+                        "previous_preset_neutron", ""):
+                    st.session_state.wavelength_value = preset_wavelengths_neutrons[
+                        st.session_state.preset_choice_neutron]
                     st.session_state.previous_preset_neutron = st.session_state.preset_choice_neutron
 
                 wavelength_value = st.number_input(
@@ -3429,8 +3967,6 @@ if "💥 Powder Diffraction" in calc_mode:
                     format="%.5f",
                     key="wavelength_value"
                 )
-
-
 
         wavelength_A = wavelength_value * 10  # Convert nm to Å
         wavelength_nm = wavelength_value
@@ -3447,21 +3983,21 @@ if "💥 Powder Diffraction" in calc_mode:
             "d (Å)", "d (nm)",
         ]
         # --- X-axis Metric Selection ---
-        colx, colx1, colx2, colx3 = st.columns([1,1, 1, 1])
+        colx, colx1, colx2, colx3 = st.columns([1, 1, 1, 1])
         with colx:
             if diffraction_choice == "ND (Neutron)":
                 x_axis_metric = st.selectbox(
                     "⚙️ ND x-axis Metric",
                     x_axis_options_neutron,
                     key="x_axis_metric",
-                    #help=conversion_info.get(x_axis_metric, "X-axis metric selection")
+                    # help=conversion_info.get(x_axis_metric, "X-axis metric selection")
                 )
             else:
                 x_axis_metric = st.selectbox(
                     "⚙️ XRD x-axis Metric",
                     x_axis_options,
                     key="x_axis_metric",
-                    #help=conversion_info.get(x_axis_metric, "X-axis metric selection")
+                    # help=conversion_info.get(x_axis_metric, "X-axis metric selection")
                 )
         with colx1:
             y_axis_scale = st.selectbox(
@@ -3531,7 +4067,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 step=0.01,
                 key="sigma"
             )
-            #st.session_state.sigma = sigma
+            # st.session_state.sigma = sigma
         else:
             sigma = st.session_state.sigma = 0.5
         with col3h:
@@ -3591,7 +4127,6 @@ if "💥 Powder Diffraction" in calc_mode:
                                                                            list) else user_pattern_file
                     selected_exp_file = selected_file_obj.name
 
-
                 try:
                     df = pd.read_csv(selected_file_obj, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
                     x_exp = df.iloc[:, 0].values
@@ -3636,6 +4171,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 smoothing_factor = st.slider("Smoothing Factor", 0.0, 1.0, 0.0, 0.01,
                                                              help="Higher values create smoother fits (0=exact fit)")
 
+
                             def poly_bg(x, y, degree, smoothing):
                                 sort_idx = np.argsort(x)
                                 x_sorted = x[sort_idx]
@@ -3670,6 +4206,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                                         help="Window size for the SNIP algorithm (must be odd)")
                                 if snip_window % 2 == 0:
                                     snip_window += 1  # Ensure window is odd
+
 
                             def snip_bg(y, iterations, window_size):
                                 if window_size % 2 == 0:
@@ -3798,7 +4335,6 @@ if "💥 Powder Diffraction" in calc_mode:
                             st.session_state.use_bg_subtracted = False
                 except Exception as e:
                     st.error(f"Error processing experimental file {selected_exp_file}: {e}")
-
 
         # --- XRD Calculation ---
         colors = ["black", "brown", "grey", "purple"]
@@ -3934,12 +4470,10 @@ if "💥 Powder Diffraction" in calc_mode:
                         if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                             y_user = (y_user / np.max(y_user)) * 100
 
-
                         mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                    x_user <= st.session_state.two_theta_max)
+                                x_user <= st.session_state.two_theta_max)
                         x_user_filtered = x_user[mask_user]
                         y_user_filtered = y_user[mask_user]
-
 
                         color = "black"
                         fig_interactive.add_trace(go.Scatter(
@@ -4113,11 +4647,11 @@ if "💥 Powder Diffraction" in calc_mode:
                         filtered_y = convert_intensity_scale(filtered_y, y_axis_scale)
 
                     y_dense_total += y_dense_comp
-                    #if y_axis_scale != "Linear":
+                    # if y_axis_scale != "Linear":
                     #    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
                     all_filtered_x.extend(filtered_x)
                     all_filtered_y.extend(filtered_y)
-                    #if y_axis_scale != "Linear":
+                    # if y_axis_scale != "Linear":
                     #    for i in range(len(all_filtered_y)):
                     #        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
 
@@ -4596,7 +5130,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 font=dict(size=18),
                 autosize=True
             )
-    #st.rerun()
+    # st.rerun()
     st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
     st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
@@ -4651,8 +5185,11 @@ if "💥 Powder Diffraction" in calc_mode:
             button_key = f"prepare_download_{file.name}"
             if button_key not in st.session_state:
                 st.session_state[button_key] = False
+
+
             def prepare_xrd_download(file_key):
                 st.session_state[file_key] = True
+
 
             st.button(f"Download Continuous Curve Data for {file.name}",
                       key=f"button_{file.name}",
@@ -4671,7 +5208,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 filename = f"continuous_curve_data_{file.name.replace('.', '_')}.csv"
                 download_link = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download Continuous Curve Data for {file.name}</a>'
                 st.markdown(download_link, unsafe_allow_html=True)
-
 
         combined_data = {}
         for file in uploaded_files:
@@ -4722,8 +5258,6 @@ if "💥 Powder Diffraction" in calc_mode:
             combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
             st.dataframe(combined_df)
 
-
-
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
 if "display_mode" not in st.session_state:
@@ -4770,6 +5304,7 @@ def trigger_calculation():
     import gc
     gc.collect()
 
+
 def toggle_animation():
     st.session_state.animate = not st.session_state.animate
 
@@ -4780,7 +5315,7 @@ if "📊 (P)RDF" in calc_mode:
         uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
     else:
         uploaded_files = st.session_state['uploaded_files']
-    #uploaded_files = st.session_state.uploaded_files
+    # uploaded_files = st.session_state.uploaded_files
     # --- RDF (PRDF) Settings and Calculation ---
     st.subheader("⚙️ (P)RDF Settings",
                  help="🔬 **PRDF** describes the atomic element pair distances distribution within a structure, "
@@ -4853,7 +5388,7 @@ if "📊 (P)RDF" in calc_mode:
             if use_lammps_traj and lammps_file:
                 st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
                 progress_bar = st.progress(0)
-                #with st.expander("Log from reading LAMMPS trajectory file"):
+                # with st.expander("Log from reading LAMMPS trajectory file"):
                 with st.status("Reading LAMMPS trajectory file..."):
                     file_content_sample = lammps_file.read(2048)
                     lammps_file.seek(0)
@@ -5202,7 +5737,6 @@ if "📊 (P)RDF" in calc_mode:
                     marker=dict(size=8) if st.session_state.line_style == "Lines + Markers" else dict()
                 ))
 
-
             title_str = "Combined Averaged PRDF: All Pairs" if multi_structures else "Combined PRDF: All Pairs"
 
             fig_combined.update_layout(
@@ -5289,7 +5823,8 @@ if "📊 (P)RDF" in calc_mode:
                                     label="▶️ Play",
                                     method="animate",
                                     args=[None, {
-                                        "frame": {"duration": int(st.session_state.animation_speed * 1000), "redraw": True},
+                                        "frame": {"duration": int(st.session_state.animation_speed * 1000),
+                                                  "redraw": True},
                                         "fromcurrent": True, "mode": "immediate"}],
                                 ),
                                 dict(
@@ -5710,11 +6245,10 @@ if "📈 Interactive Data Plot" in calc_mode:
     x_axis_log = colc.checkbox("Logarithmic X-axis", value=False)
     y_axis_log = cold.checkbox("Logarithmic Y-axis", value=False)
 
-
-
     col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([2, 1, 1, 1, 1])
     with col_thick:
-        st.info(f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot.")
+        st.info(
+            f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot.")
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
     if fix_x_axis == True:
         x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
@@ -5748,7 +6282,7 @@ if "📈 Interactive Data Plot" in calc_mode:
     st.sidebar.markdown("### Interactive Data Plot layout")
     customize_layout = st.sidebar.checkbox(f"Modify the **graph layout**", value=False)
     if customize_layout:
-        #st.sidebar.markdown("### Graph Appearance Settings")
+        # st.sidebar.markdown("### Graph Appearance Settings")
 
         col_line, col_marker = st.sidebar.columns(2)
         show_lines = col_line.checkbox("Show Lines", value=True, key="show_lines")
@@ -5809,11 +6343,11 @@ if "📈 Interactive Data Plot" in calc_mode:
             if isinstance(user_pattern_file, list):
                 for i, file in enumerate(user_pattern_file):
                     series_names[i] = st.sidebar.text_input(f"Label for {file.name}", value=file.name,
-                                                    key=f"series_name_{i}")
+                                                            key=f"series_name_{i}")
             else:
                 series_names[0] = st.sidebar.text_input(f"Label for {user_pattern_file.name}",
-                                                value=user_pattern_file.name,
-                                                key="series_name_0")
+                                                        value=user_pattern_file.name,
+                                                        key="series_name_0")
     else:
         show_lines = True
         show_markers = False
@@ -5831,8 +6365,6 @@ if "📈 Interactive Data Plot" in calc_mode:
         series_names = {}
 
     enable_conversion = st.checkbox(f"Enable powder **XRD data conversion**", value=False)
-
-
 
     if user_pattern_file:
         files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
@@ -6328,12 +6860,10 @@ if "📈 Interactive Data Plot" in calc_mode:
                         x_data = x_data[valid_mask]
                         y_data = y_data[valid_mask]
 
-
             if normalized_intensity and np.max(y_data) > 0:
                 y_data = (y_data / np.max(y_data)) * 100
 
             try:
-
 
                 if i < len(y_scales):
                     y_data = y_data * y_scales[i]
@@ -6454,8 +6984,6 @@ if "📈 Interactive Data Plot" in calc_mode:
                 autosize=False
             )
 
-
-
         if user_pattern_file:
             files = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
 
@@ -6478,8 +7006,6 @@ if "📈 Interactive Data Plot" in calc_mode:
             else:
                 x_axis_metric = "X-data"
                 y_axis_metric = "Y-data"
-
-
 
         if fix_x_axis == True:
             fig_interactive.update_xaxes(range=[x_axis_min, x_axis_max])
@@ -6565,7 +7091,6 @@ st.markdown("""
 """)
 
 
-
 def get_memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
@@ -6573,8 +7098,8 @@ def get_memory_usage():
 
 
 memory_usage = get_memory_usage()
-st.write(f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
-
+st.write(
+    f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
 
 st.markdown("""
 
