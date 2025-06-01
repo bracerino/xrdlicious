@@ -220,6 +220,8 @@ with col3:
           🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
         </div>
         """, unsafe_allow_html=True)
+    st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary" )
+
 
 with col1:
     with st.expander("About the app.", icon="📖"):
@@ -249,7 +251,7 @@ with col1:
             st.cache_data.clear()
             st.cache_resource.clear()
     with st.expander("Roadmap", icon="🧭"):
-        st.info("The roadmap will be updated soon.")
+        show_xrdlicious_roadmap()
 
 pattern_details = None
 
@@ -375,8 +377,6 @@ st.markdown("##### 🔍 Search for structures in online databases?")
 
 
 def display_structure_types():
-
-
     if st.checkbox("See Crystal Structure Types"):
         with st.expander("Structure Types by Space Group", expanded=True):
             for sg, types in sorted(STRUCTURE_TYPES.items()):
@@ -385,8 +385,9 @@ def display_structure_types():
                 line = " | ".join([f"`{formula}` → {name}" for formula, name in types.items()])
                 st.markdown(f"{header}: {line}")
 
+
 # Then in Streamlit main block
-display_structure_types()
+#display_structure_types()
 show_database_search = st.checkbox("Enable database search",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
@@ -402,7 +403,6 @@ if st.session_state["first_run_note"] == True:
         If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
         """)
     st.session_state["first_run_note"] = False
-
 
 
 def get_space_group_info(number):
@@ -520,23 +520,20 @@ if show_database_search:
 
                 selected_mineral = st.selectbox(
                     "Select Mineral Structure:",
-                    options= mineral_options,
+                    options=mineral_options,
                     help="Choose a mineral structure type. The exact formula and space group will be automatically set.",
-                    index = 2
+                    index=2
                 )
 
                 if selected_mineral:
                     mineral_info = mineral_mapping[selected_mineral]
 
-                    col_mineral1, col_mineral2 = st.columns(2)
-                    with col_mineral1:
-                        st.info(f"**Space Group:** {mineral_info['space_group']}")
-                        sg_symbol = get_space_group_info(mineral_info['space_group'])
-                        st.info(f"**Symbol:** {sg_symbol}")
+                    #col_mineral1, col_mineral2 = st.columns(2)
+                   # with col_mineral1:
+                    sg_symbol = get_space_group_info(mineral_info['space_group'])
+                    st.info(f"**Structure:** {mineral_info['mineral_name']}, **Space Group:** {mineral_info['space_group']} ({sg_symbol}), "
+                            f"**Formula:** {mineral_info['formula']}")
 
-                    with col_mineral2:
-                        st.info(f"**Formula:** {mineral_info['formula']}")
-                        st.info(f"**Structure:** {mineral_info['mineral_name']}")
 
                     space_group_number = mineral_info['space_group']
                     formula_input = mineral_info['formula']
@@ -738,7 +735,6 @@ if show_database_search:
                                     ordered_str = ",".join(ordered_elements)
                                     aflow_nspecies = len(ordered_elements)
 
-
                                     try:
                                         results = list(search(catalog="icsd")
                                                        .filter((AFLOW_K.species % ordered_str) &
@@ -757,7 +753,6 @@ if show_database_search:
                                         st.warning("Please enter a chemical formula for AFLOW search.")
 
                                         continue
-
 
 
                                     def convert_to_aflow_formula(formula_input):
@@ -779,7 +774,6 @@ if show_database_search:
                                                     2) else "1"  # Add "1" if no number
 
                                                 elements_dict[element] = count
-
 
                                         aflow_parts = []
 
@@ -809,7 +803,6 @@ if show_database_search:
 
                                                 elements_dict[element] = str(count * 2)  # Multiply by 2
 
-
                                         aflow_parts = []
 
                                         for element in sorted(elements_dict.keys()):
@@ -821,7 +814,6 @@ if show_database_search:
                                     aflow_formula = convert_to_aflow_formula(formula_input)
 
                                     aflow_formula_2x = multiply_formula_by_2(formula_input)
-
 
                                     if aflow_formula_2x != aflow_formula:
 
@@ -852,6 +844,7 @@ if show_database_search:
                                         st.warning("Please select a mineral structure for AFLOW search.")
                                         continue
 
+
                                     def convert_to_aflow_formula_mineral(formula_input):
                                         import re
                                         formula_parts = formula_input.strip().split()
@@ -874,6 +867,7 @@ if show_database_search:
 
                                         return "".join(aflow_parts)
 
+
                                     def multiply_mineral_formula_by_2(formula_input):
 
                                         import re
@@ -892,6 +886,7 @@ if show_database_search:
                                         for element in sorted(elements_dict.keys()):
                                             aflow_parts.append(f"{element}{elements_dict[element]}")
                                         return "".join(aflow_parts)
+
 
                                     aflow_formula = convert_to_aflow_formula_mineral(formula_input)
 
@@ -1081,9 +1076,6 @@ if show_database_search:
             with cols2:
                 image = Image.open("images/Rabbit2.png")
                 st.image(image, use_container_width=True)
-
-
-
 
         with cols3:
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
@@ -1300,8 +1292,8 @@ if show_database_search:
                                     file_name=file_name,
                                     mime="chemical/x-cif", type="primary",
                                 )
-                                st.info(f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-
+                                st.info(
+                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
 
 
 def validate_atom_dataframe(df):
@@ -1840,7 +1832,7 @@ if "🔬 Structure Modification" in calc_mode:
         st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
         create_defects = st.checkbox(
             f"Create **Supercell** and **Point Defects**",
-            value=False,  disabled=True)
+            value=False, disabled=True)
         st.markdown(
             'To create **Supercell** and **Point Defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).'
         )
@@ -1889,7 +1881,7 @@ if "🔬 Structure Modification" in calc_mode:
                     original_atom_count = len(st.session_state["original_for_supercell"])
                     estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
 
-                    MAX_ATOMS = 32 #Parameter for the maximum allowed number of atoms in the structure for creation of point defects
+                    MAX_ATOMS = 32  # Parameter for the maximum allowed number of atoms in the structure for creation of point defects
 
                     current_atom_count = len(st.session_state["current_structure"])
                     original_atom_count = len(st.session_state["original_for_supercell"])
@@ -1903,7 +1895,6 @@ if "🔬 Structure Modification" in calc_mode:
                     else:
                         st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
                         supercell_allowed = True
-
 
                     if st.button("Reset to Original Structure", type="primary"):
                         selected_file = st.session_state.get("selected_file")
@@ -1962,6 +1953,7 @@ if "🔬 Structure Modification" in calc_mode:
                     max_multiplier = int(
                         (max_atoms / original_atom_count) ** (1 / 3))  # Cubic root for equal dimensions
                     return max(1, max_multiplier)
+
 
                 max_dim = calculate_max_supercell_dimensions(original_atom_count)
                 st.info(
@@ -2036,7 +2028,10 @@ if "🔬 Structure Modification" in calc_mode:
                             message = f"✅ Structure has {current_count} atoms - defect operations allowed"
 
                         return is_allowed, current_count, message
-                    defects_allowed, current_atom_count, atom_count_message = check_atom_count_for_defects(mp_struct, MAX_ATOMS)
+
+
+                    defects_allowed, current_atom_count, atom_count_message = check_atom_count_for_defects(mp_struct,
+                                                                                                           MAX_ATOMS)
 
                     if current_atom_count > MAX_ATOMS:
                         st.error(f"🔴 Current structure: **{current_atom_count} atoms** - Exceeds 32-atom limit!"
@@ -2091,7 +2086,7 @@ if "🔬 Structure Modification" in calc_mode:
 
                         elif operation_mode == "Create Vacancies":
                             st.markdown("""
-    
+
                                 """)
 
                             col1, col2 = st.columns(2)
@@ -4062,7 +4057,7 @@ if "💥 Powder Diffraction" in calc_mode:
         if st.session_state.peak_representation != "Delta":
             sigma = st.number_input(
                 "⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
-                min_value=0.2,
+                min_value=0.1,
                 max_value=1.5,
                 step=0.01,
                 key="sigma"
@@ -4310,19 +4305,66 @@ if "💥 Powder Diffraction" in calc_mode:
 
                         col1, col2, col3 = st.columns([1, 2, 1])
 
-                        with col2:
-                            fig_bg = plt.figure(figsize=(4, 3))
-                            plt.plot(x_exp, y_exp, 'k-', label='Original Data')
-                            plt.plot(x_exp, background, 'r-', label='Estimated Background')
-                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='After Subtraction')
-                            plt.xlabel(x_axis_metric, fontsize=8)
-                            plt.ylabel('Intensity (a.u.)', fontsize=8)
-                            plt.title(f'Background Subtraction', fontsize=10)
-                            plt.xticks(fontsize=7)
-                            plt.yticks(fontsize=7)
-                            plt.legend(fontsize=7)
-                            plt.tight_layout(pad=0.5)
-                            st.pyplot(fig_bg, use_container_width=False)
+                        #with col2:
+                        fig_bg = go.Figure()
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=y_exp,
+                            mode='lines',
+                            name='Original Data',
+                            line=dict(color='black', width=3),
+                            hovertemplate='Original Data<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=background,
+                            mode='lines',
+                            name='Estimated Background',
+                            line=dict(color='red', width=3),
+                            hovertemplate='Background<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=y_bg_subtracted,
+                            mode='lines',
+                            name='After Subtraction',
+                            line=dict(color='blue', width=3),
+                            hovertemplate='Subtracted<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.update_layout(
+                            title=dict(
+                                text='Background Subtraction',
+                                font=dict(size=32)
+                            ),
+                            xaxis=dict(
+                                title=dict(text=x_axis_metric, font=dict(size=28)),
+                                tickfont=dict(size=24)
+                            ),
+                            yaxis=dict(
+                                title=dict(text='Intensity (a.u.)', font=dict(size=28)),
+                                tickfont=dict(size=24)
+                            ),
+                            legend=dict(
+                                font=dict(size=24),
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="center",
+                                x=0.5
+                            ),
+                            height=600,
+                            width=1200,
+                            margin=dict(l=100, r=100, t=120, b=100),
+                            hovermode='x unified',
+                            showlegend=True,
+                            hoverlabel=dict(font=dict(size=20))
+                        )
+
+                        st.plotly_chart(fig_bg, use_container_width=True)
 
                         use_bg_subtracted = st.checkbox("Use background-subtracted data for visualization", value=True,
                                                         help="When checked, the background-subtracted data will be used in the main plot")
