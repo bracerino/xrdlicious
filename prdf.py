@@ -1073,9 +1073,9 @@ if show_database_search:
                                 st.warning(f"COD search error: {e}")
                                 st.session_state.cod_options = []
 
-            with cols2:
-                image = Image.open("images/Rabbit2.png")
-                st.image(image, use_container_width=True)
+           # with cols2:
+           #     image = Image.open("images/Rabbit2.png")
+           #     st.image(image, use_container_width=True)
 
         with cols3:
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
@@ -1830,9 +1830,10 @@ if "🔬 Structure Modification" in calc_mode:
         composition_str = " ".join([f"{el}{count:.2f}" if count % 1 != 0 else f"{el}{int(count)}"
                                     for el, count in element_counts.items()])
         st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
-        create_defects = st.checkbox(
-            f"Create **Supercell** and **Point Defects**",
-            value=False, disabled=True)
+        #create_defects = st.checkbox(
+        #    f"Create **Supercell** and **Point Defects**",
+        #    value=False, disabled=True)
+        create_defects = False
         st.markdown(
             'To create **Supercell** and **Point Defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).'
         )
@@ -3349,40 +3350,48 @@ if "🔬 Structure Modification" in calc_mode:
                     download_file_name = selected_file.split('.')[
                                              0] + '_' + str(spg_number) + f'_.lmp'
 
+
                 elif file_format == "XYZ":
-                    from pymatgen.io.cif import CifWriter
-
-                    mime = "chemical/x-cif"
-
+                    mime = "chemical/x-xyz"
                     grouped_data = st.session_state.modified_atom_df.copy()
                     grouped_data = df_plot.copy()
-
                     grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                     grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                     grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
                     position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
                     new_struct = Structure(visual_pmg_structure.lattice, [], [])
-
                     for (x, y, z), group in position_groups:
                         position = (float(x), float(y), float(z))
-
                         species_dict = {}
                         for _, row in group.iterrows():
                             element = row['Element']
-
                         new_struct.append(
                             species=element,
                             coords=position,
                             coords_are_cartesian=False,
                         )
-                    current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
-                    out = StringIO()
-                    write(out, current_ase_structure, format="xyz")
-                    file_content = out.getvalue()
-                    download_file_name = selected_file.split('.')[
-                                             0] + '_' + str(spg_number) + f'_.xyz'
+                    lattice_vectors = new_struct.lattice.matrix
+                    cart_coords = []
+                    elements = []
+                    for site in new_struct:
+                        cart_coords.append(new_struct.lattice.get_cartesian_coords(site.frac_coords))
+                        elements.append(site.specie.symbol)
+                    xyz_lines = []
+                    xyz_lines.append(str(len(new_struct)))
+
+                    lattice_string = " ".join([f"{x:.6f}" for row in lattice_vectors for x in row])
+                    properties = "Properties=species:S:1:pos:R:3"
+                    comment_line = f'Lattice="{lattice_string}" {properties}'
+
+                    xyz_lines.append(comment_line)
+
+                    for element, coord in zip(elements, cart_coords):
+                        line = f"{element} {coord[0]:.6f} {coord[1]:.6f} {coord[2]:.6f}"
+                        xyz_lines.append(line)
+
+                    file_content = "\n".join(xyz_lines)
+                    download_file_name = selected_file.split('.')[0] + '_' + str(spg_number) + f'_.xyz'
 
             except Exception as e:
                 st.error(f"Error generating {file_format} file: {e}")
@@ -7141,12 +7150,13 @@ def get_memory_usage():
 
 memory_usage = get_memory_usage()
 st.write(
-    f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
+    f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. For more extensive computations, please compile the application locally from the [GitHub](https://github.com/bracerino/xrdlicious).")
 
 st.markdown("""
 
 ### Acknowledgments
 
-This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE)."
- **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).
+This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).
+ **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html)
+ **[Crystallographic Open Database (COD)](https://www.crystallography.net/cod/)** under the CC0 license.
 """)
