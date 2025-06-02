@@ -1246,6 +1246,7 @@ def show_xrdlicious_roadmap():
 ### Roadmap
 -------------------------------------------------------------------------------------------------------------------
 #### Code optimization 
+* ⏳ Optimizing the code.
 
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
