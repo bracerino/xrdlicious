@@ -398,6 +398,18 @@ def identify_structure_type(structure):
             print(formula_type)
             #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
             return f"**Nickeline (NiAs)**"
+        elif formula == "ReO3" and spg_number in STRUCTURE_TYPES and spg_number ==221 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**ReO3 type**"
+        elif formula == "TlI" and spg_number in STRUCTURE_TYPES and spg_number ==63 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**TlI structure**"
         elif spg_number in STRUCTURE_TYPES and formula_type in STRUCTURE_TYPES[
             spg_number]:
            # print("YES")
@@ -420,7 +432,6 @@ STRUCTURE_TYPES = {
         "A3B": "AuCu3 type",
         "ABC": "Half-Heusler (C1b)",
         "AB6": "K2PtCl6 (cubic antifluorite)",
-        "AB2C4": "Spinel (MgAl2O4)"
     },
     92: {
         "AB2": "α-Cristobalite (SiO2)"
@@ -436,7 +447,7 @@ STRUCTURE_TYPES = {
         "ABC3": "Perovskite (Cubic, ABO3)",
         "AB3": "Cu3Au type",
         "A3B": "Cr3Si (A15)",
-        "AB6": "ReO3 type"
+        #"AB6": "ReO3 type"
     },
     227: {  # Fd-3m
         "A": "Diamond cubic",
@@ -671,8 +682,11 @@ STRUCTURE_TYPES = {
         "A2B3": "Bixbyite"
     },
     212: {  # P4_3 32
-        "AB2": "β-quartz (SiO2)",
+
         "A4B3": "Mn4Si3 type"
+    },
+    180: {
+        "AB2": "β-quartz (SiO2)",
     },
     226: {  # Fm-3c
         "AB2": "BiF3 type"
@@ -1070,7 +1084,6 @@ MINERALS = {
         "Rock Salt (NaCl)": "Na Cl",
         "Fluorite (CaF2)": "Ca F2",
         "Anti-Fluorite (Li2O)": "Li2 O",
-        "Spinel (MgAl2O4)": "Mg Al2 O4"
     },
     229: {  # Im-3m
         "BCC Iron": "Fe",
@@ -1102,7 +1115,6 @@ MINERALS = {
         "Garnet (Ca3Al2Si3O12)": "Ca3 Al2 Si3 O12",
     },
     205: {  # Pa-3
-        "ReO3 structure (ReO3)": "Re O3",
         "Pyrite (FeS2)": "Fe S2",
     },
     224:{
@@ -1111,7 +1123,6 @@ MINERALS = {
     # Hexagonal structures
     194: {  # P6_3/mmc
         "HCP Magnesium": "Mg",
-        "Wurtzite (high-T ZnS)": "Zn S",
         "Ni3Sn type": "Ni3 Sn",
         "Graphite": "C",
         "MoS2 type": "Mo S2",
@@ -1147,7 +1158,6 @@ MINERALS = {
         "Rutile (TiO2)": "Ti O2"
     },
     123: {  # P4/mmm
-        "γ-CuTi": "Cu Ti",
         "CuAu (L10)": "Cu Au"
     },
     141: {  # I41/amd
@@ -1171,11 +1181,12 @@ MINERALS = {
     },
     63: {  # Cmcm
         "α-Uranium": "U",
-        "CrB structure": "Cr B"
-    },
-    74: {  # Imma
+        "CrB structure": "Cr B",
         "TlI structure": "Tl I",
     },
+   # 74: {  # Imma
+   #
+   # },
     64: {  # Cmca
         "α-Gallium": "Ga"
     },
@@ -1236,7 +1247,7 @@ MINERALS = {
         "Ilmenite (FeTiO3)": "Fe Ti O3",
         "Dolomite (CaMgC2O6)": "Ca Mg C2 O6",
     },
-    212: {  # P4_3 32
+    180: {  # P4_3 32
         "β-quartz (SiO2)": "Si O2"
     }
 }
@@ -1246,7 +1257,6 @@ def show_xrdlicious_roadmap():
 ### Roadmap
 -------------------------------------------------------------------------------------------------------------------
 #### Code optimization 
-* ⏳ Optimizing the code.
 
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
