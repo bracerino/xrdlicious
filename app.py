@@ -220,6 +220,8 @@ with col3:
           🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
         </div>
         """, unsafe_allow_html=True)
+    st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary" )
+
 
 with col1:
     with st.expander("About the app.", icon="📖"):
@@ -249,7 +251,7 @@ with col1:
             st.cache_data.clear()
             st.cache_resource.clear()
     with st.expander("Roadmap", icon="🧭"):
-        st.info("The roadmap will be updated soon.")
+        show_xrdlicious_roadmap()
 
 pattern_details = None
 
@@ -375,8 +377,6 @@ st.markdown("##### 🔍 Search for structures in online databases?")
 
 
 def display_structure_types():
-
-
     if st.checkbox("See Crystal Structure Types"):
         with st.expander("Structure Types by Space Group", expanded=True):
             for sg, types in sorted(STRUCTURE_TYPES.items()):
@@ -385,8 +385,9 @@ def display_structure_types():
                 line = " | ".join([f"`{formula}` → {name}" for formula, name in types.items()])
                 st.markdown(f"{header}: {line}")
 
+
 # Then in Streamlit main block
-display_structure_types()
+#display_structure_types()
 show_database_search = st.checkbox("Enable database search",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
@@ -402,7 +403,6 @@ if st.session_state["first_run_note"] == True:
         If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
         """)
     st.session_state["first_run_note"] = False
-
 
 
 def get_space_group_info(number):
@@ -424,26 +424,26 @@ if show_database_search:
             if not db_choices:
                 st.warning("Please select at least one database to search.")
 
-            st.markdown("**Search Limits (max 500 each):**")
+            st.markdown("**Maximum number of structures to be found in each database (for improving performance):**")
             col_limits = st.columns(3)
 
             search_limits = {}
             if "Materials Project" in db_choices:
                 with col_limits[0]:
                     search_limits["Materials Project"] = st.number_input(
-                        "MP Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "MP Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from Materials Project"
                     )
             if "AFLOW" in db_choices:
                 with col_limits[1]:
                     search_limits["AFLOW"] = st.number_input(
-                        "AFLOW Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "AFLOW Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from AFLOW"
                     )
             if "COD" in db_choices:
                 with col_limits[2]:
                     search_limits["COD"] = st.number_input(
-                        "COD Limit:", min_value=1, max_value=500, value=300, step=10,
+                        "COD Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from COD"
                     )
 
@@ -520,23 +520,20 @@ if show_database_search:
 
                 selected_mineral = st.selectbox(
                     "Select Mineral Structure:",
-                    options= mineral_options,
+                    options=mineral_options,
                     help="Choose a mineral structure type. The exact formula and space group will be automatically set.",
-                    index = 2
+                    index=2
                 )
 
                 if selected_mineral:
                     mineral_info = mineral_mapping[selected_mineral]
 
-                    col_mineral1, col_mineral2 = st.columns(2)
-                    with col_mineral1:
-                        st.info(f"**Space Group:** {mineral_info['space_group']}")
-                        sg_symbol = get_space_group_info(mineral_info['space_group'])
-                        st.info(f"**Symbol:** {sg_symbol}")
+                    #col_mineral1, col_mineral2 = st.columns(2)
+                   # with col_mineral1:
+                    sg_symbol = get_space_group_info(mineral_info['space_group'])
+                    st.info(f"**Structure:** {mineral_info['mineral_name']}, **Space Group:** {mineral_info['space_group']} ({sg_symbol}), "
+                            f"**Formula:** {mineral_info['formula']}")
 
-                    with col_mineral2:
-                        st.info(f"**Formula:** {mineral_info['formula']}")
-                        st.info(f"**Structure:** {mineral_info['mineral_name']}")
 
                     space_group_number = mineral_info['space_group']
                     formula_input = mineral_info['formula']
@@ -738,7 +735,6 @@ if show_database_search:
                                     ordered_str = ",".join(ordered_elements)
                                     aflow_nspecies = len(ordered_elements)
 
-
                                     try:
                                         results = list(search(catalog="icsd")
                                                        .filter((AFLOW_K.species % ordered_str) &
@@ -757,7 +753,6 @@ if show_database_search:
                                         st.warning("Please enter a chemical formula for AFLOW search.")
 
                                         continue
-
 
 
                                     def convert_to_aflow_formula(formula_input):
@@ -779,7 +774,6 @@ if show_database_search:
                                                     2) else "1"  # Add "1" if no number
 
                                                 elements_dict[element] = count
-
 
                                         aflow_parts = []
 
@@ -809,7 +803,6 @@ if show_database_search:
 
                                                 elements_dict[element] = str(count * 2)  # Multiply by 2
 
-
                                         aflow_parts = []
 
                                         for element in sorted(elements_dict.keys()):
@@ -821,7 +814,6 @@ if show_database_search:
                                     aflow_formula = convert_to_aflow_formula(formula_input)
 
                                     aflow_formula_2x = multiply_formula_by_2(formula_input)
-
 
                                     if aflow_formula_2x != aflow_formula:
 
@@ -852,6 +844,7 @@ if show_database_search:
                                         st.warning("Please select a mineral structure for AFLOW search.")
                                         continue
 
+
                                     def convert_to_aflow_formula_mineral(formula_input):
                                         import re
                                         formula_parts = formula_input.strip().split()
@@ -874,6 +867,7 @@ if show_database_search:
 
                                         return "".join(aflow_parts)
 
+
                                     def multiply_mineral_formula_by_2(formula_input):
 
                                         import re
@@ -892,6 +886,7 @@ if show_database_search:
                                         for element in sorted(elements_dict.keys()):
                                             aflow_parts.append(f"{element}{elements_dict[element]}")
                                         return "".join(aflow_parts)
+
 
                                     aflow_formula = convert_to_aflow_formula_mineral(formula_input)
 
@@ -1078,12 +1073,9 @@ if show_database_search:
                                 st.warning(f"COD search error: {e}")
                                 st.session_state.cod_options = []
 
-            with cols2:
-                image = Image.open("images/Rabbit2.png")
-                st.image(image, use_container_width=True)
-
-
-
+           # with cols2:
+           #     image = Image.open("images/Rabbit2.png")
+           #     st.image(image, use_container_width=True)
 
         with cols3:
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
@@ -1300,8 +1292,8 @@ if show_database_search:
                                     file_name=file_name,
                                     mime="chemical/x-cif", type="primary",
                                 )
-                                st.info(f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-
+                                st.info(
+                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
 
 
 def validate_atom_dataframe(df):
@@ -1838,9 +1830,13 @@ if "🔬 Structure Modification" in calc_mode:
         composition_str = " ".join([f"{el}{count:.2f}" if count % 1 != 0 else f"{el}{int(count)}"
                                     for el, count in element_counts.items()])
         st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
-        create_defects = st.checkbox(
-            f"Create **Supercell** and **Point Defects**",
-            value=False,  disabled=True)
+        #create_defects = st.checkbox(
+        #    f"Create **Supercell** and **Point Defects**",
+        #    value=False, disabled=True)
+        create_defects = False
+        st.markdown(
+            'To create **Supercell** and **Point Defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).'
+        )
         # with col_mod:
         # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
         # if st.button(f"🧱 **New symmetry** (conventional cell, will lead to lost occupancies"):
@@ -1886,7 +1882,7 @@ if "🔬 Structure Modification" in calc_mode:
                     original_atom_count = len(st.session_state["original_for_supercell"])
                     estimated_supercell_atoms = original_atom_count * n_a * n_b * n_c
 
-                    MAX_ATOMS = 32 #Parameter for the maximum allowed number of atoms in the structure for creation of point defects
+                    MAX_ATOMS = 32  # Parameter for the maximum allowed number of atoms in the structure for creation of point defects
 
                     current_atom_count = len(st.session_state["current_structure"])
                     original_atom_count = len(st.session_state["original_for_supercell"])
@@ -1900,7 +1896,6 @@ if "🔬 Structure Modification" in calc_mode:
                     else:
                         st.info(f"Structure has **{estimated_supercell_atoms} atoms**.")
                         supercell_allowed = True
-
 
                     if st.button("Reset to Original Structure", type="primary"):
                         selected_file = st.session_state.get("selected_file")
@@ -1959,6 +1954,7 @@ if "🔬 Structure Modification" in calc_mode:
                     max_multiplier = int(
                         (max_atoms / original_atom_count) ** (1 / 3))  # Cubic root for equal dimensions
                     return max(1, max_multiplier)
+
 
                 max_dim = calculate_max_supercell_dimensions(original_atom_count)
                 st.info(
@@ -2033,7 +2029,10 @@ if "🔬 Structure Modification" in calc_mode:
                             message = f"✅ Structure has {current_count} atoms - defect operations allowed"
 
                         return is_allowed, current_count, message
-                    defects_allowed, current_atom_count, atom_count_message = check_atom_count_for_defects(mp_struct, MAX_ATOMS)
+
+
+                    defects_allowed, current_atom_count, atom_count_message = check_atom_count_for_defects(mp_struct,
+                                                                                                           MAX_ATOMS)
 
                     if current_atom_count > MAX_ATOMS:
                         st.error(f"🔴 Current structure: **{current_atom_count} atoms** - Exceeds 32-atom limit!"
@@ -2088,7 +2087,7 @@ if "🔬 Structure Modification" in calc_mode:
 
                         elif operation_mode == "Create Vacancies":
                             st.markdown("""
-    
+
                                 """)
 
                             col1, col2 = st.columns(2)
@@ -3351,40 +3350,48 @@ if "🔬 Structure Modification" in calc_mode:
                     download_file_name = selected_file.split('.')[
                                              0] + '_' + str(spg_number) + f'_.lmp'
 
+
                 elif file_format == "XYZ":
-                    from pymatgen.io.cif import CifWriter
-
-                    mime = "chemical/x-cif"
-
+                    mime = "chemical/x-xyz"
                     grouped_data = st.session_state.modified_atom_df.copy()
                     grouped_data = df_plot.copy()
-
                     grouped_data['Frac X'] = grouped_data['Frac X'].round(5)
                     grouped_data['Frac Y'] = grouped_data['Frac Y'].round(5)
                     grouped_data['Frac Z'] = grouped_data['Frac Z'].round(5)
 
                     position_groups = grouped_data.groupby(['Frac X', 'Frac Y', 'Frac Z'])
-
                     new_struct = Structure(visual_pmg_structure.lattice, [], [])
-
                     for (x, y, z), group in position_groups:
                         position = (float(x), float(y), float(z))
-
                         species_dict = {}
                         for _, row in group.iterrows():
                             element = row['Element']
-
                         new_struct.append(
                             species=element,
                             coords=position,
                             coords_are_cartesian=False,
                         )
-                    current_ase_structure = AseAtomsAdaptor.get_atoms(new_struct)
-                    out = StringIO()
-                    write(out, current_ase_structure, format="xyz")
-                    file_content = out.getvalue()
-                    download_file_name = selected_file.split('.')[
-                                             0] + '_' + str(spg_number) + f'_.xyz'
+                    lattice_vectors = new_struct.lattice.matrix
+                    cart_coords = []
+                    elements = []
+                    for site in new_struct:
+                        cart_coords.append(new_struct.lattice.get_cartesian_coords(site.frac_coords))
+                        elements.append(site.specie.symbol)
+                    xyz_lines = []
+                    xyz_lines.append(str(len(new_struct)))
+
+                    lattice_string = " ".join([f"{x:.6f}" for row in lattice_vectors for x in row])
+                    properties = "Properties=species:S:1:pos:R:3"
+                    comment_line = f'Lattice="{lattice_string}" {properties}'
+
+                    xyz_lines.append(comment_line)
+
+                    for element, coord in zip(elements, cart_coords):
+                        line = f"{element} {coord[0]:.6f} {coord[1]:.6f} {coord[2]:.6f}"
+                        xyz_lines.append(line)
+
+                    file_content = "\n".join(xyz_lines)
+                    download_file_name = selected_file.split('.')[0] + '_' + str(spg_number) + f'_.xyz'
 
             except Exception as e:
                 st.error(f"Error generating {file_format} file: {e}")
@@ -4059,7 +4066,7 @@ if "💥 Powder Diffraction" in calc_mode:
         if st.session_state.peak_representation != "Delta":
             sigma = st.number_input(
                 "⚙️ Gaussian sigma (°) for peak sharpness (smaller = sharper peaks)",
-                min_value=0.2,
+                min_value=0.1,
                 max_value=1.5,
                 step=0.01,
                 key="sigma"
@@ -4307,19 +4314,66 @@ if "💥 Powder Diffraction" in calc_mode:
 
                         col1, col2, col3 = st.columns([1, 2, 1])
 
-                        with col2:
-                            fig_bg = plt.figure(figsize=(4, 3))
-                            plt.plot(x_exp, y_exp, 'k-', label='Original Data')
-                            plt.plot(x_exp, background, 'r-', label='Estimated Background')
-                            plt.plot(x_exp, y_bg_subtracted, 'b-', label='After Subtraction')
-                            plt.xlabel(x_axis_metric, fontsize=8)
-                            plt.ylabel('Intensity (a.u.)', fontsize=8)
-                            plt.title(f'Background Subtraction', fontsize=10)
-                            plt.xticks(fontsize=7)
-                            plt.yticks(fontsize=7)
-                            plt.legend(fontsize=7)
-                            plt.tight_layout(pad=0.5)
-                            st.pyplot(fig_bg, use_container_width=False)
+                        #with col2:
+                        fig_bg = go.Figure()
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=y_exp,
+                            mode='lines',
+                            name='Original Data',
+                            line=dict(color='black', width=3),
+                            hovertemplate='Original Data<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=background,
+                            mode='lines',
+                            name='Estimated Background',
+                            line=dict(color='red', width=3),
+                            hovertemplate='Background<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.add_trace(go.Scatter(
+                            x=x_exp,
+                            y=y_bg_subtracted,
+                            mode='lines',
+                            name='After Subtraction',
+                            line=dict(color='blue', width=3),
+                            hovertemplate='Subtracted<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                        ))
+
+                        fig_bg.update_layout(
+                            title=dict(
+                                text='Background Subtraction',
+                                font=dict(size=32)
+                            ),
+                            xaxis=dict(
+                                title=dict(text=x_axis_metric, font=dict(size=28)),
+                                tickfont=dict(size=24)
+                            ),
+                            yaxis=dict(
+                                title=dict(text='Intensity (a.u.)', font=dict(size=28)),
+                                tickfont=dict(size=24)
+                            ),
+                            legend=dict(
+                                font=dict(size=24),
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="center",
+                                x=0.5
+                            ),
+                            height=600,
+                            width=1200,
+                            margin=dict(l=100, r=100, t=120, b=100),
+                            hovermode='x unified',
+                            showlegend=True,
+                            hoverlabel=dict(font=dict(size=20))
+                        )
+
+                        st.plotly_chart(fig_bg, use_container_width=True)
 
                         use_bg_subtracted = st.checkbox("Use background-subtracted data for visualization", value=True,
                                                         help="When checked, the background-subtracted data will be used in the main plot")
@@ -7096,12 +7150,13 @@ def get_memory_usage():
 
 memory_usage = get_memory_usage()
 st.write(
-    f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. If we will see higher usage of our app and need for a higher memory, we will upgrade to paid server, allowing us to improve the performance. :]")
+    f"🔍 Current memory usage: **{memory_usage:.2f} MB**. We are now using free hosting by Streamlit Community Cloud servis, which has a limit for RAM memory of 2.6 GBs. For more extensive computations, please compile the application locally from the [GitHub](https://github.com/bracerino/xrdlicious).")
 
 st.markdown("""
 
 ### Acknowledgments
 
-This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE)."
- **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html).
+This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).
+ **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html)
+ **[Crystallographic Open Database (COD)](https://www.crystallography.net/cod/)** under the CC0 license.
 """)
