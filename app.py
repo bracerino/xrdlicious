@@ -5382,9 +5382,9 @@ if "📊 (P)RDF" in calc_mode:
                                   disabled=True)
 
     st.warning(
-        "⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
+        f"⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
         "This feature may become available online if the server is upgraded, or you can use this feature if the code is compiled on a local computer. "
-        "To enable locally, remove in the 'prdf.py' code the 'disabled=True' in 'use_lammps_traj' checkbox")
+        "For this feature, please compile the module [here](https://github.com/bracerino/PRDF-CP2K-LAMMPS)")
 
     plot_display_mode = st.radio(
         "Plot Display Mode",
