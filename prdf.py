@@ -3914,7 +3914,7 @@ if "💥 Powder Diffraction" in calc_mode:
             'Ag(Ka1+Ka2+Kb1)': 0.0557006
         }
         col1, col2, col3h, col4h = st.columns(4)
-        preset_options_neutron = ['Custom', 'Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
+        preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
         preset_wavelengths_neutrons = {
             'Custom': 0.154,
             'Thermal Neutrons': 0.154,
