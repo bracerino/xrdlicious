@@ -1737,11 +1737,9 @@ if "🔬 Structure Modification" in calc_mode:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-                #cell_convert_or = st.checkbox(
-                #   f"🧱 For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/].",
-                #   value=False, disabled = True)
-                cell_convert_or = False
-                st.info(f"For cell conversion between **primitive <-> conventional**, please use [this site](https://xrdlicious-point-defects.streamlit.app/)")
+                cell_convert_or = st.checkbox(
+                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
+                    value=False)
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
@@ -3883,6 +3881,7 @@ if "💥 Powder Diffraction" in calc_mode:
             'Ag(Ka1+Ka2)', 'Ag(Ka1+Ka2+Kb1)',
         ]
         preset_wavelengths = {
+            'Custom': 0.17889,
             'Cu(Ka1+Ka2)': 0.154,
             'CuKa2': 0.15444,
             'Copper (CuKa1)': 0.15406,
@@ -3915,20 +3914,37 @@ if "💥 Powder Diffraction" in calc_mode:
             'Ag(Ka1+Ka2+Kb1)': 0.0557006
         }
         col1, col2, col3h, col4h = st.columns(4)
-        preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
+        preset_options_neutron = ['Custom', 'Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
         preset_wavelengths_neutrons = {
+            'Custom': 0.154,
             'Thermal Neutrons': 0.154,
             'Cold Neutrons': 0.475,
             'Hot Neutrons': 0.087
         }
+
+        if "wavelength_value" not in st.session_state:
+            if diffraction_choice == "XRD (X-ray)":
+                st.session_state.wavelength_value = 0.17889  # CoKa1 default
+            else:  # ND (Neutron)
+                st.session_state.wavelength_value = 0.154  # Thermal Neutrons default
+
+        # Track diffraction choice changes and reset wavelength accordingly
+        if "last_diffraction_choice" not in st.session_state:
+            st.session_state.last_diffraction_choice = diffraction_choice
+        elif st.session_state.last_diffraction_choice != diffraction_choice:
+            if diffraction_choice == "XRD (X-ray)":
+                st.session_state.wavelength_value = 0.17889  # CoKa1 default
+            else:  # ND (Neutron)
+                st.session_state.wavelength_value = 0.154  # Thermal Neutrons default
+            st.session_state.last_diffraction_choice = diffraction_choice
 
         if diffraction_choice == "XRD (X-ray)":
             with col1:
                 preset_choice = st.selectbox(
                     "🌊 Preset Wavelength",
                     options=preset_options,
-                    index = 0,
                     key="preset_choice",
+                    index = 0,
                     help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
                 )
 
@@ -3947,7 +3963,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         step=0.001,
                         format="%.5f",
                         key="wavelength_value",
-                        value=st.session_state.wavelength_value
+                        value = st.session_state.wavelength_value
                     )
                 else:
                     wavelength_value = preset_wavelengths[preset_choice]
@@ -5388,9 +5404,9 @@ if "📊 (P)RDF" in calc_mode:
                                   disabled=True)
 
     st.warning(
-        f"⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
+        "⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
         "This feature may become available online if the server is upgraded, or you can use this feature if the code is compiled on a local computer. "
-        "For this feature, please compile the module [here](https://github.com/bracerino/PRDF-CP2K-LAMMPS)")
+        "To enable locally, remove in the 'prdf.py' code the 'disabled=True' in 'use_lammps_traj' checkbox")
 
     plot_display_mode = st.radio(
         "Plot Display Mode",
