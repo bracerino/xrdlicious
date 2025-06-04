@@ -3945,7 +3945,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         min_value=0.001,
                         step=0.001,
                         format="%.5f",
-                        key="wavelength_value"
+                        key="wavelength_value",
+                        value=st.session_state.wavelength_value
                     )
                 else:
                     wavelength_value = preset_wavelengths[preset_choice]
@@ -3971,7 +3972,8 @@ if "💥 Powder Diffraction" in calc_mode:
                     min_value=0.001,
                     step=0.001,
                     format="%.5f",
-                    key="wavelength_value"
+                    key="wavelength_value",
+                    value=st.session_state.wavelength_value
                 )
 
         wavelength_A = wavelength_value * 10  # Convert nm to Å
