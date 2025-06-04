@@ -1737,9 +1737,11 @@ if "🔬 Structure Modification" in calc_mode:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-                cell_convert_or = st.checkbox(
-                    f"🧱 For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/].",
-                    value=False, disabled = True)
+                #cell_convert_or = st.checkbox(
+                #   f"🧱 For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/].",
+                #   value=False, disabled = True)
+                cell_convert_or = False
+                st.info(f"For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/]")
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
