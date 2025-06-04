@@ -1738,8 +1738,8 @@ if "🔬 Structure Modification" in calc_mode:
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 cell_convert_or = st.checkbox(
-                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
-                    value=False)
+                    f"🧱 For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/].",
+                    value=False, disabled = True)
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
