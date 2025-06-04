@@ -1741,7 +1741,7 @@ if "🔬 Structure Modification" in calc_mode:
                 #   f"🧱 For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/].",
                 #   value=False, disabled = True)
                 cell_convert_or = False
-                st.info(f"For cell conversion between **primitive <-> conventional**, please use (this site)[https://xrdlicious-point-defects.streamlit.app/]")
+                st.info(f"For cell conversion between **primitive <-> conventional**, please use [this site](https://xrdlicious-point-defects.streamlit.app/)")
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
