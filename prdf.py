@@ -3927,6 +3927,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 preset_choice = st.selectbox(
                     "🌊 Preset Wavelength",
                     options=preset_options,
+                    index = 0,
                     key="preset_choice",
                     help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
                 )
@@ -3957,6 +3958,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 preset_choice = st.selectbox(
                     "Preset Wavelength",
                     options=preset_options_neutron,
+                    index = 0,
                     key="preset_choice_neutron",
                     help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
                 )
