@@ -270,7 +270,6 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
-st.session_state.two_theta_min = 5
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
@@ -287,9 +286,9 @@ if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)
         unsafe_allow_html=True
     )
 
-
+st.session_state.two_theta_min = 5
 def update_element_indices(df):
-    """Update the Element_Index column based on Element values"""
+
     element_counts = {}
     for i, row in df.iterrows():
         element = row['Element']
@@ -3976,7 +3975,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         step=0.001,
                         format="%.5f",
                         key="wavelength_value",
-                        value = st.session_state.wavelength_value
+                        #value = st.session_state.wavelength_value
                     )
                 else:
                     wavelength_value = preset_wavelengths[preset_choice]
@@ -4018,7 +4017,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     step=0.001,
                     format="%.5f",
                     key="wavelength_value",
-                    value=st.session_state.wavelength_value
+                    #value=st.session_state.wavelength_value
                 )
 
         wavelength_A = wavelength_value * 10  # Convert nm to Å
