@@ -1284,9 +1284,6 @@ def show_xrdlicious_roadmap():
 #### Basic Peak Fitting (Experimental Data)
 * ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
 
-#### Basic Peak Fitting (Experimental Data)
-* ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
-
 #### Machine Learning 
 * ⏳ ML models for structure-properties correlations
 """)
