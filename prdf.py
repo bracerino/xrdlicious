@@ -243,10 +243,9 @@ with col1:
             "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
         )
 
-        from PIL import Image
-
-        image = Image.open("images/ts4.png")
-        st.image(image)
+        #from PIL import Image
+        #image = Image.open("images/ts4.png")
+        #st.image(image)
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
