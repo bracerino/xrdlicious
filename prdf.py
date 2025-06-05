@@ -270,6 +270,7 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
+st.session_state.two_theta_min = 5
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
