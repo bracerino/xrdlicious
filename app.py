@@ -4669,7 +4669,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
 
             if is_multi_component:
-                num_points = 20000
+                num_points = 2500 #20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
@@ -4751,7 +4751,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     filtered_x.append(x_val)
                     filtered_y.append(y_val)
                     filtered_hkls.append(hkl_group)
-                num_points = 20000
+                num_points = 2500 #20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
