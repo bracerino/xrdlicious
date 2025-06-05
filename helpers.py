@@ -1287,3 +1287,44 @@ def show_xrdlicious_roadmap():
 #### Machine Learning 
 * ⏳ ML models for structure-properties correlations
 """)
+
+
+DEFAULT_TWO_THETA_MAX_FOR_PRESET = {
+    'Copper (CuKa1)': 120.0,
+    'Cu(Ka1+Ka2)': 120.0,
+    'CuKa2': 120.0,
+    'Cu(Ka1+Ka2+Kb1)': 120.0,
+    'CuKb1': 120.0,
+    'Molybdenum (MoKa1)': 70.0,
+    'Mo(Ka1+Ka2)': 70.0,
+    'MoKa2': 70.0,
+    'Mo(Ka1+Ka2+Kb1)': 70.0,
+    'MoKb1': 70.0,
+    'Cobalt (CoKa1)': 130.0,
+    'Co(Ka1+Ka2)': 130.0,
+    'CoKa2': 130.0,
+    'Co(Ka1+Ka2+Kb1)': 130.0,
+    'CoKb1': 130.0,
+    'Chromium (CrKa1)': 150.0,
+    'Cr(Ka1+Ka2)': 150.0,
+    'CrKa2': 150.0,
+    'Cr(Ka1+Ka2+Kb1)': 150.0,
+    'CrKb1': 150.0,
+    'Iron (FeKa1)': 140.0,
+    'Fe(Ka1+Ka2)': 140.0,
+    'FeKa2': 140.0,
+    'Fe(Ka1+Ka2+Kb1)': 140.0,
+    'FeKb1': 140.0,
+    'Silver (AgKa1)': 50.0,
+    'Ag(Ka1+Ka2)': 50.0,
+    'AgKa2': 50.0,
+    'Ag(Ka1+Ka2+Kb1)': 50.0,
+    'AgKb1': 50.0,
+}
+
+DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET = {
+    'Thermal Neutrons': 150.0,
+    'Cold Neutrons': 160.0,
+    'Hot Neutrons': 120.0,
+    'Custom': 165.0
+}
