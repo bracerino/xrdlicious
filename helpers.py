@@ -1295,7 +1295,7 @@ DEFAULT_TWO_THETA_MAX_FOR_PRESET = {
     'CuKa2': 120.0,
     'Cu(Ka1+Ka2+Kb1)': 120.0,
     'CuKb1': 120.0,
-    'Molybdenum (MoKa1)': 70.0,
+    'Molybdenum (MoKa1)': 60.0,
     'Mo(Ka1+Ka2)': 60.0,
     'MoKa2': 60.0,
     'Mo(Ka1+Ka2+Kb1)': 60.0,
