@@ -270,7 +270,7 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
-
+st.session_state.two_theta_min = 5
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
