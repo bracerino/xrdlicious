@@ -94,6 +94,8 @@ def get_formula_type(formula):
             return "A2B17"
         elif counts[0] == 17 and counts[1] == 2:
             return "A17B2"
+        elif counts[0] == 3 and counts[1] == 4:
+            return "A3B4"
         else:
             return f"A{counts[0]}B{counts[1]}"
 
@@ -179,6 +181,10 @@ def get_formula_type(formula):
             return "A3BC4"
         elif counts[0] == 1 and counts[1] == 3 and counts[2] == 4:
             return "AB3C4"
+        elif counts[0] == 1 and counts[1] == 3 and counts[2] == 4:
+            return "ABC6"
+        elif counts[0] == 2 and counts[1] == 2 and counts[2] == 7:
+            return "A2B2C7"
         else:
             return f"A{counts[0]}B{counts[1]}C{counts[2]}"
 
@@ -248,6 +254,13 @@ def get_formula_type(formula):
             return "ABC2D3"
         elif counts[0] == 1 and counts[1] == 4 and counts[2] == 1 and counts[3] == 6:
             return "A1B4C1D6"
+        elif counts[0] == 5 and counts[1] == 3 and counts[2] == 1 and counts[3] == 13:
+            return "A5B3C1D13"
+        elif counts[0] == 2 and counts[1] == 2 and counts[2] == 4 and counts[3] == 9:
+            return "A2B2C4D9"
+
+        elif counts == [3, 2, 1, 4]:  # Garnet-like: Ca3Al2Si3O12
+            return "A3B2C1D4"
         else:
             return f"A{counts[0]}B{counts[1]}C{counts[2]}D{counts[3]}"
 
@@ -345,13 +358,61 @@ def identify_structure_type(structure):
 
         formula = structure.composition.reduced_formula
         formula_type = get_formula_type(formula)
-        print("------")
+       # print("------")
         print(formula)
-        print(formula_type)
-        print(spg_number)
-        if spg_number in STRUCTURE_TYPES and formula_type in STRUCTURE_TYPES[
-            spg_number]:
+       # print(formula_type)
+        #print(spg_number)
+        if spg_number in STRUCTURE_TYPES and spg_number == 62 and formula_type in STRUCTURE_TYPES[spg_number] and formula == "CaCO3":
+           # print("YES")
+           # print(spg_number)
+           # print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**Aragonite (CaCO3)**"
+        elif spg_number in STRUCTURE_TYPES and spg_number ==167 and formula_type in STRUCTURE_TYPES[spg_number] and formula == "CaCO3":
+          #  print("YES")
+          # print(spg_number)
+           # print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**Calcite (CaCO3)**"
+        elif spg_number in STRUCTURE_TYPES and spg_number ==227 and formula_type in STRUCTURE_TYPES[spg_number] and formula == "SiO2":
+           # print("YES")
+           # print(spg_number)
+           # print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**β - Cristobalite (SiO2)**"
+        elif formula == "C" and spg_number in STRUCTURE_TYPES and spg_number ==194 :
             print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**Graphite**"
+        elif formula == "MoS2" and spg_number in STRUCTURE_TYPES and spg_number ==194 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**MoS2 Type**"
+        elif formula == "NiAs" and spg_number in STRUCTURE_TYPES and spg_number ==194 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**Nickeline (NiAs)**"
+        elif formula == "ReO3" and spg_number in STRUCTURE_TYPES and spg_number ==221 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**ReO3 type**"
+        elif formula == "TlI" and spg_number in STRUCTURE_TYPES and spg_number ==63 :
+            print("YES")
+            print(spg_number)
+            print(formula_type)
+            #structure_type = STRUCTURE_TYPES[spg_number][formula_type]
+            return f"**TlI structure**"
+        elif spg_number in STRUCTURE_TYPES and formula_type in STRUCTURE_TYPES[
+            spg_number]:
+           # print("YES")
             structure_type = STRUCTURE_TYPES[spg_number][formula_type]
             return f"**{structure_type}**"
 
@@ -371,7 +432,9 @@ STRUCTURE_TYPES = {
         "A3B": "AuCu3 type",
         "ABC": "Half-Heusler (C1b)",
         "AB6": "K2PtCl6 (cubic antifluorite)",
-        "AB2C4": "Spinel (MgAl2O4)"
+    },
+    92: {
+        "AB2": "α-Cristobalite (SiO2)"
     },
     229: {  # Im-3m
         "A": "BCC (Body-centered cubic)",
@@ -384,16 +447,18 @@ STRUCTURE_TYPES = {
         "ABC3": "Perovskite (Cubic, ABO3)",
         "AB3": "Cu3Au type",
         "A3B": "Cr3Si (A15)",
-        "AB6": "ReO3 type"
+        #"AB6": "ReO3 type"
     },
     227: {  # Fd-3m
         "A": "Diamond cubic",
-        "AB2": "Pyrite (FeS2)",
+
         "AB2": "Fluorite-like",
         "AB2C4": "Normal spinel",
-        "AB4C2": "Inverse spinel",
+        "A3B4": "Inverse spinel",
         "AB2C4": "Spinel",
-        "A8B": "Gamma-brass"
+        "A8B": "Gamma-brass",
+        "AB2": "β - Cristobalite (SiO2)",
+        "A2B2C7": "Pyrochlore"
     },
     55: {  # Pbca
         "AB2": "Brookite (TiO₂ polymorph)"
@@ -411,7 +476,7 @@ STRUCTURE_TYPES = {
         "A3B": "Cr3Si-type"
     },
     230: {  # Ia-3d
-        "A3B2C3D12": "Garnet structure ((Ca,Mg,Fe)3(Al,Fe)2(SiO4)3)",
+        "A3B2C1D4": "Garnet structure ((Ca,Mg,Fe)3(Al,Fe)2(SiO4)3)",
         "AB2": "Pyrochlore"
     },
     217: {  # I-43m
@@ -422,25 +487,28 @@ STRUCTURE_TYPES = {
     },
     205: {  # Pa-3
         "A2B": "Cuprite (Cu2O)",
-        "AB6": "ReO3 structure"
+        "AB6": "ReO3 structure",
+        "AB2": "Pyrite (FeS2)",
     },
-
+    156: {
+        "AB2": "CdI2 type",
+    },
     # Hexagonal Structures
     194: {  # P6_3/mmc
-        "A": "HCP (Hexagonal close-packed)",
         "AB": "Wurtzite (high-T)",
         "AB2": "AlB2 type (hexagonal)",
-        "AB2": "CdI2 type",
         "A3B": "Ni3Sn type",
-        "A3B": "DO19 structure (Ni3Sn-type)"
+        "A3B": "DO19 structure (Ni3Sn-type)",
+        "A": "Graphite (hexagonal)",
+        "A": "HCP (Hexagonal close-packed)",
+        #"AB2": "MoS2 type",
     },
     186: {  # P6_3mc
         "AB": "Wurtzite (ZnS)",
-        "AB2": "Marcasite"
     },
     191: {  # P6/mmm
-        "AB": "Graphite (hexagonal)",
-        "AB2": "MoS2 type",
+
+
         "AB2": "AlB2 type",
         "AB5": "CaCu5 type",
         "A2B17": "Th2Ni17 type"
@@ -449,19 +517,17 @@ STRUCTURE_TYPES = {
         "A3B": "Na3As structure",
         "ABC": "ZrBeSi structure"
     },
-    187: {  # P-6m2
-        "AB": "Nickeline (NiAs)",
-        "AB2": "CdI2 type"
-    },
+   # 187: {  # P-6m2
+#
+ #   },
     164: {  # P-3m1
         "AB2": "CdI2 type",
         "A": "Graphene layers"
     },
     166: {  # R-3m
         "A": "Rhombohedral",
-        "ABC3": "Calcite/Dolomite",
-        "A2B3": "Corundum (Al2O3)",
-        "A2B3": "α-Al2O3 type"
+        "A2B3": "α-Al2O3 type",
+        "ABC2": "Delafossite (CuAlO2)"
     },
     160: {  # R3m
         "A2B3": "Binary tetradymite",
@@ -472,8 +538,7 @@ STRUCTURE_TYPES = {
     139: {  # I4/mmm
         "A": "Body-centered tetragonal",
         "AB": "β-Tin",
-        "AB": "CuAu (L10)",
-        "AB2": "MoSi2 type",
+        "A2B": "MoSi2 type",
         "A3B": "Ni3Ti structure"
     },
     136: {  # P4_2/mnm
@@ -492,7 +557,7 @@ STRUCTURE_TYPES = {
         "A": "α-Sn structure",
         "ABC4": "Zircon (ZrSiO₄)"
     },
-    115: {  # P-4m2
+    122: {  # P-4m2
         "ABC2": "Chalcopyrite (CuFeS2)"
     },
     129: {  # P4/nmm
@@ -516,7 +581,6 @@ STRUCTURE_TYPES = {
     },
     74: {  # Imma
         "AB": "TlI structure",
-        "AB2": "Marcasite"
     },
     64: {  # Cmca
         "A": "α-Ga structure"
@@ -539,15 +603,17 @@ STRUCTURE_TYPES = {
     },
     15: {  # C2/c
         "A1B4C1D6": "Gypsum (CaH4O6S)",
+        "ABC6": "Gypsum (CaH4O6S)",
         "ABC4": "Scheelite (CaWO₄)",
         "ABC5": "Sphene (CaTiSiO₅)"
     },
-
+    1: {
+        "A2B2C4D9": "Kaolinite"
+    },
     # Triclinic Structures
     2: {  # P-1
         "AB": "Triclinic structure",
         "ABC3": "Wollastonite (CaSiO3)",
-        "ABC4": "Kaolinite"
     },
 
     # Other important structures
@@ -559,7 +625,9 @@ STRUCTURE_TYPES = {
         "A2B3": "Corundum (Al2O3)"
     },
     176: {  # P6_3/m
-        "A10B6C2D31E": "Apatite (Ca10(PO4)6(OH)2)"
+        "A10B6C2D31E": "Apatite (Ca10(PO4)6(OH)2)",
+        "A5B3C1D13": "Apatite (Ca5(PO4)3OH",
+        "A5B3C13": "Apatite (Ca5(PO4)3OH"
     },
     58: {  # Pnnm
         "AB2": "Marcasite (FeS2)"
@@ -590,7 +658,8 @@ STRUCTURE_TYPES = {
         "A3B3C": "Fe3W3C"
     },
     224: {  # Pn-3m
-        "AB": "Pyrochlore-related"
+        "AB": "Pyrochlore-related",
+        "A2B": "Cuprite (Cu2O)"
     },
     127: {  # P4/mbm
         "AB": "σ-phase structure",
@@ -598,7 +667,8 @@ STRUCTURE_TYPES = {
     },
     148: {  # R-3
         "ABC3": "Calcite (CaCO₃)",
-        "ABC3": "Ilmenite (FeTiO₃)"
+        "ABC3": "Ilmenite (FeTiO₃)",
+        "ABCD3": "Dolomite",
     },
     69: {  # Fmmm
         "A": "β-W structure"
@@ -612,8 +682,11 @@ STRUCTURE_TYPES = {
         "A2B3": "Bixbyite"
     },
     212: {  # P4_3 32
-        "AB2": "β-quartz (SiO2)",
+
         "A4B3": "Mn4Si3 type"
+    },
+    180: {
+        "AB2": "β-quartz (SiO2)",
     },
     226: {  # Fm-3c
         "AB2": "BiF3 type"
@@ -621,6 +694,10 @@ STRUCTURE_TYPES = {
     196: {  # F23
         "AB2": "FeS2 type"
     },
+    96: {
+        "AB2": "α-Cristobalite (SiO2)"
+    }
+
 }
 
 
@@ -1007,7 +1084,6 @@ MINERALS = {
         "Rock Salt (NaCl)": "Na Cl",
         "Fluorite (CaF2)": "Ca F2",
         "Anti-Fluorite (Li2O)": "Li2 O",
-        "Spinel (MgAl2O4)": "Mg Al2 O4"
     },
     229: {  # Im-3m
         "BCC Iron": "Fe",
@@ -1015,75 +1091,80 @@ MINERALS = {
     221: {  # Pm-3m
         "Perovskite (SrTiO3)": "Sr Ti O3",
         "ReO3 type": "Re O3",
+        "Inverse-perovskite (Ca3TiN)": "Ca3 Ti N",
         "Cesium chloride (CsCl)": "Cs Cl"
     },
     227: {  # Fd-3m
         "Diamond": "C",
-        "Pyrite (FeS2)": "Fe S2",
+
         "Normal spinel (MgAl2O4)": "Mg Al2 O4",
         "Inverse spinel (Fe3O4)": "Fe3 O4",
-        "Pyrochlore (Ca2NbO7)": "Ca2 Nb2 O7"
+        "Pyrochlore (Ca2NbO7)": "Ca2 Nb2 O7",
+        "β-Cristobalite (SiO2)": "Si O2"
+
     },
     216: {  # F-43m
         "Zinc Blende (ZnS)": "Zn S",
+        "Half-anti-fluorite (Li4Ti)": "Li4 Ti"
     },
     215: {  # P-43m
-        "Inverse-perovskite (Ca3TiN)": "Ca3 Ti N",
-        "Half-anti-fluorite (Li4Ti)": "Li4 Ti"
+
+
     },
     230: {  # Ia-3d
         "Garnet (Ca3Al2Si3O12)": "Ca3 Al2 Si3 O12",
     },
     205: {  # Pa-3
-        "Cuprite (Cu2O)": "Cu2 O",
-        "ReO3 structure (ReO3)": "Re O3"
+        "Pyrite (FeS2)": "Fe S2",
     },
-
+    224:{
+        "Cuprite (Cu2O)": "Cu2 O",
+    },
     # Hexagonal structures
     194: {  # P6_3/mmc
         "HCP Magnesium": "Mg",
-        "Wurtzite (high-T ZnS)": "Zn S",
-        "AlB2 type": "Al B2",
-        "CdI2 type": "Cd I2",
-        "Ni3Sn type": "Ni3 Sn"
+        "Ni3Sn type": "Ni3 Sn",
+        "Graphite": "C",
+        "MoS2 type": "Mo S2",
+        "Nickeline (NiAs)": "Ni As",
     },
     186: {  # P6_3mc
         "Wurtzite (ZnS)": "Zn S"
     },
     191: {  # P6/mmm
-        "Graphite": "C",
-        "MoS2 type": "Mo S2",
+
+
         "AlB2 type": "Al B2",
         "CaCu5 type": "Ca Cu5"
     },
-    187: {  # P-6m2
-        "Nickeline (NiAs)": "Ni As",
-        "CdI2 type": "Cd I2"
+    #187: {  # P-6m2
+#
+ #   },
+    156: {
+        "CdI2 type": "Cd I2",
+    },
+    164: {
+    "CdI2 type": "Cd I2",
     },
     166: {  # R-3m
-        "Calcite (CaCO3)": "Ca C O3",
-        "Corundum (Al2O3)": "Al2 O3",
-        "Dolomite (CaMgC2O6)": "Ca Mg C2 O6",
     "Delafossite (CuAlO2)": "Cu Al O2"
     },
     # Tetragonal structures
     139: {  # I4/mmm
         "β-Tin (Sn)": "Sn",
-        "CuAu (L10)": "Cu Au",
         "MoSi2 type": "Mo Si2"
     },
     136: {  # P4_2/mnm
         "Rutile (TiO2)": "Ti O2"
     },
     123: {  # P4/mmm
-        "γ-CuTi": "Cu Ti",
         "CuAu (L10)": "Cu Au"
     },
     141: {  # I41/amd
         "Anatase (TiO2)": "Ti O2",
         "Zircon (ZrSiO4)": "Zr Si O4"
     },
-    115: {  # P-4m2
+    122: {  # P-4m2
         "Chalcopyrite (CuFeS2)": "Cu Fe S2"
     },
     129: {  # P4/nmm
@@ -1100,12 +1181,12 @@ MINERALS = {
     },
     63: {  # Cmcm
         "α-Uranium": "U",
-        "CrB structure": "Cr B"
-    },
-    74: {  # Imma
+        "CrB structure": "Cr B",
         "TlI structure": "Tl I",
-        "Marcasite": "Fe S2"
     },
+   # 74: {  # Imma
+   #
+   # },
     64: {  # Cmca
         "α-Gallium": "Ga"
     },
@@ -1123,10 +1204,14 @@ MINERALS = {
         "Scheelite (CaWO4)": "Ca W O4"
     },
 
+    1: {
+        "Kaolinite": "Al2 Si2 O9 H4"
+
+    },
     # Triclinic structures
     2: {  # P-1
         "Wollastonite (CaSiO3)": "Ca Si O3",
-        "Kaolinite": "Al2 Si2 O5"
+        #"Kaolinite": "Al2 Si2 O5"
     },
 
     # Other important structures
@@ -1149,17 +1234,20 @@ MINERALS = {
     33: {  # Pna21
         "FeAs structure": "Fe As"
     },
-    130: {  # P4/ncc
-        "Cristobalite (SiO2)": "Si O2"
+    96: {  # P4/ncc
+        "α-Cristobalite (SiO2)": "Si O2"
+    },
+    92: {
+        "α-Cristobalite (SiO2)": "Si O2"
     },
     152: {  # P3121
         "Quartz (SiO2)": "Si O2"
     },
     148: {  # R-3
-        "Calcite (CaCO3)": "Ca C O3",
-        "Ilmenite (FeTiO3)": "Fe Ti O3"
+        "Ilmenite (FeTiO3)": "Fe Ti O3",
+        "Dolomite (CaMgC2O6)": "Ca Mg C2 O6",
     },
-    212: {  # P4_3 32
+    180: {  # P4_3 32
         "β-quartz (SiO2)": "Si O2"
     }
 }
@@ -1167,8 +1255,12 @@ MINERALS = {
 def show_xrdlicious_roadmap():
     st.markdown("""
 ### Roadmap
+
+* The XRDlicious will be regularly updated. The planned features are listed below. If you spot a bug or have a feature idea, please let us know at: lebedmi2@cvut.cz and we will gladly consider it.
 -------------------------------------------------------------------------------------------------------------------
+
 #### Code optimization 
+* ⏳ Optimizing the code for better performance
 
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
@@ -1191,4 +1283,7 @@ def show_xrdlicious_roadmap():
 
 #### Basic Peak Fitting (Experimental Data)
 * ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
+
+#### Machine Learning 
+* ⏳ ML models for structure-properties correlations
 """)
