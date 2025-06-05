@@ -115,7 +115,7 @@ components.html(
 )
 
 st.markdown(
-    "#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 
 # Get current memory usage
 process = psutil.Process(os.getpid())
@@ -234,13 +234,13 @@ with col1:
         )
         st.warning(
             "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
-            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), create **supercell and point defects**, modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**).\n\n "
+            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**). For creation of **supercells and point defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/)\n\n"
             "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
             "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
             "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
             "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
-            f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
-            "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy)."
+            f"🪧 **Step 2**:  📁 Using the sidebar, upload your structure files or experimental patterns, or retrieve structures directly from MP, AFLOW, or COD crystal structure databases.."
+            "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
         )
 
         from PIL import Image
@@ -3955,6 +3955,18 @@ if "💥 Powder Diffraction" in calc_mode:
                         "previous_preset", ""):
                     st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
                     st.session_state.previous_preset = st.session_state.preset_choice
+                    selected_preset_name = st.session_state.preset_choice
+                    if selected_preset_name in DEFAULT_TWO_THETA_MAX_FOR_PRESET:
+                        new_max_2theta = DEFAULT_TWO_THETA_MAX_FOR_PRESET[selected_preset_name]
+                        st.session_state.two_theta_max = new_max_2theta
+
+                        if st.session_state.two_theta_min >= new_max_2theta:
+                            st.session_state.two_theta_min = 5.0
+                            if new_max_2theta <= 10.0:
+                                st.session_state.two_theta_min = 1.0
+                            # Final check to prevent min >= max
+                            if st.session_state.two_theta_min >= new_max_2theta:
+                                st.session_state.two_theta_min = max(0.1, new_max_2theta * 0.5)
 
                 if preset_choice not in hide_input_for:
                     wavelength_value = st.number_input(
@@ -3984,6 +3996,20 @@ if "💥 Powder Diffraction" in calc_mode:
                     st.session_state.wavelength_value = preset_wavelengths_neutrons[
                         st.session_state.preset_choice_neutron]
                     st.session_state.previous_preset_neutron = st.session_state.preset_choice_neutron
+                selected_preset_name_neutron = st.session_state.preset_choice_neutron
+                st.session_state.previous_preset_neutron = selected_preset_name_neutron
+
+                if selected_preset_name_neutron in DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET:
+                    new_max_2theta_neutron = DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET[selected_preset_name_neutron]
+                    st.session_state.two_theta_max = new_max_2theta_neutron
+
+                    if st.session_state.two_theta_min >= new_max_2theta_neutron:
+                        st.session_state.two_theta_min = 5.0
+                        if new_max_2theta_neutron <= 10.0:
+                            st.session_state.two_theta_min = 1.0
+
+                        if st.session_state.two_theta_min >= new_max_2theta_neutron:
+                            st.session_state.two_theta_min = max(0.1, new_max_2theta_neutron * 0.5)
 
                 wavelength_value = st.number_input(
                     "Wavelength (nm)",
@@ -4084,6 +4110,7 @@ if "💥 Powder Diffraction" in calc_mode:
         st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm,
                                                             diffraction_choice)
         two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
+        user_calculation_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
         if st.session_state.peak_representation != "Delta":
             sigma = st.number_input(
@@ -4669,7 +4696,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
 
             if is_multi_component:
-                num_points = 2500 #20000
+                num_points = 2000 #20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
@@ -4684,7 +4711,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
                     else:
                         diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
-                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
 
                     filtered_x = []
                     filtered_y = []
@@ -4734,7 +4761,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
                 else:
                     diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
-                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
                 filtered_x = []
                 filtered_y = []
                 filtered_hkls = []
@@ -4751,7 +4778,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     filtered_x.append(x_val)
                     filtered_y.append(y_val)
                     filtered_hkls.append(hkl_group)
-                num_points = 2500 #20000
+                num_points = 2000 #20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
