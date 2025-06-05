@@ -1255,7 +1255,8 @@ MINERALS = {
 def show_xrdlicious_roadmap():
     st.markdown("""
 ### Roadmap
-The XRDlicious will be regularly updated. The planned features are listed below. If you spot a bug or have a feature idea, please let us know at: lebedmi2@cvut.cz and we will gladly consider it.
+
+* The XRDlicious will be regularly updated. The planned features are listed below. If you spot a bug or have a feature idea, please let us know at: lebedmi2@cvut.cz and we will gladly consider it.
 -------------------------------------------------------------------------------------------------------------------
 
 #### Code optimization 
