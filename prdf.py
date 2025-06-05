@@ -115,7 +115,7 @@ components.html(
 )
 
 st.markdown(
-    "#### 🍕 XRDlicious: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 
 # Get current memory usage
 process = psutil.Process(os.getpid())
@@ -234,13 +234,13 @@ with col1:
         )
         st.warning(
             "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
-            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), create **supercell and point defects**, modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**).\n\n "
+            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**). For creation of **supercells and point defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/)\n\n"
             "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
             "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
             "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
             "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
-            f"🪧 **Step 2**:  📁 From the Sidebar, Upload Your Structure Files or Experimental Patterns, or Search Here in Online Databases."
-            "💡 Tip: Make sure the file format is supported (e.g., CIF, POSCAR, LMP, xy)."
+            f"🪧 **Step 2**:  📁 Using the sidebar, upload your structure files or experimental patterns, or retrieve structures directly from MP, AFLOW, or COD crystal structure databases.."
+            "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
         )
 
         from PIL import Image
