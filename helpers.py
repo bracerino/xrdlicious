@@ -1255,8 +1255,11 @@ MINERALS = {
 def show_xrdlicious_roadmap():
     st.markdown("""
 ### Roadmap
+The XRDlicious will be regularly updated. The planned features are listed below. If you spot a bug or have a feature idea, please let us know at: lebedmi2@cvut.cz and we will gladly consider it.
 -------------------------------------------------------------------------------------------------------------------
+
 #### Code optimization 
+* ⏳ Optimizing the code for better performance
 
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
@@ -1279,4 +1282,10 @@ def show_xrdlicious_roadmap():
 
 #### Basic Peak Fitting (Experimental Data)
 * ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
+
+#### Basic Peak Fitting (Experimental Data)
+* ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
+
+#### Machine Learning 
+* ⏳ ML models for structure-properties correlations
 """)
