@@ -3955,6 +3955,18 @@ if "💥 Powder Diffraction" in calc_mode:
                         "previous_preset", ""):
                     st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
                     st.session_state.previous_preset = st.session_state.preset_choice
+                    selected_preset_name = st.session_state.preset_choice
+                    if selected_preset_name in DEFAULT_TWO_THETA_MAX_FOR_PRESET:
+                        new_max_2theta = DEFAULT_TWO_THETA_MAX_FOR_PRESET[selected_preset_name]
+                        st.session_state.two_theta_max = new_max_2theta
+
+                        if st.session_state.two_theta_min >= new_max_2theta:
+                            st.session_state.two_theta_min = 5.0
+                            if new_max_2theta <= 10.0:
+                                st.session_state.two_theta_min = 1.0
+                            # Final check to prevent min >= max
+                            if st.session_state.two_theta_min >= new_max_2theta:
+                                st.session_state.two_theta_min = max(0.1, new_max_2theta * 0.5)
 
                 if preset_choice not in hide_input_for:
                     wavelength_value = st.number_input(
@@ -3984,6 +3996,20 @@ if "💥 Powder Diffraction" in calc_mode:
                     st.session_state.wavelength_value = preset_wavelengths_neutrons[
                         st.session_state.preset_choice_neutron]
                     st.session_state.previous_preset_neutron = st.session_state.preset_choice_neutron
+                selected_preset_name_neutron = st.session_state.preset_choice_neutron
+                st.session_state.previous_preset_neutron = selected_preset_name_neutron
+
+                if selected_preset_name_neutron in DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET:
+                    new_max_2theta_neutron = DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET[selected_preset_name_neutron]
+                    st.session_state.two_theta_max = new_max_2theta_neutron
+
+                    if st.session_state.two_theta_min >= new_max_2theta_neutron:
+                        st.session_state.two_theta_min = 5.0
+                        if new_max_2theta_neutron <= 10.0:
+                            st.session_state.two_theta_min = 1.0
+
+                        if st.session_state.two_theta_min >= new_max_2theta_neutron:
+                            st.session_state.two_theta_min = max(0.1, new_max_2theta_neutron * 0.5)
 
                 wavelength_value = st.number_input(
                     "Wavelength (nm)",
@@ -4084,6 +4110,7 @@ if "💥 Powder Diffraction" in calc_mode:
         st.session_state.two_theta_max = metric_to_twotheta(max_val, x_axis_metric, wavelength_A, wavelength_nm,
                                                             diffraction_choice)
         two_theta_display_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
+        user_calculation_range = (st.session_state.two_theta_min, st.session_state.two_theta_max)
 
         if st.session_state.peak_representation != "Delta":
             sigma = st.number_input(
@@ -4684,7 +4711,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
                     else:
                         diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
-                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
 
                     filtered_x = []
                     filtered_y = []
@@ -4734,7 +4761,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
                 else:
                     diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
-                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=full_range, scaled=False)
+                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
                 filtered_x = []
                 filtered_y = []
                 filtered_hkls = []
