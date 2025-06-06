@@ -119,7 +119,7 @@ components.html(
 st.markdown(
     """
     <h4><strong><em>XRDlicious</em></strong>
-    <span style='font-size:0.7em;'>: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification, Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, XYZ), or XRD data conversion</span>
+    <span style='font-size:0.85em;'>: Calculate Powder XRD/ND Patterns, (P)RDF, modify structures, create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
     </h4>
     """,
     unsafe_allow_html=True
