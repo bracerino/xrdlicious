@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)",
+    page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...), or XRD data conversion",
     layout="wide"
 )
 # Remove top padding
@@ -108,7 +108,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 components.html(
     """
     <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...)">
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
     </head>
     """,
     height=0,
@@ -119,7 +119,7 @@ components.html(
 st.markdown(
     """
     <h4><strong><em>XRDlicious</em></strong>
-    <span style='font-size:0.9em;'>: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)</span>
+    <span style='font-size:0.7em;'>: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification, Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, XYZ), or XRD data conversion</span>
     </h4>
     """,
     unsafe_allow_html=True
