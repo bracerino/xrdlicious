@@ -353,7 +353,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, ...):",
+    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
