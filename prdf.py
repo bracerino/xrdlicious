@@ -116,6 +116,10 @@ components.html(
 
 st.markdown(
     f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
+st.markdown(
+    "<h4><u><strong>XRDlicious</strong></u></h4>: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)",
+    unsafe_allow_html=True
+)
 
 # Get current memory usage
 process = psutil.Process(os.getpid())
