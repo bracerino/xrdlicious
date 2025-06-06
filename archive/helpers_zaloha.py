@@ -309,7 +309,7 @@ def get_formula_type(formula):
             return "".join(element_count_pairs)
         else:
             return "Complex"
-
+import time
 def check_structure_size_and_warn(structure, structure_name="structure"):
     n_atoms = len(structure)
 
@@ -320,6 +320,7 @@ def check_structure_size_and_warn(structure, structure_name="structure"):
         return "moderate"
     else:
         return "small"
+
 
 
 SPACE_GROUP_SYMBOLS = {
@@ -1274,6 +1275,9 @@ def show_xrdlicious_roadmap():
 * ⏳ Instrumental broadening - introduce Caglioti formula.
 * ⏳ Calculate and apply peak shifts due to sample displacement error.
 
+#### Enhanced Structure Visualization 
+* ✅ Allow to change structure visualization style between Plotly and Py3Dmol
+
 #### Enhanced Background Subtraction (Experimental Data)
 * ⏳ Improve tools for background removal on uploaded experimental patterns.
 
@@ -1287,3 +1291,69 @@ def show_xrdlicious_roadmap():
 #### Machine Learning 
 * ⏳ ML models for structure-properties correlations
 """)
+
+
+DEFAULT_TWO_THETA_MAX_FOR_PRESET = {
+    'Copper (CuKa1)': 120.0,
+    'Cu(Ka1+Ka2)': 120.0,
+    'CuKa2': 120.0,
+    'Cu(Ka1+Ka2+Kb1)': 120.0,
+    'CuKb1': 120.0,
+    'Molybdenum (MoKa1)': 70.0,
+    'Mo(Ka1+Ka2)': 70.0,
+    'MoKa2': 70.0,
+    'Mo(Ka1+Ka2+Kb1)': 70.0,
+    'MoKb1': 70.0,
+    'Cobalt (CoKa1)': 130.0,
+    'Co(Ka1+Ka2)': 130.0,
+    'CoKa2': 130.0,
+    'Co(Ka1+Ka2+Kb1)': 130.0,
+    'CoKb1': 130.0,
+    'Chromium (CrKa1)': 150.0,
+    'Cr(Ka1+Ka2)': 150.0,
+    'CrKa2': 150.0,
+    'Cr(Ka1+Ka2+Kb1)': 150.0,
+    'CrKb1': 150.0,
+    'Iron (FeKa1)': 140.0,
+    'Fe(Ka1+Ka2)': 140.0,
+    'FeKa2': 140.0,
+    'Fe(Ka1+Ka2+Kb1)': 140.0,
+    'FeKb1': 140.0,
+    'Silver (AgKa1)': 50.0,
+    'Ag(Ka1+Ka2)': 50.0,
+    'AgKa2': 50.0,
+    'Ag(Ka1+Ka2+Kb1)': 50.0,
+    'AgKb1': 50.0,
+}
+
+DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET = {
+    'Thermal Neutrons': 150.0,
+    'Cold Neutrons': 160.0,
+    'Hot Neutrons': 120.0,
+    'Custom': 165.0
+}
+
+
+def add_box(view, cell, color='black', linewidth=1.5):
+    corners = []
+    for i in [0, 1]:
+        for j in [0, 1]:
+            for k in [0, 1]:
+                corner = i * cell[0] + j * cell[1] + k * cell[2]
+                corners.append(corner)
+
+    edges = [
+        (0, 1), (2, 3), (4, 5), (6, 7),
+        (0, 2), (1, 3), (4, 6), (5, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7)
+    ]
+
+    for edge in edges:
+        start = corners[edge[0]]
+        end = corners[edge[1]]
+        view.addLine({
+            'start': {'x': start[0], 'y': start[1], 'z': start[2]},
+            'end': {'x': end[0], 'y': end[1], 'z': end[2]},
+            'color': color,
+            'linewidth': linewidth
+        })
