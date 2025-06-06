@@ -118,12 +118,14 @@ components.html(
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 st.markdown(
     """
-    <h4><strong><em>XRDlicious</em></strong>
-    <span style='font-size:0.85em;'>: Calculate Powder XRD/ND Patterns, (P)RDF, modify structures, create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
+    <h4>
+        <strong><em><span style='color:lightblue;'>XRDlicious</span></em></strong>
+        <span style='font-size:0.85em;'>: Calculate powder XRD/ND Patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
     </h4>
     """,
     unsafe_allow_html=True
 )
+
 
 
 # Get current memory usage
