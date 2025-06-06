@@ -1261,7 +1261,7 @@ def show_xrdlicious_roadmap():
 -------------------------------------------------------------------------------------------------------------------
 
 #### Code optimization 
-* ⏳ Optimizing the code for better performance
+* ⏳ Optimizing the code for better performance. ✅ Optimized search in COD database.
 
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
@@ -1357,3 +1357,31 @@ def add_box(view, cell, color='black', linewidth=1.5):
             'color': color,
             'linewidth': linewidth
         })
+
+
+import concurrent.futures
+import requests
+from pymatgen.io.cif import CifParser
+from pymatgen.core import Structure
+
+
+def fetch_and_parse_cod_cif(entry):
+    file_id = entry.get('file')
+    if not file_id:
+        return None, None, None, "Missing file ID in entry"
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        }
+        cif_url = f"https://www.crystallography.net/cod/{file_id}.cif"
+        response = requests.get(cif_url, timeout=15, headers=headers)
+        response.raise_for_status()
+        cif_content = response.text
+        parser = CifParser.from_str(cif_content)
+
+        structure = parser.get_structures(primitive=False)[0]
+        cod_id = f"cod_{file_id}"
+        return cod_id, structure, entry, None
+
+    except Exception as e:
+        return None, None, None, str(e)
