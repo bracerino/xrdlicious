@@ -119,8 +119,8 @@ components.html(
 st.markdown(
     """
     <h4>
-        <strong><em><span style='color:#1E90FF;'>XRDlicious</span></em></strong>
-        <span style='font-size:0.85em;'>: Calculate powder XRD/ND Patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
+        <strong><em><span style='color:#1E90FF;'>XRDlicious:</span></em></strong>
+        <span style='font-size:0.85em;'>Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
     </h4>
     """,
     unsafe_allow_html=True
@@ -353,7 +353,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, ...):",
+    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
@@ -1765,9 +1765,11 @@ if "🔬 Structure Modification" in calc_mode:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-                cell_convert_or = st.checkbox(
-                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
-                    value=False)
+                #cell_convert_or = st.checkbox(
+                #    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
+                #    value=False)
+                cell_convert_or = False
+                st.info("To convert between different cell representations, please use [this XRDlicious submodule](https://xrdlicious-point-defects.streamlit.app/)")
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
