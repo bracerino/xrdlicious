@@ -309,7 +309,7 @@ def get_formula_type(formula):
             return "".join(element_count_pairs)
         else:
             return "Complex"
-
+import time
 def check_structure_size_and_warn(structure, structure_name="structure"):
     n_atoms = len(structure)
 
@@ -320,6 +320,7 @@ def check_structure_size_and_warn(structure, structure_name="structure"):
         return "moderate"
     else:
         return "small"
+
 
 
 SPACE_GROUP_SYMBOLS = {
@@ -1295,11 +1296,11 @@ DEFAULT_TWO_THETA_MAX_FOR_PRESET = {
     'CuKa2': 120.0,
     'Cu(Ka1+Ka2+Kb1)': 120.0,
     'CuKb1': 120.0,
-    'Molybdenum (MoKa1)': 60.0,
-    'Mo(Ka1+Ka2)': 60.0,
-    'MoKa2': 60.0,
-    'Mo(Ka1+Ka2+Kb1)': 60.0,
-    'MoKb1': 60.0,
+    'Molybdenum (MoKa1)': 70.0,
+    'Mo(Ka1+Ka2)': 70.0,
+    'MoKa2': 70.0,
+    'Mo(Ka1+Ka2+Kb1)': 70.0,
+    'MoKb1': 70.0,
     'Cobalt (CoKa1)': 130.0,
     'Co(Ka1+Ka2)': 130.0,
     'CoKa2': 130.0,
@@ -1328,3 +1329,28 @@ DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET = {
     'Hot Neutrons': 120.0,
     'Custom': 165.0
 }
+
+
+def add_box(view, cell, color='black', linewidth=1.5):
+    corners = []
+    for i in [0, 1]:
+        for j in [0, 1]:
+            for k in [0, 1]:
+                corner = i * cell[0] + j * cell[1] + k * cell[2]
+                corners.append(corner)
+
+    edges = [
+        (0, 1), (2, 3), (4, 5), (6, 7),
+        (0, 2), (1, 3), (4, 6), (5, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7)
+    ]
+
+    for edge in edges:
+        start = corners[edge[0]]
+        end = corners[edge[1]]
+        view.addLine({
+            'start': {'x': start[0], 'y': start[1], 'z': start[2]},
+            'end': {'x': end[0], 'y': end[1], 'z': end[2]},
+            'color': color,
+            'linewidth': linewidth
+        })
