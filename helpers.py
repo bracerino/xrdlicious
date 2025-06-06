@@ -1275,6 +1275,9 @@ def show_xrdlicious_roadmap():
 * ⏳ Instrumental broadening - introduce Caglioti formula.
 * ⏳ Calculate and apply peak shifts due to sample displacement error.
 
+#### Enhanced Structure Visualization 
+* ✅ Allow to change structure visualization style between Plotly and Py3Dmol
+
 #### Enhanced Background Subtraction (Experimental Data)
 * ⏳ Improve tools for background removal on uploaded experimental patterns.
 
