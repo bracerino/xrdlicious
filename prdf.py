@@ -1040,42 +1040,60 @@ if show_database_search:
                                     }
                                     cod_entries = get_cod_entries(params)
 
+
+
                                 if cod_entries and isinstance(cod_entries, list):
-                                    status_placeholder = st.empty()
                                     st.session_state.cod_options = []
                                     st.session_state.full_structures_see_cod = {}
-
+                                    status_placeholder = st.empty()
                                     limited_entries = cod_entries[:cod_limit]
+                                    errors = []
 
-                                    for entry in limited_entries:
-                                        try:
-                                            cif_content = get_cif_from_cod(entry)
-                                            if cif_content:
-                                                structure = get_cod_str(cif_content)
-                                                cod_id = f"cod_{entry.get('file')}"
-                                                st.session_state.full_structures_see_cod[cod_id] = structure
-                                                spcs = entry.get("sg", "Unknown")
-                                                spcs_number = entry.get("sgNumber", "Unknown")
+                                    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                                        future_to_entry = {executor.submit(fetch_and_parse_cod_cif, entry): entry for
+                                                           entry in limited_entries}
 
-                                                cell_volume = structure.lattice.volume
-                                                st.session_state.cod_options.append(
-                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
-                                                )
-                                                status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                        except Exception as e:
-                                            st.warning(
-                                                f"Error processing COD entry {entry.get('file', 'unknown')}: {e}")
-                                            continue
+                                        processed_count = 0
+                                        for future in concurrent.futures.as_completed(future_to_entry):
+                                            processed_count += 1
+                                            status_placeholder.markdown(
+                                                f"- **Processing:** {processed_count}/{len(limited_entries)} entries...")
+                                            try:
+                                                cod_id, structure, entry_data, error = future.result()
+                                                if error:
+                                                    original_entry = future_to_entry[future]
+                                                    errors.append(
+                                                        f"Entry `{original_entry.get('file', 'N/A')}` failed: {error}")
+                                                    continue  # Skip to the next completed future
+                                                if cod_id and structure and entry_data:
+                                                    st.session_state.full_structures_see_cod[cod_id] = structure
 
+                                                    spcs = entry_data.get("sg", "Unknown")
+                                                    spcs_number = entry_data.get("sgNumber", "Unknown")
+                                                    cell_volume = structure.lattice.volume
+                                                    option_str = (
+                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f}, "
+                                                        f"{structure.lattice.beta:.2f}, {structure.lattice.gamma:.2f}°], {cell_volume:.1f} Å³, {len(structure)} atoms"
+                                                    )
+                                                    st.session_state.cod_options.append(option_str)
+
+                                            except Exception as e:
+                                                errors.append(
+                                                    f"A critical error occurred while processing a result: {e}")
+                                    status_placeholder.empty()
                                     if st.session_state.cod_options:
                                         if len(limited_entries) < len(cod_entries):
                                             st.info(
                                                 f"Showing first {cod_limit} of {len(cod_entries)} total COD results. Increase limit to see more.")
-                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                                        st.success(
+                                            f"Found and processed {len(st.session_state.cod_options)} structures from COD.")
                                     else:
-                                        st.warning("COD: No valid structures could be processed.")
+                                        st.warning("COD: No matching structures could be successfully processed.")
+                                    if errors:
+                                        st.error(f"Encountered {len(errors)} error(s) during the search.")
+                                        with st.container(border=True):
+                                            for e in errors:
+                                                st.warning(e)
                                 else:
                                     st.session_state.cod_options = []
                                     st.warning("COD: No matching structures found.")
@@ -1747,11 +1765,9 @@ if "🔬 Structure Modification" in calc_mode:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-                #cell_convert_or = st.checkbox(
-                #    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
-                #    value=False, disabled = True)
-                cell_convert_or = False
-                st.info('To convert between different cell representations, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).')
+                cell_convert_or = st.checkbox(
+                    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
+                    value=False)
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
