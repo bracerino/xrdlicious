@@ -57,5 +57,5 @@ Python 3.12.3
 - mp-api==0.45.3  
 - aflow==0.0.11  
 - pillow==11.2.1  
-- pymatgen-analysis-defects==2025.1.18  
-psutil==7.0.0  
+- pymatgen-analysis-defects==2025.1.18
+- psutil==7.0.0  
