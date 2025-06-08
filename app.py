@@ -7352,7 +7352,7 @@ def get_session_memory_usage():
 memory_kb = get_session_memory_usage()
 st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
-**The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
+**The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/xrdlicious/blob/main/LICENSE).**
 """)
 
 
