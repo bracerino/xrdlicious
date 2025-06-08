@@ -221,6 +221,12 @@ pattern_details = None
 
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = "Advanced"
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    """,
+    unsafe_allow_html=True
+)
 
 calc_mode = st.sidebar.multiselect(
     "Choose Type(s) of Calculation/Analysis",
@@ -298,12 +304,7 @@ def remove_fractional_occupancies_safely(structure):
     return ordered_structure
 
 
-st.markdown(
-    """
-    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
-    """,
-    unsafe_allow_html=True
-)
+
 
 col3, col1, col2 = st.columns(3)
 
