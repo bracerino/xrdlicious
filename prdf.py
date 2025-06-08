@@ -5498,34 +5498,37 @@ if "💥 Powder Diffraction" in calc_mode:
             """,
             unsafe_allow_html=True,
         )
-        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-            combined_df = pd.DataFrame()
-            data_list = []
-            for file in uploaded_files:
-                file_name = file.name
-                if file_name in combined_data:
-                    peak_vals = combined_data[file_name]["Peak Vals"]
-                    intensities = combined_data[file_name]["Intensities"]
-                    hkls = combined_data[file_name]["HKLs"]
-                    for i in range(len(peak_vals)):
-                        for group in hkls:
-                            for item in group:
-                                hkl = item['hkl']
-                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                    continue
-                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                    continue
-                        if len(hkl) == 3:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                for h in hkls[i]])
-                        else:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                for h in hkls[i]])
-                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-            st.dataframe(combined_df)
+        view_combined = st.checkbox("📈 View peak data across all structures in an interactive table",
+                                  )
+        if view_combined:
+            with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+                combined_df = pd.DataFrame()
+                data_list = []
+                for file in uploaded_files:
+                    file_name = file.name
+                    if file_name in combined_data:
+                        peak_vals = combined_data[file_name]["Peak Vals"]
+                        intensities = combined_data[file_name]["Intensities"]
+                        hkls = combined_data[file_name]["HKLs"]
+                        for i in range(len(peak_vals)):
+                            for group in hkls:
+                                for item in group:
+                                    hkl = item['hkl']
+                                    if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                        continue
+                                    if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                        continue
+                            if len(hkl) == 3:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkls[i]])
+                            else:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkls[i]])
+                            data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+                combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+                st.dataframe(combined_df)
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
