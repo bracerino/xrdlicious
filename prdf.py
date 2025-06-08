@@ -7325,7 +7325,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             df_out.to_csv(buffer, sep=delimiter_option, index=False)
 
             base_name = file.name.rsplit(".", 1)[0]
-            download_name = f"{base_name}_processed.txt"
+            download_name = f"{base_name}_processed.xy"
 
             download_info = ""
             if fix_x_axis:
