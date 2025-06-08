@@ -254,7 +254,7 @@ def run_data_converter():
     st.info(
         "Upload an `.xrdml` or `.ras` file to convert to `.xy`, or upload `.xy` text file to convert to `.xrdml` or `.ras`")
 
-    uploaded_file = st.file_uploader("Upload Data File", type=["xrdml", "xml", "ras", "rasx", "xy", "dat", "txt"])
+    uploaded_file = st.file_uploader("Upload Data File", type=["xrdml", "xml", "ras", "xy", "dat", "txt"])
 
     if uploaded_file:
         file_ext = uploaded_file.name.lower().split('.')[-1]
