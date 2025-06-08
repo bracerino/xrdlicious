@@ -358,7 +358,7 @@ def remove_fractional_occupancies_safely(structure):
 
 st.markdown(
     """
-    <hr style="border: none; height: 6px; background-color: #3399ff; border-radius: 8px; margin: 20px 0;">
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
     """,
     unsafe_allow_html=True
 )
