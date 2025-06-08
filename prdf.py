@@ -137,64 +137,6 @@ ELEMENTS = [
 ]
 
 with col3:
-    if st.button("💡 Need Help?"):
-        st.markdown("""
-        <style>
-        @keyframes fadeInOut {
-          0%   { opacity: 0; transform: translateY(-10px); }
-          5%   { opacity: 1; transform: translateY(0); }
-          95%  { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-
-        .onboarding-tip {
-          background-color: #ffffff;
-          border-left: 5px solid #3399ff;
-          padding: 18px 22px;
-          border-radius: 14px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-          font-size: 1.1em;
-          font-weight: 500;
-          position: fixed;
-          top: 100px;
-          right: 40px;
-          z-index: 9999;
-          max-width: 400px;
-          width: 100%;
-          opacity: 0;
-        }
-
-        .tip1 { animation: fadeInOut 7s ease-in-out 0s forwards; }
-        .tip2 { animation: fadeInOut 7s ease-in-out 7s forwards; }
-        .tip3 { animation: fadeInOut 7s ease-in-out 14s forwards; }
-
-        .tip-label {
-          font-size: 0.9em;
-          font-weight: 600;
-          color: #0066cc;
-          margin-bottom: 6px;
-          display: block;
-        }
-        </style>
-
-        <!-- Tip 1 -->
-        <div class="onboarding-tip tip1">
-          <span class="tip-label">Tip 1/3</span>
-          🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
-        </div>
-
-        <!-- Tip 2 -->
-        <div class="onboarding-tip tip2">
-          <span class="tip-label">Tip 2/3</span>
-          📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
-        </div>
-
-        <!-- Tip 3 -->
-        <div class="onboarding-tip tip3">
-          <span class="tip-label">Tip 3/3</span>
-          🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
-        </div>
-        """, unsafe_allow_html=True)
     st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
