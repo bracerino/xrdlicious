@@ -180,9 +180,9 @@ def run_data_converter():
             }
         return pd.DataFrame(list(metadata.items()), columns=['Parameter', 'Value'])
 
-    st.markdown("### 📜 XRD/XY Data Converter")
+    st.markdown("### 📜 .xrdml (PANalytical) ↔️ .xy ↔️ .ras (Rigaku) File Format Converter")
     st.info(
-        "Upload an `.xrdml` or `.ras` file to convert to `.xy`, or upload a text file to convert to a structured format.")
+        "Upload an `.xrdml` or `.ras` file to convert to `.xy`, or upload `.xy` text file to convert to `.xrdml` or `.ras`")
 
     uploaded_file = st.file_uploader("Upload .xrdml, .ras, .xy, .dat, or .txt file",
                                      type=["xrdml", "xml", "ras", "xy", "dat", "txt"])
