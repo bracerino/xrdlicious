@@ -4711,7 +4711,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
-                        mode="lines+markers",
+                        mode="lines",
                         name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
                                                                  st.session_state.use_bg_subtracted and
                                                                  "active_bg_subtracted_file" in st.session_state and
@@ -4797,7 +4797,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         fig_interactive.add_trace(go.Scatter(
                             x=x_user_filtered,
                             y=y_user_filtered,
-                            mode="lines+markers",
+                            mode="lines",
                             name=display_name,
                             line=dict(dash='solid', width=1, color=color),
                             marker=dict(color=color, size=3),
@@ -5288,7 +5288,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
-                        mode="lines+markers",
+                        mode="lines",
                         name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
                                                                  st.session_state.use_bg_subtracted and
                                                                  "active_bg_subtracted_file" in st.session_state and
@@ -5375,7 +5375,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         fig_interactive.add_trace(go.Scatter(
                             x=x_user_filtered,
                             y=y_user_filtered,
-                            mode="lines+markers",
+                            mode="lines",
                             name=display_name,
                             line=dict(dash='solid', width=1, color=color),
                             marker=dict(color=color, size=3),
