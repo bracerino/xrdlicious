@@ -114,12 +114,12 @@ if memory_usage > 1600:
     gc.collect()
     st.rerun()
 
-col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
+col1, col2 = st.columns([1.2, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
-        "lebedmi2@cvut.cz"
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
+        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
@@ -136,8 +136,8 @@ ELEMENTS = [
     'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
 ]
 
-with col3:
-    st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary")
+#with col3:
+#    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
     with st.expander("About the app.", icon="📖"):
