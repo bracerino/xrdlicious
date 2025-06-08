@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 from helpers import *
-
+from xrd_convert import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -119,8 +119,8 @@ components.html(
 st.markdown(
     """
     <h4>
-        <strong><em><span style='color:#1E90FF;'>XRDlicious</span></em></strong>
-        <span style='font-size:0.85em;'>: Calculate powder XRD/ND Patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
+        <strong><em><span style='color:#1E90FF;'>XRDlicious:</span></em></strong>
+        <span style='font-size:0.85em;'>Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
     </h4>
     """,
     unsafe_allow_html=True
@@ -276,11 +276,15 @@ calc_mode = st.sidebar.multiselect(
         "📊 (P)RDF",
         "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
         "📈 Interactive Data Plot",
-        "📉 PRDF from LAMMPS/XYZ trajectories"
+        "📉 PRDF from LAMMPS/XYZ trajectories",
+        "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
+if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
+    run_data_converter()
+    
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
@@ -353,7 +357,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, ...):",
+    "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
@@ -383,7 +387,7 @@ if uploaded_files_user_sidebar:
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
-st.markdown("##### 🔍 Search for structures in online databases?")
+#st.markdown("##### 🔍 Search for structures in online databases?")
 
 
 def display_structure_types():
@@ -398,7 +402,7 @@ def display_structure_types():
 
 # Then in Streamlit main block
 #display_structure_types()
-show_database_search = st.checkbox("Enable database search",
+show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
@@ -1040,42 +1044,60 @@ if show_database_search:
                                     }
                                     cod_entries = get_cod_entries(params)
 
+
+
                                 if cod_entries and isinstance(cod_entries, list):
-                                    status_placeholder = st.empty()
                                     st.session_state.cod_options = []
                                     st.session_state.full_structures_see_cod = {}
-
+                                    status_placeholder = st.empty()
                                     limited_entries = cod_entries[:cod_limit]
+                                    errors = []
 
-                                    for entry in limited_entries:
-                                        try:
-                                            cif_content = get_cif_from_cod(entry)
-                                            if cif_content:
-                                                structure = get_cod_str(cif_content)
-                                                cod_id = f"cod_{entry.get('file')}"
-                                                st.session_state.full_structures_see_cod[cod_id] = structure
-                                                spcs = entry.get("sg", "Unknown")
-                                                spcs_number = entry.get("sgNumber", "Unknown")
+                                    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                                        future_to_entry = {executor.submit(fetch_and_parse_cod_cif, entry): entry for
+                                                           entry in limited_entries}
 
-                                                cell_volume = structure.lattice.volume
-                                                st.session_state.cod_options.append(
-                                                    f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f} "
-                                                    f"{structure.lattice.beta:.2f} {structure.lattice.gamma:.2f}] °, {cell_volume:.1f} Å³, {len(structure)} atoms "
-                                                )
-                                                status_placeholder.markdown(
-                                                    f"- **Structure loaded:** `{structure.composition.reduced_formula}` (cod_{entry.get('file')})")
-                                        except Exception as e:
-                                            st.warning(
-                                                f"Error processing COD entry {entry.get('file', 'unknown')}: {e}")
-                                            continue
+                                        processed_count = 0
+                                        for future in concurrent.futures.as_completed(future_to_entry):
+                                            processed_count += 1
+                                            status_placeholder.markdown(
+                                                f"- **Processing:** {processed_count}/{len(limited_entries)} entries...")
+                                            try:
+                                                cod_id, structure, entry_data, error = future.result()
+                                                if error:
+                                                    original_entry = future_to_entry[future]
+                                                    errors.append(
+                                                        f"Entry `{original_entry.get('file', 'N/A')}` failed: {error}")
+                                                    continue  # Skip to the next completed future
+                                                if cod_id and structure and entry_data:
+                                                    st.session_state.full_structures_see_cod[cod_id] = structure
 
+                                                    spcs = entry_data.get("sg", "Unknown")
+                                                    spcs_number = entry_data.get("sgNumber", "Unknown")
+                                                    cell_volume = structure.lattice.volume
+                                                    option_str = (
+                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f}, "
+                                                        f"{structure.lattice.beta:.2f}, {structure.lattice.gamma:.2f}°], {cell_volume:.1f} Å³, {len(structure)} atoms"
+                                                    )
+                                                    st.session_state.cod_options.append(option_str)
+
+                                            except Exception as e:
+                                                errors.append(
+                                                    f"A critical error occurred while processing a result: {e}")
+                                    status_placeholder.empty()
                                     if st.session_state.cod_options:
                                         if len(limited_entries) < len(cod_entries):
                                             st.info(
                                                 f"Showing first {cod_limit} of {len(cod_entries)} total COD results. Increase limit to see more.")
-                                        st.success(f"Found {len(st.session_state.cod_options)} structures in COD.")
+                                        st.success(
+                                            f"Found and processed {len(st.session_state.cod_options)} structures from COD.")
                                     else:
-                                        st.warning("COD: No valid structures could be processed.")
+                                        st.warning("COD: No matching structures could be successfully processed.")
+                                    if errors:
+                                        st.error(f"Encountered {len(errors)} error(s) during the search.")
+                                        with st.container(border=True):
+                                            for e in errors:
+                                                st.warning(e)
                                 else:
                                     st.session_state.cod_options = []
                                     st.warning("COD: No matching structures found.")
@@ -1749,9 +1771,9 @@ if "🔬 Structure Modification" in calc_mode:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
                 #cell_convert_or = st.checkbox(
                 #    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
-                #    value=False, disabled = True)
+                #    value=False)
                 cell_convert_or = False
-                st.info('To convert between different cell representations, please visit [this site](https://xrdlicious-point-defects.streamlit.app/).')
+                st.info("To convert between different cell representations, please use [this XRDlicious submodule](https://xrdlicious-point-defects.streamlit.app/)")
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
@@ -3622,7 +3644,7 @@ unique_files = {f.name: f for f in uploaded_files
                 if f.name not in st.session_state.files_marked_for_removal}.values()
 uploaded_files[:] = list(unique_files)
 
-with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
+with st.sidebar.expander("📁 Final list of structure files", expanded=True):
     if uploaded_files:
         st.write(f"**Total: {len(uploaded_files)} file(s)**")
 
@@ -5476,34 +5498,37 @@ if "💥 Powder Diffraction" in calc_mode:
             """,
             unsafe_allow_html=True,
         )
-        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-            combined_df = pd.DataFrame()
-            data_list = []
-            for file in uploaded_files:
-                file_name = file.name
-                if file_name in combined_data:
-                    peak_vals = combined_data[file_name]["Peak Vals"]
-                    intensities = combined_data[file_name]["Intensities"]
-                    hkls = combined_data[file_name]["HKLs"]
-                    for i in range(len(peak_vals)):
-                        for group in hkls:
-                            for item in group:
-                                hkl = item['hkl']
-                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                    continue
-                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                    continue
-                        if len(hkl) == 3:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                for h in hkls[i]])
-                        else:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                for h in hkls[i]])
-                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-            st.dataframe(combined_df)
+        view_combined = st.checkbox("📈 View peak data across all structures in an interactive table",
+                                  )
+        if view_combined:
+            with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+                combined_df = pd.DataFrame()
+                data_list = []
+                for file in uploaded_files:
+                    file_name = file.name
+                    if file_name in combined_data:
+                        peak_vals = combined_data[file_name]["Peak Vals"]
+                        intensities = combined_data[file_name]["Intensities"]
+                        hkls = combined_data[file_name]["HKLs"]
+                        for i in range(len(peak_vals)):
+                            for group in hkls:
+                                for item in group:
+                                    hkl = item['hkl']
+                                    if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                        continue
+                                    if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                        continue
+                            if len(hkl) == 3:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkls[i]])
+                            else:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkls[i]])
+                            data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+                combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+                st.dataframe(combined_df)
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
@@ -5594,7 +5619,7 @@ if "📊 (P)RDF" in calc_mode:
     line_style = st.radio(
         "Line Style",
         ["Lines + Markers", "Lines Only"],
-        index=0,
+        index=1,
         key="line_style",
         horizontal=True,
         help="Select how to display PRDF lines - with or without point markers"
@@ -7303,7 +7328,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             df_out.to_csv(buffer, sep=delimiter_option, index=False)
 
             base_name = file.name.rsplit(".", 1)[0]
-            download_name = f"{base_name}_processed.txt"
+            download_name = f"{base_name}_processed.xy"
 
             download_info = ""
             if fix_x_axis:
@@ -7334,7 +7359,7 @@ def get_session_memory_usage():
 memory_kb = get_session_memory_usage()
 st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
-**The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/prdf-calculator-online/blob/main/LICENCSE).**
+**The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/xrdlicious/blob/main/LICENSE).**
 """)
 
 
