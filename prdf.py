@@ -357,7 +357,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
+    "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
@@ -3644,7 +3644,7 @@ unique_files = {f.name: f for f in uploaded_files
                 if f.name not in st.session_state.files_marked_for_removal}.values()
 uploaded_files[:] = list(unique_files)
 
-with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
+with st.sidebar.expander("📁 Final list of structure files", expanded=True):
     if uploaded_files:
         st.write(f"**Total: {len(uploaded_files)} file(s)**")
 
