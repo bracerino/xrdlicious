@@ -61,41 +61,6 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-st.markdown(
-    """
-    <style>
-    div.stButton > button {
-        background-color: #0099ff;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        padding: 0.5em 1em;
-        border: none;
-        border-radius: 5px;
-        height: 3em;
-        width: 100%;
-    }
-    div.stButton > button:active,
-    div.stButton > button:focus {
-        background-color: #0099ff !important;
-        color: white !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <style>
-    div[data-testid="stDataFrameContainer"] table td {
-         font-size: 22px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -105,23 +70,24 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-components.html(
-    """
-    <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
-    </head>
-    """,
-    height=0,
-)
+
 
 # st.markdown(
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 st.markdown(
     """
     <h4>
-        <strong><em><span style='color:#1E90FF;'>XRDlicious:</span></em></strong>
-        <span style='font-size:0.85em;'>Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
+        <span style='color:#8b0000;'>
+            <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
+        </span>
     </h4>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
     """,
     unsafe_allow_html=True
 )
@@ -148,12 +114,12 @@ if memory_usage > 1600:
     gc.collect()
     st.rerun()
 
-col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
+col1, col2 = st.columns([1.2, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
-        "lebedmi2@cvut.cz"
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
+        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
@@ -170,70 +136,13 @@ ELEMENTS = [
     'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
 ]
 
-with col3:
-    if st.button("💡 Need Help?"):
-        st.markdown("""
-        <style>
-        @keyframes fadeInOut {
-          0%   { opacity: 0; transform: translateY(-10px); }
-          5%   { opacity: 1; transform: translateY(0); }
-          95%  { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-
-        .onboarding-tip {
-          background-color: #ffffff;
-          border-left: 5px solid #3399ff;
-          padding: 18px 22px;
-          border-radius: 14px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-          font-size: 1.1em;
-          font-weight: 500;
-          position: fixed;
-          top: 100px;
-          right: 40px;
-          z-index: 9999;
-          max-width: 400px;
-          width: 100%;
-          opacity: 0;
-        }
-
-        .tip1 { animation: fadeInOut 7s ease-in-out 0s forwards; }
-        .tip2 { animation: fadeInOut 7s ease-in-out 7s forwards; }
-        .tip3 { animation: fadeInOut 7s ease-in-out 14s forwards; }
-
-        .tip-label {
-          font-size: 0.9em;
-          font-weight: 600;
-          color: #0066cc;
-          margin-bottom: 6px;
-          display: block;
-        }
-        </style>
-
-        <!-- Tip 1 -->
-        <div class="onboarding-tip tip1">
-          <span class="tip-label">Tip 1/3</span>
-          🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
-        </div>
-
-        <!-- Tip 2 -->
-        <div class="onboarding-tip tip2">
-          <span class="tip-label">Tip 2/3</span>
-          📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
-        </div>
-
-        <!-- Tip 3 -->
-        <div class="onboarding-tip tip3">
-          <span class="tip-label">Tip 3/3</span>
-          🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
-        </div>
-        """, unsafe_allow_html=True)
-    st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary")
+#with col3:
+#    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
     with st.expander("About the app.", icon="📖"):
         st.info(
+            "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
             "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
             "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
             "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
@@ -260,7 +169,7 @@ with col1:
     with st.expander("Roadmap", icon="🧭"):
         show_xrdlicious_roadmap()
 
-    citations = st.checkbox("📚 How to Cite", value = False)
+    citations = st.checkbox("📚 How to cite", value = False)
 if citations:
     st.markdown("""
     ### 📚 How to Cite
@@ -276,7 +185,7 @@ if citations:
     
     ---
     
-    #### 🔁 **Using Calculated PRDF (Partial Radial Distribution Function)**
+    #### 🔁 **Using Calculated PRDF**
     - **XRDlicious, 2025** – for the interface.
     - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
     - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
@@ -391,7 +300,7 @@ def remove_fractional_occupancies_safely(structure):
 
 st.markdown(
     """
-    <hr style="border: none; height: 6px; background-color: #3399ff; border-radius: 8px; margin: 20px 0;">
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
     """,
     unsafe_allow_html=True
 )
@@ -453,6 +362,41 @@ show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, C
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
+
+st.markdown(
+    """
+    <style>
+    div.stButton > button {
+        background-color: #0099ff;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 5px;
+        height: 3em;
+        width: 100%;
+    }
+    div.stButton > button:active,
+    div.stButton > button:focus {
+        background-color: #0099ff !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrameContainer"] table td {
+         font-size: 22px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 if st.session_state["first_run_note"] == True:
@@ -5655,8 +5599,8 @@ if "📊 (P)RDF" in calc_mode:
                                   disabled=True)
 
     st.warning(
-        "⚠️ Due to the large computational demand connected with the trajectories processing, this option was put as a separated module that runs
-        only locally. Please visit **[this site](https://github.com/bracerino/PRDF-CP2K-LAMMPS)** to see how to compile it.")
+        "⚠️ Due to the large computational demand connected with the trajectories processing, this option was put as a separated module that runs "
+        "only locally. Please visit **[this site](https://github.com/bracerino/PRDF-CP2K-LAMMPS)** to see how to compile it.")
 
     plot_display_mode = st.radio(
         "Plot Display Mode",
@@ -7396,7 +7340,14 @@ if "📈 Interactive Data Plot" in calc_mode:
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
 
-
+components.html(
+    """
+    <head>
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
+    </head>
+    """,
+    height=0,
+)
 def get_session_memory_usage():
     total_size = 0
     for key in st.session_state:
