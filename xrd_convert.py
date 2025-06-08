@@ -181,6 +181,14 @@ def run_data_converter():
         return pd.DataFrame(list(metadata.items()), columns=['Parameter', 'Value'])
 
     st.markdown("### 📜 .xrdml (PANalytical) ↔️ .xy ↔️ .ras (Rigaku) File Format Converter")
+    st.markdown(
+    """
+    <div style="background-color:red; padding:10px; border-radius:5px">
+        <h3 style="color:white; text-align:center;">🚨 Testing Mode 🚨</h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
     st.info(
         "Upload an `.xrdml` or `.ras` file to convert to `.xy`, or upload `.xy` text file to convert to `.xrdml` or `.ras`")
 
