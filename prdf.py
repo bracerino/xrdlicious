@@ -119,7 +119,7 @@ col1, col2 = st.columns([1.2, 0.4])
 with col2:
     st.info(
         "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
-        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](github.com/bracerino/xrdlicious)** and find the tutorial there."
+        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
