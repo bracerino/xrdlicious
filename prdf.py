@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 from helpers import *
-
+from xrd_conversion import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -276,11 +276,15 @@ calc_mode = st.sidebar.multiselect(
         "📊 (P)RDF",
         "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
         "📈 Interactive Data Plot",
-        "📉 PRDF from LAMMPS/XYZ trajectories"
+        "📉 PRDF from LAMMPS/XYZ trajectories",
+        "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
+if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
+    run_data_converter()
+    
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
