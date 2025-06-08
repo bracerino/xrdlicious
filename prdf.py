@@ -119,9 +119,15 @@ components.html(
 st.markdown(
     """
     <h4>
-        <strong><em><span style='color:#1E90FF;'>XRDlicious:</span></em></strong>
+        <strong><em><span style='color:#8b0000;'>XRDlicious:</span></em></strong>
         <span style='font-size:0.85em;'>Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
     </h4>
+    """,
+    unsafe_allow_html=True
+)
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 20px 0;">
     """,
     unsafe_allow_html=True
 )
