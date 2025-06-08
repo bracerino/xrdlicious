@@ -5619,7 +5619,7 @@ if "📊 (P)RDF" in calc_mode:
     line_style = st.radio(
         "Line Style",
         ["Lines + Markers", "Lines Only"],
-        index=0,
+        index=1,
         key="line_style",
         horizontal=True,
         help="Select how to display PRDF lines - with or without point markers"
