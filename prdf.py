@@ -387,7 +387,7 @@ if uploaded_files_user_sidebar:
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
-st.markdown("##### 🔍 Search for structures in online databases?")
+#st.markdown("##### 🔍 Search for structures in online databases?")
 
 
 def display_structure_types():
