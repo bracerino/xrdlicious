@@ -457,9 +457,9 @@ show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, C
 
 if st.session_state["first_run_note"] == True:
     colh1, colh2 = st.columns([1, 3])
-    #with colh1:
-    #    image = Image.open("images/Rb.png")
-    #    st.image(image)
+    with colh1:
+        image = Image.open("images/Rb.png")
+        st.image(image)
     with colh2:
         st.info("""
         From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
@@ -1229,8 +1229,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
-                                    st.info(
-                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
+                                st.info(
+                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                         tab_index += 1
 
                     if 'aflow_options' in st.session_state and st.session_state.aflow_options:
