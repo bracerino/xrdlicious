@@ -289,7 +289,7 @@ def run_data_converter():
                     st.info(f"Please press enter in the filename field when the name was changed.")
 
                     xy_data = convert_to_xy(data_df, include_header)
-                    st.download_button("⬇️ Download as .xy File", xy_data, download_filename_input, "text/plain")
+                    st.download_button("⬇️ Download as .xy File", xy_data, download_filename_input, "text/plain", type = "primary")
                 with col2:
                     st.markdown("#### 📈 Diffraction Pattern")
                     fig = go.Figure(
@@ -340,7 +340,8 @@ def run_data_converter():
                             label=f"⬇️ Download {download_filename}",
                             data=file_content_to_download,
                             file_name=download_filename,
-                            mime=mime_type
+                            mime=mime_type,
+                            type = "primary"
                         )
                 with col2:
                     st.markdown("#### 📈 Diffraction Pattern")
