@@ -119,7 +119,7 @@ col1, col2 = st.columns([1.2, 0.4])
 with col2:
     st.info(
         "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
-        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](github.com/bracerino/xrdlicious)** and find the tutorial there."
+        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
@@ -221,6 +221,12 @@ pattern_details = None
 
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = "Advanced"
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    """,
+    unsafe_allow_html=True
+)
 
 calc_mode = st.sidebar.multiselect(
     "Choose Type(s) of Calculation/Analysis",
@@ -298,12 +304,7 @@ def remove_fractional_occupancies_safely(structure):
     return ordered_structure
 
 
-st.markdown(
-    """
-    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
-    """,
-    unsafe_allow_html=True
-)
+
 
 col3, col1, col2 = st.columns(3)
 
