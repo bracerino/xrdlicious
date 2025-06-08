@@ -398,7 +398,7 @@ def display_structure_types():
 
 # Then in Streamlit main block
 #display_structure_types()
-show_database_search = st.checkbox("Enable database search",
+show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
