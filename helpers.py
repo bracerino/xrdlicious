@@ -1269,6 +1269,9 @@ def show_xrdlicious_roadmap():
 #### Improved Database Search
 * ✅ Add search by keywords, space groups, ids... in database queries.
 
+#### Adding More Databases
+* ⏳Potentially add additional databases such as NOMAD, or implement the OPTIMADE aggregator 
+
 #### Expanded Correction Factors & Peak Shapes
 * ⏳ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
 * ⏳ Introduce preferred orientation and basic absorption corrections.
