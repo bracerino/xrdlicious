@@ -1284,7 +1284,7 @@ def show_xrdlicious_roadmap():
 #### Enhanced XRD Data Conversion
 * ⏳ More accessible conversion interface - not hidden within the interactive plot.
 * ⏳ Batch operations on multiple files at once (e.g., FDS/VDS, wavelength).
-* ✅ Add conversion from PANalytical .xrdml and Rigaku .ras diffraction pattern format to .xy file format 
+* ✅ Add conversion from PANalytical .xrdml and Rigaku .ras diffraction pattern file format to .xy file format 
 
 #### Basic Peak Fitting (Experimental Data)
 * ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
