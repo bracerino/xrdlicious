@@ -200,7 +200,7 @@ with col3:
 with col1:
     with st.expander("About the app.", icon="📖"):
         st.info(
-            "Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion. "
+            "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
             "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
             "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
             "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
