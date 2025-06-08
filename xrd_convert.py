@@ -182,13 +182,13 @@ def run_data_converter():
 
     st.markdown("### 📜 .xrdml (PANalytical) ↔️ .xy ↔️ .ras (Rigaku) File Format Converter")
     st.markdown(
-    """
-    <div style="background-color:red; padding:10px; border-radius:5px">
-        <h3 style="color:white; text-align:center;">🚨 Testing Mode 🚨</h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        """
+        <div style="background-color:#f8d7da; padding:6px 10px; border-radius:4px; border:1px solid #f5c2c7; width: fit-content;">
+            <span style="color:#842029; font-size:14px;">🔧 Testing mode</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.info(
         "Upload an `.xrdml` or `.ras` file to convert to `.xy`, or upload `.xy` text file to convert to `.xrdml` or `.ras`")
 
