@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 from helpers import *
-
+from xrd_convert import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -134,7 +134,7 @@ mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds 1600 MB
-if memory_usage > 1900:
+if memory_usage > 1600:
     # Show warning message
     st.markdown(
         f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
@@ -276,11 +276,15 @@ calc_mode = st.sidebar.multiselect(
         "📊 (P)RDF",
         "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
         "📈 Interactive Data Plot",
-        "📉 PRDF from LAMMPS/XYZ trajectories"
+        "📉 PRDF from LAMMPS/XYZ trajectories",
+        "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
+if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
+    run_data_converter()
+    
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
@@ -353,7 +357,7 @@ if 'full_structures' not in st.session_state:
 
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload Structure Files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
+    "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=None,
     accept_multiple_files=True,
     key="sidebar_uploader"
@@ -398,7 +402,7 @@ def display_structure_types():
 
 # Then in Streamlit main block
 #display_structure_types()
-show_database_search = st.checkbox("Enable database search",
+show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
@@ -3640,7 +3644,7 @@ unique_files = {f.name: f for f in uploaded_files
                 if f.name not in st.session_state.files_marked_for_removal}.values()
 uploaded_files[:] = list(unique_files)
 
-with st.sidebar.expander("📁 Final List of Structure Files", expanded=True):
+with st.sidebar.expander("📁 Final list of structure files", expanded=True):
     if uploaded_files:
         st.write(f"**Total: {len(uploaded_files)} file(s)**")
 
@@ -5494,34 +5498,37 @@ if "💥 Powder Diffraction" in calc_mode:
             """,
             unsafe_allow_html=True,
         )
-        with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
-            combined_df = pd.DataFrame()
-            data_list = []
-            for file in uploaded_files:
-                file_name = file.name
-                if file_name in combined_data:
-                    peak_vals = combined_data[file_name]["Peak Vals"]
-                    intensities = combined_data[file_name]["Intensities"]
-                    hkls = combined_data[file_name]["HKLs"]
-                    for i in range(len(peak_vals)):
-                        for group in hkls:
-                            for item in group:
-                                hkl = item['hkl']
-                                if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
-                                    continue
-                                if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
-                                    continue
-                        if len(hkl) == 3:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                for h in hkls[i]])
-                        else:
-                            hkl_str = ", ".join([
-                                f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                for h in hkls[i]])
-                        data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-            combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
-            st.dataframe(combined_df)
+        view_combined = st.checkbox("📈 View peak data across all structures in an interactive table",
+                                  )
+        if view_combined:
+            with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
+                combined_df = pd.DataFrame()
+                data_list = []
+                for file in uploaded_files:
+                    file_name = file.name
+                    if file_name in combined_data:
+                        peak_vals = combined_data[file_name]["Peak Vals"]
+                        intensities = combined_data[file_name]["Intensities"]
+                        hkls = combined_data[file_name]["HKLs"]
+                        for i in range(len(peak_vals)):
+                            for group in hkls:
+                                for item in group:
+                                    hkl = item['hkl']
+                                    if len(hkl) == 3 and tuple(hkl[:3]) == (0, 0, 0):
+                                        continue
+                                    if len(hkl) == 4 and tuple(hkl[:4]) == (0, 0, 0, 0):
+                                        continue
+                            if len(hkl) == 3:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                    for h in hkls[i]])
+                            else:
+                                hkl_str = ", ".join([
+                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                    for h in hkls[i]])
+                            data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
+                combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+                st.dataframe(combined_df)
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
@@ -7321,7 +7328,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             df_out.to_csv(buffer, sep=delimiter_option, index=False)
 
             base_name = file.name.rsplit(".", 1)[0]
-            download_name = f"{base_name}_processed.txt"
+            download_name = f"{base_name}_processed.xy"
 
             download_info = ""
             if fix_x_axis:
