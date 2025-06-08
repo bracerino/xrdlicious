@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 from helpers import *
-from xrd_conversion import *
+from xrd_convert import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
