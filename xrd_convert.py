@@ -180,7 +180,7 @@ def run_data_converter():
             }
         return pd.DataFrame(list(metadata.items()), columns=['Parameter', 'Value'])
 
-    st.markdown("### 📜 .xrdml (PANalytical) ↔️ .xy ↔️ .ras (Rigaku) File Format Converter")
+    st.markdown("### 📜 .xrdml (PANalytical) ↔️ .xy ↔️ .ras (Rigaku) XRD File Format Converter")
     st.markdown(
         """
         <div style="background-color:#f8d7da; padding:6px 10px; border-radius:4px; border:1px solid #f5c2c7; width: fit-content;">
