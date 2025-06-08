@@ -61,41 +61,6 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-st.markdown(
-    """
-    <style>
-    div.stButton > button {
-        background-color: #0099ff;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        padding: 0.5em 1em;
-        border: none;
-        border-radius: 5px;
-        height: 3em;
-        width: 100%;
-    }
-    div.stButton > button:active,
-    div.stButton > button:focus {
-        background-color: #0099ff !important;
-        color: white !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <style>
-    div[data-testid="stDataFrameContainer"] table td {
-         font-size: 22px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -105,14 +70,7 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-components.html(
-    """
-    <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
-    </head>
-    """,
-    height=0,
-)
+
 
 # st.markdown(
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
@@ -459,6 +417,41 @@ show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, C
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
 
+
+st.markdown(
+    """
+    <style>
+    div.stButton > button {
+        background-color: #0099ff;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 5px;
+        height: 3em;
+        width: 100%;
+    }
+    div.stButton > button:active,
+    div.stButton > button:focus {
+        background-color: #0099ff !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrameContainer"] table td {
+         font-size: 22px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 if st.session_state["first_run_note"] == True:
@@ -7403,7 +7396,14 @@ if "📈 Interactive Data Plot" in calc_mode:
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
 
-
+components.html(
+    """
+    <head>
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
+    </head>
+    """,
+    height=0,
+)
 def get_session_memory_usage():
     total_size = 0
     for key in st.session_state:
