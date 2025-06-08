@@ -118,7 +118,7 @@ col1, col2 = st.columns([1.2, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
         "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
@@ -169,7 +169,7 @@ with col1:
     with st.expander("Roadmap", icon="🧭"):
         show_xrdlicious_roadmap()
 
-    citations = st.checkbox("📚 How to Cite", value = False)
+    citations = st.checkbox("📚 How to cite", value = False)
 if citations:
     st.markdown("""
     ### 📚 How to Cite
@@ -185,7 +185,7 @@ if citations:
     
     ---
     
-    #### 🔁 **Using Calculated PRDF (Partial Radial Distribution Function)**
+    #### 🔁 **Using Calculated PRDF**
     - **XRDlicious, 2025** – for the interface.
     - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
     - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
