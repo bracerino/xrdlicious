@@ -6504,7 +6504,7 @@ if "📈 Interactive Data Plot" in calc_mode:
     colors = ['blue', 'red', 'green', 'orange', 'purple', 'black', 'grey']
 
     st.markdown(
-        "#### 📂 Upload your two-column data files in the sidebar to see them in an interactive plot. Multiple files are supported, and your columns can be separated by spaces, tabs, commas, or semicolons. 👍"
+        "#### 📂 Upload your two-column data files in the sidebar to see them in an interactive plot. Multiple files are supported, and your columns can be separated by spaces, tabs, commas, or semicolons."
     )
 
     colss, colzz, colx, colc, cold = st.columns([1, 1, 1, 1, 1])
@@ -6517,7 +6517,7 @@ if "📈 Interactive Data Plot" in calc_mode:
     col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([2, 1, 1, 1, 1])
     with col_thick:
         st.info(
-            f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot.")
+            f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot. Enable 'Normalized intensity' to **automatically shift data files in vertical direction**.")
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
     if fix_x_axis == True:
         x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
@@ -6546,6 +6546,27 @@ if "📈 Interactive Data Plot" in calc_mode:
         else:
             x_axis_metric = "X-data"
             y_axis_metric = "Y-data"
+
+    if normalized_intensity:
+        col1, col2, col3 = st.columns([2, 2, 1])
+        with col1:
+            if st.button("✨ Stack Plots"):
+                offset_gap_value = st.session_state.get('stack_offset_gap', 10.0)
+                auto_normalize_and_stack_plots(files, skip_header, has_header, offset_gap_value)
+                #st.rerun()
+        with col2:
+            if st.button("🔄 Reset Layout"):
+                reset_layout(files)
+                #st.rerun()
+        with col3:
+            st.number_input(
+                "Stacking Gap",
+                min_value=0.0,
+                value=10.0,
+                step=5.0,
+                key='stack_offset_gap',
+                help="The vertical space to add between stacked, normalized plots."
+            )
 
     plot_placeholder = st.empty()
     st.sidebar.markdown("### Interactive Data Plot layout")
@@ -6603,7 +6624,7 @@ if "📈 Interactive Data Plot" in calc_mode:
         st.sidebar.markdown("#### Custom Axis Labels")
         col_x_label, col_y_label = st.sidebar.columns(2)
         custom_x_label = col_x_label.text_input("X-axis Label", value=x_axis_metric, key="custom_x_label")
-        custom_y_label = col_y_label.text_input("Y-axis Label", value=y_axis_metric, key="custom_y_label")
+        custom_y_label = col_y_label.text_input("Y-axis FLabel", value=y_axis_metric, key="custom_y_label")
 
         if user_pattern_file:
             st.sidebar.markdown("#### Custom Series Names")
@@ -6632,6 +6653,8 @@ if "📈 Interactive Data Plot" in calc_mode:
         custom_x_label = x_axis_metric
         custom_y_label = y_axis_metric
         series_names = {}
+
+
 
     enable_conversion = st.checkbox(f"Enable powder **XRD data conversion**", value=False)
 
@@ -6907,6 +6930,11 @@ if "📈 Interactive Data Plot" in calc_mode:
 
                 x_data = df.iloc[:, 0].values
                 y_data = df.iloc[:, 1].values
+
+                if st.session_state.get('auto_stack_enabled', False):
+                    min_adjustments = st.session_state.get('min_adjustments', [])
+                    if i < len(min_adjustments):
+                        y_data = y_data - min_adjustments[i]
 
                 if enable_conversion:
                     settings = file_conversion_settings[i]  # this must match the same index i as files[i]
@@ -7191,7 +7219,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             # Configure legend position based on selection
             legend_config = {
                 "font": dict(size=legend_font_size),
-                #"title": "Legend Title"
+                # "title": "Legend Title"
             }
 
             if legend_position == "Top":
@@ -7244,10 +7272,10 @@ if "📈 Interactive Data Plot" in calc_mode:
                     title=dict(text=custom_y_label, font=dict(size=axis_label_font_size, color='black')),
                     tickfont=dict(size=tick_font_size, color='black')
                 ),
-                #title=dict(
+                # title=dict(
                 #    text="Interactive Data Plot",
                 #    font=dict(size=title_font_size, color='black')
-                #),
+                # ),
                 hoverlabel=dict(font=dict(size=tick_font_size)),
                 font=dict(size=18),
                 autosize=False
