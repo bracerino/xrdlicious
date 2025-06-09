@@ -742,8 +742,8 @@ def get_full_conventional_structure_diffra(structure, symprec=1e-3):
 
 def get_full_conventional_structure(structure, symprec=1e-3):
     # Create the spglib cell tuple: (lattice, fractional coords, atomic numbers)
-    cell = (structure.lattice.matrix, structure.frac_coords,
-            [max(site.species, key=site.species.get).number for site in structure])
+    cell = (structure.lattice.matrix, structure.frac_coords, [site.specie.number for site in structure])
+            #[max(site.species, key=site.species.get).number for site in structure])
 
     dataset = spglib.get_symmetry_dataset(cell, symprec=symprec)
     std_lattice = dataset['std_lattice']
