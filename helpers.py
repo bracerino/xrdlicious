@@ -843,7 +843,7 @@ def get_structure_from_cif_url(cif_url):
 
 def get_cod_str(cif_content):
     parser = CifParser.from_str(cif_content)
-    structure = parser.get_structures(primitive=False)[0]
+    structure = parser.parse_structures(primitive=False)[0]
     return structure
 
 
@@ -1383,7 +1383,7 @@ def fetch_and_parse_cod_cif(entry):
         cif_content = response.text
         parser = CifParser.from_str(cif_content)
 
-        structure = parser.get_structures(primitive=False)[0]
+        structure = parser.parse_structures(primitive=False)[0]
         cod_id = f"cod_{file_id}"
         return cod_id, structure, entry, None
 
