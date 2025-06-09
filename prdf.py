@@ -4756,644 +4756,645 @@ if "💥 Powder Diffraction" in calc_mode:
                     x_user, y_user = None, None
 
     if st.session_state.calc_xrd and uploaded_files:
+        with st.spinner("Calculating the powder diffraction pattern(s), please wait. 😊"):
 
-        if "new_structure_added" in st.session_state and st.session_state.new_structure_added:
-            # Show a success message at the top of the XRD section
-            if "new_structure_name" in st.session_state:
-                st.success(
-                    f"Modified structure '{st.session_state.new_structure_name}' has been added to the calculation.")
-
-            # Reset the flag so the message doesn't show again
-            st.session_state.new_structure_added = False
-
-        save_params_to_session_state()
-        peak_representation = st.session_state.peak_representation
-        intensity_scale_option = st.session_state.intensity_scale_option
-        diffraction_choice = st.session_state.diffraction_choice
-        line_thickness = st.session_state.line_thickness
-        use_debye_waller = st.session_state.use_debye_waller
-        wavelength_value = st.session_state.wavelength_value
-        wavelength_A = wavelength_value * 10  # Convert nm to Å
-        wavelength_nm = wavelength_value
-        sigma = st.session_state.sigma
-        x_axis_metric = st.session_state.x_axis_metric
-        y_axis_scale = st.session_state.y_axis_scale
-        intensity_filter = st.session_state.intensity_filter
-        num_annotate = st.session_state.num_annotate
-
-        multi_component_presets = {
-            "Cu(Ka1+Ka2)": {
-                "wavelengths": [0.15406, 0.15444],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Cu(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.15406, 0.15444, 0.13922],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
-            },
-            "Mo(Ka1+Ka2)": {
-                "wavelengths": [0.07093, 0.0711],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Mo(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.07093, 0.0711, 0.064],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
-            },
-            "Cr(Ka1+Ka2)": {
-                "wavelengths": [0.22897, 0.22888],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Cr(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.22897, 0.22888, 0.208],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
-            },
-            "Fe(Ka1+Ka2)": {
-                "wavelengths": [0.19360, 0.194],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Fe(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.19360, 0.194, 0.176],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
-            },
-            "Co(Ka1+Ka2)": {
-                "wavelengths": [0.17889, 0.17927],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Co(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.17889, 0.17927, 0.163],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
-            },
-            "Ag(Ka1+Ka2)": {
-                "wavelengths": [0.0561, 0.05634],
-                "factors": [1.0, 1 / 2.0]
-            },
-            "Ag(Ka1+Ka2+Kb1)": {
-                "wavelengths": [0.0561, 0.05634, 0.0496],
-                "factors": [1.0, 1 / 2.0, 1 / 9.0]
+            if "new_structure_added" in st.session_state and st.session_state.new_structure_added:
+                # Show a success message at the top of the XRD section
+                if "new_structure_name" in st.session_state:
+                    st.success(
+                        f"Modified structure '{st.session_state.new_structure_name}' has been added to the calculation.")
+    
+                # Reset the flag so the message doesn't show again
+                st.session_state.new_structure_added = False
+    
+            save_params_to_session_state()
+            peak_representation = st.session_state.peak_representation
+            intensity_scale_option = st.session_state.intensity_scale_option
+            diffraction_choice = st.session_state.diffraction_choice
+            line_thickness = st.session_state.line_thickness
+            use_debye_waller = st.session_state.use_debye_waller
+            wavelength_value = st.session_state.wavelength_value
+            wavelength_A = wavelength_value * 10  # Convert nm to Å
+            wavelength_nm = wavelength_value
+            sigma = st.session_state.sigma
+            x_axis_metric = st.session_state.x_axis_metric
+            y_axis_scale = st.session_state.y_axis_scale
+            intensity_filter = st.session_state.intensity_filter
+            num_annotate = st.session_state.num_annotate
+    
+            multi_component_presets = {
+                "Cu(Ka1+Ka2)": {
+                    "wavelengths": [0.15406, 0.15444],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Cu(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.15406, 0.15444, 0.13922],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                },
+                "Mo(Ka1+Ka2)": {
+                    "wavelengths": [0.07093, 0.0711],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Mo(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.07093, 0.0711, 0.064],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                },
+                "Cr(Ka1+Ka2)": {
+                    "wavelengths": [0.22897, 0.22888],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Cr(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.22897, 0.22888, 0.208],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                },
+                "Fe(Ka1+Ka2)": {
+                    "wavelengths": [0.19360, 0.194],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Fe(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.19360, 0.194, 0.176],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                },
+                "Co(Ka1+Ka2)": {
+                    "wavelengths": [0.17889, 0.17927],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Co(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.17889, 0.17927, 0.163],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                },
+                "Ag(Ka1+Ka2)": {
+                    "wavelengths": [0.0561, 0.05634],
+                    "factors": [1.0, 1 / 2.0]
+                },
+                "Ag(Ka1+Ka2+Kb1)": {
+                    "wavelengths": [0.0561, 0.05634, 0.0496],
+                    "factors": [1.0, 1 / 2.0, 1 / 9.0]
+                }
             }
-        }
-
-        is_multi_component = preset_choice in multi_component_presets
-        if is_multi_component:
-            comp_info = multi_component_presets[preset_choice]
-            if "labels" not in comp_info:
-                n = len(comp_info["wavelengths"])
-                if n == 2:
-                    comp_info["labels"] = ["Kα1", "Kα2"]
-                elif n == 3:
-                    comp_info["labels"] = ["Kα1", "Kα2", "Kβ"]
-                else:
-                    comp_info["labels"] = ["Kα1"] * n
-
-        colors = plt.cm.tab10.colors
-        pattern_details = {}
-        full_range = (0.01, 179.9)
-
-        for idx, file in enumerate(uploaded_files):
-
-            mg_structure = load_structure(file)
-            mg_structure = get_full_conventional_structure_diffra(mg_structure)
-            debye_waller_dict = None
-            if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
-                file_key = file.name
-                if file_key in st.session_state.debye_waller_factors_per_file:
-                    debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
-
+    
+            is_multi_component = preset_choice in multi_component_presets
             if is_multi_component:
-                num_points = 2000  # 20000
-                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
-                dx = x_dense_full[1] - x_dense_full[0]
-                y_dense_total = np.zeros_like(x_dense_full)
-                all_filtered_x = []
-                all_filtered_y = []
-                all_filtered_hkls = []
-                all_peak_types = []
                 comp_info = multi_component_presets[preset_choice]
-                for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
-                    wavelength_A_comp = wl * 10  # convert nm to Å
-                    if diffraction_choice == "ND (Neutron)":
-                        diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
+                if "labels" not in comp_info:
+                    n = len(comp_info["wavelengths"])
+                    if n == 2:
+                        comp_info["labels"] = ["Kα1", "Kα2"]
+                    elif n == 3:
+                        comp_info["labels"] = ["Kα1", "Kα2", "Kβ"]
                     else:
-                        diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
-                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
-                                                         scaled=False)
-
+                        comp_info["labels"] = ["Kα1"] * n
+    
+            colors = plt.cm.tab10.colors
+            pattern_details = {}
+            full_range = (0.01, 179.9)
+    
+            for idx, file in enumerate(uploaded_files):
+    
+                mg_structure = load_structure(file)
+                mg_structure = get_full_conventional_structure_diffra(mg_structure)
+                debye_waller_dict = None
+                if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
+                    file_key = file.name
+                    if file_key in st.session_state.debye_waller_factors_per_file:
+                        debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
+    
+                if is_multi_component:
+                    num_points = 2000  # 20000
+                    x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                    dx = x_dense_full[1] - x_dense_full[0]
+                    y_dense_total = np.zeros_like(x_dense_full)
+                    all_filtered_x = []
+                    all_filtered_y = []
+                    all_filtered_hkls = []
+                    all_peak_types = []
+                    comp_info = multi_component_presets[preset_choice]
+                    for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
+                        wavelength_A_comp = wl * 10  # convert nm to Å
+                        if diffraction_choice == "ND (Neutron)":
+                            diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
+                        else:
+                            diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
+                        diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
+                                                             scaled=False)
+    
+                        filtered_x = []
+                        filtered_y = []
+                        filtered_hkls = []
+                        max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
+                        intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+    
+                        for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
+                            if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
+                                continue
+                            if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                                continue
+    
+                            if intensity_filter > 0 and y_val < intensity_threshold:
+                                continue
+                            filtered_x.append(x_val)
+                            filtered_y.append(y_val * factor)  # scale intensity
+                            filtered_hkls.append(hkl_group)
+                            all_peak_types.append(comp_info["labels"][comp_index])
+                        y_dense_comp = np.zeros_like(x_dense_full)
+                        if peak_representation == "Gaussian":
+                            for peak, intensity in zip(filtered_x, filtered_y):
+                                gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
+                                area = np.sum(gauss) * dx
+                                y_dense_comp += (intensity / area) * gauss
+                        else:
+                            for peak, intensity in zip(filtered_x, filtered_y):
+                                idx_closest = np.argmin(np.abs(x_dense_full - peak))
+                                y_dense_comp[idx_closest] += intensity
+                        if y_axis_scale != "Linear":
+                            y_dense_comp = convert_intensity_scale(y_dense_comp, y_axis_scale)
+                        if y_axis_scale != "Linear":
+                            filtered_y = convert_intensity_scale(filtered_y, y_axis_scale)
+    
+                        y_dense_total += y_dense_comp
+                        # if y_axis_scale != "Linear":
+                        #    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
+                        all_filtered_x.extend(filtered_x)
+                        all_filtered_y.extend(filtered_y)
+                        # if y_axis_scale != "Linear":
+                        #    for i in range(len(all_filtered_y)):
+                        #        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+    
+                        all_filtered_hkls.extend(filtered_hkls)
+                else:
+                    if diffraction_choice == "ND (Neutron)":
+                        diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
+                    else:
+                        diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
+                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
                     filtered_x = []
                     filtered_y = []
                     filtered_hkls = []
+    
                     max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
                     intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
-
                     for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                         if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                             continue
                         if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
                             continue
-
                         if intensity_filter > 0 and y_val < intensity_threshold:
                             continue
                         filtered_x.append(x_val)
-                        filtered_y.append(y_val * factor)  # scale intensity
+                        filtered_y.append(y_val)
                         filtered_hkls.append(hkl_group)
-                        all_peak_types.append(comp_info["labels"][comp_index])
-                    y_dense_comp = np.zeros_like(x_dense_full)
+                    num_points = 2000  # 20000
+                    x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
+                    dx = x_dense_full[1] - x_dense_full[0]
+                    y_dense_total = np.zeros_like(x_dense_full)
                     if peak_representation == "Gaussian":
                         for peak, intensity in zip(filtered_x, filtered_y):
                             gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
                             area = np.sum(gauss) * dx
-                            y_dense_comp += (intensity / area) * gauss
+                            y_dense_total += (intensity / area) * gauss
                     else:
                         for peak, intensity in zip(filtered_x, filtered_y):
                             idx_closest = np.argmin(np.abs(x_dense_full - peak))
-                            y_dense_comp[idx_closest] += intensity
+                            y_dense_total[idx_closest] += intensity
                     if y_axis_scale != "Linear":
-                        y_dense_comp = convert_intensity_scale(y_dense_comp, y_axis_scale)
+                        # Convert the dense y values (continuous curve)
+                        y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
+                    all_filtered_x = filtered_x
+                    all_filtered_y = filtered_y
                     if y_axis_scale != "Linear":
-                        filtered_y = convert_intensity_scale(filtered_y, y_axis_scale)
-
-                    y_dense_total += y_dense_comp
-                    # if y_axis_scale != "Linear":
-                    #    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
-                    all_filtered_x.extend(filtered_x)
-                    all_filtered_y.extend(filtered_y)
-                    # if y_axis_scale != "Linear":
-                    #    for i in range(len(all_filtered_y)):
-                    #        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
-
-                    all_filtered_hkls.extend(filtered_hkls)
-            else:
-                if diffraction_choice == "ND (Neutron)":
-                    diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
+                        for i in range(len(all_filtered_y)):
+                            all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+    
+                    all_filtered_hkls = filtered_hkls
+                    all_peak_types = ["Kα1"] * len(filtered_x)
+    
+                if intensity_scale_option == "Normalized":
+                    norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
+                    y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
+                    displayed_intensity_array = (np.array(all_filtered_y) / norm_factor) * 100
                 else:
-                    diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
-                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
-                filtered_x = []
-                filtered_y = []
-                filtered_hkls = []
-
-                max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
-                intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
-                for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
-                    if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
-                        continue
-                    if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
-                        continue
-                    if intensity_filter > 0 and y_val < intensity_threshold:
-                        continue
-                    filtered_x.append(x_val)
-                    filtered_y.append(y_val)
-                    filtered_hkls.append(hkl_group)
-                num_points = 2000  # 20000
-                x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
-                dx = x_dense_full[1] - x_dense_full[0]
-                y_dense_total = np.zeros_like(x_dense_full)
-                if peak_representation == "Gaussian":
-                    for peak, intensity in zip(filtered_x, filtered_y):
-                        gauss = np.exp(-((x_dense_full - peak) ** 2) / (2 * sigma ** 2))
-                        area = np.sum(gauss) * dx
-                        y_dense_total += (intensity / area) * gauss
+                    displayed_intensity_array = np.array(all_filtered_y)
+    
+                peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
+                                               diffraction_choice)
+                ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
+                ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
+                if ka1_intensities:
+                    sorted_ka1 = sorted(zip(ka1_indices, ka1_intensities), key=lambda x: x[1], reverse=True)
+                    annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
                 else:
-                    for peak, intensity in zip(filtered_x, filtered_y):
-                        idx_closest = np.argmin(np.abs(x_dense_full - peak))
-                        y_dense_total[idx_closest] += intensity
-                if y_axis_scale != "Linear":
-                    # Convert the dense y values (continuous curve)
-                    y_dense_total = convert_intensity_scale(y_dense_total, y_axis_scale)
-                all_filtered_x = filtered_x
-                all_filtered_y = filtered_y
-                if y_axis_scale != "Linear":
-                    for i in range(len(all_filtered_y)):
-                        all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
-
-                all_filtered_hkls = filtered_hkls
-                all_peak_types = ["Kα1"] * len(filtered_x)
-
-            if intensity_scale_option == "Normalized":
-                norm_factor = np.max(all_filtered_y) if np.max(all_filtered_y) > 0 else 1.0
-                y_dense_total = (y_dense_total / np.max(y_dense_total)) * 100
-                displayed_intensity_array = (np.array(all_filtered_y) / norm_factor) * 100
-            else:
-                displayed_intensity_array = np.array(all_filtered_y)
-
-            peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
-                                           diffraction_choice)
-            ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
-            ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
-            if ka1_intensities:
-                sorted_ka1 = sorted(zip(ka1_indices, ka1_intensities), key=lambda x: x[1], reverse=True)
-                annotate_indices = set(i for i, _ in sorted_ka1[:num_annotate])
-            else:
-                annotate_indices = set()
-            pattern_details[file.name] = {
-                "peak_vals": peak_vals,
-                "intensities": displayed_intensity_array,
-                "hkls": all_filtered_hkls,
-                "peak_types": all_peak_types,
-                "annotate_indices": annotate_indices,
-                "x_dense_full": x_dense_full,
-                "y_dense": y_dense_total
-            }
-
-        if peak_representation != "Delta":
-            if preset_choice in multi_component_presets:
-                st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
-                num_components = len(multi_component_presets[preset_choice]["wavelengths"])
-                if num_components > 1:
+                    annotate_indices = set()
+                pattern_details[file.name] = {
+                    "peak_vals": peak_vals,
+                    "intensities": displayed_intensity_array,
+                    "hkls": all_filtered_hkls,
+                    "peak_types": all_peak_types,
+                    "annotate_indices": annotate_indices,
+                    "x_dense_full": x_dense_full,
+                    "y_dense": y_dense_total
+                }
+    
+            if peak_representation != "Delta":
+                if preset_choice in multi_component_presets:
+                    st.sidebar.subheader("Include Kα1 or Kα2/Kβ for hovering:")
+                    num_components = len(multi_component_presets[preset_choice]["wavelengths"])
+                    if num_components > 1:
+                        show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
+                    if num_components >= 2:
+                        show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
+                    if num_components >= 3:
+                        show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
+                else:
+                    st.sidebar.subheader("Include Kα1 for hovering:")
                     show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-                if num_components >= 2:
-                    show_Kalpha2_hover = st.sidebar.checkbox("Include Kα2 hover", value=False)
-                if num_components >= 3:
-                    show_Kbeta_hover = st.sidebar.checkbox("Include Kβ hover", value=False)
-            else:
-                st.sidebar.subheader("Include Kα1 for hovering:")
-                show_Kalpha1_hover = st.sidebar.checkbox("Include Kα1 hover", value=True)
-
-        for idx, (file_name, details) in enumerate(pattern_details.items()):
-
-            base_color = rgb_color(colors[idx % len(colors)], opacity=0.8)
-            mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
-                    details["x_dense_full"] <= st.session_state.two_theta_max)
-            x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
-                                               x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
-            y_dense_range = details["y_dense"][mask]
-
-            if peak_representation == "Delta":
-                if "peak_types" in details:
-                    groups = {}
-                    for i, peak in enumerate(details["peak_vals"]):
-                        canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
-                                                       diffraction_choice)
-                        if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                            pt = details["peak_types"][i]
-                            groups.setdefault(pt, {"x": [], "y": [], "hover": []})
-                            groups[pt]["x"].append(details["peak_vals"][i])
-                            groups[pt]["y"].append(details["intensities"][i])
-                            hkl_group = details["hkls"][i]
-                            if len(hkl_group[0]['hkl']) == 3:
-                                hkl_str = ", ".join([
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in hkl_group])
+    
+            for idx, (file_name, details) in enumerate(pattern_details.items()):
+    
+                base_color = rgb_color(colors[idx % len(colors)], opacity=0.8)
+                mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
+                        details["x_dense_full"] <= st.session_state.two_theta_max)
+                x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
+                                                   x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                y_dense_range = details["y_dense"][mask]
+    
+                if peak_representation == "Delta":
+                    if "peak_types" in details:
+                        groups = {}
+                        for i, peak in enumerate(details["peak_vals"]):
+                            canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                           diffraction_choice)
+                            if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                                pt = details["peak_types"][i]
+                                groups.setdefault(pt, {"x": [], "y": [], "hover": []})
+                                groups[pt]["x"].append(details["peak_vals"][i])
+                                groups[pt]["y"].append(details["intensities"][i])
+                                hkl_group = details["hkls"][i]
+                                if len(hkl_group[0]['hkl']) == 3:
+                                    hkl_str = ", ".join([
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        for h in hkl_group])
+                                else:
+                                    hkl_str = ", ".join([
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        for h in hkl_group])
+                                groups[pt]["hover"].append(f"(hkl): {hkl_str}")
+                        for pt, data in groups.items():
+                            if pt == "Kα1":
+                                pt_color = base_color
+                                dash_type = "solid"
+                                hover_info = "text"
+                                hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+                            elif pt == "Kα2":
+                                pt_color = rgb_color(colors[idx % len(colors)], opacity=0.6)
+                                dash_type = "dot"
+                                hover_info = "skip"
+                                hover_template = None
+                            elif pt == "Kβ":
+                                pt_color = rgb_color(colors[idx % len(colors)], opacity=0.4)
+                                dash_type = "dash"
+                                hover_info = "skip"
+                                hover_template = None
                             else:
-                                hkl_str = ", ".join([
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in hkl_group])
-                            groups[pt]["hover"].append(f"(hkl): {hkl_str}")
-                    for pt, data in groups.items():
-                        if pt == "Kα1":
-                            pt_color = base_color
-                            dash_type = "solid"
-                            hover_info = "text"
-                            hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
-                        elif pt == "Kα2":
-                            pt_color = rgb_color(colors[idx % len(colors)], opacity=0.6)
-                            dash_type = "dot"
-                            hover_info = "skip"
-                            hover_template = None
-                        elif pt == "Kβ":
-                            pt_color = rgb_color(colors[idx % len(colors)], opacity=0.4)
-                            dash_type = "dash"
-                            hover_info = "skip"
-                            hover_template = None
-                        else:
-                            pt_color = base_color
-                            dash_type = "solid"
-                            hover_info = "text"
-                            hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
-
+                                pt_color = base_color
+                                dash_type = "solid"
+                                hover_info = "text"
+                                hover_template = f"<br>{file_name} - {pt}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>"
+    
+                            vertical_x = []
+                            vertical_y = []
+                            vertical_hover = []
+                            for j in range(len(data["x"])):
+                                vertical_x.extend([data["x"][j], data["x"][j], None])
+                                vertical_y.extend([0, data["y"][j], None])
+                                vertical_hover.extend([data["hover"][j], data["hover"][j], None])
+                            fig_interactive.add_trace(go.Scatter(
+                                x=vertical_x,
+                                y=vertical_y,
+                                mode='lines',
+                                name=f"{file_name} - {pt}",
+                                showlegend=True,
+                                line=dict(color=pt_color, width=line_thickness, dash=dash_type),
+                                hoverinfo=hover_info,
+                                text=vertical_hover,
+                                hovertemplate=hover_template,
+                                hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=24))
+                            ))
+                    else:
                         vertical_x = []
                         vertical_y = []
                         vertical_hover = []
-                        for j in range(len(data["x"])):
-                            vertical_x.extend([data["x"][j], data["x"][j], None])
-                            vertical_y.extend([0, data["y"][j], None])
-                            vertical_hover.extend([data["hover"][j], data["hover"][j], None])
+                        for i, peak in enumerate(details["peak_vals"]):
+                            canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
+                                                           diffraction_choice)
+                            if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
+                                vertical_x.extend([peak, peak, None])
+                                vertical_y.extend([0, details["intensities"][i], None])
+                                hkl_group = details["hkls"][i]
+                                if len(hkl_group[0]['hkl']) == 3:
+                                    hkl_str = ", ".join([
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        for h in hkl_group])
+                                else:
+                                    hkl_str = ", ".join([
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        for h in hkl_group])
+                                vertical_hover.extend([f"(hkl): {hkl_str}", f"(hkl): {hkl_str}", None])
                         fig_interactive.add_trace(go.Scatter(
                             x=vertical_x,
                             y=vertical_y,
                             mode='lines',
-                            name=f"{file_name} - {pt}",
+                            name=file_name,
                             showlegend=True,
-                            line=dict(color=pt_color, width=line_thickness, dash=dash_type),
-                            hoverinfo=hover_info,
+                            line=dict(color=base_color, width=line_thickness, dash="solid"),
+                            hoverinfo="text",
                             text=vertical_hover,
-                            hovertemplate=hover_template,
-                            hoverlabel=dict(bgcolor=pt_color, font=dict(color="white", size=24))
+                            hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
+                            hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=24))
                         ))
                 else:
-                    vertical_x = []
-                    vertical_y = []
-                    vertical_hover = []
+                    fig_interactive.add_trace(go.Scatter(
+                        x=x_dense_range,
+                        y=y_dense_range,
+                        mode='lines',
+                        name=file_name,
+                        line=dict(color=base_color, width=line_thickness),
+                        hoverinfo='skip'
+                    ))
+                    peak_vals_in_range = []
+                    intensities_in_range = []
+                    peak_hover_texts = []
+                    gaussian_max_intensities = []
                     for i, peak in enumerate(details["peak_vals"]):
+                        peak_type = details["peak_types"][i]
+                        if (peak_type == "Kα1" and not show_Kalpha1_hover) or (
+                                peak_type == "Kα2" and not show_Kalpha2_hover) or (
+                                peak_type == "Kβ" and not show_Kbeta_hover):
+                            continue
                         canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
                                                        diffraction_choice)
                         if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                            vertical_x.extend([peak, peak, None])
-                            vertical_y.extend([0, details["intensities"][i], None])
+                            peak_vals_in_range.append(peak)
+                            gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
+                            area = np.sum(gauss) * dx
+                            scaled_gauss = (details["intensities"][i] / area) * gauss
+                            max_gauss = np.max(scaled_gauss)
+                            gaussian_max_intensities.append(max_gauss)
                             hkl_group = details["hkls"][i]
                             if len(hkl_group[0]['hkl']) == 3:
-                                hkl_str = ", ".join([
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in hkl_group])
+                                hkl_str = ", ".join(
+                                    [
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        for h in hkl_group])
                             else:
-                                hkl_str = ", ".join([
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in hkl_group])
-                            vertical_hover.extend([f"(hkl): {hkl_str}", f"(hkl): {hkl_str}", None])
+                                hkl_str = ", ".join(
+                                    [
+                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        for h in hkl_group])
+                            if peak_type == "Kα1":
+                                hover_text = f"Kα1 (hkl): {hkl_str}"
+                            elif peak_type == "Kα2":
+                                hover_text = f"Kα2 (hkl): {hkl_str}"
+                            elif peak_type == "Kβ":
+                                hover_text = f"Kβ (hkl): {hkl_str}"
+                            else:
+                                hover_text = f"Kα1 (hkl): {hkl_str}"
+                            peak_hover_texts.append(hover_text)
+                    if intensity_scale_option == "Normalized" and gaussian_max_intensities:
+                        norm_marker = max(gaussian_max_intensities)
+                        gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
                     fig_interactive.add_trace(go.Scatter(
-                        x=vertical_x,
-                        y=vertical_y,
-                        mode='lines',
+                        x=peak_vals_in_range,
+                        y=gaussian_max_intensities,
+                        mode='markers',
                         name=file_name,
                         showlegend=True,
-                        line=dict(color=base_color, width=line_thickness, dash="solid"),
-                        hoverinfo="text",
-                        text=vertical_hover,
+                        marker=dict(color=base_color, size=8, opacity=0.5),
+                        text=peak_hover_texts,
                         hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                        hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=24))
+                        hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
                     ))
-            else:
-                fig_interactive.add_trace(go.Scatter(
-                    x=x_dense_range,
-                    y=y_dense_range,
-                    mode='lines',
-                    name=file_name,
-                    line=dict(color=base_color, width=line_thickness),
-                    hoverinfo='skip'
-                ))
-                peak_vals_in_range = []
-                intensities_in_range = []
-                peak_hover_texts = []
-                gaussian_max_intensities = []
-                for i, peak in enumerate(details["peak_vals"]):
-                    peak_type = details["peak_types"][i]
-                    if (peak_type == "Kα1" and not show_Kalpha1_hover) or (
-                            peak_type == "Kα2" and not show_Kalpha2_hover) or (
-                            peak_type == "Kβ" and not show_Kbeta_hover):
-                        continue
-                    canonical = metric_to_twotheta(peak, x_axis_metric, wavelength_A, wavelength_nm,
-                                                   diffraction_choice)
-                    if st.session_state.two_theta_min <= canonical <= st.session_state.two_theta_max:
-                        peak_vals_in_range.append(peak)
-                        gauss = np.exp(-((details["x_dense_full"] - peak) ** 2) / (2 * sigma ** 2))
-                        area = np.sum(gauss) * dx
-                        scaled_gauss = (details["intensities"][i] / area) * gauss
-                        max_gauss = np.max(scaled_gauss)
-                        gaussian_max_intensities.append(max_gauss)
-                        hkl_group = details["hkls"][i]
-                        if len(hkl_group[0]['hkl']) == 3:
-                            hkl_str = ", ".join(
-                                [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in hkl_group])
+    
+            display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A,
+                                                    wavelength_nm, diffraction_choice)
+            display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
+                                                    wavelength_nm, diffraction_choice)
+            colors = ["black", "brown", "grey", "purple"]
+            if user_pattern_file:
+                # Initialize parsed data cache if not already done
+                if "parsed_exp_data" not in st.session_state:
+                    st.session_state.parsed_exp_data = {}
+    
+                if isinstance(user_pattern_file, list):
+                    for i, file in enumerate(user_pattern_file):
+                        file_name = file.name
+    
+                        if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                            x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                            y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                            display_name = file_name + " (BG removed)"
+    
+                        elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                              "active_bg_subtracted_file" in st.session_state and
+                              st.session_state.active_bg_subtracted_file == file_name and
+                              "bg_subtracted_data" in st.session_state and
+                              file_name in st.session_state.bg_subtracted_data):
+    
+                            x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                            y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                            display_name = file_name + " (temp BG removed)"
                         else:
-                            hkl_str = ", ".join(
-                                [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in hkl_group])
-                        if peak_type == "Kα1":
-                            hover_text = f"Kα1 (hkl): {hkl_str}"
-                        elif peak_type == "Kα2":
-                            hover_text = f"Kα2 (hkl): {hkl_str}"
-                        elif peak_type == "Kβ":
-                            hover_text = f"Kβ (hkl): {hkl_str}"
-                        else:
-                            hover_text = f"Kα1 (hkl): {hkl_str}"
-                        peak_hover_texts.append(hover_text)
-                if intensity_scale_option == "Normalized" and gaussian_max_intensities:
-                    norm_marker = max(gaussian_max_intensities)
-                    gaussian_max_intensities = [val / norm_marker * 100 for val in gaussian_max_intensities]
-                fig_interactive.add_trace(go.Scatter(
-                    x=peak_vals_in_range,
-                    y=gaussian_max_intensities,
-                    mode='markers',
-                    name=file_name,
-                    showlegend=True,
-                    marker=dict(color=base_color, size=8, opacity=0.5),
-                    text=peak_hover_texts,
-                    hovertemplate=f"<br>{file_name}<br><b>{x_axis_metric}: %{{x:.2f}}</b><br>Intensity: %{{y:.2f}}<br><b>%{{text}}</b><extra></extra>",
-                    hoverlabel=dict(bgcolor=base_color, font=dict(color="white", size=20))
-                ))
-
-        display_metric_min = twotheta_to_metric(st.session_state.two_theta_min, x_axis_metric, wavelength_A,
-                                                wavelength_nm, diffraction_choice)
-        display_metric_max = twotheta_to_metric(st.session_state.two_theta_max, x_axis_metric, wavelength_A,
-                                                wavelength_nm, diffraction_choice)
-        colors = ["black", "brown", "grey", "purple"]
-        if user_pattern_file:
-            # Initialize parsed data cache if not already done
-            if "parsed_exp_data" not in st.session_state:
-                st.session_state.parsed_exp_data = {}
-
-            if isinstance(user_pattern_file, list):
-                for i, file in enumerate(user_pattern_file):
-                    file_name = file.name
-
-                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
-                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
-                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
-                        display_name = file_name + " (BG removed)"
-
-                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
-                          "active_bg_subtracted_file" in st.session_state and
-                          st.session_state.active_bg_subtracted_file == file_name and
-                          "bg_subtracted_data" in st.session_state and
-                          file_name in st.session_state.bg_subtracted_data):
-
-                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
-                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
-                        display_name = file_name + " (temp BG removed)"
-                    else:
-
-                        file.seek(0)
-                        file_contents = file.read()
-
-                        if isinstance(file_contents, bytes):
-                            file_contents = file_contents.decode('utf-8')
-
-                        from io import StringIO
-
-                        data_io = StringIO(file_contents)
-
-                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
-                        x_user = df.iloc[:, 0].values
-                        y_user = df.iloc[:, 1].values
-                        display_name = file_name
-
-                        file.seek(0)
-
-                    if y_axis_scale != "Linear":
-                        y_user = convert_intensity_scale(y_user, y_axis_scale)
-                    if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
-                        y_user = (y_user / np.max(y_user)) * 100
-
-                    mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
-                    x_user_filtered = x_user[mask_user]
-                    y_user_filtered = y_user[mask_user]
-
-                    color = colors[i % len(colors)]
-                    fig_interactive.add_trace(go.Scatter(
-                        x=x_user_filtered,
-                        y=y_user_filtered,
-                        mode="lines",
-                        name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
-                                                                 st.session_state.use_bg_subtracted and
-                                                                 "active_bg_subtracted_file" in st.session_state and
-                                                                 st.session_state.active_bg_subtracted_file == file_name) else ""),
-                        line=dict(dash='solid', width=1, color=color),
-                        marker=dict(color=color, size=3),
-                        hovertemplate=(
-                            f"<span style='color:{color};'><b>{file.name}:</b><br>"
-                            "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
-                        )
-                    ))
-                    fig_interactive.update_layout(
-                        height=800,
-                        margin=dict(t=80, b=80, l=60, r=30),
-                        hovermode="x",
-                        legend=dict(
-                            orientation="h",
-                            yanchor="top",
-                            y=-0.2,
-                            xanchor="center",
-                            x=0.5,
-                            font=dict(size=24)
-                        ),
-                        xaxis=dict(
-                            title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                            tickfont=dict(size=36, color='black')
-                        ),
-                        yaxis=dict(
-                            title=dict(text=y_axis_title, font=dict(size=36, color='black')),
-                            tickfont=dict(size=36, color='black')
-                        ),
-                        hoverlabel=dict(font=dict(size=24)),
-                        font=dict(size=18),
-                        autosize=True
-                    )
-            else:
-                file_name = user_pattern_file.name
-                try:
-
-                    if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
-                        x_user = st.session_state.permanent_exp_data[file_name]["x"]
-                        y_user = st.session_state.permanent_exp_data[file_name]["y"]
-                        display_name = file_name + " (BG removed)"
-
-                    elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
-                          "active_bg_subtracted_file" in st.session_state and
-                          st.session_state.active_bg_subtracted_file == file_name and
-                          "bg_subtracted_data" in st.session_state and
-                          file_name in st.session_state.bg_subtracted_data):
-
-                        x_user = st.session_state.bg_subtracted_data[file_name]["x"]
-                        y_user = st.session_state.bg_subtracted_data[file_name]["y"]
-                        display_name = file_name + " (temp BG removed)"
-                    else:
-                        user_pattern_file.seek(0)
-                        file_contents = user_pattern_file.read()
-
-                        if isinstance(file_contents, bytes):
-                            file_contents = file_contents.decode('utf-8')
-
-                        from io import StringIO
-
-                        data_io = StringIO(file_contents)
-
-                        df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
-                        x_user = df.iloc[:, 0].values
-                        y_user = df.iloc[:, 1].values
-                        display_name = file_name
-
-                        user_pattern_file.seek(0)
-
-                    if x_user is not None and y_user is not None:
+    
+                            file.seek(0)
+                            file_contents = file.read()
+    
+                            if isinstance(file_contents, bytes):
+                                file_contents = file_contents.decode('utf-8')
+    
+                            from io import StringIO
+    
+                            data_io = StringIO(file_contents)
+    
+                            df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                            x_user = df.iloc[:, 0].values
+                            y_user = df.iloc[:, 1].values
+                            display_name = file_name
+    
+                            file.seek(0)
+    
                         if y_axis_scale != "Linear":
                             y_user = convert_intensity_scale(y_user, y_axis_scale)
                         if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                             y_user = (y_user / np.max(y_user)) * 100
-
-                        mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                x_user <= st.session_state.two_theta_max)
+    
+                        mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
                         x_user_filtered = x_user[mask_user]
                         y_user_filtered = y_user[mask_user]
-
-                        color = "black"  # Default color for single file
+    
+                        color = colors[i % len(colors)]
                         fig_interactive.add_trace(go.Scatter(
                             x=x_user_filtered,
                             y=y_user_filtered,
                             mode="lines",
-                            name=display_name,
+                            name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
+                                                                     st.session_state.use_bg_subtracted and
+                                                                     "active_bg_subtracted_file" in st.session_state and
+                                                                     st.session_state.active_bg_subtracted_file == file_name) else ""),
                             line=dict(dash='solid', width=1, color=color),
                             marker=dict(color=color, size=3),
                             hovertemplate=(
-                                f"<span style='color:{color};'><b>{display_name}:</b><br>"
+                                f"<span style='color:{color};'><b>{file.name}:</b><br>"
                                 "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
                             )
                         ))
-                except Exception as e:
-                    st.error(f"Error processing file {file_name}: {e}")
-                    x_user, y_user = None, None
-
-            fig_interactive.update_layout(
-                xaxis_title="2θ (°)",
-                yaxis_title="Intensity",
-                autosize=True,
-                height=500
-            )
-        if x_axis_metric in ["d (Å)", "d (nm)"]:
-            fig_interactive.update_layout(xaxis=dict(range=[display_metric_max, display_metric_min]))
-        else:
-            fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
-
-        if peak_representation == "Delta" and intensity_scale_option != "Absolute":
-            fig_interactive.update_layout(
-                height=800,
-                margin=dict(t=80, b=80, l=60, r=30),
-                hovermode="x",
-                legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.2,
-                    xanchor="center",
-                    x=0.5,
-                    font=dict(size=24)
-                ),
-                xaxis=dict(
-                    title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                    tickfont=dict(size=36, color='black')
-                ),
-                yaxis=dict(
-                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
-                    tickfont=dict(size=36, color='black'), range=[0, 125]
-                ),
-                hoverlabel=dict(font=dict(size=24)),
-                font=dict(size=18),
-                autosize=True
-            )
-        else:
-            fig_interactive.update_layout(
-                height=1000,
-                margin=dict(t=80, b=80, l=60, r=30),
-                hovermode="x",
-                legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.2,
-                    xanchor="center",
-                    x=0.5,
-                    font=dict(size=24)
-                ),
-                xaxis=dict(
-                    title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
-                    tickfont=dict(size=36, color='black')
-                ),
-                yaxis=dict(
-                    title=dict(text=y_axis_title, font=dict(size=36, color='black')),
-                    tickfont=dict(size=36, color='black')
-                ),
-                hoverlabel=dict(font=dict(size=24)),
-                font=dict(size=18),
-                autosize=True
-            )
+                        fig_interactive.update_layout(
+                            height=800,
+                            margin=dict(t=80, b=80, l=60, r=30),
+                            hovermode="x",
+                            legend=dict(
+                                orientation="h",
+                                yanchor="top",
+                                y=-0.2,
+                                xanchor="center",
+                                x=0.5,
+                                font=dict(size=24)
+                            ),
+                            xaxis=dict(
+                                title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                                tickfont=dict(size=36, color='black')
+                            ),
+                            yaxis=dict(
+                                title=dict(text=y_axis_title, font=dict(size=36, color='black')),
+                                tickfont=dict(size=36, color='black')
+                            ),
+                            hoverlabel=dict(font=dict(size=24)),
+                            font=dict(size=18),
+                            autosize=True
+                        )
+                else:
+                    file_name = user_pattern_file.name
+                    try:
+    
+                        if "permanent_exp_data" in st.session_state and file_name in st.session_state.permanent_exp_data:
+                            x_user = st.session_state.permanent_exp_data[file_name]["x"]
+                            y_user = st.session_state.permanent_exp_data[file_name]["y"]
+                            display_name = file_name + " (BG removed)"
+    
+                        elif ("use_bg_subtracted" in st.session_state and st.session_state.use_bg_subtracted and
+                              "active_bg_subtracted_file" in st.session_state and
+                              st.session_state.active_bg_subtracted_file == file_name and
+                              "bg_subtracted_data" in st.session_state and
+                              file_name in st.session_state.bg_subtracted_data):
+    
+                            x_user = st.session_state.bg_subtracted_data[file_name]["x"]
+                            y_user = st.session_state.bg_subtracted_data[file_name]["y"]
+                            display_name = file_name + " (temp BG removed)"
+                        else:
+                            user_pattern_file.seek(0)
+                            file_contents = user_pattern_file.read()
+    
+                            if isinstance(file_contents, bytes):
+                                file_contents = file_contents.decode('utf-8')
+    
+                            from io import StringIO
+    
+                            data_io = StringIO(file_contents)
+    
+                            df = pd.read_csv(data_io, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                            x_user = df.iloc[:, 0].values
+                            y_user = df.iloc[:, 1].values
+                            display_name = file_name
+    
+                            user_pattern_file.seek(0)
+    
+                        if x_user is not None and y_user is not None:
+                            if y_axis_scale != "Linear":
+                                y_user = convert_intensity_scale(y_user, y_axis_scale)
+                            if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
+                                y_user = (y_user / np.max(y_user)) * 100
+    
+                            mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                    x_user <= st.session_state.two_theta_max)
+                            x_user_filtered = x_user[mask_user]
+                            y_user_filtered = y_user[mask_user]
+    
+                            color = "black"  # Default color for single file
+                            fig_interactive.add_trace(go.Scatter(
+                                x=x_user_filtered,
+                                y=y_user_filtered,
+                                mode="lines",
+                                name=display_name,
+                                line=dict(dash='solid', width=1, color=color),
+                                marker=dict(color=color, size=3),
+                                hovertemplate=(
+                                    f"<span style='color:{color};'><b>{display_name}:</b><br>"
+                                    "2θ = %{x:.2f}°<br>Intensity = %{y:.2f}</span><extra></extra>"
+                                )
+                            ))
+                    except Exception as e:
+                        st.error(f"Error processing file {file_name}: {e}")
+                        x_user, y_user = None, None
+    
+                fig_interactive.update_layout(
+                    xaxis_title="2θ (°)",
+                    yaxis_title="Intensity",
+                    autosize=True,
+                    height=500
+                )
+            if x_axis_metric in ["d (Å)", "d (nm)"]:
+                fig_interactive.update_layout(xaxis=dict(range=[display_metric_max, display_metric_min]))
+            else:
+                fig_interactive.update_layout(xaxis=dict(range=[display_metric_min, display_metric_max]))
+    
+            if peak_representation == "Delta" and intensity_scale_option != "Absolute":
+                fig_interactive.update_layout(
+                    height=800,
+                    margin=dict(t=80, b=80, l=60, r=30),
+                    hovermode="x",
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.2,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=24)
+                    ),
+                    xaxis=dict(
+                        title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                        tickfont=dict(size=36, color='black')
+                    ),
+                    yaxis=dict(
+                        title=dict(text=y_axis_title, font=dict(size=36, color='black')),
+                        tickfont=dict(size=36, color='black'), range=[0, 125]
+                    ),
+                    hoverlabel=dict(font=dict(size=24)),
+                    font=dict(size=18),
+                    autosize=True
+                )
+            else:
+                fig_interactive.update_layout(
+                    height=1000,
+                    margin=dict(t=80, b=80, l=60, r=30),
+                    hovermode="x",
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.2,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=24)
+                    ),
+                    xaxis=dict(
+                        title=dict(text=x_axis_metric, font=dict(size=36, color='black'), standoff=20),
+                        tickfont=dict(size=36, color='black')
+                    ),
+                    yaxis=dict(
+                        title=dict(text=y_axis_title, font=dict(size=36, color='black')),
+                        tickfont=dict(size=36, color='black')
+                    ),
+                    hoverlabel=dict(font=dict(size=24)),
+                    font=dict(size=18),
+                    autosize=True
+                )
     # st.rerun()
     st.session_state.placeholder_interactive = st.empty()
     st.session_state.fig_interactive = fig_interactive
