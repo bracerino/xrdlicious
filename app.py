@@ -7190,7 +7190,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             # Configure legend position based on selection
             legend_config = {
                 "font": dict(size=legend_font_size),
-                "title": "Legend Title"
+                #"title": "Legend Title"
             }
 
             if legend_position == "Top":
@@ -7243,10 +7243,10 @@ if "📈 Interactive Data Plot" in calc_mode:
                     title=dict(text=custom_y_label, font=dict(size=axis_label_font_size, color='black')),
                     tickfont=dict(size=tick_font_size, color='black')
                 ),
-                title=dict(
-                    text="Interactive Data Plot",
-                    font=dict(size=title_font_size, color='black')
-                ),
+                #title=dict(
+                #    text="Interactive Data Plot",
+                #    font=dict(size=title_font_size, color='black')
+                #),
                 hoverlabel=dict(font=dict(size=tick_font_size)),
                 font=dict(size=18),
                 autosize=False
