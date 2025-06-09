@@ -1293,7 +1293,7 @@ def show_xrdlicious_roadmap():
 * ⏳ Fitting: Advanced goal for fitting profiles or full patterns to refine parameters.
 
 #### Machine Learning 
-* ⏳ ML models for structure-properties correlations
+* ⏳ Outlook for ML models for structure-properties correlations
 """)
 
 
