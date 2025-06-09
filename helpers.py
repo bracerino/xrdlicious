@@ -1389,3 +1389,53 @@ def fetch_and_parse_cod_cif(entry):
 
     except Exception as e:
         return None, None, None, str(e)
+
+def auto_normalize_and_stack_plots(files, skip_header, has_header, offset_gap):
+    if not files:
+        st.warning("Please upload files before trying to normalize and stack.")
+        return
+
+    st.session_state.auto_stack_enabled = True
+    st.session_state.normalized_intensity = True
+
+    min_adjustments = []
+    y_offset_accumulator = 0
+
+    total_shift = 100 + offset_gap
+
+    for i, file in enumerate(files):
+        try:
+            file.seek(0)
+            if has_header:
+                df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
+            else:
+                if skip_header:
+                    file_content = file.read().decode('utf-8', errors='latin-1')
+                    lines = file_content.splitlines()
+                    comment_line_indices = [idx for idx, line in enumerate(lines) if line.strip().startswith('#')]
+                    lines_to_skip = sorted(set([0] + comment_line_indices))
+                    file.seek(0)
+                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=lines_to_skip)
+                else:
+                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None)
+
+            y_data = df.iloc[:, 1].values
+            min_adjustments.append(np.min(y_data))
+
+            st.session_state[f'y_offset_{i}'] = y_offset_accumulator
+            y_offset_accumulator += total_shift
+
+        except Exception as e:
+            st.error(f"Failed to process {file.name} for auto-stacking: {e}")
+            min_adjustments.append(0)
+
+    st.session_state.min_adjustments = min_adjustments
+
+
+def reset_layout(files):
+    st.session_state.auto_stack_enabled = False
+    st.session_state.normalized_intensity = False
+    if files:
+        for i in range(len(files)):
+            st.session_state[f'y_offset_{i}'] = 0.0
+            st.session_state[f'y_scale_{i}'] = 1.0
