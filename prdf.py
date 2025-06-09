@@ -6638,7 +6638,22 @@ if "📈 Interactive Data Plot" in calc_mode:
                 series_names[0] = st.sidebar.text_input(f"Label for {user_pattern_file.name}",
                                                         value=user_pattern_file.name,
                                                         key="series_name_0")
+        if user_pattern_file:
+            st.sidebar.markdown("#### Custom Series Colors")
+            series_colors = {}
+            files_for_color = user_pattern_file if isinstance(user_pattern_file, list) else [user_pattern_file]
+
+            colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#000000', '#7f7f7f']
+            for i, file in enumerate(files_for_color):
+
+                default_color = colors[i % len(colors)]
+                series_colors[i] = st.sidebar.color_picker(
+                    f"Color for {file.name}",
+                    value=default_color,
+                    key=f"series_color_{i}"
+                )
     else:
+        series_colors = {}
         show_lines = True
         show_markers = False
         line_thickness = 1.0
@@ -7183,7 +7198,11 @@ if "📈 Interactive Data Plot" in calc_mode:
                 if y_axis_log:
                     y_data = np.log10(y_data)
 
-                color = colors[i % len(colors)]
+                if customize_layout and i in series_colors:
+                    color = series_colors[i]
+                else:
+                    colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd', '#000000', '#7f7f7f']
+                    color = colors[i % len(colors)]
                 mode_str = ""
                 if show_lines:
                     mode_str += "lines"
