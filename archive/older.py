@@ -61,41 +61,6 @@ from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
 
-st.markdown(
-    """
-    <style>
-    div.stButton > button {
-        background-color: #0099ff;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        padding: 0.5em 1em;
-        border: none;
-        border-radius: 5px;
-        height: 3em;
-        width: 100%;
-    }
-    div.stButton > button:active,
-    div.stButton > button:focus {
-        background-color: #0099ff !important;
-        color: white !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <style>
-    div[data-testid="stDataFrameContainer"] table td {
-         font-size: 22px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -105,28 +70,27 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-components.html(
-    """
-    <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
-    </head>
-    """,
-    height=0,
-)
 
-#st.markdown(
+
+# st.markdown(
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 st.markdown(
     """
     <h4>
-        <strong><em><span style='color:#1E90FF;'>XRDlicious:</span></em></strong>
-        <span style='font-size:0.85em;'>Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data conversion</span>
+        <span style='color:#8b0000;'>
+            <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
+        </span>
     </h4>
     """,
     unsafe_allow_html=True
 )
 
-
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    """,
+    unsafe_allow_html=True
+)
 
 # Get current memory usage
 process = psutil.Process(os.getpid())
@@ -150,12 +114,12 @@ if memory_usage > 1600:
     gc.collect()
     st.rerun()
 
-col1, col2, col3 = st.columns([1.2, 0.5, 0.3])
+col1, col2 = st.columns([1.2, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE.](https://youtu.be/jHdaNVB2UWE) The app will be continously updated. Spot a bug or have a feature idea? Let us know at: "
-        "lebedmi2@cvut.cz"
+        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial HERE](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
+        "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
@@ -172,71 +136,13 @@ ELEMENTS = [
     'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
 ]
 
-with col3:
-    if st.button("💡 Need Help?"):
-        st.markdown("""
-        <style>
-        @keyframes fadeInOut {
-          0%   { opacity: 0; transform: translateY(-10px); }
-          5%   { opacity: 1; transform: translateY(0); }
-          95%  { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-
-        .onboarding-tip {
-          background-color: #ffffff;
-          border-left: 5px solid #3399ff;
-          padding: 18px 22px;
-          border-radius: 14px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-          font-size: 1.1em;
-          font-weight: 500;
-          position: fixed;
-          top: 100px;
-          right: 40px;
-          z-index: 9999;
-          max-width: 400px;
-          width: 100%;
-          opacity: 0;
-        }
-
-        .tip1 { animation: fadeInOut 7s ease-in-out 0s forwards; }
-        .tip2 { animation: fadeInOut 7s ease-in-out 7s forwards; }
-        .tip3 { animation: fadeInOut 7s ease-in-out 14s forwards; }
-
-        .tip-label {
-          font-size: 0.9em;
-          font-weight: 600;
-          color: #0066cc;
-          margin-bottom: 6px;
-          display: block;
-        }
-        </style>
-
-        <!-- Tip 1 -->
-        <div class="onboarding-tip tip1">
-          <span class="tip-label">Tip 1/3</span>
-          🧭 From the <b>sidebar</b>, choose a tool like <b>Structure Modification</b>, <b>Powder Diffraction</b>, or <b>(P)RDF Calculator</b>.
-        </div>
-
-        <!-- Tip 2 -->
-        <div class="onboarding-tip tip2">
-          <span class="tip-label">Tip 2/3</span>
-          📂 Upload your <b>structure files</b> (CIF, POSCAR, LMP, XSF) or <b>two-column data</b> using the sidebar.
-        </div>
-
-        <!-- Tip 3 -->
-        <div class="onboarding-tip tip3">
-          <span class="tip-label">Tip 3/3</span>
-          🐣 No files? Use the <b>search interface</b> to fetch structures from online databases.
-        </div>
-        """, unsafe_allow_html=True)
-    st.link_button("GitHub page (for local compilation)", "https://github.com/bracerino/xrdlicious", type="primary" )
-
+#with col3:
+#    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
     with st.expander("About the app.", icon="📖"):
         st.info(
+            "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
             "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
             "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
             "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
@@ -254,19 +160,73 @@ with col1:
             "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
         )
 
-        #from PIL import Image
-        #image = Image.open("images/ts4.png")
-        #st.image(image)
+        # from PIL import Image
+        # image = Image.open("images/ts4.png")
+        # st.image(image)
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
     with st.expander("Roadmap", icon="🧭"):
         show_xrdlicious_roadmap()
 
+    citations = st.checkbox("📚 How to cite", value = False)
+if citations:
+    st.markdown("""
+    ### 📚 How to Cite
+    
+    Please cite the following sources based on the application usage:
+    
+    ---
+    
+    #### 🧪 **Using Calculated XRD Patterns**
+    - **XRDlicious, 2025** – for the interface.
+    - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+    - **ASE (Atomic Simulation Environment)** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+    
+    ---
+    
+    #### 🔁 **Using Calculated PRDF**
+    - **XRDlicious, 2025** – for the interface.
+    - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+    - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+    - **matminer** – for PRDF calculation, [L. Ward et al., matminer: An open-source toolkit for materials data mining, Comput. Mater. Sci. 152, 60 (2018)](https://www.sciencedirect.com/science/article/abs/pii/S0927025618303252).
+    
+    ---
+    
+    #### 🏛️ **Using Structures from Databases**
+    - Cite the **relevant database**:
+        - **Materials Project** [A. Jain et al., The Materials Project: A materials genome approach to accelerating materials innovation, APL Mater. 1, 011002 (2013)](https://pubs.aip.org/aip/apm/article/1/1/011002/119685/Commentary-The-Materials-Project-A-materials).
+        - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
+        [M. Esters et al., aflow.org: A web ecosystem of databases, software and tools, Comput. Mater. Sci. 216, 111808 (2023)](https://www.sciencedirect.com/science/article/pii/S0927025622005195?casa_token=crrT7T_7vKoAAAAA:7UQbszQokpBT04i8kBqyN9JPXhaLf7ydlwuZen0taWZPXDx46zuYMPeaCJKeznY-BKKczMLzvw). 
+        - **Crystallography Open Database (COD)** [S. Gražulis et al., Crystallography Open Database – an open-access collection of crystal structures, J. Appl. Crystallogr. 42, 726 (2009)](https://journals.iucr.org/j/issues/2009/04/00/kk5039/index.html).
+    - **Important**: Always check the structure's original entry link in the database for any **associated publication** to cite.
+    
+    ---
+    
+    #### 📄 **Using XRD Data and File Conversion**
+    - **XRDlicious, 2025**
+    
+    ---
+    
+    #### 🖼️ **Using Structure Visualizations**
+    - **XRDlicious, 2025** – for the interface.
+    - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+    - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+    - **Py3Dmol** – for 3D visualization, [N. Rego and D. Koes, 3Dmol. js: molecular visualization with WebGL, Bioinformatics 31, 1322 (2015)](https://academic.oup.com/bioinformatics/article/31/8/1322/213186).
+    
+    ---
+    """)
+
 pattern_details = None
 
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = "Advanced"
+st.markdown(
+    """
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    """,
+    unsafe_allow_html=True
+)
 
 calc_mode = st.sidebar.multiselect(
     "Choose Type(s) of Calculation/Analysis",
@@ -284,7 +244,7 @@ calc_mode = st.sidebar.multiselect(
 
 if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
     run_data_converter()
-    
+
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
@@ -301,8 +261,9 @@ if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)
     )
 
 st.session_state.two_theta_min = 5
-def update_element_indices(df):
 
+
+def update_element_indices(df):
     element_counts = {}
     for i, row in df.iterrows():
         element = row['Element']
@@ -343,12 +304,7 @@ def remove_fractional_occupancies_safely(structure):
     return ordered_structure
 
 
-st.markdown(
-    """
-    <hr style="border: none; height: 6px; background-color: #3399ff; border-radius: 8px; margin: 20px 0;">
-    """,
-    unsafe_allow_html=True
-)
+
 
 col3, col1, col2 = st.columns(3)
 
@@ -358,7 +314,7 @@ if 'full_structures' not in st.session_state:
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
     "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
-    type=None,
+    type=["cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
     accept_multiple_files=True,
     key="sidebar_uploader"
 )
@@ -387,7 +343,8 @@ if uploaded_files_user_sidebar:
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 
-#st.markdown("##### 🔍 Search for structures in online databases?")
+
+# st.markdown("##### 🔍 Search for structures in online databases?")
 
 
 def display_structure_types():
@@ -401,10 +358,47 @@ def display_structure_types():
 
 
 # Then in Streamlit main block
-#display_structure_types()
+# display_structure_types()
 show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
                                    value=False,
                                    help="Enable to search in Materials Project, AFLOW, and COD databases")
+
+
+st.markdown(
+    """
+    <style>
+    div.stButton > button {
+        background-color: #0099ff;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 5px;
+        height: 3em;
+        width: 100%;
+    }
+    div.stButton > button:active,
+    div.stButton > button:focus {
+        background-color: #0099ff !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrameContainer"] table td {
+         font-size: 22px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 if st.session_state["first_run_note"] == True:
     colh1, colh2 = st.columns([1, 3])
@@ -542,12 +536,12 @@ if show_database_search:
                 if selected_mineral:
                     mineral_info = mineral_mapping[selected_mineral]
 
-                    #col_mineral1, col_mineral2 = st.columns(2)
-                   # with col_mineral1:
+                    # col_mineral1, col_mineral2 = st.columns(2)
+                    # with col_mineral1:
                     sg_symbol = get_space_group_info(mineral_info['space_group'])
-                    st.info(f"**Structure:** {mineral_info['mineral_name']}, **Space Group:** {mineral_info['space_group']} ({sg_symbol}), "
-                            f"**Formula:** {mineral_info['formula']}")
-
+                    st.info(
+                        f"**Structure:** {mineral_info['mineral_name']}, **Space Group:** {mineral_info['space_group']} ({sg_symbol}), "
+                        f"**Formula:** {mineral_info['formula']}")
 
                     space_group_number = mineral_info['space_group']
                     formula_input = mineral_info['formula']
@@ -672,7 +666,7 @@ if show_database_search:
                                             lattice_str = (f"{lattice.a:.3f} {lattice.b:.3f} {lattice.c:.3f} Å, "
                                                            f"{lattice.alpha:.1f}, {lattice.beta:.1f}, {lattice.gamma:.1f} °")
                                             st.session_state.mp_options.append(
-                                                f"{doc.material_id}: {doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}) [{lattice_str}], {float(doc.volume):.1f} Å³, {leng} atoms"
+                                                f"{doc.formula_pretty} ({doc.symmetry.symbol} #{doc.symmetry.number}), {leng} atoms, [{lattice_str}], {float(doc.volume):.1f} Å³, {doc.material_id}:"
                                             )
                                             status_placeholder.markdown(
                                                 f"- **Structure loaded:** `{full_structure.composition.reduced_formula}` ({doc.material_id})"
@@ -939,7 +933,7 @@ if show_database_search:
                                     for entry in limited_results:
                                         st.session_state.entrys[entry.auid] = entry
                                         st.session_state.aflow_options.append(
-                                            f"{entry.auid}: {entry.compound} ({entry.spacegroup_relax}) {entry.geometry}"
+                                            f"{entry.compound} ({entry.spacegroup_relax}) {entry.geometry}, {entry.auid}"
                                         )
                                         status_placeholder.markdown(
                                             f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
@@ -1044,8 +1038,6 @@ if show_database_search:
                                     }
                                     cod_entries = get_cod_entries(params)
 
-
-
                                 if cod_entries and isinstance(cod_entries, list):
                                     st.session_state.cod_options = []
                                     st.session_state.full_structures_see_cod = {}
@@ -1076,8 +1068,8 @@ if show_database_search:
                                                     spcs_number = entry_data.get("sgNumber", "Unknown")
                                                     cell_volume = structure.lattice.volume
                                                     option_str = (
-                                                        f"{cod_id}: {structure.composition.reduced_formula} ({spcs} #{spcs_number}) [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f}, "
-                                                        f"{structure.lattice.beta:.2f}, {structure.lattice.gamma:.2f}°], {cell_volume:.1f} Å³, {len(structure)} atoms"
+                                                        f"{structure.composition.reduced_formula} ({spcs} #{spcs_number}), {len(structure)} atoms, [{structure.lattice.a:.3f} {structure.lattice.b:.3f} {structure.lattice.c:.3f} Å, {structure.lattice.alpha:.2f}, "
+                                                        f"{structure.lattice.beta:.2f}, {structure.lattice.gamma:.2f}°], {cell_volume:.1f} Å³, {cod_id}"
                                                     )
                                                     st.session_state.cod_options.append(option_str)
 
@@ -1105,9 +1097,9 @@ if show_database_search:
                                 st.warning(f"COD search error: {e}")
                                 st.session_state.cod_options = []
 
-           # with cols2:
-           #     image = Image.open("images/Rabbit2.png")
-           #     st.image(image, use_container_width=True)
+        # with cols2:
+        #     image = Image.open("images/Rabbit2.png")
+        #     st.image(image, use_container_width=True)
 
         with cols3:
             if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
@@ -1128,8 +1120,8 @@ if show_database_search:
                             st.subheader("🧬 Structures Found in Materials Project")
                             selected_structure = st.selectbox("Select a structure from MP:",
                                                               st.session_state.mp_options)
-                            selected_id = selected_structure.split(":")[0].strip()
-                            composition = selected_structure.split(":", 1)[1].split("(")[0].strip()
+                            selected_id = selected_structure.split(",")[-1].replace(":", "").strip()
+                            composition = selected_structure.split("(")[0].strip()
                             file_name = f"{selected_id}_{composition}.cif"
                             file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
 
@@ -1149,7 +1141,7 @@ if show_database_search:
                                     f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
 
                                 st.write(
-                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, N. of Atoms {n_atoms}")
+                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
 
                                 st.write(
                                     f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
@@ -1182,8 +1174,8 @@ if show_database_search:
                                         type="primary",
                                         mime="chemical/x-cif"
                                     )
-                                    st.info(
-                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
+                                st.info(
+                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
                         tab_index += 1
 
                     if 'aflow_options' in st.session_state and st.session_state.aflow_options:
@@ -1193,7 +1185,7 @@ if show_database_search:
                                 "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
                             selected_structure = st.selectbox("Select a structure from AFLOW:",
                                                               st.session_state.aflow_options)
-                            selected_auid = selected_structure.split(": ")[0].strip()
+                            selected_auid = selected_structure.split(",")[-1].strip()
                             selected_entry = next(
                                 (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
                                 None)
@@ -1276,7 +1268,7 @@ if show_database_search:
                                 st.session_state.cod_options,
                                 key='sidebar_select_cod'
                             )
-                            cod_id = selected_cod_structure.split(":")[0].strip()
+                            cod_id = selected_cod_structure.split(",")[-1].strip()
                             if cod_id in st.session_state.full_structures_see_cod:
                                 selected_entry = st.session_state.full_structures_see_cod[cod_id]
                                 lattice = selected_entry.lattice
@@ -1769,11 +1761,12 @@ if "🔬 Structure Modification" in calc_mode:
                     selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
             with col_mod:
                 # apply_cell_conversion = st.checkbox(f"🧱 Find a **new symmetry**", value=False)
-                #cell_convert_or = st.checkbox(
+                # cell_convert_or = st.checkbox(
                 #    f"🧱 Allow **conversion** between **cell representations** (will lead to lost occupancies)",
                 #    value=False)
                 cell_convert_or = False
-                st.info("To convert between different cell representations, please use [this XRDlicious submodule](https://xrdlicious-point-defects.streamlit.app/)")
+                st.info(
+                    "To convert between different cell representations, please use [this XRDlicious submodule](https://xrdlicious-point-defects.streamlit.app/)")
                 if cell_convert_or:
                     structure_cell_choice = st.radio(
                         "Structure Cell Type:",
@@ -1865,7 +1858,7 @@ if "🔬 Structure Modification" in calc_mode:
                                     for el, count in element_counts.items()])
         st.subheader(f"{composition_str}, {structure_type}    ⬅️ Selected structure")
 
-        #create_defects = st.checkbox(
+        # create_defects = st.checkbox(
         #    f"Create **Supercell** and **Point Defects**",
         #    value=False, disabled=True)
         create_defects = False
@@ -2519,7 +2512,8 @@ if "🔬 Structure Modification" in calc_mode:
             st.session_state["run_before"] = False
             st.rerun()
         with col_g1:
-            show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=False, key='atom_labels')
+            show_atom_labels = st.checkbox(f"**Show** atom **labels** in 3D visualization", value=False,
+                                           key='atom_labels')
 
         custom_filename = st.text_input("Enter a name for the modified structure file:", value="MODIFIED_STR")
         if not custom_filename.endswith(".cif"):
@@ -4113,7 +4107,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     "🌊 Preset Wavelength",
                     options=preset_options,
                     key="preset_choice",
-                    index = 0,
+                    index=0,
                     help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
                 )
 
@@ -4144,7 +4138,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         step=0.001,
                         format="%.5f",
                         key="wavelength_value",
-                        #value = st.session_state.wavelength_value
+                        # value = st.session_state.wavelength_value
                     )
                 else:
                     wavelength_value = preset_wavelengths[preset_choice]
@@ -4155,7 +4149,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 preset_choice = st.selectbox(
                     "Preset Wavelength",
                     options=preset_options_neutron,
-                    index = 0,
+                    index=0,
                     key="preset_choice_neutron",
                     help="Factors for weighted average of wavelengths are: I1 = 2 (ka1), I2 = 1 (ka2), I3 = 0.18 (kb1)"
                 )
@@ -4186,7 +4180,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     step=0.001,
                     format="%.5f",
                     key="wavelength_value",
-                    #value=st.session_state.wavelength_value
+                    # value=st.session_state.wavelength_value
                 )
 
         wavelength_A = wavelength_value * 10  # Convert nm to Å
@@ -4532,7 +4526,7 @@ if "💥 Powder Diffraction" in calc_mode:
 
                         col1, col2, col3 = st.columns([1, 2, 1])
 
-                        #with col2:
+                        # with col2:
                         fig_bg = go.Figure()
 
                         fig_bg.add_trace(go.Scatter(
@@ -4662,7 +4656,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
-                        mode="lines+markers",
+                        mode="lines",
                         name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
                                                                  st.session_state.use_bg_subtracted and
                                                                  "active_bg_subtracted_file" in st.session_state and
@@ -4748,7 +4742,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         fig_interactive.add_trace(go.Scatter(
                             x=x_user_filtered,
                             y=y_user_filtered,
-                            mode="lines+markers",
+                            mode="lines",
                             name=display_name,
                             line=dict(dash='solid', width=1, color=color),
                             marker=dict(color=color, size=3),
@@ -4865,7 +4859,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     debye_waller_dict = st.session_state.debye_waller_factors_per_file[file_key]
 
             if is_multi_component:
-                num_points = 2000 #20000
+                num_points = 2000  # 20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
@@ -4880,7 +4874,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         diff_calc = NDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
                     else:
                         diff_calc = XRDCalculator(wavelength=wavelength_A_comp, debye_waller_factors=debye_waller_dict)
-                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range, scaled=False)
+                    diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
+                                                         scaled=False)
 
                     filtered_x = []
                     filtered_y = []
@@ -4947,7 +4942,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     filtered_x.append(x_val)
                     filtered_y.append(y_val)
                     filtered_hkls.append(hkl_group)
-                num_points = 2000 #20000
+                num_points = 2000  # 20000
                 x_dense_full = np.linspace(full_range[0], full_range[1], num_points)
                 dx = x_dense_full[1] - x_dense_full[0]
                 y_dense_total = np.zeros_like(x_dense_full)
@@ -5238,7 +5233,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     fig_interactive.add_trace(go.Scatter(
                         x=x_user_filtered,
                         y=y_user_filtered,
-                        mode="lines+markers",
+                        mode="lines",
                         name=file.name + (" (BG subtracted)" if ("use_bg_subtracted" in st.session_state and
                                                                  st.session_state.use_bg_subtracted and
                                                                  "active_bg_subtracted_file" in st.session_state and
@@ -5325,7 +5320,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         fig_interactive.add_trace(go.Scatter(
                             x=x_user_filtered,
                             y=y_user_filtered,
-                            mode="lines+markers",
+                            mode="lines",
                             name=display_name,
                             line=dict(dash='solid', width=1, color=color),
                             marker=dict(color=color, size=3),
@@ -5499,7 +5494,7 @@ if "💥 Powder Diffraction" in calc_mode:
             unsafe_allow_html=True,
         )
         view_combined = st.checkbox("📈 View peak data across all structures in an interactive table",
-                                  )
+                                    )
         if view_combined:
             with st.expander("📊 View Combined Peak Data Across All Structures", expanded=True):
                 combined_df = pd.DataFrame()
@@ -5527,8 +5522,10 @@ if "💥 Powder Diffraction" in calc_mode:
                                     f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
                                     for h in hkls[i]])
                             data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
-                combined_df = pd.DataFrame(data_list, columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+                combined_df = pd.DataFrame(data_list,
+                                           columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
                 st.dataframe(combined_df)
+
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
@@ -5603,9 +5600,8 @@ if "📊 (P)RDF" in calc_mode:
                                   disabled=True)
 
     st.warning(
-        "⚠️ **LAMMPS trajectory processing is currently disabled on the free server** due to memory limitations. "
-        "This feature may become available online if the server is upgraded, or you can use this feature if the code is compiled on a local computer. "
-        "To enable locally, remove in the 'prdf.py' code the 'disabled=True' in 'use_lammps_traj' checkbox")
+        "⚠️ Due to the large computational demand connected with the trajectories processing, this option was put as a separated module that runs "
+        "only locally. Please visit **[this site](https://github.com/bracerino/PRDF-CP2K-LAMMPS)** to see how to compile it.")
 
     plot_display_mode = st.radio(
         "Plot Display Mode",
@@ -7194,7 +7190,7 @@ if "📈 Interactive Data Plot" in calc_mode:
             # Configure legend position based on selection
             legend_config = {
                 "font": dict(size=legend_font_size),
-                "title": "Legend Title"
+                #"title": "Legend Title"
             }
 
             if legend_position == "Top":
@@ -7247,10 +7243,10 @@ if "📈 Interactive Data Plot" in calc_mode:
                     title=dict(text=custom_y_label, font=dict(size=axis_label_font_size, color='black')),
                     tickfont=dict(size=tick_font_size, color='black')
                 ),
-                title=dict(
-                    text="Interactive Data Plot",
-                    font=dict(size=title_font_size, color='black')
-                ),
+                #title=dict(
+                #    text="Interactive Data Plot",
+                #    font=dict(size=title_font_size, color='black')
+                #),
                 hoverlabel=dict(font=dict(size=tick_font_size)),
                 font=dict(size=18),
                 autosize=False
@@ -7345,7 +7341,14 @@ if "📈 Interactive Data Plot" in calc_mode:
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
 
-
+components.html(
+    """
+    <head>
+        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
+    </head>
+    """,
+    height=0,
+)
 def get_session_memory_usage():
     total_size = 0
     for key in st.session_state:
