@@ -7,11 +7,10 @@ from io import StringIO, BytesIO
 from datetime import datetime, timedelta
 import re
 import zipfile
-import struct  # Required for handling binary .raw files
+import struct
 
 
 def run_data_converter():
-
     def extract_key_ras_metadata(metadata_dict):
         key_metadata = {
             'X-ray Target': metadata_dict.get('HW_XG_TARGET_NAME', 'N/A'),
@@ -168,39 +167,175 @@ def run_data_converter():
         metadata = {}
         header_size = 1024
         file_size = len(file_content_bytes)
+        if 'debug_messages' not in st.session_state:
+            st.session_state.debug_messages = []
 
         try:
-
             num_points = (file_size - header_size) // 4
             if num_points <= 0:
                 st.error("Invalid file size for RAW 1.01 format.")
                 return None, None
             metadata['Number of Points'] = num_points
 
-            start_angle = struct.unpack_from('<f', file_content_bytes, offset=924)[0]
-            metadata['Start Angle (Omega)'] = f"{start_angle:.4f}"
+            st.session_state.debug_messages.append(
+                f"DEBUG: File size: {file_size} bytes, Header size: {header_size} bytes, Data points: {num_points}")
+            step_size = None
+            start_angle = None
+            end_angle = None
 
-            end_angle = 1.0
-            step_size = (end_angle - start_angle) / (num_points - 1) if num_points > 1 else 0
+            st.session_state.debug_messages.append("DEBUG: Scanning for step size information...")
+
+            step_size_candidates = []
+            for offset in range(200, min(1000, file_size - 4), 4):
+                try:
+                    value = struct.unpack_from('<f', file_content_bytes, offset)[0]
+                    if 0.0001 <= value <= 0.5 and not np.isnan(value) and not np.isinf(value):
+                        step_size_candidates.append((offset, value))
+                except (struct.error, ValueError):
+                    continue
+
+            if step_size_candidates:
+                expected_step = 0.4 / (num_points - 1) if num_points > 1 else 0.01
+
+                best_step = min(step_size_candidates, key=lambda x: abs(x[1] - expected_step))
+                if abs(best_step[1] - expected_step) < expected_step * 0.5:  # Within 50% of expected
+                    step_size = best_step[1]
+
+            st.session_state.debug_messages.append("DEBUG: Scanning for start and end angles...")
+
+            potential_offsets = [
+                924, 920, 916, 912, 908, 904, 900,
+                568, 564, 560, 556, 552, 548, 544,
+                300, 304, 308, 312, 316, 320,
+                400, 404, 408, 412, 416, 420,
+                500, 504, 508, 512, 516, 520,
+            ]
+
+            found_candidates = []
+
+            for offset in potential_offsets:
+                if offset + 4 <= file_size:
+                    try:
+                        value = struct.unpack_from('<f', file_content_bytes, offset)[0]
+                        if -10.0 <= value <= 10.0 and not np.isnan(value) and not np.isinf(value):
+                            found_candidates.append((offset, value))
+                    except (struct.error, ValueError):
+                        continue
+            if step_size is not None:
+                total_range = step_size * (num_points - 1)
+                if found_candidates:
+                    for offset, candidate_start in found_candidates:
+                        candidate_end = candidate_start + total_range
+                        if (-1.0 <= candidate_start <= 1.0 and -1.0 <= candidate_end <= 1.0):
+                            start_angle = candidate_start
+                            end_angle = candidate_end
+                            break
+                if start_angle is None:
+                    for offset, candidate_end in found_candidates:
+                        candidate_start = candidate_end - total_range
+                        if (-1.0 <= candidate_start <= 1.0 and -1.0 <= candidate_end <= 1.0):
+                            start_angle = candidate_start
+                            end_angle = candidate_end
+                            break
+            if start_angle is None or end_angle is None:
+                if len(found_candidates) >= 2:
+                    found_candidates.sort(key=lambda x: x[1])
+                    target_start = -0.2
+                    target_end = 0.2
+                    best_start = min(found_candidates, key=lambda x: abs(x[1] - target_start))
+                    best_end = min(found_candidates, key=lambda x: abs(x[1] - target_end))
+
+                    if abs(best_start[1] - target_start) < 0.1:
+                        start_angle = best_start[1]
+                        metadata['Start Angle (Omega)'] = f"{start_angle:.6f}"
+                    if abs(best_end[1] - target_end) < 0.1:
+                        end_angle = best_end[1]
+                        metadata['End Angle (Omega)'] = f"{end_angle:.6f}"
+
+                if start_angle is None or end_angle is None:
+                    for offset in range(400, min(1000, file_size - 8), 4):
+                        try:
+                            val1 = struct.unpack_from('<f', file_content_bytes, offset)[0]
+                            val2 = struct.unpack_from('<f', file_content_bytes, offset + 4)[0]
+                            if (-1.0 <= val1 <= 1.0 and -1.0 <= val2 <= 1.0 and
+                                    not np.isnan(val1) and not np.isnan(val2) and
+                                    not np.isinf(val1) and not np.isinf(val2) and
+                                    val1 != val2):
+
+                                range_size = abs(val2 - val1)
+                                if 0.1 <= range_size <= 2.0:
+                                    start_angle = min(val1, val2)
+                                    end_angle = max(val1, val2)
+                                    metadata['Start Angle (Omega)'] = f"{start_angle:.6f}"
+                                    metadata['End Angle (Omega)'] = f"{end_angle:.6f}"
+                                    break
+                        except (struct.error, ValueError):
+                            continue
+            if start_angle is None:
+                start_angle = -0.2
+                metadata['Start Angle (Omega)'] = f"{start_angle:.6f} (default)"
+
+            if end_angle is None:
+                end_angle = 0.2
+                metadata['End Angle (Omega)'] = f"{end_angle:.6f} (default)"
+            if step_size is None:
+                if start_angle is not None and end_angle is not None:
+                    step_size = (end_angle - start_angle) / (num_points - 1) if num_points > 1 else 0
+                else:
+                    step_size = 0.4 / (num_points - 1) if num_points > 1 else 0.01
             metadata['Step Size (Omega, Calculated)'] = f"{step_size:.6f}"
+            try:
+                fixed_2theta = struct.unpack_from('<f', file_content_bytes, offset=568)[0]
+                if not np.isnan(fixed_2theta) and not np.isinf(fixed_2theta) and abs(fixed_2theta) < 180:
+                    metadata['Fixed 2-Theta Angle'] = f"{fixed_2theta:.4f}"
+                else:
+                    metadata['Fixed 2-Theta Angle'] = 'N/A'
+            except (struct.error, IndexError):
+                metadata['Fixed 2-Theta Angle'] = 'N/A'
+            try:
+                target_name_bytes = struct.unpack_from('2s', file_content_bytes, offset=608)[0]
+                target_name = target_name_bytes.decode('utf-8', errors='ignore').strip('\x00').strip()
+                metadata['X-ray Target'] = target_name if target_name else 'N/A'
+            except (struct.error, IndexError):
+                metadata['X-ray Target'] = 'N/A'
+            if step_size is not None and start_angle is not None:
+                angles = np.arange(num_points) * step_size + start_angle
+            elif start_angle is not None and end_angle is not None:
+                angles = np.linspace(start_angle, end_angle, num_points)
+            else:
+                default_start = -0.2
+                angles = np.arange(num_points) * step_size + default_start
+                start_angle = default_start
+                end_angle = angles[-1]
 
-            fixed_2theta = struct.unpack_from('<f', file_content_bytes, offset=568)[0]
-            metadata['Fixed 2-Theta Angle'] = f"{fixed_2theta:.4f}"
-
-            target_name_bytes = struct.unpack_from('2s', file_content_bytes, offset=608)[0]
-            metadata['X-ray Target'] = target_name_bytes.decode('utf-8', errors='ignore').strip('\x00').strip()
-
-            angles = np.arange(num_points) * step_size + start_angle
-            intensities = np.frombuffer(file_content_bytes, dtype=np.float32, count=num_points, offset=header_size)
-
+            metadata['Start Angle (Omega)'] = f"{start_angle:.6f}"
+            metadata['End Angle (Omega)'] = f"{end_angle:.6f}"
+            try:
+                intensities = np.frombuffer(
+                    file_content_bytes,
+                    dtype=np.float32,
+                    count=num_points,
+                    offset=header_size
+                )
+                if len(intensities) != num_points:
+                    st.error(f"DEBUG: Expected {num_points} intensities, got {len(intensities)}")
+                    return None, None
+            except Exception as e:
+                st.error(f"DEBUG: Failed to read intensity data: {e}")
+                return None, None
             data_df = pd.DataFrame({'2Theta': angles, 'Intensity': intensities})
-
             st.info("Omega scan data has been loaded. The scan axis (Omega) is displayed as '2Theta' in the plot.")
+
+            with st.expander("Show Parser Debugging Info"):
+                st.code("\n".join(st.session_state.debug_messages), language='text')
+            st.session_state.debug_messages = []
 
             return metadata, data_df
 
         except Exception as e:
-            st.error(f"Failed to parse RAW 1.01 file. This format is complex. Error: {e}")
+            st.error(f"Failed to parse RAW 1.01 file. Error: {e}")
+            import traceback
+            st.error(f"DEBUG: Full traceback:\n{traceback.format_exc()}")
             return None, None
 
     def parse_raw_v4(file_content_bytes):
@@ -226,7 +361,8 @@ def run_data_converter():
             except (struct.error, IndexError):
                 metadata['K-Alpha1 (Å)'] = 'N/A'
             try:
-                target_name_bytes = struct.unpack_from('12s', file_content_bytes, offset=244)[0]; metadata[
+                target_name_bytes = struct.unpack_from('12s', file_content_bytes, offset=244)[0];
+                metadata[
                     'X-ray Target'] = target_name_bytes.decode('utf-8', errors='ignore').strip('\x00').strip()
             except (struct.error, IndexError):
                 metadata['X-ray Target'] = 'N/A'
@@ -268,10 +404,13 @@ def run_data_converter():
             st.success("Assuming Bruker RAW v4 file format.")
             return parse_raw_v4(file_content_bytes)
 
-
     def parse_xy(file_content):
         try:
-            first_line = file_content.splitlines()[0]
+            lines = file_content.splitlines()
+            if not lines:
+                st.error("The XY file is empty.")
+                return None
+            first_line = lines[0]
             has_header = any(char.isalpha() for char in first_line)
             data_io = StringIO(file_content)
             skiprows = 1 if has_header else 0
@@ -294,14 +433,13 @@ def run_data_converter():
             st.error("The DataFrame is missing the required '2Theta' or 'Intensity' columns.")
             return ""
 
-    def generate_xrdml(metadata_df, data_df):
+    def generate_xrdml(metadata_df, data_df, filename=""):
         meta_dict = pd.Series(metadata_df.Value.values, index=metadata_df.Parameter).to_dict()
         start_2theta = data_df['2Theta'].min()
         end_2theta = data_df['2Theta'].max()
         intensities_str = ' '.join(map(lambda x: f"{x:.3f}", data_df['Intensity'].values))
 
-        default_sample_name = st.session_state.get('last_file_format_choice', ('default.xy', ''))[0].split('.')[0]
-        sample_name = meta_dict.get('Sample Name', default_sample_name)
+        sample_name = filename.split('.')[0] if filename else meta_dict.get('Sample Name', 'Converted Sample')
 
         return f"""<?xml version="1.0" encoding="utf-8" standalone="no"?>
 <xrdMeasurements xmlns="http://www.xrdml.com/XRDMeasurement/1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.xrdml.com/XRDMeasurement/1.3 http://www.xrdml.com/XRDMeasurement/1.3/XRDMeasurement.xsd" status="{meta_dict.get('Status', 'Completed')}">
@@ -1194,7 +1332,8 @@ def run_data_converter():
             "*RAS_INT_START",
             *data_lines,
             "*RAS_INT_END",
-            "*RAS_DATA_END"
+            "*RAS_DATA_END",
+            "*DSC_DATA_END"
         ])
 
     def generate_raw(metadata_df, data_df):
@@ -1228,26 +1367,6 @@ def run_data_converter():
         intensities = data_df['Intensity'].values.astype(np.float32)
         data_bytes = intensities.tobytes()
         return bytes(header) + data_bytes
-
-    def format_hex_dump(data_bytes, length=1024):
-        show_all = length is None
-        if show_all:
-            length = len(data_bytes)
-
-        lines = []
-        data_to_show = data_bytes[:length]
-
-        for i in range(0, len(data_to_show), 16):
-            chunk = data_to_show[i:i + 16]
-            offset = f"{i:08x}: "
-            hex_part = " ".join(f"{b:02x}" for b in chunk).ljust(47)
-            ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
-            lines.append(offset + hex_part + "  " + ascii_part)
-
-        if not show_all and len(data_bytes) > length:
-            lines.append(f"... (showing first {length} of {len(data_bytes)} bytes) ...")
-
-        return "\n".join(lines)
 
     def get_default_metadata(format_type='XRDML'):
         now = datetime.now()
@@ -1283,139 +1402,209 @@ def run_data_converter():
         return pd.DataFrame(list(metadata.items()), columns=['Parameter', 'Value'])
 
     st.markdown("### 📜 XRD File Format Converter (.xrdml, .ras, .raw, .xy)")
-    st.markdown(
-        """
-        <div style="background-color:#f8d7da; padding:6px 10px; border-radius:4px; border:1px solid #f5c2c7; width: fit-content;">
-            <span style="color:#842029; font-size:14px;">🔧 Testing mode</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    #st.markdown(
+    #    """
+    #    <div style="background-color:#f8d7da; padding:6px 10px; border-radius:4px; border:1px solid #f5c2c7; width: fit-content;">
+    #        <span style="color:#842029; font-size:14px;">🔧 Testing mode</span>
+    #    </div>
+    #    """,
+    #    unsafe_allow_html=True
+    #)
     st.info(
-        "Upload a data file to convert it to a different format. You can edit metadata for conversions from `.xy` text files.")
+        "📄🔁📄 Upload one or more data powder diffraction files to convert them to a different format. .**xy ➡️ .xrdml, .ras, .raw**."
+        "Or **.xrdml, .ras, .raw ➡️ .xy**. \n\n ⚠️ Note that an older **.raw** format can currenetly produce incorrect x-axis values. "
+        "Make check if they are correct in the converted .xy format.")
 
-    uploaded_file = st.file_uploader("Upload Data File",
-                                     type=["xrdml", "xml", "ras", "rasx", "xy", "dat", "txt", "raw"])
+    allow_batch = st.checkbox(
+        f"Allow multiple file uploads (**batch mode**). All files must have the same format. Plot from the first file will be previewed. The set settings "
+        f"will propagated to all converted files." ,
+    )
 
-    if uploaded_file:
-        file_ext = uploaded_file.name.lower().split('.')[-1]
-        file_content_bytes = uploaded_file.getvalue()
+
+    uploaded_files_raw = st.file_uploader("Upload Data File(s)",
+                                          type=["xrdml", "xml", "ras", "xy", "dat", "txt", "raw"],
+                                          accept_multiple_files=allow_batch)
+
+    if uploaded_files_raw:
+        if isinstance(uploaded_files_raw, list):
+            uploaded_files = uploaded_files_raw
+        else:
+            uploaded_files = [uploaded_files_raw]
+
+        first_file_ext = uploaded_files[0].name.lower().split('.')[-1]
+        if not all(f.name.lower().split('.')[-1] == first_file_ext for f in uploaded_files):
+            st.error("Error: Please upload files of the same format.")
+            return
+
+        first_file = uploaded_files[0]
+        file_ext = first_file_ext
         data_df = None
-
-        #with st.expander("DEBUG: Raw File Hex Dump", expanded=True):
-        #    st.info(
-        #        "If your .raw file fails to load, please copy the text below and provide it to help diagnose the file format.")
-        #    hex_dump = format_hex_dump(file_content_bytes, length=None)
-        #    st.code(hex_dump, language='text')
-
-        # --- The rest of the logic remains the same ---
-        #if file_ext == 'raw':
-        #    key_metadata, data_df = parse_raw(file_content_bytes)
-
-        if file_ext == 'raw':
-            file_content_bytes = uploaded_file.getvalue()
-            key_metadata, data_df = parse_raw(file_content_bytes)
-            full_metadata = key_metadata
-
-        elif file_ext in ['xrdml', 'xml', 'ras', 'rasx']:
-            if file_ext == 'ras':
-                file_content = uploaded_file.getvalue().decode("utf-8", errors='replace')
-                full_metadata, key_metadata, data_df = parse_ras(file_content)
-            elif file_ext == 'rasx':
-                full_metadata, key_metadata, data_df = parse_rasx(uploaded_file)
-            else:  # xrdml, xml
-                file_content = uploaded_file.getvalue().decode("utf-8", errors='replace')
-                key_metadata, data_df = parse_xrdml(file_content)
+        is_batch = len(uploaded_files) > 1
+        if file_ext in ['xrdml', 'xml', 'ras', 'rasx', 'raw']:
+            key_metadata = {}
+            full_metadata = {}
+            if file_ext == 'raw':
+                file_content_bytes = first_file.getvalue()
+                key_metadata, data_df = parse_raw(file_content_bytes)
                 full_metadata = key_metadata
+            elif file_ext in ['xrdml', 'xml', 'ras', 'rasx']:
+                if file_ext == 'ras':
+                    file_content = first_file.getvalue().decode("utf-8", errors='replace')
+                    full_metadata, key_metadata, data_df = parse_ras(file_content)
+                elif file_ext == 'rasx':
+                    full_metadata, key_metadata, data_df = parse_rasx(first_file)
+                else:
+                    file_content = first_file.getvalue().decode("utf-8", errors='replace')
+                    key_metadata, data_df = parse_xrdml(file_content)
+                    full_metadata = key_metadata
 
-        if data_df is not None and file_ext != 'xy':
-            col1, col2 = st.columns([1, 1.5])
-            with col1:
-                st.markdown("#### 📝 Key Measurement Parameters")
-                st.table(pd.DataFrame(list(key_metadata.items()), columns=['Parameter', 'Value']))
-
-                if full_metadata and file_ext in ['ras', 'rasx']:
-                    with st.expander("Show Full Raw Header"):
-                        st.dataframe(pd.DataFrame(list(full_metadata.items()), columns=['Parameter', 'Value']),
-                                     height=300)
-
-                include_header = st.checkbox("Include header in .xy file", value=False)
-                default_name = uploaded_file.name.rsplit('.', 1)[0] + '.xy'
-                download_filename_input = st.text_input("Enter filename for download:", default_name)
-                st.info(f"Please press enter in the filename field when the name was changed.")
-
-                xy_data = convert_to_xy(data_df, include_header)
-                st.download_button("⬇️ Download as .xy File", xy_data, download_filename_input, "text/plain",
-                                   type="primary")
-                with st.expander("Show All Parsed Metadata"):
-                    # Format the metadata dictionary into a readable string
-                    metadata_string = "\n".join([f"{key}: {value}" for key, value in key_metadata.items()])
-                    st.code(metadata_string, language='text')
-            with col2:
-                st.markdown("#### 📈 Diffraction Pattern")
-                fig = go.Figure(go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
-                fig.update_layout(title=f"Data from {uploaded_file.name}", xaxis_title="2θ (°)",
-                                  yaxis_title="Intensity (counts)", height=550, margin=dict(l=40, r=40, t=50, b=40))
-                st.plotly_chart(fig, use_container_width=True)
-
-        elif file_ext in ['xy', 'dat', 'txt']:
-            file_content = uploaded_file.getvalue().decode("utf-8", errors='replace')
-            data_df = parse_xy(file_content)
             if data_df is not None:
-                current_file_name = uploaded_file.name
-
                 col1, col2 = st.columns([1, 1.5])
                 with col1:
-                    st.markdown("#### 📝 Edit Details for Output File")
-                    output_format = st.selectbox("Select Output Format", ['XRDML', 'RAS', 'RAW'])
+                    st.markdown(f"#### 📝 Key Parameters (from `{first_file.name}`)")
+                    st.table(pd.DataFrame(list(key_metadata.items()), columns=['Parameter', 'Value']))
 
-                    df_state_key = f"meta_df_{output_format}_{current_file_name}"
-                    if st.session_state.get('last_file_format_choice') != (current_file_name, output_format):
-                        st.session_state[df_state_key] = get_default_metadata(output_format)
-                        st.session_state['last_file_format_choice'] = (current_file_name, output_format)
+                    if full_metadata and file_ext in ['ras', 'rasx']:
+                        with st.expander("Show Full Raw Header"):
+                            st.dataframe(pd.DataFrame(list(full_metadata.items()), columns=['Parameter', 'Value']),
+                                         height=300)
 
-                    edited_df = st.data_editor(st.session_state[df_state_key], num_rows="dynamic", height=425)
+                    include_header = st.checkbox("Include header in .xy file", value=False)
 
-                    if st.button("Apply Changes & Prepare Download"):
-                        st.session_state[df_state_key] = edited_df
-                        st.success(f"{output_format} file is ready for download below.")
+                    if is_batch:
+                        st.write(f"**Batch conversion for {len(uploaded_files)} files.**")
+                        if st.button("⬇️ Download All as .xy (.zip)", type="primary", use_container_width=True):
+                            zip_buffer = BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                for uploaded_file in uploaded_files:
+                                    df_to_convert = None
+                                    if file_ext == 'raw':
+                                        _, df_to_convert = parse_raw(uploaded_file.getvalue())
+                                    elif file_ext == 'ras':
+                                        _, _, df_to_convert = parse_ras(
+                                            uploaded_file.getvalue().decode("utf-8", errors='replace'))
+                                    elif file_ext == 'rasx':
+                                        _, _, df_to_convert = parse_rasx(uploaded_file)
+                                    else:
+                                        _, df_to_convert = parse_xrdml(
+                                            uploaded_file.getvalue().decode("utf-8", errors='replace'))
 
-                    file_extensions = {'XRDML': 'xrdml', 'RAS': 'ras', 'RAW': 'raw'}
-                    file_extension = file_extensions.get(output_format, 'txt')
-                    default_name = current_file_name.rsplit('.', 1)[0] + f'.{file_extension}'
+                                    if df_to_convert is not None:
+                                        new_filename = uploaded_file.name.rsplit('.', 1)[0] + '.xy'
+                                        xy_data = convert_to_xy(df_to_convert, include_header)
+                                        zf.writestr(new_filename, xy_data)
 
-                    download_filename_key = f"download_filename_{output_format}_{current_file_name}"
-                    download_filename = st.text_input("Enter filename for download:", default_name,
-                                                      key=download_filename_key)
-                    st.info("Please press enter in the filename field when the name was changed.")
-
-                    if df_state_key in st.session_state:
-                        file_content_to_download = None
-                        mime_type = 'application/octet-stream'  # Default for binary
-
-                        if output_format == 'RAS':
-                            file_content_to_download = generate_ras(st.session_state[df_state_key], data_df)
-                            mime_type = 'text/plain'
-                        elif output_format == 'XRDML':
-                            file_content_to_download = generate_xrdml(st.session_state[df_state_key], data_df)
-                            mime_type = 'application/xml'
-                        elif output_format == 'RAW':
-                            file_content_to_download = generate_raw(st.session_state[df_state_key], data_df)
-                            mime_type = 'application/octet-stream'
-
-                        if file_content_to_download:
                             st.download_button(
-                                label=f"⬇️ Download {download_filename}",
-                                data=file_content_to_download,
-                                file_name=download_filename,
-                                mime=mime_type,
-                                type="primary"
+                                label="📦 Download ZIP",
+                                data=zip_buffer.getvalue(),
+                                file_name="converted_xy_files.zip",
+                                mime="application/zip",
+                                use_container_width=True
                             )
+                    else:
+                        default_name = first_file.name.rsplit('.', 1)[0] + '.xy'
+                        download_filename = st.text_input("Enter filename for download:", default_name)
+                        xy_data = convert_to_xy(data_df, include_header)
+                        st.download_button("⬇️ Download as .xy File", xy_data, download_filename, "text/plain",
+                                           type="primary", use_container_width=True)
+
                 with col2:
                     st.markdown("#### 📈 Diffraction Pattern")
                     fig = go.Figure(
                         go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
-                    fig.update_layout(title=f"Data from {uploaded_file.name}", xaxis_title="2θ (°)",
+                    fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
+                                      yaxis_title="Intensity (counts)", height=550, margin=dict(l=40, r=40, t=50, b=40))
+                    st.plotly_chart(fig, use_container_width=True)
+
+
+        elif file_ext in ['xy', 'dat', 'txt']:
+            file_content = first_file.getvalue().decode("utf-8", errors='replace')
+            data_df = parse_xy(file_content)
+
+            if data_df is not None:
+                col1, col2 = st.columns([1, 1.5])
+                with col1:
+                    st.markdown("#### 📝 Edit Details for Output File(s)")
+                    if is_batch:
+                        st.info(f"These settings will be applied to all **{len(uploaded_files)} files**.")
+                    output_format = st.selectbox("Select Output Format", ['XRDML', 'RAS', 'RAW'])
+
+                    df_state_key = f"meta_df_{output_format}_{first_file.name}"
+                    if st.session_state.get('last_file_format_choice') != (first_file.name, output_format):
+                        st.session_state[df_state_key] = get_default_metadata(output_format)
+                        st.session_state['last_file_format_choice'] = (first_file.name, output_format)
+
+                    edited_df = st.data_editor(st.session_state[df_state_key], num_rows="dynamic", height=425,
+                                               key=f"editor_{output_format}")
+
+                    if st.button("Apply Changes & Prepare Download", use_container_width=True):
+                        st.session_state[df_state_key] = edited_df
+                        st.success(f"Settings applied. {output_format} file is ready for download below.")
+
+                    file_extensions = {'XRDML': 'xrdml', 'RAS': 'ras', 'RAW': 'raw'}
+                    file_extension = file_extensions.get(output_format, 'txt')
+
+                    if df_state_key in st.session_state:
+                        applied_metadata_df = st.session_state[df_state_key]
+                        if is_batch:
+                            zip_buffer = BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                for uploaded_file in uploaded_files:
+                                    df_to_convert = parse_xy(uploaded_file.getvalue().decode("utf-8", errors='replace'))
+                                    if df_to_convert is not None:
+                                        new_filename = uploaded_file.name.rsplit('.', 1)[0] + f'.{file_extension}'
+                                        file_content_to_download = None
+                                        if output_format == 'RAS':
+                                            file_content_to_download = generate_ras(applied_metadata_df, df_to_convert)
+                                        elif output_format == 'XRDML':
+                                            file_content_to_download = generate_xrdml(applied_metadata_df,
+                                                                                      df_to_convert,
+                                                                                      filename=uploaded_file.name)
+                                        elif output_format == 'RAW':
+                                            file_content_to_download = generate_raw(applied_metadata_df, df_to_convert)
+
+                                        if file_content_to_download:
+                                            zf.writestr(new_filename, file_content_to_download)
+
+                            st.download_button(
+                                label=f"📦 Download All as {output_format} (.zip)",
+                                data=zip_buffer.getvalue(),
+                                file_name=f"converted_to_{output_format}.zip",
+                                mime="application/zip",
+                                type="primary",
+                                use_container_width=True
+                            )
+                        else:
+                            default_name = first_file.name.rsplit('.', 1)[0] + f'.{file_extension}'
+                            download_filename = st.text_input("Enter filename for download:", default_name)
+
+                            file_content_to_download = None
+                            mime_type = 'application/octet-stream'
+                            if output_format == 'RAS':
+                                file_content_to_download = generate_ras(applied_metadata_df, data_df)
+                                mime_type = 'text/plain'
+                            elif output_format == 'XRDML':
+                                file_content_to_download = generate_xrdml(applied_metadata_df, data_df,
+                                                                          filename=first_file.name)
+                                mime_type = 'application/xml'
+                            elif output_format == 'RAW':
+                                file_content_to_download = generate_raw(applied_metadata_df, data_df)
+
+                            if file_content_to_download:
+                                st.download_button(
+                                    label=f"⬇️ Download as .{file_extension}",
+                                    data=file_content_to_download,
+                                    file_name=download_filename,
+                                    mime=mime_type,
+                                    type="primary",
+                                    use_container_width=True
+                                )
+
+                with col2:
+                    st.markdown("#### 📈 Diffraction Pattern")
+                    fig = go.Figure(
+                        go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
+                    fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
                                       yaxis_title="Intensity", height=550, margin=dict(l=40, r=40, t=50, b=40))
                     st.plotly_chart(fig, use_container_width=True)
 
