@@ -14,6 +14,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 from helpers import *
 from xrd_convert import *
+from equivalent_planes import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -245,12 +246,17 @@ calc_mode = st.sidebar.multiselect(
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories",
         "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor",
+        "↔️ Equivalent Planes",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
 if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
     run_data_converter()
+    
+if "↔️ Equivalent Planes" in calc_mode:
+    run_equivalent_hkl_app()
+    
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
     st.subheader(
