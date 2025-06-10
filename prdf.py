@@ -114,7 +114,7 @@ if memory_usage > 1600:
     gc.collect()
     st.rerun()
 
-col1, col2 = st.columns([1.2, 0.4])
+col1, col2 = st.columns([1.0, 0.4])
 
 with col2:
     st.info(
@@ -140,32 +140,34 @@ ELEMENTS = [
 #    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
-    with st.expander("About the app.", icon="📖"):
-        st.info(
-            "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
-            "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
-            "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
-            "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
-            "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
-            "There is also option to interactively plot and modify your two-columns data. In case of XRD data, you can convert between different wavelenghts, d-space, or q-space, and between fixed and automatic divergence slits. "
-        )
-        st.warning(
-            "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
-            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**). For creation of **supercells and point defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/)\n\n"
-            "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
-            "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
-            "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
-            "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
-            f"🪧 **Step 2**:  📁 Using the sidebar, upload your structure files or experimental patterns, or retrieve structures directly from MP, AFLOW, or COD crystal structure databases.."
-            "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
-        )
-
-        # from PIL import Image
-        # image = Image.open("images/ts4.png")
-        # st.image(image)
-        if st.button("Clear Cache"):
-            st.cache_data.clear()
-            st.cache_resource.clear()
+    about_app = st.checkbox(f"📖 About the app")
+    if about_app:
+        with st.expander("About the app.", icon="📖", expanded = True):
+            st.info(
+                "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
+                "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
+                "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
+                "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
+                "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
+                "There is also option to interactively plot and modify your two-columns data. In case of XRD data, you can convert between different wavelenghts, d-space, or q-space, and between fixed and automatic divergence slits. "
+            )
+            st.warning(
+                "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
+                "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**). For creation of **supercells and point defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/)\n\n"
+                "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
+                "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
+                "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
+                "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
+                f"🪧 **Step 2**:  📁 Using the sidebar, upload your structure files or experimental patterns, or retrieve structures directly from MP, AFLOW, or COD crystal structure databases.."
+                "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
+            )
+    
+            # from PIL import Image
+            # image = Image.open("images/ts4.png")
+            # st.image(image)
+            if st.button("Clear Cache"):
+                st.cache_data.clear()
+                st.cache_resource.clear()
     show_roadmap = st.checkbox(f"🧭 Roadmap", value = False)
     if show_roadmap:
         with st.expander("Roadmap", icon="🧭"):
