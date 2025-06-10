@@ -86,7 +86,7 @@ def run_equivalent_hkl_app():
         selected_option = st.selectbox(
             "Space Group",
             options=SPACE_GROUP_OPTIONS,
-            index=221,
+            index=220,
             help="Start typing to search by number or symbol.",
             key="hkl_space_group"
         )
