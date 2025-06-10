@@ -166,7 +166,7 @@ with col1:
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
-    show_roadmap = st.checkbox(f"Roadmap", icon="🧭", value = False)
+    show_roadmap = st.checkbox(f"Roadmap", value = False)
     if show_roadmap:
         with st.expander("Roadmap", icon="🧭"):
             show_xrdlicious_roadmap()
