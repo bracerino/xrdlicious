@@ -1416,7 +1416,7 @@ def run_data_converter():
         "Check if they are correct in the converted .xy format.")
 
     allow_batch = st.checkbox(
-        f"Allow multiple file uploads (**batch mode**). All files must have the same format. Plot from the first file will be previewed. The set settings "
+        f"Allow multiple file uploads (**batch mode**). All files must have the same extension. The first file will be previewed in the plot. The set settings "
         f"will propagated to all converted files." ,
     )
 
