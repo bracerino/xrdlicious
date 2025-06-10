@@ -166,7 +166,7 @@ with col1:
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
-    show_roadmap = st.checkbox(f"Roadmap", value = False)
+    show_roadmap = st.checkbox(f"🧭 Roadmap", value = False)
     if show_roadmap:
         with st.expander("Roadmap", icon="🧭"):
             show_xrdlicious_roadmap()
@@ -196,6 +196,7 @@ if citations:
     ---
     
     #### 🏛️ **Using Structures from Databases**
+    - **XRDlicious, 2025** – for the interface.
     - Cite the **relevant database**:
         - **Materials Project** [A. Jain et al., The Materials Project: A materials genome approach to accelerating materials innovation, APL Mater. 1, 011002 (2013)](https://pubs.aip.org/aip/apm/article/1/1/011002/119685/Commentary-The-Materials-Project-A-materials).
         - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
