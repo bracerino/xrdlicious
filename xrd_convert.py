@@ -1412,7 +1412,7 @@ def run_data_converter():
     #)
     st.info(
         "📄🔁📄 Upload one or more data powder diffraction files to convert them to a different format. .**xy ➡️ .xrdml, .ras, .raw**. "
-        "Or **.xrdml, .ras, .raw ➡️ .xy**. \n\n ⚠️ an older **.raw** format can currently produce incorrect x-axis values. "
+        "Or **.xrdml, .ras, .raw ➡️ .xy**. \n\n ⚠️ Older **.raw** format can currently produce incorrect x-axis values. "
         "Check if they are correct in the converted .xy format.")
 
     allow_batch = st.checkbox(
