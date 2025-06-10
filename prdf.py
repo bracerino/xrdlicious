@@ -166,8 +166,10 @@ with col1:
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
-    with st.expander("Roadmap", icon="🧭"):
-        show_xrdlicious_roadmap()
+    show_roadmap = st.checkbox(f"Roadmap", icon="🧭", value = False)
+    if show_roadmap:
+        with st.expander("Roadmap", icon="🧭"):
+            show_xrdlicious_roadmap()
 
     citations = st.checkbox("📚 How to cite", value = False)
 if citations:
