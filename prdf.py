@@ -114,7 +114,7 @@ if memory_usage > 1600:
     gc.collect()
     st.rerun()
 
-col1, col2 = st.columns([1.0, 0.4])
+col1, col2 = st.columns([0.8, 0.4])
 
 with col2:
     st.info(
@@ -170,57 +170,58 @@ with col1:
                 st.cache_resource.clear()
     show_roadmap = st.checkbox(f"🧭 Roadmap", value = False)
     if show_roadmap:
-        with st.expander("Roadmap", icon="🧭"):
+        with st.expander("Roadmap", icon="🧭", expanded = True):
             show_xrdlicious_roadmap()
 
     citations = st.checkbox("📚 How to cite", value = False)
 if citations:
-    st.markdown("""
-    ### 📚 How to Cite
-    
-    Please cite the following sources based on the application usage:
-    
-    ---
-    
-    #### 🧪 **Using Calculated XRD Patterns**
-    - **XRDlicious, 2025** – for the interface.
-    - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-    - **ASE (Atomic Simulation Environment)** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
-    
-    ---
-    
-    #### 🔁 **Using Calculated PRDF**
-    - **XRDlicious, 2025** – for the interface.
-    - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
-    - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-    - **matminer** – for PRDF calculation, [L. Ward et al., matminer: An open-source toolkit for materials data mining, Comput. Mater. Sci. 152, 60 (2018)](https://www.sciencedirect.com/science/article/abs/pii/S0927025618303252).
-    
-    ---
-    
-    #### 🏛️ **Using Structures from Databases**
-    - **XRDlicious, 2025** – for the interface.
-    - Cite the **relevant database**:
-        - **Materials Project** [A. Jain et al., The Materials Project: A materials genome approach to accelerating materials innovation, APL Mater. 1, 011002 (2013)](https://pubs.aip.org/aip/apm/article/1/1/011002/119685/Commentary-The-Materials-Project-A-materials).
-        - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
-        [M. Esters et al., aflow.org: A web ecosystem of databases, software and tools, Comput. Mater. Sci. 216, 111808 (2023)](https://www.sciencedirect.com/science/article/pii/S0927025622005195?casa_token=crrT7T_7vKoAAAAA:7UQbszQokpBT04i8kBqyN9JPXhaLf7ydlwuZen0taWZPXDx46zuYMPeaCJKeznY-BKKczMLzvw). 
-        - **Crystallography Open Database (COD)** [S. Gražulis et al., Crystallography Open Database – an open-access collection of crystal structures, J. Appl. Crystallogr. 42, 726 (2009)](https://journals.iucr.org/j/issues/2009/04/00/kk5039/index.html).
-    - **Important**: Always check the structure's original entry link in the database for any **associated publication** to cite.
-    
-    ---
-    
-    #### 📄 **Using XRD Data and File Conversion**
-    - **XRDlicious, 2025**
-    
-    ---
-    
-    #### 🖼️ **Using Structure Visualizations**
-    - **XRDlicious, 2025** – for the interface.
-    - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-    - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
-    - **Py3Dmol** – for 3D visualization, [N. Rego and D. Koes, 3Dmol. js: molecular visualization with WebGL, Bioinformatics 31, 1322 (2015)](https://academic.oup.com/bioinformatics/article/31/8/1322/213186).
-    
-    ---
-    """)
+    with st.expander("How to Cite", icon="📚", expanded = True):
+        st.markdown("""
+        ### 📚 How to Cite
+        
+        Please cite the following sources based on the application usage:
+        
+        ---
+        
+        #### 🧪 **Using Calculated XRD Patterns**
+        - **XRDlicious, 2025** – for the interface.
+        - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+        - **ASE (Atomic Simulation Environment)** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+        
+        ---
+        
+        #### 🔁 **Using Calculated PRDF**
+        - **XRDlicious, 2025** – for the interface.
+        - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+        - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+        - **matminer** – for PRDF calculation, [L. Ward et al., matminer: An open-source toolkit for materials data mining, Comput. Mater. Sci. 152, 60 (2018)](https://www.sciencedirect.com/science/article/abs/pii/S0927025618303252).
+        
+        ---
+        
+        #### 🏛️ **Using Structures from Databases**
+        - **XRDlicious, 2025** – for the interface.
+        - Cite the **relevant database**:
+            - **Materials Project** [A. Jain et al., The Materials Project: A materials genome approach to accelerating materials innovation, APL Mater. 1, 011002 (2013)](https://pubs.aip.org/aip/apm/article/1/1/011002/119685/Commentary-The-Materials-Project-A-materials).
+            - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
+            [M. Esters et al., aflow.org: A web ecosystem of databases, software and tools, Comput. Mater. Sci. 216, 111808 (2023)](https://www.sciencedirect.com/science/article/pii/S0927025622005195?casa_token=crrT7T_7vKoAAAAA:7UQbszQokpBT04i8kBqyN9JPXhaLf7ydlwuZen0taWZPXDx46zuYMPeaCJKeznY-BKKczMLzvw). 
+            - **Crystallography Open Database (COD)** [S. Gražulis et al., Crystallography Open Database – an open-access collection of crystal structures, J. Appl. Crystallogr. 42, 726 (2009)](https://journals.iucr.org/j/issues/2009/04/00/kk5039/index.html).
+        - **Important**: Always check the structure's original entry link in the database for any **associated publication** to cite.
+        
+        ---
+        
+        #### 📄 **Using XRD Data and File Conversion**
+        - **XRDlicious, 2025**
+        
+        ---
+        
+        #### 🖼️ **Using Structure Visualizations**
+        - **XRDlicious, 2025** – for the interface.
+        - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
+        - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
+        - **Py3Dmol** – for 3D visualization, [N. Rego and D. Koes, 3Dmol. js: molecular visualization with WebGL, Bioinformatics 31, 1322 (2015)](https://academic.oup.com/bioinformatics/article/31/8/1322/213186).
+        
+        ---
+        """)
 
 pattern_details = None
 
