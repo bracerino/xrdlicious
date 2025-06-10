@@ -315,7 +315,8 @@ st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
     "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
     type=["cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
-    accept_multiple_files=True,
+    #accept_multiple_files=True,
+    accept_multiple_files=False,
     key="sidebar_uploader"
 )
 
