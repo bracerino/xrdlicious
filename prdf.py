@@ -314,7 +314,7 @@ if 'full_structures' not in st.session_state:
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
     "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
-    type=["raw", "pdf","cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
+    type=["cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
     accept_multiple_files=True,
     key="sidebar_uploader"
 )
@@ -322,7 +322,7 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
-    type=["xrdml", "csv", "txt", "xy", "data", "dat"],
+    type=["csv", "txt", "xy", "data", "dat"],
     key="user_xrd", accept_multiple_files=True
 )
 
