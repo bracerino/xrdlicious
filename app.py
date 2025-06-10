@@ -322,7 +322,7 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
-    type=["csv", "txt", "xy", "data", "dat"],
+    type=["raw", "txt", "csv", "xy", "data", "dat"],
     key="user_xrd", accept_multiple_files=True
 )
 
