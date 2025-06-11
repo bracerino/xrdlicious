@@ -4,9 +4,10 @@ An online, web-based tool for calculating powder X-ray and neutron diffraction (
 It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), Automatic FLOW (AFLOW), and Crystallography Open Database (COD) databases. Users can also interactively visualize uploaded structures and perform basic modifications (change elements, occupancies, lattice parameters), convert between conventional and primitive cells and introduce point defects, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ). 
 
 # **Use the XRDlicious online**
-🔗 Try it here: [XRD/ND/PRDF Calculator](https://rdf-xrd-calculator.streamlit.app/)  
-🔗 For creation of supercells and point defects, please use the submodule here: [Point defects](https://xrdlicious-point-defects.streamlit.app/)  
-🔗 [Tutorial how to use it HERE](https://implant.fs.cvut.cz/xrdlicious/)
+🔗 Try the application online here: [XRDlicious](https://rdf-xrd-calculator.streamlit.app/)  
+🔗 For creation of supercells and point defects, please use the submodule here: [Point defects](https://xrdlicious-point-defects.streamlit.app/) 
+🔗 For (P)RDF calculations from LAMMPS or XYZ trajectories, please compile separated module locally here: [(P)RDF from LAMMPS/XYZ](https://github.com/bracerino/PRDF-CP2K-LAMMPS) 
+🔗 For tutorials how to use the XRDlicious, please visit this site:[implant.fs.cvut.cz/xrdlicious](https://implant.fs.cvut.cz/xrdlicious/)
 
 ![XRDlicious web-based application](Illu_images/xrdlicious.png)
 
@@ -79,6 +80,10 @@ Python 3.12.3
 ### Partial (PRDF) and total (RDF) radial distribution functions
 - Calculate (P)RDF from the uploaded structures
 ![(P)RDF calculation.](Illu_images/prdf.png)
+
+### (P)RDF from LAMMPS or XYZ trajectories
+- Calculate (P)RDF from the trajectory file (.lammps or .xyz) at given frame sampling. Allows to plot average (P)RDF across the selected frames, or (P)RDF at individual frames with the animation showing its (P)RDF evolution over time. Requires [separated local compilation](https://github.com/bracerino/PRDF-CP2K-LAMMPS) due to the high computational demand.  
+![(P)RDF for trajectories.](Illu_images/prdf_trajectory.png)
 
 ### Interactive data visualization and XRD data conversion
 - Upload multiple two column data files and perform operations, such as automatic vertical stacking, or convert XRD data between different wavelengths or q-space and d-space representations.
