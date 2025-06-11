@@ -119,7 +119,7 @@ col1, col2 = st.columns([0.8, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by [IMPLANT team](https://implant.fs.cvut.cz/). 📺 [Quick tutorial here](https://youtu.be/jHdaNVB2UWE). Spot a bug or have a feature idea? Let us know at: "
+        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. **[Quick tutorial here](https://youtu.be/jHdaNVB2UWE)**. Spot a bug or have a feature idea? Let us know at: "
         "lebedmi2@cvut.cz. To compile this application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 ELEMENTS = [
@@ -4616,7 +4616,7 @@ if "💥 Powder Diffraction" in calc_mode:
         colors = ["black", "brown", "grey", "purple"]
         if not st.session_state.calc_xrd:
             st.info(f"Hint: You can **remove background** from the **experimental files** using sidebar.")
-            st.subheader("📊 OUTPUT → Click first on the 'Calculate XRD / ND' button.")
+            st.warning("Provide first crystal structure files.")
 
         if user_pattern_file and (not st.session_state.calc_xrd or not uploaded_files):
             if "parsed_exp_data" not in st.session_state:
