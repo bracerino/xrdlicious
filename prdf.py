@@ -15,7 +15,7 @@ st.markdown("""
 from helpers import *
 from xrd_convert import *
 from equivalent_planes import *
-from more_funct/reorient import *
+from ./more_funct/reorient import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
