@@ -2275,12 +2275,12 @@ if "🔬 Structure Modification" in calc_mode:
                 )
 
                 # ADD THIS NEW OPTION:
-                use_orthographic = st.checkbox(
-                    "📐 Use orthographic projection (remove perspective)",
-                    value=False,
-                    help="Remove perspective distortion for technical drawings",
-                    key="use_orthographic_main"
-                )
+                #use_orthographic = st.checkbox(
+                #    "📐 Use orthographic projection (remove perspective)",
+                #    value=False,
+                #    help="Remove perspective distortion for technical drawings",
+                #    key="use_orthographic_main"
+                #
             else:
                 show_lattice_vectors = True
                 use_orthographic = False
@@ -3439,8 +3439,6 @@ if "🔬 Structure Modification" in calc_mode:
                         unsafe_allow_html=True
                     )
 
-                    st.info(
-                        "🖱️ **py3Dmol Controls:** Left click + drag to rotate, scroll to zoom, middle click + drag to pan")
 
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
