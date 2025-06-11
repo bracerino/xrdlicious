@@ -1,7 +1,7 @@
 # **XRDlicious: Powder XRD/ND Patterns and PRDF Online Calculator**
 
 An online, web-based tool for calculating powder X-ray and neutron diffraction (XRD and ND) patterns, as well as partial and total radial distribution functions (PRDF, RDF) from crystal structures (CIF, VASP, LMP, XYZ (with cell information)).
-It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), Automatic FLOW (AFLOW), and Crystallography Open Database (COD) databases. Users can also interactively visualize uploaded structures, convert between conventional and primitive cells, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ). 
+It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), Automatic FLOW (AFLOW), and Crystallography Open Database (COD) databases. Users can also interactively visualize uploaded structures and perform basic modifications (change elements, occupancies, lattice parameters), convert between conventional and primitive cells and introduce point defects, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ). 
 
 # **Use the XRDlicious online**
 🔗 Try it here: [XRD/ND/PRDF Calculator](https://rdf-xrd-calculator.streamlit.app/)  
@@ -62,6 +62,10 @@ Python 3.12.3
 - psutil==7.0.0  
 
 ## Current functions:
+### Retrieve structures from databases
+- Search interface for MP, AFLOW, and COD databases. Structures can be directly added to the application, or their CIF can be downloaded and they can be accessed on the original link.
+![Search in MP, AFLOw, COD databases.](Illu_images/search_database.png)
+
 ### Structure visualization and modification 
 - Visualize data, modify atomic elements, occupancies, and lattice parameters, download structures in CIF, VASP, LMP, XYZ (with lattice) formats
 ![Structure visualization and modification](Illu_images/str_visu.png)
@@ -71,3 +75,13 @@ Python 3.12.3
 ![Calculated XRD diffraction patterns for multiple files compared with experimental measurement.](Illu_images/xrd_nd.png)
 
 ### Partial (PRDF) and total (RDF) radial distribution functions
+- Calculate (P)RDF from the uploaded structures
+![(P)RDF calculation.](Illu_images/prdf.png)
+
+### Interactive data visualization and XRD conversion
+- Upload multiple two column data files and perform operations, such as automatic vertical stacking, or convert XRD data between different wavelengths or q-space and d-space representations.
+![Interactive data plot.](Illu_images/int_plot.png)
+
+### Convert powder diffraction data file formats
+- Convert from .xrdml (PANalytical), .ras (Rigaku), .raw (Bruker) data formats into .xy format and vice versa. It is possible to upload multiple files and perform batch conversion.
+![Covert file formats](Illu_images/data_file_convert.png)
