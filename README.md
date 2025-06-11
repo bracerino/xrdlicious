@@ -64,7 +64,7 @@ Python 3.12.3
 - psutil==7.0.0  
 
 ## Current functions:
-### Retrieve structures from databases
+### Structure retrieval from databases
 - Search interface for MP, AFLOW, and COD databases. Structures can be directly added to the application, or their CIF can be downloaded and they can be accessed on the original link.
 ![Search in MP, AFLOw, COD databases.](Illu_images/search_database.png)
 
@@ -80,10 +80,10 @@ Python 3.12.3
 - Calculate (P)RDF from the uploaded structures
 ![(P)RDF calculation.](Illu_images/prdf.png)
 
-### Interactive data visualization and XRD conversion
+### Interactive data visualization and XRD data conversion
 - Upload multiple two column data files and perform operations, such as automatic vertical stacking, or convert XRD data between different wavelengths or q-space and d-space representations.
 ![Interactive data plot.](Illu_images/int_plot.png)
 
-### Convert powder diffraction data file formats
+### Powder diffraction file formats conversion
 - Convert from .xrdml (PANalytical), .ras (Rigaku), .raw (Bruker) data formats into .xy format and vice versa. It is possible to upload multiple files and perform batch conversion.
 ![Covert file formats](Illu_images/data_file_convert.png)
