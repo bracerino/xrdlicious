@@ -8,7 +8,7 @@ It features an integrated search interface for directly accessing and importing 
 🔗 For creation of supercells and point defects, please use the submodule here: [Point defects](https://xrdlicious-point-defects.streamlit.app/)  
 🔗 [Tutorial how to use it HERE](https://implant.fs.cvut.cz/xrdlicious/)
 
-![Calculated XRD diffraction patterns for multiple files compared with experimental measurement.](Illu_images/xrd_nd.png)
+![XRDlicious web-based application](Illu_images/xrdlicious.png)
 
 For more computationally demanding calculations with more extensive data, please compile the code locally on your computer (follow the manual below).
 # **How to compile and run the XRDlicious locally:** 
@@ -61,4 +61,13 @@ Python 3.12.3
 - pymatgen-analysis-defects==2025.1.18
 - psutil==7.0.0  
 
-Currently, the main functions 
+## Current functions:
+### Structure visualization and modification 
+- Visualize data, modify atomic elements, occupancies, and lattice parameters, download structures in CIF, VASP, LMP, XYZ (with lattice) formats
+![Structure visualization and modification](Illu_images/str_visu.png)
+
+### Powder XRD and ND patterns
+- Calculate theoretical powder XRD, ND patterns from uploaded structures or structures retrieved from MP, AFLOW, and COD databases. Upload experimental diffraction data (.xy format) and subtract their backgroud for comparison with theoretical patterns.
+![Calculated XRD diffraction patterns for multiple files compared with experimental measurement.](Illu_images/xrd_nd.png)
+
+### Partial (PRDF) and total (RDF) radial distribution functions
