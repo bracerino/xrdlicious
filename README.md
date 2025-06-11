@@ -11,6 +11,8 @@ It features an integrated search interface for directly accessing and importing 
 ![XRDlicious web-based application](Illu_images/xrdlicious.png)
 
 For more computationally demanding calculations with more extensive data, please compile the code locally on your computer (follow the manual below).
+For planned features and modifications in the app, please see the Roadmap on the application website.
+
 # **How to compile and run the XRDlicious locally:** 
 
 ### **Prerequisities**: 
