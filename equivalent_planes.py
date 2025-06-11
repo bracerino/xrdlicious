@@ -113,9 +113,19 @@ def run_equivalent_hkl_app():
 
                     num_columns = 4
                     cols = st.columns(num_columns)
+                    #for i, plane in enumerate(equivalent_hkls):
+                    #    col_index = i % num_columns
+                    #    formatted_plane_latex = f"({ '\\ '.join(map(str, plane)) })"
+                    #    cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
+                    
                     for i, plane in enumerate(equivalent_hkls):
                         col_index = i % num_columns
-                        formatted_plane_latex = f"({ '\\ '.join(map(str, plane)) })"
+                        def to_latex_overbar(n):
+                            if n < 0:
+                                return f"\\bar{{{abs(n)}}}"
+                            return str(n)
+                        latex_hkl = ' '.join(map(to_latex_overbar, plane))
+                        formatted_plane_latex = f"({latex_hkl})"
                         cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
                 else:
                     st.warning("No equivalent planes were found. This may be expected for certain special planes and space groups.")
