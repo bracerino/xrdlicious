@@ -8,7 +8,7 @@ It features an integrated search interface for directly accessing and importing 
 🔗 For creation of supercells and point defects, please use the submodule here: [Point defects](https://xrdlicious-point-defects.streamlit.app/)  
 🔗 [Tutorial how to use it HERE](https://implant.fs.cvut.cz/xrdlicious/)
 
-![This is a description of the image](Illu_images/xrd_nd.png)
+![Calculated XRD diffraction patterns for multiple files compared with experimental measurement.](Illu_images/xrd_nd.png)
 
 For more computationally demanding calculations with more extensive data, please compile the code locally on your computer (follow the manual below).
 # **How to compile and run the XRDlicious locally:** 
@@ -60,3 +60,5 @@ Python 3.12.3
 - pillow==11.2.1  
 - pymatgen-analysis-defects==2025.1.18
 - psutil==7.0.0  
+
+Currently, the main functions 
