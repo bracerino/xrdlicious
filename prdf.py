@@ -15,6 +15,7 @@ st.markdown("""
 from helpers import *
 from xrd_convert import *
 from equivalent_planes import *
+from more_funct/reorient import *
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1747,6 +1748,7 @@ def substitute_atoms_in_structure(structure, substitution_dict, selection_mode="
 if "run_before" not in st.session_state:
     st.session_state["run_before"] = False
 
+
 if "🔬 Structure Modification" in calc_mode:
     auto_save_structure = False
     auto_save_filename = False
@@ -2264,8 +2266,31 @@ if "🔬 Structure Modification" in calc_mode:
             unique_wyckoff_only = st.checkbox(
                 "Visualize only atoms in **asymmetric unit**",
                 value=False)
-        full_df = st.session_state.modified_atom_df.copy()
+            if show_plot_str and viz_type == "py3Dmol (Molecular viewer)":
+                show_lattice_vectors = st.checkbox(
+                    "🔴🟢🔵 Show lattice vectors and unit cell",
+                    value=True,
+                    help="Show lattice vectors and unit cell box",
+                    key="show_lattice_vectors_main"
+                )
 
+                # ADD THIS NEW OPTION:
+                use_orthographic = st.checkbox(
+                    "📐 Use orthographic projection (remove perspective)",
+                    value=False,
+                    help="Remove perspective distortion for technical drawings",
+                    key="use_orthographic_main"
+                )
+            else:
+                show_lattice_vectors = True
+                use_orthographic = False
+
+            hkl_result = None
+
+        full_df = st.session_state.modified_atom_df.copy()
+        with col_g1:
+            if show_plot_str and viz_type == "py3Dmol (Molecular viewer)":
+                hkl_result = add_hkl_plane_controls(key_suffix="main_viz")
         if unique_wyckoff_only:
             grouped = full_df.groupby(['Wyckoff', 'Element']).size().reset_index(name='count')
 
@@ -3195,82 +3220,106 @@ if "🔬 Structure Modification" in calc_mode:
             else:
                 structure_for_viz = visual_pmg_structure
                 df_for_viz = display_df if unique_wyckoff_only else df_plot
+                supercell_x, supercell_y, supercell_z = 1, 1, 1
 
-                xyz_lines = [str(len(df_for_viz))]
-                xyz_lines.append("py3Dmol visualization")
 
-                for _, row in df_for_viz.iterrows():
-                    element = row['Element']
-                    x, y, z = row['X'], row['Y'], row['Z']
-                    xyz_lines.append(f"{element} {x:.6f} {y:.6f} {z:.6f}")
+                if hkl_result is not None:
+                    #h, k, l, apply_orientation, supercell_x, supercell_y, supercell_z, show_lattice_vectors = hkl_result
+                    h, k, l, apply_orientation, supercell_x, supercell_y, supercell_z = hkl_result
 
-                xyz_str = "\n".join(xyz_lines)
 
+                if supercell_x == 1 and supercell_y == 1 and supercell_z == 1:
+                    xyz_lines = [str(len(df_for_viz))]
+                    xyz_lines.append("py3Dmol visualization")
+                    for _, row in df_for_viz.iterrows():
+                        element = row['Element']
+                        x, y, z = row['X'], row['Y'], row['Z']
+                        xyz_lines.append(f"{element} {x:.6f} {y:.6f} {z:.6f}")
+                    xyz_str = "\n".join(xyz_lines)
+
+                else:
+
+                    xyz_str = create_supercell_xyz_for_visualization(
+                        df_for_viz,
+                        structure_for_viz.lattice.matrix,
+                        supercell_x,
+                        supercell_y,
+                        supercell_z
+                    )
                 with col_g2:
                     view = py3Dmol.view(width=1000, height=800)
                     view.addModel(xyz_str, "xyz")
-
                     view.setStyle({'model': 0}, {"sphere": {"radius": base_atom_size / 30, "colorscheme": "Jmol"}})
 
+                    #if use_orthographic:
+                    #    view.setViewStyle({'style': 'outline', 'color': 'black', 'width': 0.1})
+                    #    # Set orthographic camera
+                    #    view.setView({
+                    #        'fov': 0,  # Field of view = 0 means orthographic
+                    #    })
+
                     cell_3dmol = structure_for_viz.lattice.matrix
+
                     if np.linalg.det(cell_3dmol) > 1e-6:
-                        add_box(view, cell_3dmol, color='black', linewidth=2)
-
-                        a, b, c = cell_3dmol[0], cell_3dmol[1], cell_3dmol[2]
-
-                        view.addArrow({
-                            'start': {'x': 0, 'y': 0, 'z': 0},
-                            'end': {'x': a[0], 'y': a[1], 'z': a[2]},
-                            'color': 'red',
-                            'radius': 0.1
-                        })
-                        view.addArrow({
-                            'start': {'x': 0, 'y': 0, 'z': 0},
-                            'end': {'x': b[0], 'y': b[1], 'z': b[2]},
-                            'color': 'green',
-                            'radius': 0.1
-                        })
-                        view.addArrow({
-                            'start': {'x': 0, 'y': 0, 'z': 0},
-                            'end': {'x': c[0], 'y': c[1], 'z': c[2]},
-                            'color': 'blue',
-                            'radius': 0.1
-                        })
-
-                        a_norm = np.linalg.norm(a)
-                        b_norm = np.linalg.norm(b)
-                        c_norm = np.linalg.norm(c)
-
-                        view.addLabel(f"a = {a_norm:.3f} Å", {
-                            "position": {"x": a[0] * 1.1, "y": a[1] * 1.1, "z": a[2] * 1.1},
-                            "backgroundColor": "red",
-                            "fontColor": "white",
-                            "fontSize": 12
-                        })
-                        view.addLabel(f"b = {b_norm:.3f} Å", {
-                            "position": {"x": b[0] * 1.1, "y": b[1] * 1.1, "z": b[2] * 1.1},
-                            "backgroundColor": "green",
-                            "fontColor": "white",
-                            "fontSize": 12
-                        })
-                        view.addLabel(f"c = {c_norm:.3f} Å", {
-                            "position": {"x": c[0] * 1.1, "y": c[1] * 1.1, "z": c[2] * 1.1},
-                            "backgroundColor": "blue",
-                            "fontColor": "white",
-                            "fontSize": 12
-                        })
-
-                    if show_atom_labels:
-                        for i, row in df_for_viz.iterrows():
-                            element = row['Element']
-                            x, y, z = row['X'], row['Y'], row['Z']
-
-                            if 'Element_Index' in row:
-                                label = row['Element_Index']
+                        if show_lattice_vectors:
+                            if supercell_x == 1 and supercell_y == 1 and supercell_z == 1:
+                                add_box(view, cell_3dmol, color='black', linewidth=2)
                             else:
-                                label = f"{element}{i + 1}"
+                                add_supercell_unit_cell_boxes(view, cell_3dmol, supercell_x, supercell_y, supercell_z)
 
-                            if show_atom_labels:
+                        if show_lattice_vectors:
+                            a, b, c = cell_3dmol[0], cell_3dmol[1], cell_3dmol[2]
+
+                            view.addArrow({
+                                'start': {'x': 0, 'y': 0, 'z': 0},
+                                'end': {'x': a[0], 'y': a[1], 'z': a[2]},
+                                'color': 'red',
+                                'radius': 0.1
+                            })
+                            view.addArrow({
+                                'start': {'x': 0, 'y': 0, 'z': 0},
+                                'end': {'x': b[0], 'y': b[1], 'z': b[2]},
+                                'color': 'green',
+                                'radius': 0.1
+                            })
+                            view.addArrow({
+                                'start': {'x': 0, 'y': 0, 'z': 0},
+                                'end': {'x': c[0], 'y': c[1], 'z': c[2]},
+                                'color': 'blue',
+                                'radius': 0.1
+                            })
+                            a_norm = np.linalg.norm(a)
+                            b_norm = np.linalg.norm(b)
+                            c_norm = np.linalg.norm(c)
+                            view.addLabel(f"a = {a_norm:.3f} Å", {
+                                "position": {"x": a[0] * 1.1, "y": a[1] * 1.1, "z": a[2] * 1.1},
+                                "backgroundColor": "red",
+                                "fontColor": "white",
+                                "fontSize": 12
+                            })
+                            view.addLabel(f"b = {b_norm:.3f} Å", {
+                                "position": {"x": b[0] * 1.1, "y": b[1] * 1.1, "z": b[2] * 1.1},
+                                "backgroundColor": "green",
+                                "fontColor": "white",
+                                "fontSize": 12
+                            })
+                            view.addLabel(f"c = {c_norm:.3f} Å", {
+                                "position": {"x": c[0] * 1.1, "y": c[1] * 1.1, "z": c[2] * 1.1},
+                                "backgroundColor": "blue",
+                                "fontColor": "white",
+                                "fontSize": 12
+                            })
+
+                    total_atoms = len(df_for_viz) * supercell_x * supercell_y * supercell_z
+                    if show_atom_labels and total_atoms <= 200:
+                        if supercell_x == 1 and supercell_y == 1 and supercell_z == 1:
+                            for i, row in df_for_viz.iterrows():
+                                element = row['Element']
+                                x, y, z = row['X'], row['Y'], row['Z']
+                                if 'Element_Index' in row:
+                                    label = row['Element_Index']
+                                else:
+                                    label = f"{element}{i + 1}"
                                 view.addLabel(label, {
                                     "position": {"x": x, "y": y, "z": z},
                                     "backgroundColor": "white",
@@ -3279,16 +3328,102 @@ if "🔬 Structure Modification" in calc_mode:
                                     "borderThickness": 1,
                                     "borderColor": "grey"
                                 })
+                        else:
+                            atom_count = 0
+                            for i in range(supercell_x):
+                                for j in range(supercell_y):
+                                    for k in range(supercell_z):
+                                        translation = i * cell_3dmol[0] + j * cell_3dmol[1] + k * cell_3dmol[2]
+                                        for _, row in df_for_viz.iterrows():
+                                            element = row['Element']
+                                            original_pos = np.array([row['X'], row['Y'], row['Z']])
+                                            new_pos = original_pos + translation
+                                            if atom_count % 5 == 0:
+                                                view.addLabel(element, {
+                                                    "position": {"x": new_pos[0], "y": new_pos[1], "z": new_pos[2]},
+                                                    "backgroundColor": "white",
+                                                    "fontColor": "black",
+                                                    "fontSize": 10,
+                                                    "borderThickness": 1,
+                                                    "borderColor": "grey"
+                                                })
+                                            atom_count += 1
+                    elif show_atom_labels and total_atoms > 200:
+                        st.warning("⚠️ Too many atoms for labeling. Labels disabled for performance.")
+                    key_suffix = "main_viz"
+                    stored_orientation_key = f"stored_orientation_{key_suffix}"
+                    should_apply_orientation = False
+                    orientation_h, orientation_k, orientation_l = 1, 0, 0
+                    show_success_message = False
+                    if hkl_result is not None:
+                        h, k, l, apply_orientation, supercell_x, supercell_y, supercell_z = hkl_result
+                        plane_info = get_hkl_plane_info(visual_pmg_structure.lattice.matrix, h, k, l)
+                        if plane_info["success"]:
+                            st.write(f"**d-spacing for ({h} {k} {l}) plane:** {plane_info['d_spacing']:.4f} Å")
 
-                    view.zoomTo()
-                    view.zoom(1.1)
-                    view.rotate(10, 'x')
+                        if apply_orientation:
+                            should_apply_orientation = True
+
+                            orientation_h, orientation_k, orientation_l = h, k, l
+
+                            show_success_message = True
+                            st.session_state[stored_orientation_key] = {
+                                "active": True,
+                                "h": h,
+                                "k": k,
+                                "l": l
+                            }
+
+                    if stored_orientation_key in st.session_state and st.session_state[stored_orientation_key][
+                        "active"]:
+                        stored = st.session_state[stored_orientation_key]
+                        should_apply_orientation = True
+                        orientation_h = stored["h"]
+                        orientation_k = stored["k"]
+                        orientation_l = stored["l"]
+                    if should_apply_orientation:
+                        success, message = apply_hkl_orientation_to_py3dmol(
+                            view,
+                            visual_pmg_structure.lattice.matrix,
+                            orientation_h, orientation_k, orientation_l,
+                            supercell_x, supercell_y, supercell_z
+                        )
+                        if show_success_message:
+                            if success:
+                                st.success(message)
+                            else:
+                                st.error(message)
+
+                    else:
+                        view.zoomTo()
+                        view.zoom(1.1)
+                        view.rotate(10, 'x')
+
+                     #if use_orthographic:
+                     #   view.setCameraParameters({'fov': 0})
+                     #   view.zoomTo()
 
                     html_content = view._make_html()
 
                     st.components.v1.html(
+
                         f"<div style='display:flex;justify-content:center;border:2px solid #333;border-radius:10px;overflow:hidden;background-color:#f8f9fa;'>{html_content}</div>",
                         height=820
+                    )
+                    elements_in_viz = df_for_viz['Element'].unique()
+                    elems_legend = sorted(list(elements_in_viz))
+                    legend_items = [
+                        f"<div style='margin-right:15px;display:flex;align-items:center;'>"
+                        f"<div style='width:18px;height:18px;background-color:{color_map.get(e, '#CCCCCC')};margin-right:8px;border:2px solid black;border-radius:50%;'></div>"
+                        f"<span style='font-weight:bold;font-size:14px;'>{e}</span></div>"
+                        for e in elems_legend
+                    ]
+                    st.markdown(
+                        f"<div style='display:flex;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:15px;padding:10px;background-color:#f0f2f6;border-radius:10px;'>{''.join(legend_items)}</div>",
+                        unsafe_allow_html=True
+                    )
+                    st.info(
+                        "🖱️ **py3Dmol Controls:** Left click + drag to rotate, scroll to zoom, middle click + drag to pan"
                     )
 
                     elements_in_viz = df_for_viz['Element'].unique()
@@ -3582,6 +3717,7 @@ if "🔬 Structure Modification" in calc_mode:
                     type="primary",
                     mime=mime
                 )
+
 
 # --- Diffraction Settings and Calculation ---
 
