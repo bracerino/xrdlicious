@@ -2274,13 +2274,10 @@ if "🔬 Structure Modification" in calc_mode:
                     key="show_lattice_vectors_main"
                 )
 
-                # ADD THIS NEW OPTION:
-                #use_orthographic = st.checkbox(
-                #    "📐 Use orthographic projection (remove perspective)",
-                #    value=False,
-                #    help="Remove perspective distortion for technical drawings",
-                #    key="use_orthographic_main"
-                #
+                use_orthographic = st.checkbox(
+                    "📐 Use orthographic projection (remove perspective)",
+                    value=False,
+                    key="use_orthographic_main")
             else:
                 show_lattice_vectors = True
                 use_orthographic = False
@@ -3395,13 +3392,19 @@ if "🔬 Structure Modification" in calc_mode:
                                 st.error(message)
 
                     else:
-                        view.zoomTo()
-                        view.zoom(1.1)
-                        view.rotate(10, 'x')
-
-                     #if use_orthographic:
-                     #   view.setCameraParameters({'fov': 0})
-                     #   view.zoomTo()
+                        if use_orthographic:
+                            view.setProjection('orthogonal')
+                            print("Am I here")
+                            view.setCameraParameters({'orthographic': True})
+                            view.zoomTo()
+                            #view.zoom(1.1)
+                            #view.rotate(10, 'x')
+                        else:
+                            view.setProjection('perspective')
+                            view.setCameraParameters({'orthographic': False})
+                            view.zoomTo()
+                            view.zoom(1.1)
+                            view.rotate(10, 'x')
 
                     html_content = view._make_html()
 
