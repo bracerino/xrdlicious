@@ -3345,7 +3345,7 @@ if "🔬 Structure Modification" in calc_mode:
                                                     "borderColor": "grey"
                                                 })
                                             atom_count += 1
-                    elif show_atom_labels and total_atoms > 200:
+                    elif show_atom_labels and total_atoms > 500:
                         st.warning("⚠️ Too many atoms for labeling. Labels disabled for performance.")
                     key_suffix = "main_viz"
                     stored_orientation_key = f"stored_orientation_{key_suffix}"
