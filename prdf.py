@@ -2263,9 +2263,10 @@ if "🔬 Structure Modification" in calc_mode:
                     help="Choose between Plotly's interactive 3D plotting or py3Dmol's molecular visualization"
                 )
 
-            unique_wyckoff_only = st.checkbox(
-                "Visualize only atoms in **asymmetric unit**",
-                value=False)
+            #unique_wyckoff_only = st.checkbox(
+            #    "Visualize only atoms in **asymmetric unit**",
+            #    value=False)
+            unique_wyckoff_only = False
             if show_plot_str and viz_type == "py3Dmol (Molecular viewer)":
                 show_lattice_vectors = st.checkbox(
                     "🔴🟢🔵 Show lattice vectors and unit cell",
