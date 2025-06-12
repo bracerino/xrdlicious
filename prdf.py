@@ -3391,20 +3391,19 @@ if "🔬 Structure Modification" in calc_mode:
                             else:
                                 st.error(message)
 
+                    if use_orthographic:
+                        view.setProjection('orthogonal')
+                        print("Am I here")
+                        view.setCameraParameters({'orthographic': True})
+                        view.zoomTo()
+                        #view.zoom(1.1)
+                        #view.rotate(10, 'x')
                     else:
-                        if use_orthographic:
-                            view.setProjection('orthogonal')
-                            print("Am I here")
-                            view.setCameraParameters({'orthographic': True})
-                            view.zoomTo()
-                            #view.zoom(1.1)
-                            #view.rotate(10, 'x')
-                        else:
-                            view.setProjection('perspective')
-                            view.setCameraParameters({'orthographic': False})
-                            view.zoomTo()
-                            view.zoom(1.1)
-                            view.rotate(10, 'x')
+                        view.setProjection('perspective')
+                        view.setCameraParameters({'orthographic': False})
+                        view.zoomTo()
+                        view.zoom(1.1)
+                        view.rotate(10, 'x')
 
                     html_content = view._make_html()
 
