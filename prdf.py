@@ -3439,7 +3439,8 @@ if "🔬 Structure Modification" in calc_mode:
         volume = lattice.volume
 
         density_g = str(visual_pmg_structure.density).split()[0]
-        density_a = len(visual_pmg_structure) / volume
+        str_len = len(visual_pmg_structure) 
+        density_a = str_len / volume
 
         # Get lattice parameters
 
@@ -3454,42 +3455,12 @@ if "🔬 Structure Modification" in calc_mode:
         )
 
         with col_g1:
-            try:
-                sg_analyzer = SpacegroupAnalyzer(visual_pmg_structure)
-                spg_symbol = sg_analyzer.get_space_group_symbol()
-                spg_number = sg_analyzer.get_space_group_number()
-                space_group_str = f"{spg_symbol} ({spg_number})"
-
-                structure_type = identify_structure_type(visual_pmg_structure)
-                str_type = f"{structure_type}"
-
-                same_lattice = lattice_same_conventional_vs_primitive(visual_pmg_structure)
-                if same_lattice is None:
-                    cell_note = "⚠️ Could not determine if cells are identical."
-                    cell_note_color = "gray"
-                elif same_lattice:
-                    cell_note = "✅ Note: Conventional and Primitive Cells have the SAME cell volume."
-                    cell_note_color = "green"
-                else:
-                    cell_note = "Note: Conventional and Primitive Cells have DIFFERENT cell volume."
-                    cell_note_color = "gray"
-            except Exception:
-                space_group_str = "Not available"
-                cell_note = "⚠️ Could not determine space group or cell similarity."
-                cell_note_color = "gray"
-
-            st.markdown(f"""
-             <div style='text-align: center; font-size: 18px; color: {"green" if same_lattice else "gray"}'>
-                 <strong>{cell_note}</strong>
-             </div>
-             """, unsafe_allow_html=True)
             st.markdown(f"""
              <div style='text-align: center; font-size: 18px;'>
                  <p><strong>Lattice Parameters:</strong><br>{lattice_str}</p>
-                 <p><strong>Number of Atoms:</strong> {len(visual_pmg_structure)}</p>
-                 <p><strong>Space Group:</strong> {space_group_str}</p>
+                 <p><strong>Number of Atoms:</strong> {str_len}</p>
                  <p><strong>Density:</strong> {float(density_g):.2f} g/cm³ ({float(density_a):.4f} 1/Å³) </p>
-                 <p><strong>Structure Type:</strong> {str_type}</p>
+                 <p><strong>Structure Type:</strong> {structure_type}</p>
              </div>
              """, unsafe_allow_html=True)
 
