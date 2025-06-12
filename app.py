@@ -100,10 +100,10 @@ mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds 1600 MB
-if memory_usage > 1600:
+if memory_usage > 16000:
     # Show warning message
     st.markdown(
-        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
+        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ Soon, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application [locally](https://github.com/bracerino/xrdlicious).")
 
     # Wait 10 seconds
     time.sleep(10)
@@ -7536,6 +7536,6 @@ st.markdown("""
 ### Acknowledgments
 
 This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).
- **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://github.com/avirshup/py3dmol/tree/master)** Licensed under the [BSD-style License](https://github.com/avirshup/py3dmol/blob/master/LICENSE.txt). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html)
+ **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://pypi.org/project/py3Dmol/)** Licensed under the [BSD-3-Clause License](https://github.com/3dmol/3Dmol.js/blob/master/LICENSE). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html)
  **[Crystallographic Open Database (COD)](https://www.crystallography.net/cod/)** under the CC0 license.
 """)
