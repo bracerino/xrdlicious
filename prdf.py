@@ -5755,301 +5755,301 @@ if "📊 (P)RDF" in calc_mode:
     st.button("Calculate RDF", on_click=trigger_calculation)
 
     if st.session_state.calc_rdf and (uploaded_files or (use_lammps_traj and lammps_file)):
-
-        if st.session_state.do_calculation:
-            species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
-            all_prdf_dict = defaultdict(list)
-            all_distance_dict = {}
-            global_rdf_list = []
-
-            if use_lammps_traj and lammps_file:
-                st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
-                progress_bar = st.progress(0)
-                # with st.expander("Log from reading LAMMPS trajectory file"):
-                with st.status("Reading LAMMPS trajectory file..."):
-                    file_content_sample = lammps_file.read(2048)
-                    lammps_file.seek(0)
-                    try:
-                        sample_text = file_content_sample.decode('utf-8')
-                    except UnicodeDecodeError:
-                        sample_text = file_content_sample.decode('latin-1')
-
-                    if "ITEM: TIMESTEP" in sample_text:
-                        st.success("Detected standard LAMMPS dump format")
-                    elif "ITEM: NUMBER OF ATOMS" in sample_text:
-                        st.success("Detected LAMMPS dump format with atom counts")
-                    else:
-                        st.warning("Could not detect standard LAMMPS format markers. Will attempt to read anyway.")
-                    try:
-                        import tempfile
-                        import io
-
-                        bytes_data = io.BytesIO(lammps_file.getbuffer())
-
-                        st.info("Attempting to read LAMMPS trajectory directly from memory...")
-
-                        from ase.io import read as ase_read
-
-                        frames = []
-
-                        read_methods = [
-                            {'format': 'lammps-dump', 'description': 'Standard LAMMPS dump format'},
-                            {'format': 'lammps-dump-text', 'description': 'LAMMPS dump text format'},
-                            {'format': None, 'description': 'Automatic format detection'}
-                        ]
-
-                        success = False
-
-
-                        def parse_lammps_dump_from_string(content):
-                            from ase import Atoms
-                            import numpy as np
-
+        with st.spinner(f"Calculating (P)RDF, please wait. 😊"):
+            if st.session_state.do_calculation:
+                species_combinations = list(combinations(species_list, 2)) + [(s, s) for s in species_list]
+                all_prdf_dict = defaultdict(list)
+                all_distance_dict = {}
+                global_rdf_list = []
+    
+                if use_lammps_traj and lammps_file:
+                    st.info(f"Processing LAMMPS trajectory file: {lammps_file.name}")
+                    progress_bar = st.progress(0)
+                    # with st.expander("Log from reading LAMMPS trajectory file"):
+                    with st.status("Reading LAMMPS trajectory file..."):
+                        file_content_sample = lammps_file.read(2048)
+                        lammps_file.seek(0)
+                        try:
+                            sample_text = file_content_sample.decode('utf-8')
+                        except UnicodeDecodeError:
+                            sample_text = file_content_sample.decode('latin-1')
+    
+                        if "ITEM: TIMESTEP" in sample_text:
+                            st.success("Detected standard LAMMPS dump format")
+                        elif "ITEM: NUMBER OF ATOMS" in sample_text:
+                            st.success("Detected LAMMPS dump format with atom counts")
+                        else:
+                            st.warning("Could not detect standard LAMMPS format markers. Will attempt to read anyway.")
+                        try:
+                            import tempfile
+                            import io
+    
+                            bytes_data = io.BytesIO(lammps_file.getbuffer())
+    
+                            st.info("Attempting to read LAMMPS trajectory directly from memory...")
+    
+                            from ase.io import read as ase_read
+    
                             frames = []
-                            lines = content.splitlines()
-
-                            i = 0
-                            while i < len(lines):
-                                if 'ITEM: TIMESTEP' in lines[i]:
-                                    i += 2
-                                    if i >= len(lines) or 'ITEM: NUMBER OF ATOMS' not in lines[i]:
-                                        continue
-
-                                    i += 1
-                                    try:
-                                        num_atoms = int(lines[i].strip())
+    
+                            read_methods = [
+                                {'format': 'lammps-dump', 'description': 'Standard LAMMPS dump format'},
+                                {'format': 'lammps-dump-text', 'description': 'LAMMPS dump text format'},
+                                {'format': None, 'description': 'Automatic format detection'}
+                            ]
+    
+                            success = False
+    
+    
+                            def parse_lammps_dump_from_string(content):
+                                from ase import Atoms
+                                import numpy as np
+    
+                                frames = []
+                                lines = content.splitlines()
+    
+                                i = 0
+                                while i < len(lines):
+                                    if 'ITEM: TIMESTEP' in lines[i]:
+                                        i += 2
+                                        if i >= len(lines) or 'ITEM: NUMBER OF ATOMS' not in lines[i]:
+                                            continue
+    
                                         i += 1
-                                        while i < len(lines) and 'ITEM: ATOMS' not in lines[i]:
+                                        try:
+                                            num_atoms = int(lines[i].strip())
                                             i += 1
-                                        if i >= len(lines):
-                                            break
-                                        header = lines[i].replace('ITEM: ATOMS', '').strip().split()
-                                        i += 1
-                                        positions = np.zeros((num_atoms, 3))
-                                        symbols = []
-                                        for j in range(num_atoms):
-                                            if i + j >= len(lines):
+                                            while i < len(lines) and 'ITEM: ATOMS' not in lines[i]:
+                                                i += 1
+                                            if i >= len(lines):
                                                 break
-                                            values = lines[i + j].strip().split()
-                                            if len(values) < len(header):
-                                                continue
-                                            x_idx = header.index('x') if 'x' in header else -1
-                                            y_idx = header.index('y') if 'y' in header else -1
-                                            z_idx = header.index('z') if 'z' in header else -1
-
-                                            # Find element column
-                                            type_idx = header.index('type') if 'type' in header else -1
-                                            element_idx = header.index('element') if 'element' in header else -1
-
-                                            if x_idx >= 0 and y_idx >= 0 and z_idx >= 0:
-                                                positions[j] = [float(values[x_idx]), float(values[y_idx]),
-                                                                float(values[z_idx])]
-
-                                            if element_idx >= 0:
-                                                symbols.append(values[element_idx])
-                                            elif type_idx >= 0:
-                                                type_num = int(values[type_idx])
-                                                element_map = {1: 'Si', 2: 'O', 3: 'Al', 4: 'Na'}  # Example mapping
-                                                symbols.append(element_map.get(type_num, f'X{type_num}'))
-                                        i += num_atoms
-                                        if len(symbols) == num_atoms:
-                                            atoms = Atoms(symbols=symbols, positions=positions)
-                                            frames.append(atoms)
-                                    except Exception as inner_e:
-                                        st.error(f"Error parsing frame: {str(inner_e)}")
+                                            header = lines[i].replace('ITEM: ATOMS', '').strip().split()
+                                            i += 1
+                                            positions = np.zeros((num_atoms, 3))
+                                            symbols = []
+                                            for j in range(num_atoms):
+                                                if i + j >= len(lines):
+                                                    break
+                                                values = lines[i + j].strip().split()
+                                                if len(values) < len(header):
+                                                    continue
+                                                x_idx = header.index('x') if 'x' in header else -1
+                                                y_idx = header.index('y') if 'y' in header else -1
+                                                z_idx = header.index('z') if 'z' in header else -1
+    
+                                                # Find element column
+                                                type_idx = header.index('type') if 'type' in header else -1
+                                                element_idx = header.index('element') if 'element' in header else -1
+    
+                                                if x_idx >= 0 and y_idx >= 0 and z_idx >= 0:
+                                                    positions[j] = [float(values[x_idx]), float(values[y_idx]),
+                                                                    float(values[z_idx])]
+    
+                                                if element_idx >= 0:
+                                                    symbols.append(values[element_idx])
+                                                elif type_idx >= 0:
+                                                    type_num = int(values[type_idx])
+                                                    element_map = {1: 'Si', 2: 'O', 3: 'Al', 4: 'Na'}  # Example mapping
+                                                    symbols.append(element_map.get(type_num, f'X{type_num}'))
+                                            i += num_atoms
+                                            if len(symbols) == num_atoms:
+                                                atoms = Atoms(symbols=symbols, positions=positions)
+                                                frames.append(atoms)
+                                        except Exception as inner_e:
+                                            st.error(f"Error parsing frame: {str(inner_e)}")
+                                            i += 1
+                                    else:
                                         i += 1
-                                else:
-                                    i += 1
-
-                            return frames
-
-
-                        for method in read_methods:
-                            if success:
-                                break
-
-                            try:
-                                bytes_data.seek(0)
-                                st.info(f"Trying to read using {method['description']} directly from memory...")
-                                if method['format'] == 'lammps-dump' or method['format'] == 'lammps-dump-text':
-                                    # Get bytes data and convert to string
-                                    raw_bytes = bytes_data.getvalue()
-                                    try:
-                                        text_content = raw_bytes.decode('utf-8')
-                                    except UnicodeDecodeError:
-                                        text_content = raw_bytes.decode('latin-1')
-
-                                    temp_bytes = io.BytesIO()
-                                    temp_bytes.write(text_content.encode('utf-8'))
-                                    temp_bytes.seek(0)
-
-                                    frames = ase_read(temp_bytes, index=':', format=method['format'])
-                                elif method['format'] is None:
-                                    bytes_data.seek(0)
-                                    raw_data = bytes_data.getvalue()
-                                    temp_bytes = io.BytesIO(raw_data)
-                                    frames = ase_read(temp_bytes, index=':')
-
-                                if frames and len(frames) > 0:
-                                    success = True
-                                    st.success(f"Successfully read using {method['description']} from memory")
-                            except Exception as e:
-                                st.warning(f"Failed with {method['description']} from memory: {str(e)}")
-                        if not success:
-                            st.warning("Direct memory reading failed. Trying with temporary file...")
-                            import os
-
-                            temp_dir = os.path.join(os.getcwd(), ".streamlit/temp") if os.path.exists(
-                                os.path.join(os.getcwd(), ".streamlit")) else tempfile.gettempdir()
-                            os.makedirs(temp_dir, exist_ok=True)
-                            import uuid
-
-                            temp_file_path = os.path.join(temp_dir, f"temp_lammps_{uuid.uuid4().hex}.dump")
-                            bytes_data.seek(0)
-                            with open(temp_file_path, "wb") as f:
-                                f.write(bytes_data.getbuffer())
-                            st.info(f"Saved temporary file for processing at: {temp_file_path}")
+    
+                                return frames
+    
+    
                             for method in read_methods:
                                 if success:
                                     break
-
+    
                                 try:
-                                    st.info(f"Trying to read using {method['description']} from temp file...")
-
-                                    if method['format'] is None:
-                                        frames = ase_read(temp_file_path, index=':')
-                                    else:
-                                        frames = ase_read(temp_file_path, index=':', format=method['format'])
-
+                                    bytes_data.seek(0)
+                                    st.info(f"Trying to read using {method['description']} directly from memory...")
+                                    if method['format'] == 'lammps-dump' or method['format'] == 'lammps-dump-text':
+                                        # Get bytes data and convert to string
+                                        raw_bytes = bytes_data.getvalue()
+                                        try:
+                                            text_content = raw_bytes.decode('utf-8')
+                                        except UnicodeDecodeError:
+                                            text_content = raw_bytes.decode('latin-1')
+    
+                                        temp_bytes = io.BytesIO()
+                                        temp_bytes.write(text_content.encode('utf-8'))
+                                        temp_bytes.seek(0)
+    
+                                        frames = ase_read(temp_bytes, index=':', format=method['format'])
+                                    elif method['format'] is None:
+                                        bytes_data.seek(0)
+                                        raw_data = bytes_data.getvalue()
+                                        temp_bytes = io.BytesIO(raw_data)
+                                        frames = ase_read(temp_bytes, index=':')
+    
                                     if frames and len(frames) > 0:
                                         success = True
-                                        st.success(f"Successfully read using {method['description']} from temp file")
+                                        st.success(f"Successfully read using {method['description']} from memory")
                                 except Exception as e:
-                                    st.warning(f"Failed with {method['description']} from temp file: {str(e)}")
-
-                            try:
-                                os.remove(temp_file_path)
-                                st.info("Temporary file removed")
-                            except Exception as clean_err:
-                                st.warning(f"Could not remove temporary file: {str(clean_err)}")
-                        if not success:
-                            st.warning("All standard methods failed. Attempting custom parsing...")
-                            bytes_data.seek(0)
-                            try:
-                                text_content = bytes_data.getvalue().decode('utf-8')
-                            except UnicodeDecodeError:
-                                text_content = bytes_data.getvalue().decode('latin-1')
-                            frames = parse_lammps_dump_from_string(text_content)
-
-                            if frames and len(frames) > 0:
-                                success = True
-                                st.success(f"Successfully read using custom parser")
-
-                        if not frames or len(frames) == 0:
-                            raise Exception("Could not extract any frames from the trajectory file")
-                    except Exception as e:
-                        st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
-
-                lammps_file = None
-                bytes_data = None
-
-                total_frames = len(frames)
-                st.write(f"Found {total_frames} frames in the trajectory")
-
-                selected_frames = frames[::frame_sampling]
-                st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
-
-                frame_indices = [i * frame_sampling for i in range(len(selected_frames))]
-                st.session_state.frame_indices = frame_indices
-                st.session_state.animate = False
-
-                for i, frame in enumerate(selected_frames):
-                    progress_bar.progress((i + 1) / len(selected_frames))
-
-                    try:
-                        mg_structure = AseAtomsAdaptor.get_structure(frame)
-
+                                    st.warning(f"Failed with {method['description']} from memory: {str(e)}")
+                            if not success:
+                                st.warning("Direct memory reading failed. Trying with temporary file...")
+                                import os
+    
+                                temp_dir = os.path.join(os.getcwd(), ".streamlit/temp") if os.path.exists(
+                                    os.path.join(os.getcwd(), ".streamlit")) else tempfile.gettempdir()
+                                os.makedirs(temp_dir, exist_ok=True)
+                                import uuid
+    
+                                temp_file_path = os.path.join(temp_dir, f"temp_lammps_{uuid.uuid4().hex}.dump")
+                                bytes_data.seek(0)
+                                with open(temp_file_path, "wb") as f:
+                                    f.write(bytes_data.getbuffer())
+                                st.info(f"Saved temporary file for processing at: {temp_file_path}")
+                                for method in read_methods:
+                                    if success:
+                                        break
+    
+                                    try:
+                                        st.info(f"Trying to read using {method['description']} from temp file...")
+    
+                                        if method['format'] is None:
+                                            frames = ase_read(temp_file_path, index=':')
+                                        else:
+                                            frames = ase_read(temp_file_path, index=':', format=method['format'])
+    
+                                        if frames and len(frames) > 0:
+                                            success = True
+                                            st.success(f"Successfully read using {method['description']} from temp file")
+                                    except Exception as e:
+                                        st.warning(f"Failed with {method['description']} from temp file: {str(e)}")
+    
+                                try:
+                                    os.remove(temp_file_path)
+                                    st.info("Temporary file removed")
+                                except Exception as clean_err:
+                                    st.warning(f"Could not remove temporary file: {str(clean_err)}")
+                            if not success:
+                                st.warning("All standard methods failed. Attempting custom parsing...")
+                                bytes_data.seek(0)
+                                try:
+                                    text_content = bytes_data.getvalue().decode('utf-8')
+                                except UnicodeDecodeError:
+                                    text_content = bytes_data.getvalue().decode('latin-1')
+                                frames = parse_lammps_dump_from_string(text_content)
+    
+                                if frames and len(frames) > 0:
+                                    success = True
+                                    st.success(f"Successfully read using custom parser")
+    
+                            if not frames or len(frames) == 0:
+                                raise Exception("Could not extract any frames from the trajectory file")
+                        except Exception as e:
+                            st.error(f"Error reading LAMMPS trajectory file: {str(e)}")
+    
+                    lammps_file = None
+                    bytes_data = None
+    
+                    total_frames = len(frames)
+                    st.write(f"Found {total_frames} frames in the trajectory")
+    
+                    selected_frames = frames[::frame_sampling]
+                    st.write(f"Analyzing {len(selected_frames)} frames with sampling rate of {frame_sampling}")
+    
+                    frame_indices = [i * frame_sampling for i in range(len(selected_frames))]
+                    st.session_state.frame_indices = frame_indices
+                    st.session_state.animate = False
+    
+                    for i, frame in enumerate(selected_frames):
+                        progress_bar.progress((i + 1) / len(selected_frames))
+    
+                        try:
+                            mg_structure = AseAtomsAdaptor.get_structure(frame)
+    
+                            prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+                            prdf_featurizer.fit([mg_structure])
+                            prdf_data = prdf_featurizer.featurize(mg_structure)
+                            feature_labels = prdf_featurizer.feature_labels()
+    
+                            prdf_dict = defaultdict(list)
+                            distance_dict = {}
+                            global_dict = {}
+    
+                            for j, label in enumerate(feature_labels):
+                                parts = label.split(" PRDF r=")
+                                element_pair = tuple(parts[0].split("-"))
+                                distance_range = parts[1].split("-")
+                                bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
+                                prdf_dict[element_pair].append(prdf_data[j])
+    
+                                if element_pair not in distance_dict:
+                                    distance_dict[element_pair] = []
+                                distance_dict[element_pair].append(bin_center)
+                                global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[j]
+    
+                            for pair, values in prdf_dict.items():
+                                if pair not in all_distance_dict:
+                                    all_distance_dict[pair] = distance_dict[pair]
+                                if isinstance(values, float):
+                                    values = [values]
+                                all_prdf_dict[pair].append(values)
+    
+                            global_rdf_list.append(global_dict)
+    
+                        except Exception as e:
+                            st.error(f"Error processing frame {i}: {str(e)}")
+    
+                    progress_bar.progress(1.0)
+                    multi_structures = True
+    
+                else:
+                    for file in uploaded_files:
+                        try:
+                            structure = read(file.name)
+                            mg_structure = AseAtomsAdaptor.get_structure(structure)
+                        except Exception as e:
+                            mg_structure = load_structure(file)
+    
                         prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                         prdf_featurizer.fit([mg_structure])
                         prdf_data = prdf_featurizer.featurize(mg_structure)
                         feature_labels = prdf_featurizer.feature_labels()
-
                         prdf_dict = defaultdict(list)
                         distance_dict = {}
                         global_dict = {}
-
-                        for j, label in enumerate(feature_labels):
+                        for i, label in enumerate(feature_labels):
                             parts = label.split(" PRDF r=")
                             element_pair = tuple(parts[0].split("-"))
                             distance_range = parts[1].split("-")
                             bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                            prdf_dict[element_pair].append(prdf_data[j])
-
+                            prdf_dict[element_pair].append(prdf_data[i])
                             if element_pair not in distance_dict:
                                 distance_dict[element_pair] = []
                             distance_dict[element_pair].append(bin_center)
-                            global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[j]
-
+                            global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
                         for pair, values in prdf_dict.items():
                             if pair not in all_distance_dict:
                                 all_distance_dict[pair] = distance_dict[pair]
                             if isinstance(values, float):
                                 values = [values]
                             all_prdf_dict[pair].append(values)
-
                         global_rdf_list.append(global_dict)
-
-                    except Exception as e:
-                        st.error(f"Error processing frame {i}: {str(e)}")
-
-                progress_bar.progress(1.0)
-                multi_structures = True
-
-            else:
-                for file in uploaded_files:
-                    try:
-                        structure = read(file.name)
-                        mg_structure = AseAtomsAdaptor.get_structure(structure)
-                    except Exception as e:
-                        mg_structure = load_structure(file)
-
-                    prdf_featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
-                    prdf_featurizer.fit([mg_structure])
-                    prdf_data = prdf_featurizer.featurize(mg_structure)
-                    feature_labels = prdf_featurizer.feature_labels()
-                    prdf_dict = defaultdict(list)
-                    distance_dict = {}
-                    global_dict = {}
-                    for i, label in enumerate(feature_labels):
-                        parts = label.split(" PRDF r=")
-                        element_pair = tuple(parts[0].split("-"))
-                        distance_range = parts[1].split("-")
-                        bin_center = (float(distance_range[0]) + float(distance_range[1])) / 2
-                        prdf_dict[element_pair].append(prdf_data[i])
-                        if element_pair not in distance_dict:
-                            distance_dict[element_pair] = []
-                        distance_dict[element_pair].append(bin_center)
-                        global_dict[bin_center] = global_dict.get(bin_center, 0) + prdf_data[i]
-                    for pair, values in prdf_dict.items():
-                        if pair not in all_distance_dict:
-                            all_distance_dict[pair] = distance_dict[pair]
-                        if isinstance(values, float):
-                            values = [values]
-                        all_prdf_dict[pair].append(values)
-                    global_rdf_list.append(global_dict)
-
-                multi_structures = len(uploaded_files) > 1
-                frame_indices = [0]
-                st.session_state.frame_indices = frame_indices
-
-            st.session_state.processed_data = {
-                "all_prdf_dict": all_prdf_dict,
-                "all_distance_dict": all_distance_dict,
-                "global_rdf_list": global_rdf_list,
-                "multi_structures": multi_structures
-            }
-
-            st.session_state.do_calculation = False
+    
+                    multi_structures = len(uploaded_files) > 1
+                    frame_indices = [0]
+                    st.session_state.frame_indices = frame_indices
+    
+                st.session_state.processed_data = {
+                    "all_prdf_dict": all_prdf_dict,
+                    "all_distance_dict": all_distance_dict,
+                    "global_rdf_list": global_rdf_list,
+                    "multi_structures": multi_structures
+                }
+    
+                st.session_state.do_calculation = False
 
         all_prdf_dict = st.session_state.processed_data["all_prdf_dict"]
         all_distance_dict = st.session_state.processed_data["all_distance_dict"]
