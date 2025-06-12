@@ -2250,7 +2250,7 @@ if "🔬 Structure Modification" in calc_mode:
 
         st.session_state.modified_atom_df = generate_initial_df_with_occupancy_and_wyckoff(mp_struct)
 
-        col_g1, col_g2 = st.columns([1, 4])
+        col_g1, col_g2 = st.columns([1, 3.2])
 
         with col_g1:
             show_plot_str = st.checkbox(f"Show 3D structure plot", value=True)
