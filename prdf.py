@@ -3429,19 +3429,6 @@ if "🔬 Structure Modification" in calc_mode:
                         "🖱️ **py3Dmol Controls:** Left click + drag to rotate, scroll to zoom, middle click + drag to pan"
                     )
 
-                    elements_in_viz = df_for_viz['Element'].unique()
-                    elems_legend = sorted(list(elements_in_viz))
-                    legend_items = [
-                        f"<div style='margin-right:15px;display:flex;align-items:center;'>"
-                        f"<div style='width:18px;height:18px;background-color:{color_map.get(e, '#CCCCCC')};margin-right:8px;border:2px solid black;border-radius:50%;'></div>"
-                        f"<span style='font-weight:bold;font-size:14px;'>{e}</span></div>"
-                        for e in elems_legend
-                    ]
-                    st.markdown(
-                        f"<div style='display:flex;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:15px;padding:10px;background-color:#f0f2f6;border-radius:10px;'>{''.join(legend_items)}</div>",
-                        unsafe_allow_html=True
-                    )
-
 
         lattice = visual_pmg_structure.lattice
         a_para = lattice.a
