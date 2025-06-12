@@ -1280,6 +1280,7 @@ def show_xrdlicious_roadmap():
 
 #### Enhanced Structure Visualization 
 * ✅ Allow to change structure visualization style between Plotly and Py3Dmol
+* ✅ Added option to change between perspective and orthogonal view
 
 #### Enhanced Background Subtraction (Experimental Data)
 * ⏳ Improve tools for background removal on uploaded experimental patterns.
