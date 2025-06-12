@@ -103,7 +103,7 @@ memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 if memory_usage > 1600:
     # Show warning message
     st.markdown(
-        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ In 10 seconds, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application locally. Cleaning cache and restarting in 10 seconds...")
+        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ Soon, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application [locally](https://github.com/bracerino/xrdlicious).")
 
     # Wait 10 seconds
     time.sleep(10)
