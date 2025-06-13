@@ -246,13 +246,13 @@ calc_mode = st.sidebar.multiselect(
         "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories",
-        "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor",
+        "➡️ .xrdml ↔️ .xy ↔️ .ras Converter",
         "↔️ Equivalent Planes",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
 
-if "➡️ .xrdml ↔️ .xy ↔️ .ras Convertor" in calc_mode:
+if "➡️ .xrdml ↔️ .xy ↔️ .ras Converter" in calc_mode:
     run_data_converter()
     
 if "↔️ Equivalent Planes" in calc_mode:
