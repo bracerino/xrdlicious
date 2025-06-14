@@ -10,8 +10,10 @@ def show_xrdlicious_roadmap():
 -------------------------------------------------------------------------------------------------------------------
 
 #### Code optimization 
-* ⏳ Optimizing the code for better performance. ⏳Separate critical parameters (such as wavelength, new file, debye-waller factors) for diffraction patterns complete recalculations from non-critical (such as intensity scale or x-axis units) ✅ Optimized search in COD database.
-
+* ⏳ Optimizing the code for better performance. 
+* ⏳ Separate critical parameters (such as wavelength, new file, debye-waller factors) for diffraction patterns complete recalculations from non-critical (such as intensity scale or x-axis units) 
+* ✅ Optimized search in COD database.
+* ⏳ Repair visualization based on Wyckoff positions
 #### Wavelength Input: Energy Specification
 * ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
 
