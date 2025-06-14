@@ -16,7 +16,7 @@ from helpers import *
 from xrd_convert import *
 from equivalent_planes import *
 from more_funct.reorient import *
-from utils.citation_section import *
+from more_funct.citation_section import *
 
 import gc
 import numpy as np
