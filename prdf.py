@@ -131,8 +131,8 @@ with col2:
 #    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
-    about_app = st.checkbox(f"📖 About the app")
-if about_app:
+    about_app_show = st.checkbox(f"📖 About the app")
+if about_app_show:
     about_app()
 with col1:
     show_roadmap = st.checkbox(f"🧭 Roadmap", value=False)
