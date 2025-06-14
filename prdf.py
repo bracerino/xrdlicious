@@ -15,7 +15,7 @@ st.markdown("""
 from helpers import *
 from xrd_convert import *
 from equivalent_planes import *
-from reorient import *
+from more_funct.reorient import *
 from utils.citation_section import *
 
 import gc
