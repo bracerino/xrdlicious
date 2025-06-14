@@ -4124,7 +4124,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 except Exception as e:
                     st.error(f"Error processing file {file_name}: {e}")
                     x_user, y_user = None, None
-    tab1, tab2 = st.tabs(["➡️ Patterns Chart", "🖥️ Quantitative Peak Data"])
+    tab1, tab2 = st.tabs(["➡️ Patterns chart", "🖥️ Quantitative peak data"])
     if st.session_state.calc_xrd and uploaded_files:
         with st.spinner("Calculating the powder diffraction pattern(s), please wait. 😊"):
             with tab1:
