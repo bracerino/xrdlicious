@@ -50,7 +50,7 @@ def first_run_note():
     if st.session_state["first_run_note"] == True:
         colh1, colh2 = st.columns([1, 3])
         with colh1:
-            image = Image.open("../images/Rb.png")
+            image = Image.open("./images/Rb.png")
             st.image(image)
         with colh2:
             st.info("""
