@@ -131,8 +131,8 @@ with col2:
 #    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
 with col1:
-    about_app = st.checkbox(f"📖 About the app")
-if about_app:
+    about_app_show = st.checkbox(f"📖 About the app")
+if about_app_show:
     about_app()
 with col1:
     show_roadmap = st.checkbox(f"🧭 Roadmap", value=False)
@@ -178,6 +178,21 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 1.1rem !important;
+        color: #1e3a8a !important;
+        font-weight: bold !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 25px !important;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
 
 if "➡️ .xrdml ↔️ .xy ↔️ .ras Converter" in calc_mode:
     run_data_converter()
@@ -1458,7 +1473,7 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_viz:
                     file_options = [file.name for file in uploaded_files]
                     st.subheader("Select Structure for Interactive Visualization:")
-                    if len(file_options) > 5:
+                    if len(file_options) > 1:
                         selected_file = st.selectbox("Select file", file_options, label_visibility="collapsed")
                     else:
                         selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
