@@ -178,6 +178,21 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 1.1rem !important;
+        color: #1e3a8a !important;
+        font-weight: bold !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 25px !important;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
 
 if "➡️ .xrdml ↔️ .xy ↔️ .ras Converter" in calc_mode:
     run_data_converter()
