@@ -1458,7 +1458,7 @@ if "🔬 Structure Modification" in calc_mode:
                 with col_viz:
                     file_options = [file.name for file in uploaded_files]
                     st.subheader("Select Structure for Interactive Visualization:")
-                    if len(file_options) > 5:
+                    if len(file_options) > 1:
                         selected_file = st.selectbox("Select file", file_options, label_visibility="collapsed")
                     else:
                         selected_file = st.radio("Select file", file_options, label_visibility="collapsed")
