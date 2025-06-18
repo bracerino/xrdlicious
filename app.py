@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(
     page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...), or XRD data conversion",
     layout="wide",
-    page_icon="icon/icon_xrdlicious.png"
+    page_icon="https://github.com/bracerino/xrdlicious/blob/main/icon/icon_xrdlicious.png"
 )
 # Remove top padding
 st.markdown("""
