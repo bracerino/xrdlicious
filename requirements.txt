@@ -1,6 +1,6 @@
 streamlit==1.45.1
 numpy==1.26.4
-matplotlib
+matplotlib==3.10.3
 ase==3.10.3
 matminer==0.9.3
 pymatgen==2025.5.28
