@@ -49,7 +49,7 @@ Open your terminal console and write the following commands (the bold text):
 
 ### **Tested versions of Python packages**
 Python 3.12.3  
-
+- streamlit==1.45.1  
 - numpy==1.26.4  
 - matplotlib==3.10.3  
 - ase==3.25.0  
