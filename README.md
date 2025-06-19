@@ -55,13 +55,13 @@ Python 3.12.3
 - ase==3.25.0  
 - matminer==0.9.3  
 - pymatgen==2025.5.28  
+- py3Dmol==2.4.2  
 - plotly==6.1.2  
-- streamlit-plotly-events==0.0.6  
-- setuptools==80.9.0  
+- streamlit-plotly-events  
+- setuptools  
 - mp-api==0.45.3  
 - aflow==0.0.11  
 - pillow==11.2.1  
-- pymatgen-analysis-defects==2025.1.18
 - psutil==7.0.0  
 
 ## Current functions:
