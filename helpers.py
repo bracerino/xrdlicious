@@ -1,4 +1,5 @@
 import pkg_resources
+import streamlit as st
 installed_packages = sorted([(d.project_name, d.version) for d in pkg_resources.working_set])
 st.subheader("Installed Python Modules")
 for package, version in installed_packages:
