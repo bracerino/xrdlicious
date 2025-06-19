@@ -1,7 +1,7 @@
 streamlit==1.45.1
 numpy==1.26.4
 matplotlib==3.10.3
-ase==3.10.3
+ase==3.25.0
 matminer==0.9.3
 pymatgen==2025.5.28
 py3Dmol==2.4.2
@@ -11,5 +11,4 @@ setuptools
 mp-api==0.45.3
 aflow==0.0.11
 pillow==11.2.1
-pymatgen.analysis.defects==2025.1.18
 psutil==7.0.0
