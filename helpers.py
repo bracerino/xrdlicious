@@ -1456,3 +1456,8 @@ def reset_layout(files):
         for i in range(len(files)):
             st.session_state[f'y_offset_{i}'] = 0.0
             st.session_state[f'y_scale_{i}'] = 1.0
+            
+def extract_space_group_number(selected_option):
+    if selected_option:
+        return int(selected_option.split(' ')[0])
+    return None
