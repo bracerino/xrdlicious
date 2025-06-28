@@ -375,22 +375,19 @@ if show_database_search:
                 )
 
             elif search_mode == "Space Group + Elements":
-                col_sg1, col_sg2 = st.columns(2)
-                with col_sg1:
-                    all_space_groups_help = "Enter space group number (1-230)\n\nAll space groups:\n\n"
-                    for num in sorted(SPACE_GROUP_SYMBOLS.keys()):
-                        all_space_groups_help += f"• {num}: {SPACE_GROUP_SYMBOLS[num]}\n\n"
-
-                    space_group_number = st.number_input(
-                        "Space Group Number:",
-                        min_value=1,
-                        max_value=230,
-                        value=221,
-                        help=all_space_groups_help
-                    )
-                    sg_symbol = get_space_group_info(space_group_number)
-                    st.info(f"#:**{sg_symbol}**")
-
+                selected_space_group = st.selectbox(
+                    "Select Space Group:",
+                    options=SPACE_GROUP_OPTIONS,
+                    index=220,  # Default to 22
+                    help="Start typing to search by number or symbol",
+                    key="db_search_space_group"
+                )
+                
+                space_group_number = extract_space_group_number(selected_space_group)
+                space_group_symbol = selected_space_group.split('(')[1][:-1] if selected_space_group else ""
+                
+                st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
+                
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
