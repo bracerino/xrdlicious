@@ -362,7 +362,7 @@ if show_database_search:
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
-                    default=["Sr", "Ti", "O"],
+                    default=["Na", "Cl"],
                     help="Choose one or more chemical elements"
                 )
                 search_query = " ".join(selected_elements) if selected_elements else ""
@@ -378,7 +378,7 @@ if show_database_search:
                 selected_space_group = st.selectbox(
                     "Select Space Group:",
                     options=SPACE_GROUP_OPTIONS,
-                    index=220,  # Default to 22
+                    index=224,  # 
                     help="Start typing to search by number or symbol",
                     key="db_search_space_group"
                 )
@@ -386,12 +386,12 @@ if show_database_search:
                 space_group_number = extract_space_group_number(selected_space_group)
                 space_group_symbol = selected_space_group.split('(')[1][:-1] if selected_space_group else ""
                 
-                st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
+                #st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
                 
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
-                    default=["Sr", "Ti", "O"],
+                    default=["Na", "Cl"],
                     help="Choose one or more chemical elements"
                 )
 
