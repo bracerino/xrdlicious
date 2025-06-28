@@ -3,8 +3,7 @@ from pymatgen.symmetry.groups import SpaceGroup
 import math
 from typing import Union
 
-def run_equivalent_hkl_app():
-    SPACE_GROUP_OPTIONS = [
+SPACE_GROUP_OPTIONS = [
         '1 (P1)', '2 (P-1)', '3 (P2)', '4 (P2_1)', '5 (C2)', '6 (Pm)', '7 (Pc)',
         '8 (Cm)', '9 (Cc)', '10 (P2/m)', '11 (P2_1/m)', '12 (C2/m)', '13 (P2/c)',
         '14 (P2_1/c)', '15 (C2/c)', '16 (P222)', '17 (P222_1)', '18 (P2_12_12)',
@@ -53,7 +52,7 @@ def run_equivalent_hkl_app():
         '223 (Pm-3n)', '224 (Pn-3m)', '225 (Fm-3m)', '226 (Fm-3c)', '227 (Fd-3m)',
         '228 (Fd-3c)', '229 (Im-3m)', '230 (Ia-3d)'
     ]
-
+def run_equivalent_hkl_app():
     def get_equivalent_hkl(space_group_symbol: str, h: int, k: int, l: int):
         try:
             sg = SpaceGroup(space_group_symbol)
