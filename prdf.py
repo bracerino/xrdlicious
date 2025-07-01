@@ -4805,15 +4805,15 @@ if "💥 Powder Diffraction" in calc_mode:
                         if len(hkl_group[0]['hkl']) == 3:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                    for h in hkl_group
+                                ])
                         else:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                    for h in hkl_group
+                                ])
                         table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str, language="text")
                 with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
