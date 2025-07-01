@@ -4823,15 +4823,15 @@ if "💥 Powder Diffraction" in calc_mode:
                             if len(hkl_group[0]['hkl']) == 3:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                        for h in hkl_group
+                                    ])
                             else:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                        for h in hkl_group
+                                    ])
                             table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str2, language="text")
 
@@ -4904,11 +4904,11 @@ if "💥 Powder Diffraction" in calc_mode:
                                             continue
                                 if len(hkl) == 3:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
                                         for h in hkls[i]])
                                 else:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
                                         for h in hkls[i]])
                                 data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
                     combined_df = pd.DataFrame(data_list,
