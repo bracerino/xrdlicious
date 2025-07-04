@@ -2,8 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...), or XRD data conversion",
-    layout="wide",
-    page_icon="https://raw.githubusercontent.com/bracerino/xrdlicious/main/icon/icon_xrdlicious.png",
+    layout="wide"
 )
 # Remove top padding
 st.markdown("""
@@ -103,21 +102,7 @@ mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds memory_limit
-if memory_usage > memory_use_limit:
-    # Show warning message
-    st.markdown(
-        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ Soon, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application [locally](https://github.com/bracerino/xrdlicious).")
-
-    # Wait 10 seconds
-    time.sleep(10)
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    if hasattr(st.session_state, 'sidebar_uploader'):
-        del st.session_state.sidebar_uploader
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    gc.collect()
-    st.rerun()
+print(memory_usage)
 
 col1, col2 = st.columns([0.8, 0.4])
 
@@ -363,7 +348,7 @@ if show_database_search:
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
-                    default=["Sr", "Ti", "O"],
+                    default=["Na", "Cl"],
                     help="Choose one or more chemical elements"
                 )
                 search_query = " ".join(selected_elements) if selected_elements else ""
@@ -376,26 +361,23 @@ if show_database_search:
                 )
 
             elif search_mode == "Space Group + Elements":
-                col_sg1, col_sg2 = st.columns(2)
-                with col_sg1:
-                    all_space_groups_help = "Enter space group number (1-230)\n\nAll space groups:\n\n"
-                    for num in sorted(SPACE_GROUP_SYMBOLS.keys()):
-                        all_space_groups_help += f"• {num}: {SPACE_GROUP_SYMBOLS[num]}\n\n"
-
-                    space_group_number = st.number_input(
-                        "Space Group Number:",
-                        min_value=1,
-                        max_value=230,
-                        value=221,
-                        help=all_space_groups_help
-                    )
-                    sg_symbol = get_space_group_info(space_group_number)
-                    st.info(f"#:**{sg_symbol}**")
-
+                selected_space_group = st.selectbox(
+                    "Select Space Group:",
+                    options=SPACE_GROUP_OPTIONS,
+                    index=224,  # 
+                    help="Start typing to search by number or symbol",
+                    key="db_search_space_group"
+                )
+                
+                space_group_number = extract_space_group_number(selected_space_group)
+                space_group_symbol = selected_space_group.split('(')[1][:-1] if selected_space_group else ""
+                
+                #st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
+                
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
-                    default=["Sr", "Ti", "O"],
+                    default=["Na", "Cl"],
                     help="Choose one or more chemical elements"
                 )
 
@@ -4809,15 +4791,15 @@ if "💥 Powder Diffraction" in calc_mode:
                         if len(hkl_group[0]['hkl']) == 3:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                    for h in hkl_group
+                                ])
                         else:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                    for h in hkl_group
+                                ])
                         table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str, language="text")
                 with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
@@ -4827,15 +4809,15 @@ if "💥 Powder Diffraction" in calc_mode:
                             if len(hkl_group[0]['hkl']) == 3:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                        for h in hkl_group
+                                    ])
                             else:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                        for h in hkl_group
+                                    ])
                             table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str2, language="text")
 
@@ -4908,11 +4890,11 @@ if "💥 Powder Diffraction" in calc_mode:
                                             continue
                                 if len(hkl) == 3:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
                                         for h in hkls[i]])
                                 else:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
                                         for h in hkls[i]])
                                 data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
                     combined_df = pd.DataFrame(data_list,
