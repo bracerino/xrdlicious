@@ -102,21 +102,7 @@ mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds memory_limit
-if memory_usage > memory_use_limit:
-    # Show warning message
-    st.markdown(
-        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ Soon, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application [locally](https://github.com/bracerino/xrdlicious).")
-
-    # Wait 10 seconds
-    time.sleep(10)
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    if hasattr(st.session_state, 'sidebar_uploader'):
-        del st.session_state.sidebar_uploader
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    gc.collect()
-    st.rerun()
+print(memory_usage)
 
 col1, col2 = st.columns([0.8, 0.4])
 
