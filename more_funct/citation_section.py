@@ -55,6 +55,11 @@ def first_run_note():
             image = Image.open("./images/Rb.png")
             st.image(image)
         with colh2:
+            st.error("""
+            ⚠️ The **Structure Modification** module is currently undergoing rework to enhance its performance.  
+            This application is hosted on a **free community cloud Streamlit servis**. Please be cautious when handling **large structure files**.  
+            If you need to work with larger files or require better resources, consider **(running the app locally)(https://github.com/bracerino/xrdlicious)**.
+            """, icon="🚨")
             st.info("""
             From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
             If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
