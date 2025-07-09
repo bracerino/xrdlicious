@@ -55,7 +55,7 @@ def first_run_note():
             image = Image.open("./images/Rb.png")
             st.image(image)
         with colh2:
-            st.error("""
+            st.warning("""
             ⚠️ The **Structure Modification** module is currently undergoing rework to enhance its performance.  
             This application is hosted on a **free community cloud Streamlit servis**. Please be cautious when handling **large structure files**.  
             If you need to work with larger files or require better resources, consider **(running the app locally)(https://github.com/bracerino/xrdlicious)**.
