@@ -136,7 +136,7 @@ def show_citation_section():
         ---
 
         #### 🧪 **Using Calculated XRD Patterns**
-        - **XRDlicious, 2025** – for the interface.
+        - **XRDlicious, 2025** – for the interface, [(PREPRINT) Lebeda, M. et at. (2025). J. Appl. Cryst. 58, https://doi.org/10.1107/S1600576725005370](https://doi.org/10.1107/S1600576725005370).
         - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
         - **ASE (Atomic Simulation Environment)** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
 
