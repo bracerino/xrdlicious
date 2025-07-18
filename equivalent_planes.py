@@ -56,15 +56,18 @@ def run_equivalent_hkl_app():
     def get_equivalent_hkl(space_group_symbol: str, h: int, k: int, l: int):
         try:
             sg = SpaceGroup(space_group_symbol)
-            symmetry_ops = sg.symmetry_ops
-
-            # Get all equivalent positions by applying symmetry operations
+            
+            # Get all equivalent planes by applying point group operations
             equivalent_planes = set()
             
-            # Apply each symmetry operation
-            for op in symmetry_ops:
-                # Apply operation to the Miller indices
-                new_hkl = op.operate([h, k, l])
+            # Apply each symmetry operation (only the rotational part matters for Miller indices)
+            for op in sg.symmetry_ops:
+                # For Miller indices, we only need the rotational part of the operation
+                # The translation part doesn't affect Miller indices
+                rotation_matrix = op.rotation_matrix
+                
+                # Apply rotation to the Miller indices
+                new_hkl = rotation_matrix.dot([h, k, l])
                 h_new, k_new, l_new = [int(round(x)) for x in new_hkl]
                 
                 # Reduce to lowest terms
@@ -77,7 +80,7 @@ def run_equivalent_hkl_app():
                     # Add the plane
                     equivalent_planes.add((h_reduced, k_reduced, l_reduced))
             
-            # Now handle the fact that (hkl) and (-h,-k,-l) represent the same plane family
+            # Handle Friedel pairs: (hkl) and (-h,-k,-l) represent the same plane family
             unique_families = set()
             for plane in equivalent_planes:
                 h_pl, k_pl, l_pl = plane
