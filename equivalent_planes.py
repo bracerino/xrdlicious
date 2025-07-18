@@ -57,34 +57,27 @@ def run_equivalent_hkl_app():
         try:
             sg = SpaceGroup(space_group_symbol)
             
-            # Get all equivalent planes by applying point group operations
             equivalent_planes = set()
             
-            # Apply each symmetry operation (only the rotational part matters for Miller indices)
+
             for op in sg.symmetry_ops:
-                # For Miller indices, we only need the rotational part of the operation
-                # The translation part doesn't affect Miller indices
                 rotation_matrix = op.rotation_matrix
                 
-                # Apply rotation to the Miller indices
                 new_hkl = rotation_matrix.dot([h, k, l])
                 h_new, k_new, l_new = [int(round(x)) for x in new_hkl]
                 
-                # Reduce to lowest terms
                 gcd_val = math.gcd(math.gcd(abs(h_new), abs(k_new)), abs(l_new))
                 if gcd_val > 0:
                     h_reduced = h_new // gcd_val
                     k_reduced = k_new // gcd_val
                     l_reduced = l_new // gcd_val
                     
-                    # Add the plane
+
                     equivalent_planes.add((h_reduced, k_reduced, l_reduced))
             
-            # Handle Friedel pairs: (hkl) and (-h,-k,-l) represent the same plane family
             unique_families = set()
             for plane in equivalent_planes:
                 h_pl, k_pl, l_pl = plane
-                # Create a canonical form - always choose the lexicographically smaller one
                 neg_plane = (-h_pl, -k_pl, -l_pl)
                 canonical = min(plane, neg_plane)
                 unique_families.add(canonical)
