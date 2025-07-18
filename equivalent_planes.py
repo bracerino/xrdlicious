@@ -58,18 +58,35 @@ def run_equivalent_hkl_app():
             sg = SpaceGroup(space_group_symbol)
             symmetry_ops = sg.symmetry_ops
 
-            equivalent_planes = []
+            # Get all equivalent positions by applying symmetry operations
+            equivalent_planes = set()
+            
+            # Apply each symmetry operation
             for op in symmetry_ops:
+                # Apply operation to the Miller indices
                 new_hkl = op.operate([h, k, l])
-                equivalent_planes.append(tuple(int(round(x)) for x in new_hkl))
-            unique_planes = set()
+                h_new, k_new, l_new = [int(round(x)) for x in new_hkl]
+                
+                # Reduce to lowest terms
+                gcd_val = math.gcd(math.gcd(abs(h_new), abs(k_new)), abs(l_new))
+                if gcd_val > 0:
+                    h_reduced = h_new // gcd_val
+                    k_reduced = k_new // gcd_val
+                    l_reduced = l_new // gcd_val
+                    
+                    # Add the plane
+                    equivalent_planes.add((h_reduced, k_reduced, l_reduced))
+            
+            # Now handle the fact that (hkl) and (-h,-k,-l) represent the same plane family
+            unique_families = set()
             for plane in equivalent_planes:
                 h_pl, k_pl, l_pl = plane
-                common_divisor = math.gcd(math.gcd(abs(h_pl), abs(k_pl)), abs(l_pl))
-                if common_divisor != 0:
-                    unique_planes.add((h_pl // common_divisor, k_pl // common_divisor, l_pl // common_divisor))
+                # Create a canonical form - always choose the lexicographically smaller one
+                neg_plane = (-h_pl, -k_pl, -l_pl)
+                canonical = min(plane, neg_plane)
+                unique_families.add(canonical)
 
-            return sorted(list(unique_planes)), None
+            return sorted(list(unique_families)), None
         except (ValueError, KeyError):
             return [], f"Error: Invalid space group symbol or number '{space_group_symbol}'. Please check the input and try again."
         except Exception as e:
