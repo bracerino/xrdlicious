@@ -2122,13 +2122,13 @@ if "🔬 Structure Modification" in calc_mode:
                 # st.session_state["lattice_alpha"] = new_alpha
                 # st.session_state["lattice_beta"] = new_beta
                 # st.session_state["lattice_gamma"] = new_gamma
-
                 if st.button("Apply Lattice Changes"):
                     try:
                         st.session_state["expander_lattice"] = True
-
+                        current_selected_file = st.session_state.get("selected_file")
+                        
                         from pymatgen.core import Lattice
-
+                
                         new_lattice = Lattice.from_parameters(
                             a=new_a,
                             b=new_b,
@@ -2137,13 +2137,13 @@ if "🔬 Structure Modification" in calc_mode:
                             beta=new_beta,
                             gamma=new_gamma
                         )
-
+                
                         frac_coords = [site.frac_coords for site in mp_struct.sites]
                         species = [site.species for site in mp_struct.sites]
                         props = [site.properties for site in mp_struct.sites]
-
+                
                         from pymatgen.core import Structure
-
+                
                         updated_structure = Structure(
                             lattice=new_lattice,
                             species=species,
@@ -2151,50 +2151,61 @@ if "🔬 Structure Modification" in calc_mode:
                             coords_are_cartesian=False,
                             site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
                         )
-
+                
                         mp_struct = updated_structure
                         visual_pmg_structure = updated_structure
                         st.session_state["current_structure"] = mp_struct
-                        # st.session_state["original_for_supercell"] = mp_struct
-
+                        
+                        if current_selected_file and "original_structures" in st.session_state:
+                            st.session_state["original_structures"][current_selected_file] = updated_structure
+                
                         if "modified_atom_df" in st.session_state:
                             st.session_state.modified_atom_df = recalc_computed_columns(
                                 st.session_state.modified_atom_df.copy(),
                                 updated_structure.lattice
                             )
-
+                
+                        st.session_state["lattice_a"] = new_a
+                        st.session_state["lattice_b"] = new_b
+                        st.session_state["lattice_c"] = new_c
+                        st.session_state["lattice_alpha"] = new_alpha
+                        st.session_state["lattice_beta"] = new_beta
+                        st.session_state["lattice_gamma"] = new_gamma
+                
                         try:
+                            base_filename = current_selected_file.replace('.cif', '') if current_selected_file else 'structure'
+                            lattice_modified_filename = f"{base_filename}_lattice_modified.cif"
+                            
                             cif_writer = CifWriter(updated_structure, symprec=0.1, write_site_properties=True)
                             cif_content = cif_writer.__str__()
                             cif_file = io.BytesIO(cif_content.encode('utf-8'))
-                            cif_file.name = custom_filename
-
+                            cif_file.name = lattice_modified_filename
+                
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
-
-                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
-                                                               f.name != custom_filename]
-
-                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
-                                                               f.name != custom_filename]
+                
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if 
+                                                             f.name != lattice_modified_filename]
+                            
                             if 'uploaded_files' in locals():
-                                uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
+                                uploaded_files[:] = [f for f in uploaded_files if f.name != lattice_modified_filename]
+                                uploaded_files.append(cif_file)
+                            
                             st.session_state.uploaded_files.append(cif_file)
-                            uploaded_files.append(cif_file)
-
+                
                             if "final_structures" not in st.session_state:
                                 st.session_state.final_structures = {}
-
-                            file_key = custom_filename.replace(".cif", "")
+                
+                            file_key = lattice_modified_filename.replace(".cif", "")
                             st.session_state.final_structures[file_key] = updated_structure
-                            st.session_state["original_structures"][file_key] = updated_structure
-
-                            st.success(f"Lattice parameters updated and structure saved as '{custom_filename}'!")
+                            
+                            st.success(f"Lattice parameters updated! New structure saved as '{lattice_modified_filename}'")
+                            st.info(f"Current structure '{current_selected_file}' has been updated with new lattice parameters.")
+                            
                         except Exception as e:
                             st.error(f"Error saving structure: {e}")
                             st.success("Lattice parameters updated successfully, but structure could not be saved.")
-
-
+                
                     except Exception as e:
                         st.error(f"Error updating lattice parameters: {e}")
 
