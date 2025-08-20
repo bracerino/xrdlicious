@@ -112,7 +112,6 @@ with col2:
         "**lebedmi2@cvut.cz**. To compile the application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
     )
 
-
 # with col3:
 #    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
@@ -278,10 +277,6 @@ if uploaded_files_user_sidebar:
                     f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
                     f"and please remove this wrongly placed file. 😊")
 
-
-
-
-
 # Then in Streamlit main block
 # display_structure_types()
 show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
@@ -294,6 +289,7 @@ buttons_colors()
 if "first_run_note" not in st.session_state:
     st.session_state["first_run_note"] = True
 first_run_note()
+
 
 def get_space_group_info(number):
     symbol = SPACE_GROUP_SYMBOLS.get(number, f"SG#{number}")
@@ -364,16 +360,16 @@ if show_database_search:
                 selected_space_group = st.selectbox(
                     "Select Space Group:",
                     options=SPACE_GROUP_OPTIONS,
-                    index=224,  # 
+                    index=224,  #
                     help="Start typing to search by number or symbol",
                     key="db_search_space_group"
                 )
-                
+
                 space_group_number = extract_space_group_number(selected_space_group)
                 space_group_symbol = selected_space_group.split('(')[1][:-1] if selected_space_group else ""
-                
-                #st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
-                
+
+                # st.info(f"Selected: **{space_group_number}** ({space_group_symbol})")
+
                 selected_elements = st.multiselect(
                     "Select elements for search:",
                     options=ELEMENTS,
@@ -1362,13 +1358,6 @@ if "removal_message" not in st.session_state:
 if not isinstance(st.session_state.removal_message, str):
     st.session_state.removal_message = str(st.session_state.removal_message)
 
-
-
-
-
-
-
-
 if "modified_defects" not in st.session_state:
     st.session_state["modified_defects"] = {}
 
@@ -1426,8 +1415,6 @@ def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
     df = pd.DataFrame(initial_data)
 
     return df
-
-
 
 
 if "run_before" not in st.session_state:
@@ -1497,11 +1484,9 @@ if "🔬 Structure Modification" in calc_mode:
 
             visual_pmg_structure = mp_struct.copy()
 
-
             for i, site in enumerate(mp_struct.sites):
                 frac = site.frac_coords
                 cart = mp_struct.lattice.get_cartesian_coords(frac)
-
 
             structure_type = identify_structure_type(visual_pmg_structure)
 
@@ -1573,7 +1558,8 @@ if "🔬 Structure Modification" in calc_mode:
                 for i, row in display_df.iterrows():
                     wyckoff = row['Wyckoff']
                     element = row['Element']
-                    count = grouped[(grouped['Wyckoff'] == wyckoff) & (grouped['Element'] == element)]['count'].values[0]
+                    count = grouped[(grouped['Wyckoff'] == wyckoff) & (grouped['Element'] == element)]['count'].values[
+                        0]
                     if count > 1:
                         display_df.at[i, 'Wyckoff'] = f"{count}{wyckoff}"
             else:
@@ -1902,53 +1888,33 @@ if "🔬 Structure Modification" in calc_mode:
                     f"You probably added some new atom which has the same fractional coordinates as already defined atom, but you did not modify their occupancies. If the atoms share the same atomic site, their total occupancy must be equal to 1.")
 
                 # st.rerun()
+
         with tab03:
-            modify_lattice = st.checkbox("Modify lattice parameters", value = False)
+            modify_lattice = st.checkbox("Modify lattice parameters", value=False)
             if modify_lattice:
-                #with st.expander("Modify Lattice Parameters", icon='📐', expanded=st.session_state["expander_lattice"]):
 
-                if "lattice_a" not in st.session_state:
-                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
-                if "lattice_b" not in st.session_state:
-                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
-                if "lattice_c" not in st.session_state:
-                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
-                if "lattice_alpha" not in st.session_state:
-                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
-                if "lattice_beta" not in st.session_state:
-                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
-                if "lattice_gamma" not in st.session_state:
-                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
+                if "lattice_a_input" not in st.session_state:
+                    st.session_state["lattice_a_input"] = visual_pmg_structure.lattice.a
+                if "lattice_b_input" not in st.session_state:
+                    st.session_state["lattice_b_input"] = visual_pmg_structure.lattice.b
+                if "lattice_c_input" not in st.session_state:
+                    st.session_state["lattice_c_input"] = visual_pmg_structure.lattice.c
+                if "lattice_alpha_input" not in st.session_state:
+                    st.session_state["lattice_alpha_input"] = visual_pmg_structure.lattice.alpha
+                if "lattice_beta_input" not in st.session_state:
+                    st.session_state["lattice_beta_input"] = visual_pmg_structure.lattice.beta
+                if "lattice_gamma_input" not in st.session_state:
+                    st.session_state["lattice_gamma_input"] = visual_pmg_structure.lattice.gamma
 
-                if selected_file != st.session_state.get("previous_selected_file"):
-                    st.session_state["previous_selected_file"] = selected_file
-
-                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
-                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
-                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
-                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
-                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
-                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
-
-                old_a = visual_pmg_structure.lattice.a
-                old_b = visual_pmg_structure.lattice.b
-                old_c = visual_pmg_structure.lattice.c
-                old_alpha = visual_pmg_structure.lattice.alpha
-                old_beta = visual_pmg_structure.lattice.beta
-                old_gamma = visual_pmg_structure.lattice.gamma
-
-                if "lattice_a" not in st.session_state:
-                    st.session_state["lattice_a"] = visual_pmg_structure.lattice.a
-                if "lattice_b" not in st.session_state:
-                    st.session_state["lattice_b"] = visual_pmg_structure.lattice.b
-                if "lattice_c" not in st.session_state:
-                    st.session_state["lattice_c"] = visual_pmg_structure.lattice.c
-                if "lattice_alpha" not in st.session_state:
-                    st.session_state["lattice_alpha"] = visual_pmg_structure.lattice.alpha
-                if "lattice_beta" not in st.session_state:
-                    st.session_state["lattice_beta"] = visual_pmg_structure.lattice.beta
-                if "lattice_gamma" not in st.session_state:
-                    st.session_state["lattice_gamma"] = visual_pmg_structure.lattice.gamma
+                # Reset lattice parameters when file changes
+                if selected_file != st.session_state.get("previous_selected_file_lattice"):
+                    st.session_state["previous_selected_file_lattice"] = selected_file
+                    st.session_state["lattice_a_input"] = visual_pmg_structure.lattice.a
+                    st.session_state["lattice_b_input"] = visual_pmg_structure.lattice.b
+                    st.session_state["lattice_c_input"] = visual_pmg_structure.lattice.c
+                    st.session_state["lattice_alpha_input"] = visual_pmg_structure.lattice.alpha
+                    st.session_state["lattice_beta_input"] = visual_pmg_structure.lattice.beta
+                    st.session_state["lattice_gamma_input"] = visual_pmg_structure.lattice.gamma
 
                 try:
                     sga = SpacegroupAnalyzer(visual_pmg_structure)
@@ -1969,6 +1935,7 @@ if "🔬 Structure Modification" in calc_mode:
                                                     value=False)
                     if override_symmetry:
                         crystal_system = "triclinic"
+
                 params_info = {
                     "cubic": {
                         "modifiable": ["a"],
@@ -2005,7 +1972,6 @@ if "🔬 Structure Modification" in calc_mode:
                 }
 
                 st.markdown(params_info[crystal_system]["info"])
-
                 modifiable = params_info[crystal_system]["modifiable"]
 
                 col_a, col_b, col_c = st.columns(3)
@@ -2013,36 +1979,35 @@ if "🔬 Structure Modification" in calc_mode:
 
                 with col_a:
                     new_a = st.number_input("a (Å)",
-                                            value=float(st.session_state["lattice_a"]),
+                                            value=float(st.session_state["lattice_a_input"]),
                                             min_value=0.1,
                                             max_value=100.0,
                                             step=0.01,
                                             format="%.5f",
                                             key="lattice_a")
-                    # st.session_state["lattice_a"] = new_a
 
                 with col_b:
                     if "b" in modifiable:
                         new_b = st.number_input("b (Å)",
-                                                value=float(st.session_state["lattice_b"]),
+                                                value=float(st.session_state["lattice_b_input"]),
                                                 min_value=0.1,
                                                 max_value=100.0,
                                                 step=0.01,
                                                 format="%.5f",
                                                 key="lattice_b")
                     else:
-
                         if crystal_system in ["cubic", "tetragonal", "hexagonal", "trigonal"]:
                             st.text_input("b (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
                             new_b = new_a
                         else:
-                            st.text_input("b (Å)", value=f"{float(old_b):.5f}", disabled=True)
-                            new_b = old_b
+                            st.text_input("b (Å)", value=f"{float(st.session_state['lattice_b_input']):.5f}",
+                                          disabled=True)
+                            new_b = st.session_state["lattice_b_input"]
 
                 with col_c:
                     if "c" in modifiable:
                         new_c = st.number_input("c (Å)",
-                                                value=float(st.session_state["lattice_c"]),
+                                                value=float(st.session_state["lattice_c_input"]),
                                                 min_value=0.1,
                                                 max_value=100.0,
                                                 step=0.01,
@@ -2053,13 +2018,14 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("c (Å) = a", value=f"{float(new_a):.5f}", disabled=True)
                             new_c = new_a
                         else:
-                            st.text_input("c (Å)", value=f"{float(old_c):.5f}", disabled=True)
-                            new_c = old_c
+                            st.text_input("c (Å)", value=f"{float(st.session_state['lattice_c_input']):.5f}",
+                                          disabled=True)
+                            new_c = st.session_state["lattice_c_input"]
 
                 with col_alpha:
                     if "alpha" in modifiable:
                         new_alpha = st.number_input("α (°)",
-                                                    value=float(st.session_state["lattice_alpha"]),
+                                                    value=float(st.session_state["lattice_alpha_input"]),
                                                     min_value=0.1,
                                                     max_value=179.9,
                                                     step=0.1,
@@ -2070,13 +2036,14 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("α (°)", value="90.00000", disabled=True)
                             new_alpha = 90.0
                         else:
-                            st.text_input("α (°)", value=f"{float(old_alpha):.5f}", disabled=True)
-                            new_alpha = old_alpha
+                            st.text_input("α (°)", value=f"{float(st.session_state['lattice_alpha_input']):.5f}",
+                                          disabled=True)
+                            new_alpha = st.session_state["lattice_alpha_input"]
 
                 with col_beta:
                     if "beta" in modifiable:
                         new_beta = st.number_input("β (°)",
-                                                   value=float(st.session_state["lattice_beta"]),
+                                                   value=float(st.session_state["lattice_beta_input"]),
                                                    min_value=0.1,
                                                    max_value=179.9,
                                                    step=0.1,
@@ -2090,13 +2057,14 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("β (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
                             new_beta = new_alpha
                         else:
-                            st.text_input("β (°)", value=f"{float(old_beta):.5f}", disabled=True)
-                            new_beta = old_beta
+                            st.text_input("β (°)", value=f"{float(st.session_state['lattice_beta_input']):.5f}",
+                                          disabled=True)
+                            new_beta = st.session_state["lattice_beta_input"]
 
                 with col_gamma:
                     if "gamma" in modifiable:
                         new_gamma = st.number_input("γ (°)",
-                                                    value=float(st.session_state["lattice_gamma"]),
+                                                    value=float(st.session_state["lattice_gamma_input"]),
                                                     min_value=0.1,
                                                     max_value=179.9,
                                                     step=0.1,
@@ -2113,22 +2081,17 @@ if "🔬 Structure Modification" in calc_mode:
                             st.text_input("γ (°) = α", value=f"{float(new_alpha):.5f}", disabled=True)
                             new_gamma = new_alpha
                         else:
-                            st.text_input("γ (°)", value=f"{float(old_gamma):.5f}", disabled=True)
-                            new_gamma = old_gamma
+                            st.text_input("γ (°)", value=f"{float(st.session_state['lattice_gamma_input']):.5f}",
+                                          disabled=True)
+                            new_gamma = st.session_state["lattice_gamma_input"]
 
-                # st.session_state["lattice_a"] = new_a
-                # st.session_state["lattice_b"] = new_b
-                # st.session_state["lattice_c"] = new_c
-                # st.session_state["lattice_alpha"] = new_alpha
-                # st.session_state["lattice_beta"] = new_beta
-                # st.session_state["lattice_gamma"] = new_gamma
                 if st.button("Apply Lattice Changes"):
                     try:
                         st.session_state["expander_lattice"] = True
                         current_selected_file = st.session_state.get("selected_file")
-                        
+
                         from pymatgen.core import Lattice
-                
+
                         new_lattice = Lattice.from_parameters(
                             a=new_a,
                             b=new_b,
@@ -2137,13 +2100,13 @@ if "🔬 Structure Modification" in calc_mode:
                             beta=new_beta,
                             gamma=new_gamma
                         )
-                
+
                         frac_coords = [site.frac_coords for site in mp_struct.sites]
                         species = [site.species for site in mp_struct.sites]
                         props = [site.properties for site in mp_struct.sites]
-                
+
                         from pymatgen.core import Structure
-                
+
                         updated_structure = Structure(
                             lattice=new_lattice,
                             species=species,
@@ -2151,61 +2114,64 @@ if "🔬 Structure Modification" in calc_mode:
                             coords_are_cartesian=False,
                             site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
                         )
-                
+
                         mp_struct = updated_structure
                         visual_pmg_structure = updated_structure
                         st.session_state["current_structure"] = mp_struct
-                        
+
                         if current_selected_file and "original_structures" in st.session_state:
                             st.session_state["original_structures"][current_selected_file] = updated_structure
-                
+
                         if "modified_atom_df" in st.session_state:
                             st.session_state.modified_atom_df = recalc_computed_columns(
                                 st.session_state.modified_atom_df.copy(),
                                 updated_structure.lattice
                             )
-                
-                        st.session_state["lattice_a"] = new_a
-                        st.session_state["lattice_b"] = new_b
-                        st.session_state["lattice_c"] = new_c
-                        st.session_state["lattice_alpha"] = new_alpha
-                        st.session_state["lattice_beta"] = new_beta
-                        st.session_state["lattice_gamma"] = new_gamma
-                
+
+
+                        st.session_state["lattice_a_input"] = new_a
+                        st.session_state["lattice_b_input"] = new_b
+                        st.session_state["lattice_c_input"] = new_c
+                        st.session_state["lattice_alpha_input"] = new_alpha
+                        st.session_state["lattice_beta_input"] = new_beta
+                        st.session_state["lattice_gamma_input"] = new_gamma
+
                         try:
-                            base_filename = current_selected_file.replace('.cif', '') if current_selected_file else 'structure'
-                            lattice_modified_filename = f"{base_filename}_lattice_modified.cif"
-                            
+
+                            lattice_modified_filename = custom_filename
+
                             cif_writer = CifWriter(updated_structure, symprec=0.1, write_site_properties=True)
                             cif_content = cif_writer.__str__()
                             cif_file = io.BytesIO(cif_content.encode('utf-8'))
                             cif_file.name = lattice_modified_filename
-                
+
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
-                
-                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if 
-                                                             f.name != lattice_modified_filename]
-                            
+
+
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
+                                                               f.name != lattice_modified_filename]
+
                             if 'uploaded_files' in locals():
                                 uploaded_files[:] = [f for f in uploaded_files if f.name != lattice_modified_filename]
                                 uploaded_files.append(cif_file)
-                            
+
                             st.session_state.uploaded_files.append(cif_file)
-                
+
                             if "final_structures" not in st.session_state:
                                 st.session_state.final_structures = {}
-                
+
                             file_key = lattice_modified_filename.replace(".cif", "")
                             st.session_state.final_structures[file_key] = updated_structure
-                            
-                            st.success(f"Lattice parameters updated! New structure saved as '{lattice_modified_filename}'")
-                            st.info(f"Current structure '{current_selected_file}' has been updated with new lattice parameters.")
-                            
+
+                            st.success(f"Lattice parameters updated! Structure saved as '{lattice_modified_filename}'")
+                            st.info(
+                                f"The modified structure is now available in the calculator with the name you specified.")
+
                         except Exception as e:
                             st.error(f"Error saving structure: {e}")
                             st.success("Lattice parameters updated successfully, but structure could not be saved.")
-                
+
                     except Exception as e:
                         st.error(f"Error updating lattice parameters: {e}")
 
@@ -2536,7 +2502,8 @@ if "🔬 Structure Modification" in calc_mode:
                                 if supercell_x == 1 and supercell_y == 1 and supercell_z == 1:
                                     add_box(view, cell_3dmol, color='black', linewidth=2)
                                 else:
-                                    add_supercell_unit_cell_boxes(view, cell_3dmol, supercell_x, supercell_y, supercell_z)
+                                    add_supercell_unit_cell_boxes(view, cell_3dmol, supercell_x, supercell_y,
+                                                                  supercell_z)
 
                             if show_lattice_vectors:
                                 a, b, c = cell_3dmol[0], cell_3dmol[1], cell_3dmol[2]
@@ -2890,7 +2857,7 @@ if "🔬 Structure Modification" in calc_mode:
                         file_content = out.getvalue()
 
                         download_file_name = selected_file.split('.')[
-                                                 0]  + f'_.lmp'
+                                                 0] + f'_.lmp'
 
 
                     elif file_format == "XYZ":
@@ -2933,7 +2900,7 @@ if "🔬 Structure Modification" in calc_mode:
                             xyz_lines.append(line)
 
                         file_content = "\n".join(xyz_lines)
-                        download_file_name = selected_file.split('.')[0]  + f'_.xyz'
+                        download_file_name = selected_file.split('.')[0] + f'_.xyz'
 
                 except Exception as e:
                     st.error(f"Error generating {file_format} file: {e}")
@@ -3041,6 +3008,8 @@ if "expander_diff_settings" not in st.session_state:
 if "parsed_exp_data" not in st.session_state:
     st.session_state.parsed_exp_data = {}
 #
+
+
 if "💥 Powder Diffraction" in calc_mode:
     with st.expander("Diffraction Settings", icon="⚙️", expanded=st.session_state["expander_diff_settings"]):
         st.subheader(
@@ -3455,6 +3424,16 @@ if "💥 Powder Diffraction" in calc_mode:
             'AgKb1': 0.0496,
             'Ag(Ka1+Ka2+Kb1)': 0.0557006
         }
+
+
+        def energy_to_wavelength(energy_kev):
+            return 1.2398 / energy_kev
+
+
+        def wavelength_to_energy(wavelength_nm):
+            return 1.2398 / wavelength_nm
+
+
         col1, col2, col3h, col4h = st.columns(4)
         preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
         preset_wavelengths_neutrons = {
@@ -3464,64 +3443,127 @@ if "💥 Powder Diffraction" in calc_mode:
             'Hot Neutrons': 0.087
         }
 
+        if "input_mode" not in st.session_state:
+            st.session_state.input_mode = "Preset Wavelength"
+        if "energy_kev" not in st.session_state:
+            st.session_state.energy_kev = 8.048
+        if "preset_choice" not in st.session_state:
+            st.session_state.preset_choice = "Cobalt (CoKa1)"
+
         if "wavelength_value" not in st.session_state:
             if diffraction_choice == "XRD (X-ray)":
-                st.session_state.wavelength_value = 0.17889  # CoKa1 default
-            else:  # ND (Neutron)
-                st.session_state.wavelength_value = 0.154  # Thermal Neutrons default
+                st.session_state.wavelength_value = 0.17889
+            else:
+                st.session_state.wavelength_value = 0.154
 
-        # Track diffraction choice changes and reset wavelength accordingly
         if "last_diffraction_choice" not in st.session_state:
             st.session_state.last_diffraction_choice = diffraction_choice
         elif st.session_state.last_diffraction_choice != diffraction_choice:
             if diffraction_choice == "XRD (X-ray)":
-                st.session_state.wavelength_value = 0.17889  # CoKa1 default
-            else:  # ND (Neutron)
-                st.session_state.wavelength_value = 0.154  # Thermal Neutrons default
+                st.session_state.wavelength_value = 0.17889
+            else:
+                st.session_state.wavelength_value = 0.154
             st.session_state.last_diffraction_choice = diffraction_choice
 
         if diffraction_choice == "XRD (X-ray)":
             with col1:
-                preset_choice = st.selectbox(
-                    "🌊 Preset Wavelength",
-                    options=preset_options,
-                    key="preset_choice",
-                    index=0,
-                    help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
+                input_mode = st.radio(
+                    "Input Mode",
+                    ["Preset Wavelength", "Custom Wavelength", "X-ray Energy (keV)"],
+                    key="input_mode",
+                    help="Choose how to specify the X-ray source"
                 )
 
-            hide_input_for = ['Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)']
+            if "last_input_mode" not in st.session_state:
+                st.session_state.last_input_mode = input_mode
+            elif st.session_state.last_input_mode != input_mode and input_mode == "Preset Wavelength":
+                st.session_state.wavelength_value = preset_wavelengths["Cobalt (CoKa1)"]
+                st.session_state.preset_choice = "Cobalt (CoKa1)"
+            st.session_state.last_input_mode = input_mode
 
-            with col2:
-                if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get(
-                        "previous_preset", ""):
-                    st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
-                    st.session_state.previous_preset = st.session_state.preset_choice
-                    selected_preset_name = st.session_state.preset_choice
-                    if selected_preset_name in DEFAULT_TWO_THETA_MAX_FOR_PRESET:
-                        new_max_2theta = DEFAULT_TWO_THETA_MAX_FOR_PRESET[selected_preset_name]
-                        st.session_state.two_theta_max = new_max_2theta
+            if input_mode == "Preset Wavelength":
+                with col2:
+                    preset_choice = st.selectbox(
+                        "🌊 Preset Wavelength",
+                        options=preset_options,
+                        key="preset_choice",
+                        index=0,
+                        help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
+                    )
 
-                        if st.session_state.two_theta_min >= new_max_2theta:
-                            st.session_state.two_theta_min = 5.0
-                            if new_max_2theta <= 10.0:
-                                st.session_state.two_theta_min = 1.0
-                            # Final check to prevent min >= max
+                with col3h:
+                    if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get(
+                            "previous_preset", ""):
+                        st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
+                        st.session_state.previous_preset = st.session_state.preset_choice
+                        selected_preset_name = st.session_state.preset_choice
+                        if selected_preset_name in DEFAULT_TWO_THETA_MAX_FOR_PRESET:
+                            new_max_2theta = DEFAULT_TWO_THETA_MAX_FOR_PRESET[selected_preset_name]
+                            st.session_state.two_theta_max = new_max_2theta
                             if st.session_state.two_theta_min >= new_max_2theta:
-                                st.session_state.two_theta_min = max(0.1, new_max_2theta * 0.5)
+                                st.session_state.two_theta_min = 5.0
+                                if new_max_2theta <= 10.0:
+                                    st.session_state.two_theta_min = 1.0
+                                if st.session_state.two_theta_min >= new_max_2theta:
+                                    st.session_state.two_theta_min = max(0.1, new_max_2theta * 0.5)
 
-                if preset_choice not in hide_input_for:
+                    hide_input_for = ['Cu(Ka1+Ka2+Kb1)', 'Cu(Ka1+Ka2)']
+                    if preset_choice not in hide_input_for:
+                        wavelength_value = st.number_input(
+                            "🌊 Wavelength (nm)",
+                            min_value=0.001,
+                            step=0.001,
+                            format="%.5f",
+                            key="wavelength_value"
+                        )
+                    else:
+                        wavelength_value = preset_wavelengths[preset_choice]
+                        st.session_state.wavelength_value = wavelength_value
+            elif input_mode == "Custom Wavelength":
+                if st.session_state.last_input_mode != input_mode:
+                    st.session_state.wavelength_value = 0.17889
+                with col2:
                     wavelength_value = st.number_input(
                         "🌊 Wavelength (nm)",
-                        min_value=0.001,
+                        min_value=0.01,
+                        max_value=5.0,
+                        value=st.session_state.wavelength_value,
                         step=0.001,
                         format="%.5f",
                         key="wavelength_value",
-                        # value = st.session_state.wavelength_value
+                        help="Typical X-ray wavelengths: 0.05-2.5 nm"
                     )
-                else:
-                    wavelength_value = preset_wavelengths[preset_choice]
+                with col3h:
+                    calculated_energy = wavelength_to_energy(wavelength_value)
+                    st.metric("Calculated Energy", f"{calculated_energy:.3f} keV")
+
+            elif input_mode == "X-ray Energy (keV)":
+                if st.session_state.last_input_mode != input_mode:
+                    st.session_state.energy_kev = 6
+                if st.session_state.get("last_input_mode") != input_mode:
+                    if ("energy_kev" not in st.session_state
+                            or st.session_state.energy_kev is None
+                            or st.session_state.energy_kev < 1.0):
+                        st.session_state.energy_kev = 6 # default within [1.0, 100.0]
+                    st.session_state.wavelength_value = energy_to_wavelength(st.session_state.energy_kev)
+                with col2:
+                    energy_kev = st.number_input(
+                        "⚡ X-ray Energy (keV)",
+                        min_value=6.0,
+                        max_value=30.0,
+                        step=0.1,
+                        format="%.3f",
+                        key="energy_kev",
+                        help="Typical synchrotron energies: 8-30 keV"
+                    )
+
+                with col3h:
+                    wavelength_value = energy_to_wavelength(energy_kev)
                     st.session_state.wavelength_value = wavelength_value
+                    st.metric("Calculated Wavelength", f"{wavelength_value:.5f} nm")
+
+
+
 
         elif diffraction_choice == "ND (Neutron)":
             with col1:
@@ -3544,12 +3586,10 @@ if "💥 Powder Diffraction" in calc_mode:
                 if selected_preset_name_neutron in DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET:
                     new_max_2theta_neutron = DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET[selected_preset_name_neutron]
                     st.session_state.two_theta_max = new_max_2theta_neutron
-
                     if st.session_state.two_theta_min >= new_max_2theta_neutron:
                         st.session_state.two_theta_min = 5.0
                         if new_max_2theta_neutron <= 10.0:
                             st.session_state.two_theta_min = 1.0
-
                         if st.session_state.two_theta_min >= new_max_2theta_neutron:
                             st.session_state.two_theta_min = max(0.1, new_max_2theta_neutron * 0.5)
 
@@ -3558,12 +3598,13 @@ if "💥 Powder Diffraction" in calc_mode:
                     min_value=0.001,
                     step=0.001,
                     format="%.5f",
-                    key="wavelength_value",
-                    # value=st.session_state.wavelength_value
+                    key="wavelength_value"
                 )
 
-        wavelength_A = wavelength_value * 10  # Convert nm to Å
+        wavelength_A = wavelength_value * 10
         wavelength_nm = wavelength_value
+
+        preset_choice = st.session_state.get("preset_choice", "Cobalt (CoKa1)")
 
         x_axis_options = [
             "2θ (°)", "2θ (rad)", "θ (°)", "θ (rad)",
@@ -3690,6 +3731,8 @@ if "💥 Powder Diffraction" in calc_mode:
 
         if "calc_xrd" not in st.session_state:
             st.session_state.calc_xrd = False
+        if "prev_energy_kev" not in st.session_state:
+            st.session_state.prev_energy_kev = 8.048
 
         if diffraction_choice == "ND (Neutron)":
             if st.button("Calculate ND"):
@@ -4263,7 +4306,8 @@ if "💥 Powder Diffraction" in calc_mode:
                             filtered_y = []
                             filtered_hkls = []
                             max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
-                            intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+                            intensity_threshold = (
+                                                              intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
 
                             for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                                 if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
@@ -4307,8 +4351,12 @@ if "💥 Powder Diffraction" in calc_mode:
                             diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
                         else:
                             diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
-                        diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
-                                                             scaled=False)
+                        try:
+                            diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
+                                                                 scaled=False)
+                        except Exception as e:
+                            st.write("No peaks available for this wavelenght.")
+                            st.stop()
                         filtered_x = []
                         filtered_y = []
                         filtered_hkls = []
@@ -4345,7 +4393,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         all_filtered_y = filtered_y
                         if y_axis_scale != "Linear":
                             for i in range(len(all_filtered_y)):
-                                all_filtered_y[i] = convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+                                all_filtered_y[i] = \
+                                convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
 
                         all_filtered_hkls = filtered_hkls
                         all_peak_types = ["Kα1"] * len(filtered_x)
@@ -4609,7 +4658,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 y_user = (y_user / np.max(y_user)) * 100
 
                             mask_user = (x_user >= st.session_state.two_theta_min) & (
-                                        x_user <= st.session_state.two_theta_max)
+                                    x_user <= st.session_state.two_theta_max)
                             x_user_filtered = x_user[mask_user]
                             y_user_filtered = y_user[mask_user]
 
@@ -4813,7 +4862,8 @@ if "💥 Powder Diffraction" in calc_mode:
                                 ])
                         table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str, language="text")
-                with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
+                with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**",
+                                 expanded=True):
                     table_str2 = "#X-axis    Intensity    hkl\n"
                     for i, (theta, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
                         if i in annotate_indices:
