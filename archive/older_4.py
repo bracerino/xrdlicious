@@ -102,21 +102,7 @@ mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 # Check if memory exceeds memory_limit
-if memory_usage > memory_use_limit:
-    # Show warning message
-    st.markdown(
-        f"# ⚠️ **Memory Warning!** Current usage: {memory_usage:.2f} MB exceeds 1600 MB limit. Sorry, we are using available free resources. :[ Soon, there will be a forced rerun with cleared memory. If you wish to run calculations on extensive data, please compile this application [locally](https://github.com/bracerino/xrdlicious).")
-
-    # Wait 10 seconds
-    time.sleep(10)
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    if hasattr(st.session_state, 'sidebar_uploader'):
-        del st.session_state.sidebar_uploader
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    gc.collect()
-    st.rerun()
+print(memory_usage)
 
 col1, col2 = st.columns([0.8, 0.4])
 
@@ -2136,13 +2122,13 @@ if "🔬 Structure Modification" in calc_mode:
                 # st.session_state["lattice_alpha"] = new_alpha
                 # st.session_state["lattice_beta"] = new_beta
                 # st.session_state["lattice_gamma"] = new_gamma
-
                 if st.button("Apply Lattice Changes"):
                     try:
                         st.session_state["expander_lattice"] = True
-
+                        current_selected_file = st.session_state.get("selected_file")
+                        
                         from pymatgen.core import Lattice
-
+                
                         new_lattice = Lattice.from_parameters(
                             a=new_a,
                             b=new_b,
@@ -2151,13 +2137,13 @@ if "🔬 Structure Modification" in calc_mode:
                             beta=new_beta,
                             gamma=new_gamma
                         )
-
+                
                         frac_coords = [site.frac_coords for site in mp_struct.sites]
                         species = [site.species for site in mp_struct.sites]
                         props = [site.properties for site in mp_struct.sites]
-
+                
                         from pymatgen.core import Structure
-
+                
                         updated_structure = Structure(
                             lattice=new_lattice,
                             species=species,
@@ -2165,50 +2151,61 @@ if "🔬 Structure Modification" in calc_mode:
                             coords_are_cartesian=False,
                             site_properties={k: [p.get(k, None) for p in props] for k in set().union(*props)}
                         )
-
+                
                         mp_struct = updated_structure
                         visual_pmg_structure = updated_structure
                         st.session_state["current_structure"] = mp_struct
-                        # st.session_state["original_for_supercell"] = mp_struct
-
+                        
+                        if current_selected_file and "original_structures" in st.session_state:
+                            st.session_state["original_structures"][current_selected_file] = updated_structure
+                
                         if "modified_atom_df" in st.session_state:
                             st.session_state.modified_atom_df = recalc_computed_columns(
                                 st.session_state.modified_atom_df.copy(),
                                 updated_structure.lattice
                             )
-
+                
+                        st.session_state["lattice_a"] = new_a
+                        st.session_state["lattice_b"] = new_b
+                        st.session_state["lattice_c"] = new_c
+                        st.session_state["lattice_alpha"] = new_alpha
+                        st.session_state["lattice_beta"] = new_beta
+                        st.session_state["lattice_gamma"] = new_gamma
+                
                         try:
+                            base_filename = current_selected_file.replace('.cif', '') if current_selected_file else 'structure'
+                            lattice_modified_filename = f"{base_filename}_lattice_modified.cif"
+                            
                             cif_writer = CifWriter(updated_structure, symprec=0.1, write_site_properties=True)
                             cif_content = cif_writer.__str__()
                             cif_file = io.BytesIO(cif_content.encode('utf-8'))
-                            cif_file.name = custom_filename
-
+                            cif_file.name = lattice_modified_filename
+                
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
-
-                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
-                                                               f.name != custom_filename]
-
-                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
-                                                               f.name != custom_filename]
+                
+                            st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if 
+                                                             f.name != lattice_modified_filename]
+                            
                             if 'uploaded_files' in locals():
-                                uploaded_files[:] = [f for f in uploaded_files if f.name != custom_filename]
+                                uploaded_files[:] = [f for f in uploaded_files if f.name != lattice_modified_filename]
+                                uploaded_files.append(cif_file)
+                            
                             st.session_state.uploaded_files.append(cif_file)
-                            uploaded_files.append(cif_file)
-
+                
                             if "final_structures" not in st.session_state:
                                 st.session_state.final_structures = {}
-
-                            file_key = custom_filename.replace(".cif", "")
+                
+                            file_key = lattice_modified_filename.replace(".cif", "")
                             st.session_state.final_structures[file_key] = updated_structure
-                            st.session_state["original_structures"][file_key] = updated_structure
-
-                            st.success(f"Lattice parameters updated and structure saved as '{custom_filename}'!")
+                            
+                            st.success(f"Lattice parameters updated! New structure saved as '{lattice_modified_filename}'")
+                            st.info(f"Current structure '{current_selected_file}' has been updated with new lattice parameters.")
+                            
                         except Exception as e:
                             st.error(f"Error saving structure: {e}")
                             st.success("Lattice parameters updated successfully, but structure could not be saved.")
-
-
+                
                     except Exception as e:
                         st.error(f"Error updating lattice parameters: {e}")
 
@@ -4805,15 +4802,15 @@ if "💥 Powder Diffraction" in calc_mode:
                         if len(hkl_group[0]['hkl']) == 3:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                    for h in hkl_group
+                                ])
                         else:
                             hkl_str = ", ".join(
                                 [
-                                    f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                    for h in
-                                    hkl_group])
+                                    f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                    for h in hkl_group
+                                ])
                         table_str += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str, language="text")
                 with st.expander(f"View Highest Intensity Peaks for Diffraction Pattern: **{file.name}**", expanded=True):
@@ -4823,15 +4820,15 @@ if "💥 Powder Diffraction" in calc_mode:
                             if len(hkl_group[0]['hkl']) == 3:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
+                                        for h in hkl_group
+                                    ])
                             else:
                                 hkl_str = ", ".join(
                                     [
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
-                                        for
-                                        h in hkl_group])
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
+                                        for h in hkl_group
+                                    ])
                             table_str2 += f"{theta:<12.3f} {intensity:<12.3f} {hkl_str}\n"
                     st.code(table_str2, language="text")
 
@@ -4904,11 +4901,11 @@ if "💥 Powder Diffraction" in calc_mode:
                                             continue
                                 if len(hkl) == 3:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][2], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][2]})"
                                         for h in hkls[i]])
                                 else:
                                     hkl_str = ", ".join([
-                                        f"({format_index(h['hkl'][0], first=True)}{format_index(h['hkl'][1])}{format_index(h['hkl'][3], last=True)})"
+                                        f"({h['hkl'][0]} {h['hkl'][1]} {h['hkl'][3]})"
                                         for h in hkls[i]])
                                 data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
                     combined_df = pd.DataFrame(data_list,
