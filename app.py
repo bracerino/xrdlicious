@@ -279,9 +279,8 @@ if uploaded_files_user_sidebar:
 
 # Then in Streamlit main block
 # display_structure_types()
-show_database_search = st.checkbox("🗃️ Enable database search (MP, AFLOW, COD)",
-                                   value=False,
-                                   help="Enable to search in Materials Project, AFLOW, and COD databases")
+show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD)",
+                                   value=False,)
 # Define button colors
 buttons_colors()
 
@@ -4837,6 +4836,221 @@ if "💥 Powder Diffraction" in calc_mode:
             st.session_state.placeholder_interactive.plotly_chart(st.session_state.fig_interactive,
                                                                   use_container_width=True)
             st.markdown("<div style='margin-top: 100px;'></div>", unsafe_allow_html=True)
+
+
+            def find_equivalent_hkls(hkl_base, space_group, crystal_system):
+                import numpy as np
+
+                equivalent_hkls = set()
+                h, k, l = hkl_base
+
+                if space_group:
+                    try:
+                        for symm_op in space_group:
+                            rotation_matrix = symm_op.rotation_matrix
+
+                            if crystal_system in ['hexagonal', 'trigonal']:
+                                i = -(h + k)
+                                hkl_3d_for_rotation = np.array([h, k, l])
+                                equivalent_hkl_3d = rotation_matrix.dot(hkl_3d_for_rotation).astype(int)
+                                h_eq, k_eq, l_eq = equivalent_hkl_3d
+                                i_eq = -(h_eq + k_eq)
+                                equivalent_hkl = (h_eq, k_eq, i_eq, l_eq)
+                            else:
+                                hkl_3d = np.array([h, k, l])
+                                equivalent_hkl_3d = rotation_matrix.dot(hkl_3d).astype(int)
+                                equivalent_hkl = tuple(equivalent_hkl_3d)
+
+                            equivalent_hkls.add(equivalent_hkl)
+                            equivalent_hkls.add(tuple(-x for x in equivalent_hkl))
+
+                    except Exception as e:
+                        st.warning(f"Error in symmetry operations: {e}")
+
+                if crystal_system == 'tetragonal':
+                    equivalent_hkls.add((h, k, l))
+                    equivalent_hkls.add((k, h, l))
+                    equivalent_hkls.add((-h, -k, l))
+                    equivalent_hkls.add((-k, -h, l))
+                    equivalent_hkls.add((h, -k, -l))
+                    equivalent_hkls.add((k, -h, -l))
+                    equivalent_hkls.add((-h, k, -l))
+                    equivalent_hkls.add((-k, h, -l))
+                elif crystal_system == 'cubic':
+                    for perm_h, perm_k, perm_l in [(h, k, l), (h, l, k), (k, h, l), (k, l, h), (l, h, k), (l, k, h)]:
+                        for sign_h, sign_k, sign_l in [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (1, -1, -1),
+                                                       (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)]:
+                            equivalent_hkls.add((sign_h * perm_h, sign_k * perm_k, sign_l * perm_l))
+                elif crystal_system == 'orthorhombic':
+                    for sign_h, sign_k, sign_l in [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (1, -1, -1),
+                                                   (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)]:
+                        equivalent_hkls.add((sign_h * h, sign_k * k, sign_l * l))
+                elif crystal_system in ['hexagonal', 'trigonal']:
+                    pass
+                else:
+                    equivalent_hkls.add((h, k, l))
+                    equivalent_hkls.add((-h, -k, -l))
+
+                return list(equivalent_hkls)
+
+
+            def find_plane_multiples_with_symmetry(hkl_base, max_multiple, space_group, crystal_system):
+                equivalent_base = find_equivalent_hkls(hkl_base, space_group, crystal_system)
+                all_multiples = set()
+
+                for equiv_hkl in equivalent_base:
+                    if len(equiv_hkl) == 4:
+                        h, k, i, l = equiv_hkl
+                        for n in range(1, max_multiple + 1):
+                            all_multiples.add((h * n, k * n, i * n, l * n))
+                            all_multiples.add((-h * n, -k * n, -i * n, -l * n))
+                    else:
+                        h, k, l = equiv_hkl[:3]
+                        for n in range(1, max_multiple + 1):
+                            all_multiples.add((h * n, k * n, l * n))
+                            all_multiples.add((-h * n, -k * n, -l * n))
+
+                return list(all_multiples)
+
+
+            def get_structure_space_group(structure):
+                from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+                try:
+                    sga = SpacegroupAnalyzer(structure)
+                    crystal_system = sga.get_crystal_system()
+                    return sga.get_space_group_symbol(), sga.get_space_group_operations(), crystal_system
+                except:
+                    return "Unknown", None, "unknown"
+
+
+            if st.session_state.calc_xrd and uploaded_files and 'pattern_details' in locals():
+                with st.expander("🏷️ Annotate Specific Planes", expanded=True):
+
+                    col1, col2, col3, col4 = st.columns(4)
+
+                    with col1:
+                        h_index = st.number_input("h index", min_value=-10, max_value=10, value=0, step=1,
+                                                  key="h_plane")
+                    with col2:
+                        k_index = st.number_input("k index", min_value=-10, max_value=10, value=0, step=1,
+                                                  key="k_plane")
+                    with col3:
+                        l_index = st.number_input("l index", min_value=-10, max_value=10, value=1, step=1,
+                                                  key="l_plane")
+                    with col4:
+                        max_multiple = st.number_input("Max multiple", min_value=1, max_value=20, value=5, step=1,
+                                                       key="max_mult")
+
+                    plane_hkl = (h_index, k_index, l_index)
+
+                    if st.button("Generate Annotated Plot", type="primary"):
+                        with st.spinner("Analyzing space groups and generating annotations..."):
+
+                            structure_space_groups = {}
+                            for file in uploaded_files:
+                                try:
+                                    structure = load_structure(file)
+                                    sg_symbol, sg_ops, crystal_system = get_structure_space_group(structure)
+                                    structure_space_groups[file.name] = {
+                                        "symbol": sg_symbol,
+                                        "operations": sg_ops,
+                                        "crystal_system": crystal_system,
+                                        "structure": structure
+                                    }
+                                except Exception as e:
+                                    st.warning(f"Could not determine space group for {file.name}: {e}")
+                                    structure_space_groups[file.name] = {
+                                        "symbol": "Unknown",
+                                        "operations": None,
+                                        "crystal_system": "unknown",
+                                        "structure": None
+                                    }
+
+                            st.write("**Space Groups of loaded structures:**")
+                            for file_name, sg_info in structure_space_groups.items():
+                                crystal_sys = sg_info.get('crystal_system', 'unknown')
+                                st.write(f"• {file_name}: {sg_info['symbol']} ({crystal_sys})")
+
+                            fig_annotated = go.Figure()
+
+                            for trace in st.session_state.fig_interactive.data:
+                                fig_annotated.add_trace(trace)
+
+                            total_annotations = 0
+
+                            for file_name, details in pattern_details.items():
+                                peak_vals = details["peak_vals"]
+                                intensities = details["intensities"]
+                                hkls = details["hkls"]
+
+                                sg_info = structure_space_groups.get(file_name, {})
+                                space_group = sg_info.get("operations")
+                                crystal_system = sg_info.get("crystal_system", "unknown")
+
+                                multiples = find_plane_multiples_with_symmetry(plane_hkl, max_multiple, space_group,
+                                                                               crystal_system)
+
+                                annotated_x = []
+                                annotated_y = []
+                                annotated_text = []
+
+                                for i, (peak_val, intensity, hkl_group) in enumerate(zip(peak_vals, intensities, hkls)):
+                                    for hkl_dict in hkl_group:
+                                        hkl = hkl_dict['hkl']
+                                        if len(hkl) >= 3:
+                                            if crystal_system in ['hexagonal', 'trigonal'] and len(hkl) == 4:
+                                                hkl_tuple = tuple(hkl[:4])
+                                            else:
+                                                hkl_tuple = tuple(hkl[:3])
+
+                                            if hkl_tuple in multiples:
+                                                canonical_2theta = metric_to_twotheta(peak_val, x_axis_metric,
+                                                                                      wavelength_A, wavelength_nm,
+                                                                                      diffraction_choice)
+                                                if st.session_state.two_theta_min <= canonical_2theta <= st.session_state.two_theta_max:
+                                                    annotated_x.append(peak_val)
+                                                    annotated_y.append(intensity)
+                                                    if len(hkl) == 4:
+                                                        annotated_text.append(f"({hkl[0]} {hkl[1]} {hkl[2]} {hkl[3]})")
+                                                    else:
+                                                        annotated_text.append(f"({hkl[0]} {hkl[1]} {hkl[2]})")
+                                                    total_annotations += 1
+
+                                if annotated_x:
+                                    fig_annotated.add_trace(go.Scatter(
+                                        x=annotated_x,
+                                        y=annotated_y,
+                                        mode='markers+text',
+                                        text=annotated_text,
+                                        textposition="top center",
+                                        textfont=dict(size=20, color="red", family="Arial Black"),
+                                        marker=dict(size=12, color="red", symbol="diamond",
+                                                    line=dict(width=2, color="darkred")),
+                                        name=f"{file_name} - {plane_hkl} family ({sg_info.get('symbol', 'Unknown')})",
+                                        showlegend=True
+                                    ))
+
+                            fig_annotated.update_layout(st.session_state.fig_interactive.layout)
+                            fig_annotated.update_layout(
+                                title=f"Diffraction Pattern with {plane_hkl} Family Annotations (Symmetry-Aware)",
+                                plot_bgcolor='white'
+                            )
+
+                            annotation_traces = []
+                            other_traces = []
+                            for trace in fig_annotated.data:
+                                if 'family' in trace.name:
+                                    annotation_traces.append(trace)
+                                else:
+                                    other_traces.append(trace)
+
+                            fig_annotated.data = other_traces + annotation_traces
+
+                            st.plotly_chart(fig_annotated, use_container_width=True, key="annotated_plot")
+                            st.success(
+                                f"Generated annotated plot for plane family {plane_hkl} with {total_annotations} annotations considering space group symmetry")
+
+
         if pattern_details is not None:
             with tab2:
                 st.subheader("Quantitative Data for Calculated Diffraction Patterns")
