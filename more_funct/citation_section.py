@@ -15,7 +15,7 @@ def show_xrdlicious_roadmap():
 * ✅ Optimized search in COD database.
 * ⏳ Repair visualization based on Wyckoff positions
 #### Wavelength Input: Energy Specification
-* ⏳ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
+* ✅ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
 
 #### Improved Database Search
 * ✅ Add search by keywords, space groups, ids... in database queries.
