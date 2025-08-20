@@ -20,7 +20,7 @@ version: 1.0.0
 identifiers:
   - type: doi
     value: 10.1107/S1600576725005370
-date-released: 2025-09-01   # adjust if you know the exact publication date
+date-released: 2025-09-01   
 type: software
 url: "https://doi.org/10.1107/S1600576725005370"
 preferred-citation:
@@ -46,5 +46,5 @@ preferred-citation:
   issue: 5
   year: 2025
   doi: 10.1107/S1600576725005370
-  start: [first page]     # fill in actual page numbers
-  end: [last page]        # fill in actual page numbers
+  start: 1     
+  end: 7  
