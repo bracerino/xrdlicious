@@ -4273,10 +4273,32 @@ if "💥 Powder Diffraction" in calc_mode:
                     pattern_details = {}
                     full_range = (0.01, 179.9)
 
-                    for idx, file in enumerate(uploaded_files):
+                    #  Converting .xyz, .lmp, .poscar to .cif file otherwise I am getting wrong (h k l) indecis for hexagonal structures
+                    def convert_to_cif_then_load(file):
+                        from pymatgen.io.cif import CifWriter
+                        import tempfile
+                        import os
+                        structure = load_structure(file)
 
-                        mg_structure = load_structure(file)
+                        cif_writer = CifWriter(structure, symprec=0.01)
+
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.cif', delete=False) as temp_cif:
+                            cif_writer.write_file(temp_cif.name)
+                            temp_cif_path = temp_cif.name
+
+                        try:
+                            cif_structure = PmgStructure.from_file(temp_cif_path)
+                            return cif_structure
+                        finally:
+                            if os.path.exists(temp_cif_path):
+                                os.remove(temp_cif_path)
+                    for idx, file in enumerate(uploaded_files):
+                        if file.name.lower().endswith('.cif'):
+                            mg_structure = load_structure(file)
+                        else:
+                            mg_structure = convert_to_cif_then_load(file)
                         mg_structure = get_full_conventional_structure_diffra(mg_structure)
+                        
                         debye_waller_dict = None
                         if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
                             file_key = file.name
