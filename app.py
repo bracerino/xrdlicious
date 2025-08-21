@@ -108,8 +108,8 @@ col1, col2 = st.columns([0.8, 0.4])
 
 with col2:
     st.info(
-        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. **[Quick tutorial here](https://youtu.be/jHdaNVB2UWE)**. Spot a bug or have a feature idea? Let us know at: "
-        "**lebedmi2@cvut.cz**. To compile the application locally, please visit our **[GitHub page](https://github.com/bracerino/xrdlicious)** and find the tutorial there."
+        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. **[Tutorial here](https://youtu.be/jHdaNVB2UWE)**. Spot a bug or have a feature idea? Let us know at: "
+        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. See our **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html).** "
     )
 
 # with col3:
