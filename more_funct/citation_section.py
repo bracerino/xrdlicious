@@ -55,6 +55,7 @@ def first_run_note():
             image = Image.open("./images/Rb.png")
             st.image(image)
         with colh2:
+            st.warning("We are now using free hosting by Streamlit Community Cloud servis, which has a strict limit on RAM memory. For more extensive computations, please compile the application locally from the GitHub.")
             st.info("""
             From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
             If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
