@@ -101,8 +101,7 @@ process = psutil.Process(os.getpid())
 mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
-# Check if memory exceeds memory_limit
-print(memory_usage)
+
 
 col1, col2 = st.columns([0.8, 0.4])
 
@@ -2633,7 +2632,6 @@ if "🔬 Structure Modification" in calc_mode:
 
                         if use_orthographic:
                             view.setProjection('orthogonal')
-                            print("Am I here")
                             view.setCameraParameters({'orthographic': True})
                             view.zoomTo()
                             # view.zoom(1.1)
@@ -3086,26 +3084,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 st.session_state.num_annotate = 5
 
             # --- Diffraction Calculator Selection ---
-            col2, col3, col4, colhhh = st.columns(4)
-
-            with col2:
-                peak_representation = st.radio(
-                    "Peak Representation",
-                    ["Delta", "Gaussian"],
-                    key="peak_representation",
-                    help=("Choose whether to represent each diffraction peak as a delta function "
-                          "or as a Gaussian. When using Gaussian, the area under each peak equals "
-                          "the calculated intensity, and overlapping Gaussians are summed.")
-                )
-                # st.session_state.peak_representation = peak_representation
-            with col3:
-                intensity_scale_option = st.radio(
-                    "Intensity scale",
-                    options=["Normalized", "Absolute"],
-                    key="intensity_scale_option",
-                    help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
-                )
-                # st.session_state.intensity_scale_option = intensity_scale_option
+            col2, col4 = st.columns(2)
             with col4:
                 diffraction_choice = st.radio(
                     "Diffraction Calculator",
@@ -3119,6 +3098,27 @@ if "💥 Powder Diffraction" in calc_mode:
                     key="diffraction_choice"
                 )
                 # st.session_state.diffraction_choice = diffraction_choice
+
+            with col2:
+                peak_representation = st.radio(
+                    "Peak Representation",
+                    ["Delta", "Gaussian"],
+                    key="peak_representation",
+                    help=("Choose whether to represent each diffraction peak as a delta function "
+                          "or as a Gaussian. When using Gaussian, the area under each peak equals "
+                          "the calculated intensity, and overlapping Gaussians are summed.")
+                )
+                # st.session_state.peak_representation = peak_representation
+            col3, colhhh = st.columns(2)
+            with col3:
+                intensity_scale_option = st.radio(
+                    "Intensity scale",
+                    options=["Normalized", "Absolute"],
+                    key="intensity_scale_option",
+                    help="Normalized sets maximum peak to 100; Absolute shows raw calculated intensities."
+                )
+                # st.session_state.intensity_scale_option = intensity_scale_option
+
             with colhhh:
                 line_thickness = st.slider(
                     "⚙️ Line thickness for peaks:",
@@ -3435,7 +3435,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 return 1.2398 / wavelength_nm
 
 
-            col1, col2, col3h, col4h = st.columns(4)
+
             preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
             preset_wavelengths_neutrons = {
                 'Custom': 0.154,
@@ -3467,14 +3467,14 @@ if "💥 Powder Diffraction" in calc_mode:
                 st.session_state.last_diffraction_choice = diffraction_choice
 
             if diffraction_choice == "XRD (X-ray)":
-                with col1:
-                    input_mode = st.radio(
-                        "Input Mode",
-                        ["Preset Wavelength", "Custom Wavelength", "X-ray Energy (keV)"],
-                        key="input_mode",
-                        help="Choose how to specify the X-ray source"
-                    )
-
+                #with col1:
+                input_mode = st.radio(
+                    "Input Mode",
+                    ["Preset Wavelength", "Custom Wavelength", "X-ray Energy (keV)"],
+                    key="input_mode",
+                    help="Choose how to specify the X-ray source"
+                )
+                col2, col3h = st.columns(2)
                 if "last_input_mode" not in st.session_state:
                     st.session_state.last_input_mode = input_mode
                 elif st.session_state.last_input_mode != input_mode and input_mode == "Preset Wavelength":
@@ -3492,7 +3492,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             help="I_Kalpha2 = 1/2 I_Kalpha1, I_Kbeta = 1/9 I_Kalpha1"
                         )
 
-                    with col3h:
+                    with col2:
                         if "preset_choice" in st.session_state and st.session_state.preset_choice != st.session_state.get(
                                 "previous_preset", ""):
                             st.session_state.wavelength_value = preset_wavelengths[st.session_state.preset_choice]
@@ -3619,7 +3619,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 "d (Å)", "d (nm)",
             ]
             # --- X-axis Metric Selection ---
-            colx, colx1, colx2, colx3 = st.columns([1, 1, 1, 1])
+            colx, colx1,= st.columns(2)
             with colx:
                 if diffraction_choice == "ND (Neutron)":
                     x_axis_metric = st.selectbox(
@@ -3675,7 +3675,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 step_val = 0.1
 
             # col1, col2 = st.columns(2)
-
+            colx2, colx3 = st.columns(2)
             if x_axis_metric == "d (Å)" or x_axis_metric == "d (nm)":
 
                 min_val = colx3.number_input(f"⚙️ Maximum {x_axis_metric}", value=display_metric_min, step=step_val,
@@ -3718,17 +3718,17 @@ if "💥 Powder Diffraction" in calc_mode:
                 )
                 st.session_state.num_annotate = num_annotate
 
-            with col4h:
-                intensity_filter = st.slider(
-                    "⚙️ Filter peaks (% of max intensity):",
-                    min_value=0.0,
-                    max_value=50.0,
-                    value=st.session_state.intensity_filter,
-                    step=0.1,
-                    key="intensity_filter_widget",
-                    help="Filter out peaks with intensity below this percentage of the maximum peak intensity. Set to 0 to show all peaks."
-                )
-                st.session_state.intensity_filter = intensity_filter
+            #with col4h:
+            intensity_filter = st.slider(
+                "⚙️ Filter peaks (% of max intensity):",
+                min_value=0.0,
+                max_value=50.0,
+                value=st.session_state.intensity_filter,
+                step=0.1,
+                key="intensity_filter_widget",
+                help="Filter out peaks with intensity below this percentage of the maximum peak intensity. Set to 0 to show all peaks."
+            )
+            st.session_state.intensity_filter = intensity_filter
 
             if "calc_xrd" not in st.session_state:
                 st.session_state.calc_xrd = False
