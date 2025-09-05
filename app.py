@@ -103,7 +103,21 @@ memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
 
 
-col1, col2 = st.columns([0.8, 0.4])
+col1, col2, col3 = st.columns([0.2, 0.4, 0.4])
+with col3:
+    st.markdown(
+        """
+        ###### 🔹 Separated Module for Point Defects  
+        Create point defects in a crystal structure: **[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/)**  
+        """
+    )
+
+    st.markdown(
+        """
+        ###### 🔹 Separated Module for XRD File Conversion  
+        Convert between `.xrdml`, `.ras` and `.xy` formats: **[Open App 🧩](https://xrd-convert.streamlit.app/)**  
+        """
+    )
 
 with col2:
     st.info(
