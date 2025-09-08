@@ -3581,6 +3581,7 @@ if "💥 Powder Diffraction" in calc_mode:
 
 
             elif diffraction_choice == "ND (Neutron)":
+                col1, col2 = st.columns(2)
                 with col1:
                     preset_choice = st.selectbox(
                         "Preset Wavelength",
