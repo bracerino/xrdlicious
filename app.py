@@ -3615,6 +3615,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         format="%.5f",
                         key="wavelength_value"
                     )
+            _, col3h = st.columns(2)
 
             wavelength_A = wavelength_value * 10
             wavelength_nm = wavelength_value
