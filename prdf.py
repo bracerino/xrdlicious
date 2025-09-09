@@ -3757,285 +3757,285 @@ if "💥 Powder Diffraction" in calc_mode:
                 if st.button("Calculate XRD"):
                     st.session_state.calc_xrd = True
 
-            st.sidebar.subheader(
-                "📉 Experimental Data Background Subtraction",
-                help=(
-                    "This section allows you to subtract background from your uploaded experimental diffraction data. "
-                    "You can choose from different background estimation methods and adjust parameters."
+    st.sidebar.subheader(
+        "📉 Experimental Data Background Subtraction",
+        help=(
+            "This section allows you to subtract background from your uploaded experimental diffraction data. "
+            "You can choose from different background estimation methods and adjust parameters."
+        )
+    )
+    if user_pattern_file:
+        bg_subtraction_container = st.container()
+
+        with bg_subtraction_container:
+            if isinstance(user_pattern_file, list) and len(user_pattern_file) > 1:
+                selected_exp_file = st.sidebar.selectbox(
+                    "Select experimental data file for background subtraction",
+                    options=[file.name for file in user_pattern_file],
+                    index=0
                 )
-            )
-            if user_pattern_file:
-                bg_subtraction_container = st.container()
+                selected_file_obj = next((file for file in user_pattern_file if file.name == selected_exp_file),
+                                         None)
+            else:
+                selected_file_obj = user_pattern_file[0] if isinstance(user_pattern_file,
+                                                                       list) else user_pattern_file
+                selected_exp_file = selected_file_obj.name
 
-                with bg_subtraction_container:
-                    if isinstance(user_pattern_file, list) and len(user_pattern_file) > 1:
-                        selected_exp_file = st.sidebar.selectbox(
-                            "Select experimental data file for background subtraction",
-                            options=[file.name for file in user_pattern_file],
-                            index=0
-                        )
-                        selected_file_obj = next((file for file in user_pattern_file if file.name == selected_exp_file),
-                                                 None)
-                    else:
-                        selected_file_obj = user_pattern_file[0] if isinstance(user_pattern_file,
-                                                                               list) else user_pattern_file
-                        selected_exp_file = selected_file_obj.name
+            try:
+                df = pd.read_csv(selected_file_obj, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
+                x_exp = df.iloc[:, 0].values
+                y_exp = df.iloc[:, 1].values
 
-                    try:
-                        df = pd.read_csv(selected_file_obj, sep=r'\s+|,|;', engine='python', header=None, skiprows=1)
-                        x_exp = df.iloc[:, 0].values
-                        y_exp = df.iloc[:, 1].values
+                if "original_exp_data" not in st.session_state:
+                    st.session_state.original_exp_data = {}
 
-                        if "original_exp_data" not in st.session_state:
-                            st.session_state.original_exp_data = {}
+                if selected_exp_file not in st.session_state.original_exp_data:
+                    st.session_state.original_exp_data[selected_exp_file] = {
+                        "x": x_exp.copy(),
+                        "y": y_exp.copy()
+                    }
 
-                        if selected_exp_file not in st.session_state.original_exp_data:
-                            st.session_state.original_exp_data[selected_exp_file] = {
-                                "x": x_exp.copy(),
-                                "y": y_exp.copy()
-                            }
+                # Background subtraction method selection
+                bg_method = st.sidebar.radio(
+                    "Background Estimation Method",
+                    ["None", "Polynomial Fit", "SNIP Algorithm", "Rolling Ball Algorithm"],
+                    index=0,
+                    key="bg_method",
+                    help=(
+                        "Choose a method to estimate the background:\n"
+                        "- Polynomial Fit: Fits a polynomial of specified degree to the data\n"
+                        "- SNIP Algorithm: Statistics-sensitive Non-linear Iterative Peak-clipping\n"
+                        "- Rolling Ball Algorithm: Simulates rolling a ball under the spectrum"
+                    )
+                )
 
-                        # Background subtraction method selection
-                        bg_method = st.sidebar.radio(
-                            "Background Estimation Method",
-                            ["None", "Polynomial Fit", "SNIP Algorithm", "Rolling Ball Algorithm"],
-                            index=0,
-                            key="bg_method",
-                            help=(
-                                "Choose a method to estimate the background:\n"
-                                "- Polynomial Fit: Fits a polynomial of specified degree to the data\n"
-                                "- SNIP Algorithm: Statistics-sensitive Non-linear Iterative Peak-clipping\n"
-                                "- Rolling Ball Algorithm: Simulates rolling a ball under the spectrum"
-                            )
-                        )
+                # If any method other than "None" is selected
+                if bg_method != "None":
+                    param_col1, param_col2 = st.columns(2)
 
-                        # If any method other than "None" is selected
-                        if bg_method != "None":
-                            param_col1, param_col2 = st.columns(2)
+                    if "bg_subtracted_data" not in st.session_state:
+                        st.session_state.bg_subtracted_data = {}
 
-                            if "bg_subtracted_data" not in st.session_state:
-                                st.session_state.bg_subtracted_data = {}
+                    if bg_method == "Polynomial Fit":
+                        with param_col1:
+                            poly_degree = st.slider("Polynomial Degree", 1, 10, 3, 1,
+                                                    help="Higher degree allows more complex background shapes")
 
-                            if bg_method == "Polynomial Fit":
-                                with param_col1:
-                                    poly_degree = st.slider("Polynomial Degree", 1, 10, 3, 1,
-                                                            help="Higher degree allows more complex background shapes")
-
-                                with param_col2:
-                                    smoothing_factor = st.slider("Smoothing Factor", 0.0, 1.0, 0.0, 0.01,
-                                                                 help="Higher values create smoother fits (0=exact fit)")
+                        with param_col2:
+                            smoothing_factor = st.slider("Smoothing Factor", 0.0, 1.0, 0.0, 0.01,
+                                                         help="Higher values create smoother fits (0=exact fit)")
 
 
-                                def poly_bg(x, y, degree, smoothing):
-                                    sort_idx = np.argsort(x)
-                                    x_sorted = x[sort_idx]
-                                    y_sorted = y[sort_idx]
+                        def poly_bg(x, y, degree, smoothing):
+                            sort_idx = np.argsort(x)
+                            x_sorted = x[sort_idx]
+                            y_sorted = y[sort_idx]
 
-                                    if smoothing > 0:
-                                        from scipy.signal import savgol_filter
-                                        window = max(3, int(len(x) * smoothing / 5) * 2 + 1)  # Must be odd
-                                        window = min(window, len(x) - 1)
-                                        if window >= 3:
-                                            y_smoothed = savgol_filter(y_sorted, window, min(degree, window - 1))
-                                        else:
-                                            y_smoothed = y_sorted
-                                    else:
-                                        y_smoothed = y_sorted
-
-                                    coeffs = np.polyfit(x_sorted, y_smoothed, degree)
-                                    background = np.polyval(coeffs, x)
-
-                                    return background
-
-
-                                background = poly_bg(x_exp, y_exp, poly_degree, smoothing_factor)
-
-                            elif bg_method == "SNIP Algorithm":
-                                with param_col1:
-                                    snip_iterations = st.slider("SNIP Iterations", 1, 100, 20, 1,
-                                                                help="Number of iterations for the SNIP algorithm")
-
-                                with param_col2:
-                                    snip_window = st.slider("Window Size", 3, 101, 21, 2,
-                                                            help="Window size for the SNIP algorithm (must be odd)")
-                                    if snip_window % 2 == 0:
-                                        snip_window += 1  # Ensure window is odd
-
-
-                                def snip_bg(y, iterations, window_size):
-                                    if window_size % 2 == 0:
-                                        window_size += 1
-
-                                    half_window = window_size // 2
-                                    y_bg = y.copy()
-
-                                    # SNIP algorithm
-                                    for _ in range(iterations):
-                                        for i in range(half_window, len(y) - half_window):
-                                            left_val = y_bg[i - half_window]
-                                            right_val = y_bg[i + half_window]
-                                            min_val = min(left_val, right_val)
-                                            y_bg[i] = min(y_bg[i], min_val)
-
-                                    return y_bg
-
-
-                                background = snip_bg(y_exp, snip_iterations, snip_window)
-
-                            elif bg_method == "Rolling Ball Algorithm":
-                                with param_col1:
-                                    ball_radius = st.slider("Ball Radius", 1, 100, 30, 1,
-                                                            help="Radius of the rolling ball (larger = smoother background)")
-
-                                with param_col2:
-                                    ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1,
-                                                               help="Number of smoothing passes before background estimation")
-
-
-                                # Apply the Rolling Ball background estimation
-                                def rolling_ball_bg(y, radius, smoothing_passes):
-
-                                    y_smoothed = y.copy()
-                                    if smoothing_passes > 0:
-                                        window_size = min(len(y) // 10, 20)
-                                        if window_size % 2 == 0:
-                                            window_size += 1  # Ensure window is odd
-
-                                        if window_size >= 3:
-                                            from scipy.signal import savgol_filter
-                                            for _ in range(smoothing_passes):
-                                                y_smoothed = savgol_filter(y_smoothed, window_size, 2)
-
-                                    y_bg = np.zeros_like(y_smoothed)
-                                    for i in range(len(y_smoothed)):
-                                        start = max(0, i - radius)
-                                        end = min(len(y_smoothed), i + radius + 1)
-
-                                        window_min = np.min(y_smoothed[start:end])
-
-                                        y_bg[i] = window_min
-
-                                    return y_bg
-
-
-                                background = rolling_ball_bg(y_exp, ball_radius, ball_smoothing)
-
-                            y_bg_subtracted = np.maximum(0, y_exp - background)
-
-                            # Store the background-subtracted data
-                            st.session_state.bg_subtracted_data[selected_exp_file] = {
-                                "x": x_exp,
-                                "y": y_bg_subtracted,
-                                "background": background,
-                                "method": bg_method,
-                                "params": {
-                                    "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
-                                    "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
-                                    "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
-                                    "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
-                                    "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
-                                    "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
-                                }
-                            }
-
-                            apply_permanent = st.button("Permanently Apply This Background Subtraction", type='primary',
-                                                        help="This will permanently modify the data for this file. The background-subtracted data will be used for all future operations, even if you change parameters or work with other files.")
-
-                            if apply_permanent:
-                                if "permanent_exp_data" not in st.session_state:
-                                    st.session_state.permanent_exp_data = {}
-                                st.session_state.permanent_exp_data[selected_exp_file] = {
-                                    "x": x_exp.copy(),
-                                    "y": y_bg_subtracted.copy(),
-                                    "original_x": x_exp.copy(),
-                                    "original_y": y_exp.copy(),
-                                    "background": background.copy(),
-                                    "method": bg_method,
-                                    "params": {
-                                        "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
-                                        "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
-                                        "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
-                                        "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
-                                        "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
-                                        "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
-                                    }
-                                }
-                                st.success(f"Background subtraction has been permanently applied to {selected_exp_file}!")
-
-                            col1, col2, col3 = st.columns([1, 2, 1])
-
-                            # with col2:
-                            fig_bg = go.Figure()
-
-                            fig_bg.add_trace(go.Scatter(
-                                x=x_exp,
-                                y=y_exp,
-                                mode='lines',
-                                name='Original Data',
-                                line=dict(color='black', width=3),
-                                hovertemplate='Original Data<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
-                            ))
-
-                            fig_bg.add_trace(go.Scatter(
-                                x=x_exp,
-                                y=background,
-                                mode='lines',
-                                name='Estimated Background',
-                                line=dict(color='red', width=3),
-                                hovertemplate='Background<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
-                            ))
-
-                            fig_bg.add_trace(go.Scatter(
-                                x=x_exp,
-                                y=y_bg_subtracted,
-                                mode='lines',
-                                name='After Subtraction',
-                                line=dict(color='blue', width=3),
-                                hovertemplate='Subtracted<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
-                            ))
-
-                            fig_bg.update_layout(
-                                title=dict(
-                                    text='Background Subtraction',
-                                    font=dict(size=32)
-                                ),
-                                xaxis=dict(
-                                    title=dict(text=x_axis_metric, font=dict(size=28)),
-                                    tickfont=dict(size=24)
-                                ),
-                                yaxis=dict(
-                                    title=dict(text='Intensity (a.u.)', font=dict(size=28)),
-                                    tickfont=dict(size=24)
-                                ),
-                                legend=dict(
-                                    font=dict(size=24),
-                                    orientation="h",
-                                    yanchor="bottom",
-                                    y=1.02,
-                                    xanchor="center",
-                                    x=0.5
-                                ),
-                                height=600,
-                                width=1200,
-                                margin=dict(l=100, r=100, t=120, b=100),
-                                hovermode='x unified',
-                                showlegend=True,
-                                hoverlabel=dict(font=dict(size=20))
-                            )
-
-                            st.plotly_chart(fig_bg, use_container_width=True)
-
-                            use_bg_subtracted = st.checkbox("Use background-subtracted data for visualization", value=True,
-                                                            help="When checked, the background-subtracted data will be used in the main plot")
-
-                            if use_bg_subtracted:
-
-                                st.session_state.use_bg_subtracted = True
-                                st.session_state.active_bg_subtracted_file = selected_exp_file
+                            if smoothing > 0:
+                                from scipy.signal import savgol_filter
+                                window = max(3, int(len(x) * smoothing / 5) * 2 + 1)  # Must be odd
+                                window = min(window, len(x) - 1)
+                                if window >= 3:
+                                    y_smoothed = savgol_filter(y_sorted, window, min(degree, window - 1))
+                                else:
+                                    y_smoothed = y_sorted
                             else:
-                                st.session_state.use_bg_subtracted = False
-                    except Exception as e:
-                        st.error(f"Error processing experimental file {selected_exp_file}: {e}")
+                                y_smoothed = y_sorted
+
+                            coeffs = np.polyfit(x_sorted, y_smoothed, degree)
+                            background = np.polyval(coeffs, x)
+
+                            return background
+
+
+                        background = poly_bg(x_exp, y_exp, poly_degree, smoothing_factor)
+
+                    elif bg_method == "SNIP Algorithm":
+                        with param_col1:
+                            snip_iterations = st.slider("SNIP Iterations", 1, 100, 20, 1,
+                                                        help="Number of iterations for the SNIP algorithm")
+
+                        with param_col2:
+                            snip_window = st.slider("Window Size", 3, 101, 21, 2,
+                                                    help="Window size for the SNIP algorithm (must be odd)")
+                            if snip_window % 2 == 0:
+                                snip_window += 1  # Ensure window is odd
+
+
+                        def snip_bg(y, iterations, window_size):
+                            if window_size % 2 == 0:
+                                window_size += 1
+
+                            half_window = window_size // 2
+                            y_bg = y.copy()
+
+                            # SNIP algorithm
+                            for _ in range(iterations):
+                                for i in range(half_window, len(y) - half_window):
+                                    left_val = y_bg[i - half_window]
+                                    right_val = y_bg[i + half_window]
+                                    min_val = min(left_val, right_val)
+                                    y_bg[i] = min(y_bg[i], min_val)
+
+                            return y_bg
+
+
+                        background = snip_bg(y_exp, snip_iterations, snip_window)
+
+                    elif bg_method == "Rolling Ball Algorithm":
+                        with param_col1:
+                            ball_radius = st.slider("Ball Radius", 1, 100, 30, 1,
+                                                    help="Radius of the rolling ball (larger = smoother background)")
+
+                        with param_col2:
+                            ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1,
+                                                       help="Number of smoothing passes before background estimation")
+
+
+                        # Apply the Rolling Ball background estimation
+                        def rolling_ball_bg(y, radius, smoothing_passes):
+
+                            y_smoothed = y.copy()
+                            if smoothing_passes > 0:
+                                window_size = min(len(y) // 10, 20)
+                                if window_size % 2 == 0:
+                                    window_size += 1  # Ensure window is odd
+
+                                if window_size >= 3:
+                                    from scipy.signal import savgol_filter
+                                    for _ in range(smoothing_passes):
+                                        y_smoothed = savgol_filter(y_smoothed, window_size, 2)
+
+                            y_bg = np.zeros_like(y_smoothed)
+                            for i in range(len(y_smoothed)):
+                                start = max(0, i - radius)
+                                end = min(len(y_smoothed), i + radius + 1)
+
+                                window_min = np.min(y_smoothed[start:end])
+
+                                y_bg[i] = window_min
+
+                            return y_bg
+
+
+                        background = rolling_ball_bg(y_exp, ball_radius, ball_smoothing)
+
+                    y_bg_subtracted = np.maximum(0, y_exp - background)
+
+                    # Store the background-subtracted data
+                    st.session_state.bg_subtracted_data[selected_exp_file] = {
+                        "x": x_exp,
+                        "y": y_bg_subtracted,
+                        "background": background,
+                        "method": bg_method,
+                        "params": {
+                            "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
+                            "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
+                            "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
+                            "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
+                            "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
+                            "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
+                        }
+                    }
+
+                    apply_permanent = st.button("Permanently Apply This Background Subtraction", type='primary',
+                                                help="This will permanently modify the data for this file. The background-subtracted data will be used for all future operations, even if you change parameters or work with other files.")
+
+                    if apply_permanent:
+                        if "permanent_exp_data" not in st.session_state:
+                            st.session_state.permanent_exp_data = {}
+                        st.session_state.permanent_exp_data[selected_exp_file] = {
+                            "x": x_exp.copy(),
+                            "y": y_bg_subtracted.copy(),
+                            "original_x": x_exp.copy(),
+                            "original_y": y_exp.copy(),
+                            "background": background.copy(),
+                            "method": bg_method,
+                            "params": {
+                                "poly_degree": poly_degree if bg_method == "Polynomial Fit" else None,
+                                "smoothing_factor": smoothing_factor if bg_method == "Polynomial Fit" else None,
+                                "snip_iterations": snip_iterations if bg_method == "SNIP Algorithm" else None,
+                                "snip_window": snip_window if bg_method == "SNIP Algorithm" else None,
+                                "ball_radius": ball_radius if bg_method == "Rolling Ball Algorithm" else None,
+                                "ball_smoothing": ball_smoothing if bg_method == "Rolling Ball Algorithm" else None
+                            }
+                        }
+                        st.success(f"Background subtraction has been permanently applied to {selected_exp_file}!")
+
+                    col1, col2, col3 = st.columns([1, 2, 1])
+
+                    # with col2:
+                    fig_bg = go.Figure()
+
+                    fig_bg.add_trace(go.Scatter(
+                        x=x_exp,
+                        y=y_exp,
+                        mode='lines',
+                        name='Original Data',
+                        line=dict(color='black', width=3),
+                        hovertemplate='Original Data<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                    ))
+
+                    fig_bg.add_trace(go.Scatter(
+                        x=x_exp,
+                        y=background,
+                        mode='lines',
+                        name='Estimated Background',
+                        line=dict(color='red', width=3),
+                        hovertemplate='Background<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                    ))
+
+                    fig_bg.add_trace(go.Scatter(
+                        x=x_exp,
+                        y=y_bg_subtracted,
+                        mode='lines',
+                        name='After Subtraction',
+                        line=dict(color='blue', width=3),
+                        hovertemplate='Subtracted<br>%{x:.3f}<br>%{y:.2f}<extra></extra>'
+                    ))
+
+                    fig_bg.update_layout(
+                        title=dict(
+                            text='Background Subtraction',
+                            font=dict(size=32)
+                        ),
+                        xaxis=dict(
+                            title=dict(text=x_axis_metric, font=dict(size=28)),
+                            tickfont=dict(size=24)
+                        ),
+                        yaxis=dict(
+                            title=dict(text='Intensity (a.u.)', font=dict(size=28)),
+                            tickfont=dict(size=24)
+                        ),
+                        legend=dict(
+                            font=dict(size=24),
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        height=600,
+                        width=1200,
+                        margin=dict(l=100, r=100, t=120, b=100),
+                        hovermode='x unified',
+                        showlegend=True,
+                        hoverlabel=dict(font=dict(size=20))
+                    )
+
+                    st.plotly_chart(fig_bg, use_container_width=True)
+
+                    use_bg_subtracted = st.checkbox("Use background-subtracted data for visualization", value=True,
+                                                    help="When checked, the background-subtracted data will be used in the main plot")
+
+                    if use_bg_subtracted:
+
+                        st.session_state.use_bg_subtracted = True
+                        st.session_state.active_bg_subtracted_file = selected_exp_file
+                    else:
+                        st.session_state.use_bg_subtracted = False
+            except Exception as e:
+                st.error(f"Error processing experimental file {selected_exp_file}: {e}")
 
             # --- XRD Calculation ---
             colors = ["black", "brown", "grey", "purple"]
