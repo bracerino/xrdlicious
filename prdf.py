@@ -3565,7 +3565,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         energy_kev = st.number_input(
                             "⚡ X-ray Energy (keV)",
                             min_value=6.0,
-                            max_value=30.0,
+                            max_value=65.0,
                             step=0.1,
                             format="%.3f",
                             key="energy_kev",
