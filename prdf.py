@@ -7068,7 +7068,8 @@ if "📈 Interactive Data Plot" in calc_mode:
                 label=f"⬇️ Download processed data for {file.name}{download_info}",
                 data=buffer.getvalue(),
                 file_name=download_name,
-                mime="text/plain"
+                mime="text/plain",
+                key=f"download_btn_{i}_{base_name}" 
             )
     else:
         st.info(f"Upload your data file first to see all options.")
