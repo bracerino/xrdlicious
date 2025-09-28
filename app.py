@@ -143,10 +143,9 @@ if citations:
     show_citation_section()
 with col1:
     tutorials = st.checkbox("📺 Tutorials", value=False)
-if citations:
+if tutorials:
     with st.expander("Tutorials", icon="📺", expanded=True):
         st.markdown("""
-        ### 📺 Tutorials  
 
         - [Calculate powder diffraction patterns](https://youtu.be/jHdaNVB2UWE?si=5OPPsrt-8vr3c9aI)  
         - [Calculate partial and total radial distribution functions](https://youtu.be/aU7BfwlnqGM?si=Hlyl9_cnt9hTf9wD)  
