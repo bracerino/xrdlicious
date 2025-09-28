@@ -145,7 +145,7 @@ if citations:
 
 with col1:
     tutorials = st.checkbox("📺 Tutorials", value=False)
-if citations:
+if tutorials:
     with st.expander("Tutorials", icon="📺", expanded=True):
         st.markdown("""
         ### 📺 Tutorials  
