@@ -142,6 +142,21 @@ with col1:
 if citations:
     show_citation_section()
 
+
+with col1:
+    tutorials = st.checkbox("📺 Tutorials", value=False)
+if citations:
+    with st.expander("Tutorials", icon="📺", expanded=True):
+        st.markdown("""
+        ### 📺 Tutorials  
+
+        - [Calculate powder diffraction patterns](https://youtu.be/jHdaNVB2UWE?si=5OPPsrt-8vr3c9aI)  
+        - [Calculate partial and total radial distribution functions](https://youtu.be/aU7BfwlnqGM?si=Hlyl9_cnt9hTf9wD)  
+        - [Convert XRD file formats (.ras, .xrdml ↔ .xy)](https://youtu.be/KwxVKadPZ6s?si=IvvZQtmlWl9gOGPw)  
+        - [Plot online two-column data & convert XRD between wavelengths / slit types](https://youtu.be/YTzDSI4Jyh0?si=YJt-FS4nBgGA8YhT)  
+        - [Create point defects (vacancies, interstitials, substitutions) in a crystal structure](https://youtu.be/cPp-NPxhAYQ?si=vETf52_IHnsps62f)  
+        """)
+
 pattern_details = None
 
 st.markdown("""
