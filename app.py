@@ -101,8 +101,6 @@ process = psutil.Process(os.getpid())
 mem_info = process.memory_info()
 memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
-
-
 col1, col2, col3 = st.columns([0.2, 0.4, 0.4])
 with col3:
     st.markdown(
@@ -121,7 +119,7 @@ with col3:
 
 with col2:
     st.info(
-        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. **[Tutorial here](https://youtu.be/jHdaNVB2UWE)**. Spot a bug or have a feature idea? Let us know at: "
+        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
         "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html).** "
     )
 
@@ -141,11 +139,12 @@ with col1:
     citations = st.checkbox("📚 How to cite", value=False)
 if citations:
     show_citation_section()
+
 with col1:
     tutorials = st.checkbox("📺 Tutorials", value=False)
 if tutorials:
     with st.expander("Tutorials", icon="📺", expanded=True):
-        st.markdown("""
+        st.markdown(""" 
 
         - [Calculate powder diffraction patterns](https://youtu.be/jHdaNVB2UWE?si=5OPPsrt-8vr3c9aI)  
         - [Calculate partial and total radial distribution functions](https://youtu.be/aU7BfwlnqGM?si=Hlyl9_cnt9hTf9wD)  
@@ -153,7 +152,6 @@ if tutorials:
         - [Plot online two-column data & convert XRD between wavelengths / slit types](https://youtu.be/YTzDSI4Jyh0?si=YJt-FS4nBgGA8YhT)  
         - [Create point defects (vacancies, interstitials, substitutions) in a crystal structure](https://youtu.be/cPp-NPxhAYQ?si=vETf52_IHnsps62f)  
         """)
-    
 
 pattern_details = None
 
@@ -165,6 +163,43 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <style>
+        /* Sidebar background with subtle, more transparent gradient */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(
+                180deg,
+                rgba(155, 89, 182, 0.15),   /* very soft purple */
+                rgba(52, 152, 219, 0.15)    /* very soft blue */
+            );
+            backdrop-filter: blur(6px);  /* adds a glass effect */
+        }
+
+        /* Custom caption style */
+        .sidebar-caption {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: inherit;
+            margin: 1rem 0 0.5rem 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        .sidebar-caption::after {
+            content: "";
+            display: block;
+            width: 100%;
+            height: 3px;
+            margin-top: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);  /* vivid purple → blue underline */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 st.sidebar.markdown("## 🍕 XRDlicious")
 mode = "Advanced"
@@ -306,7 +341,7 @@ if uploaded_files_user_sidebar:
 # Then in Streamlit main block
 # display_structure_types()
 show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD)",
-                                   value=False,)
+                                   value=False, )
 # Define button colors
 buttons_colors()
 
@@ -2153,7 +2188,6 @@ if "🔬 Structure Modification" in calc_mode:
                                 updated_structure.lattice
                             )
 
-
                         st.session_state["lattice_a_input"] = new_a
                         st.session_state["lattice_b_input"] = new_b
                         st.session_state["lattice_c_input"] = new_c
@@ -2172,7 +2206,6 @@ if "🔬 Structure Modification" in calc_mode:
 
                             if 'uploaded_files' not in st.session_state:
                                 st.session_state.uploaded_files = []
-
 
                             st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if
                                                                f.name != lattice_modified_filename]
@@ -3035,7 +3068,7 @@ if "parsed_exp_data" not in st.session_state:
 
 
 if "💥 Powder Diffraction" in calc_mode:
-    colmain_1, colmain_2 = st.columns([0.5,1])
+    colmain_1, colmain_2 = st.columns([0.5, 1])
     with colmain_1:
         with st.expander("Diffraction Settings", icon="⚙️", expanded=st.session_state["expander_diff_settings"]):
             st.subheader(
@@ -3462,7 +3495,6 @@ if "💥 Powder Diffraction" in calc_mode:
                 return 1.2398 / wavelength_nm
 
 
-
             preset_options_neutron = ['Thermal Neutrons', 'Cold Neutrons', 'Hot Neutrons']
             preset_wavelengths_neutrons = {
                 'Custom': 0.154,
@@ -3494,7 +3526,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 st.session_state.last_diffraction_choice = diffraction_choice
 
             if diffraction_choice == "XRD (X-ray)":
-                #with col1:
+                # with col1:
                 input_mode = st.radio(
                     "Input Mode",
                     ["Preset Wavelength", "Custom Wavelength", "X-ray Energy (keV)"],
@@ -3572,7 +3604,7 @@ if "💥 Powder Diffraction" in calc_mode:
                         if ("energy_kev" not in st.session_state
                                 or st.session_state.energy_kev is None
                                 or st.session_state.energy_kev < 1.0):
-                            st.session_state.energy_kev = 6 # default within [1.0, 100.0]
+                            st.session_state.energy_kev = 6  # default within [1.0, 100.0]
                         st.session_state.wavelength_value = energy_to_wavelength(st.session_state.energy_kev)
                     with col2:
                         energy_kev = st.number_input(
@@ -3647,7 +3679,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 "d (Å)", "d (nm)",
             ]
             # --- X-axis Metric Selection ---
-            colx, colx1,= st.columns(2)
+            colx, colx1, = st.columns(2)
             with colx:
                 if diffraction_choice == "ND (Neutron)":
                     x_axis_metric = st.selectbox(
@@ -3746,7 +3778,7 @@ if "💥 Powder Diffraction" in calc_mode:
                 )
                 st.session_state.num_annotate = num_annotate
 
-            #with col4h:
+            # with col4h:
             intensity_filter = st.slider(
                 "⚙️ Filter peaks (% of max intensity):",
                 min_value=0.0,
@@ -4099,7 +4131,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         if intensity_scale_option == "Normalized" and np.max(y_user) > 0:
                             y_user = (y_user / np.max(y_user)) * 100
 
-                        mask_user = (x_user >= st.session_state.two_theta_min) & (x_user <= st.session_state.two_theta_max)
+                        mask_user = (x_user >= st.session_state.two_theta_min) & (
+                                    x_user <= st.session_state.two_theta_max)
                         x_user_filtered = x_user[mask_user]
                         y_user_filtered = y_user[mask_user]
 
@@ -4301,6 +4334,7 @@ if "💥 Powder Diffraction" in calc_mode:
                     pattern_details = {}
                     full_range = (0.01, 179.9)
 
+
                     #  Converting .xyz, .lmp, .poscar to .cif file otherwise I am getting wrong (h k l) indecis for hexagonal structures
                     def convert_to_cif_then_load(file):
                         from pymatgen.io.cif import CifWriter
@@ -4320,13 +4354,15 @@ if "💥 Powder Diffraction" in calc_mode:
                         finally:
                             if os.path.exists(temp_cif_path):
                                 os.remove(temp_cif_path)
+
+
                     for idx, file in enumerate(uploaded_files):
                         if file.name.lower().endswith('.cif'):
                             mg_structure = load_structure(file)
                         else:
                             mg_structure = convert_to_cif_then_load(file)
                         mg_structure = get_full_conventional_structure_diffra(mg_structure)
-                        
+
                         debye_waller_dict = None
                         if use_debye_waller and "debye_waller_factors_per_file" in st.session_state:
                             file_key = file.name
@@ -4343,7 +4379,8 @@ if "💥 Powder Diffraction" in calc_mode:
                             all_filtered_hkls = []
                             all_peak_types = []
                             comp_info = multi_component_presets[preset_choice]
-                            for comp_index, (wl, factor) in enumerate(zip(comp_info["wavelengths"], comp_info["factors"])):
+                            for comp_index, (wl, factor) in enumerate(
+                                    zip(comp_info["wavelengths"], comp_info["factors"])):
                                 wavelength_A_comp = wl * 10  # convert nm to Å
                                 if diffraction_choice == "ND (Neutron)":
                                     diff_calc = NDCalculator(wavelength=wavelength_A_comp,
@@ -4351,7 +4388,8 @@ if "💥 Powder Diffraction" in calc_mode:
                                 else:
                                     diff_calc = XRDCalculator(wavelength=wavelength_A_comp,
                                                               debye_waller_factors=debye_waller_dict)
-                                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
+                                diff_pattern = diff_calc.get_pattern(mg_structure,
+                                                                     two_theta_range=user_calculation_range,
                                                                      scaled=False)
 
                                 filtered_x = []
@@ -4359,12 +4397,13 @@ if "💥 Powder Diffraction" in calc_mode:
                                 filtered_hkls = []
                                 max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
                                 intensity_threshold = (
-                                                                  intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+                                                              intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
 
                                 for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                                     if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                                         continue
-                                    if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in hkl_group):
+                                    if any(len(h['hkl']) == 4 and tuple(h['hkl'][:4]) == (0, 0, 0, 0) for h in
+                                           hkl_group):
                                         continue
 
                                     if intensity_filter > 0 and y_val < intensity_threshold:
@@ -4400,11 +4439,14 @@ if "💥 Powder Diffraction" in calc_mode:
                                 all_filtered_hkls.extend(filtered_hkls)
                         else:
                             if diffraction_choice == "ND (Neutron)":
-                                diff_calc = NDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
+                                diff_calc = NDCalculator(wavelength=wavelength_A,
+                                                         debye_waller_factors=debye_waller_dict)
                             else:
-                                diff_calc = XRDCalculator(wavelength=wavelength_A, debye_waller_factors=debye_waller_dict)
+                                diff_calc = XRDCalculator(wavelength=wavelength_A,
+                                                          debye_waller_factors=debye_waller_dict)
                             try:
-                                diff_pattern = diff_calc.get_pattern(mg_structure, two_theta_range=user_calculation_range,
+                                diff_pattern = diff_calc.get_pattern(mg_structure,
+                                                                     two_theta_range=user_calculation_range,
                                                                      scaled=False)
                             except Exception as e:
                                 st.write("No peaks available for this wavelenght.")
@@ -4414,7 +4456,8 @@ if "💥 Powder Diffraction" in calc_mode:
                             filtered_hkls = []
 
                             max_intensity = np.max(diff_pattern.y) if len(diff_pattern.y) > 0 else 1.0
-                            intensity_threshold = (intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
+                            intensity_threshold = (
+                                                              intensity_filter / 100.0) * max_intensity if intensity_filter > 0 else 0
                             for x_val, y_val, hkl_group in zip(diff_pattern.x, diff_pattern.y, diff_pattern.hkls):
                                 if any(len(h['hkl']) == 3 and tuple(h['hkl'][:3]) == (0, 0, 0) for h in hkl_group):
                                     continue
@@ -4446,7 +4489,7 @@ if "💥 Powder Diffraction" in calc_mode:
                             if y_axis_scale != "Linear":
                                 for i in range(len(all_filtered_y)):
                                     all_filtered_y[i] = \
-                                    convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
+                                        convert_intensity_scale(np.array([all_filtered_y[i]]), y_axis_scale)[0]
 
                             all_filtered_hkls = filtered_hkls
                             all_peak_types = ["Kα1"] * len(filtered_x)
@@ -4458,7 +4501,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         else:
                             displayed_intensity_array = np.array(all_filtered_y)
 
-                        peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A, wavelength_nm,
+                        peak_vals = twotheta_to_metric(np.array(all_filtered_x), x_axis_metric, wavelength_A,
+                                                       wavelength_nm,
                                                        diffraction_choice)
                         ka1_indices = [i for i, pt in enumerate(all_peak_types) if pt == "Kα1"]
                         ka1_intensities = [displayed_intensity_array[i] for i in ka1_indices]
@@ -4497,7 +4541,8 @@ if "💥 Powder Diffraction" in calc_mode:
                         mask = (details["x_dense_full"] >= st.session_state.two_theta_min) & (
                                 details["x_dense_full"] <= st.session_state.two_theta_max)
                         x_dense_range = twotheta_to_metric(details["x_dense_full"][mask],
-                                                           x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
+                                                           x_axis_metric, wavelength_A, wavelength_nm,
+                                                           diffraction_choice)
                         y_dense_range = details["y_dense"][mask]
 
                         if peak_representation == "Delta":
@@ -5100,7 +5145,6 @@ if "💥 Powder Diffraction" in calc_mode:
                             st.success(
                                 f"Generated annotated plot for plane family {plane_hkl} with {total_annotations} annotations considering space group symmetry")
 
-
         if pattern_details is not None:
             with tab2:
                 st.subheader("Quantitative Data for Calculated Diffraction Patterns")
@@ -5226,7 +5270,8 @@ if "💥 Powder Diffraction" in calc_mode:
                                             for h in hkls[i]])
                                     data_list.append([peak_vals[i], intensities[i], hkl_str, file_name])
                         combined_df = pd.DataFrame(data_list,
-                                                   columns=["{}".format(selected_metric), "Intensity", "(hkl)", "Phase"])
+                                                   columns=["{}".format(selected_metric), "Intensity", "(hkl)",
+                                                            "Phase"])
                         st.dataframe(combined_df)
 
 if "calc_rdf" not in st.session_state:
@@ -5279,9 +5324,32 @@ def trigger_calculation():
 def toggle_animation():
     st.session_state.animate = not st.session_state.animate
 
+# Add these function definitions after your imports
+def smooth_gaussian(y_data, sigma=1.5):
+    """Smooth using Gaussian filter"""
+    return gaussian_filter1d(y_data, sigma=sigma)
+
+def smooth_savgol(y_data, window_length=11, polyorder=3):
+    """Smooth using Savitzky-Golay filter"""
+    if window_length % 2 == 0:
+        window_length += 1
+    if window_length > len(y_data):
+        window_length = len(y_data) if len(y_data) % 2 == 1 else len(y_data) - 1
+    polyorder = min(polyorder, window_length - 1)
+    return savgol_filter(y_data, window_length, polyorder)
+
+def smooth_spline(x_data, y_data, smoothing_factor=300):
+    """Smooth using cubic spline"""
+    x_smooth = np.linspace(x_data[0], x_data[-1], smoothing_factor)
+    spl = make_interp_spline(x_data, y_data, k=3)
+    y_smooth = spl(x_smooth)
+    return x_smooth, np.maximum(0, y_smooth)
 
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
+    from scipy.ndimage import gaussian_filter1d
+    from scipy.signal import savgol_filter
+    from scipy.interpolate import make_interp_spline
     if 'uploaded_files_user_sidebar' in locals() and uploaded_files_user_sidebar:
         uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
     else:
@@ -5305,6 +5373,41 @@ if "📊 (P)RDF" in calc_mode:
         "⚠️ Due to the large computational demand connected with the trajectories processing, this option was put as a separated module that runs "
         "only locally. Please visit **[this site](https://github.com/bracerino/PRDF-CP2K-LAMMPS)** to see how to compile it.")
 
+    plot_style = st.radio(
+        "Plot Style",
+        ["Bars (Histogram)", "Smooth Curve", "Raw Data Points"],
+        index=1,
+        key="plot_style",
+        horizontal=True,
+        help="Choose visualization style: bars show discrete bins, smooth curve applies interpolation"
+    )
+    if plot_style == "Bars (Histogram)":
+        bar_width_factor = st.slider(
+            "Bar Width Factor",
+            0.1, 2.0, 0.8, 0.1,
+            help="Adjust bar thickness relative to bin size (default: 0.8)"
+        )
+    if plot_style == "Smooth Curve":
+        smoothing_method = st.radio(
+            "Smoothing Method",
+            ["Gaussian", "Savitzky-Golay", "Cubic Spline"],
+            index=0,
+            key="smoothing_method",
+            horizontal=True,
+            help="Gaussian: best for general RDF | Savitzky-Golay: preserves peaks | Spline: smoothest visual"
+        )
+
+        if smoothing_method == "Gaussian":
+            sigma = st.slider("Gaussian Sigma", 0.5, 5.0, 1.5, 0.1,
+                              help="Higher values = more smoothing")
+        elif smoothing_method == "Savitzky-Golay":
+            window = st.slider("Window Length", 5, 21, 11, 2,
+                               help="Must be odd. Larger = more smoothing")
+            polyorder = st.slider("Polynomial Order", 2, 5, 3, 1,
+                                  help="Must be less than window length")
+        else:  # Cubic Spline
+            spline_points = st.slider("Interpolation Points", 100, 500, 300, 50,
+                                      help="More points = smoother curve")
     plot_display_mode = st.radio(
         "Plot Display Mode",
         ["Separate plots for each pair", "Combined plot with all pairs"],
@@ -5699,14 +5802,50 @@ if "📊 (P)RDF" in calc_mode:
                     prdf_array = np.vstack(valid_prdf) if valid_prdf else np.zeros((1, len(all_distance_dict[comb])))
                     prdf_data = np.mean(prdf_array, axis=0) if multi_structures else prdf_array[0]
 
-                fig_combined.add_trace(go.Scatter(
-                    x=all_distance_dict[comb],
-                    y=prdf_data,
-                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                    name=f"{comb[0]}-{comb[1]}",
-                    line=dict(color=hex_color, width=2),
-                    marker=dict(size=8) if st.session_state.line_style == "Lines + Markers" else dict()
-                ))
+
+                if plot_style == "Bars (Histogram)":
+                    fig_combined.add_trace(go.Bar(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        name=f"{comb[0]}-{comb[1]}",
+                        marker=dict(color=hex_color, line=dict(width=0)),
+                        width=bin_size * bar_width_factor,
+                        opacity=0.7  # Add transparency for overlapping bars
+                    ))
+
+                elif plot_style == "Smooth Curve":
+                    if smoothing_method == "Gaussian":
+                        y_smooth = smooth_gaussian(prdf_data, sigma=sigma)
+                        x_plot = all_distance_dict[comb]
+
+                    elif smoothing_method == "Savitzky-Golay":
+                        y_smooth = smooth_savgol(prdf_data, window, polyorder)
+                        x_plot = all_distance_dict[comb]
+
+                    else:  # Cubic Spline
+                        x_plot, y_smooth = smooth_spline(
+                            np.array(all_distance_dict[comb]),
+                            prdf_data,
+                            spline_points
+                        )
+
+                    fig_combined.add_trace(go.Scatter(
+                        x=x_plot,
+                        y=y_smooth,
+                        mode='lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2)
+                    ))
+
+                else:  # Raw Data Points
+                    fig_combined.add_trace(go.Scatter(
+                        x=all_distance_dict[comb],
+                        y=prdf_data,
+                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                        name=f"{comb[0]}-{comb[1]}",
+                        line=dict(color=hex_color, width=2),
+                        marker=dict(size=8) if st.session_state.line_style == "Lines + Markers" else dict()
+                    ))
 
             title_str = "Combined Averaged PRDF: All Pairs" if multi_structures else "Combined PRDF: All Pairs"
 
@@ -5719,6 +5858,7 @@ if "📊 (P)RDF" in calc_mode:
                 xaxis=dict(tickfont=font_dict),
                 yaxis=dict(tickfont=font_dict, range=[0, None]),
                 hoverlabel=dict(font=font_dict),
+                barmode='overlay' if plot_style == "Bars (Histogram)" else None,  # Important for bar overlap
                 legend=dict(
                     orientation="h",
                     yanchor="top",
@@ -5744,14 +5884,48 @@ if "📊 (P)RDF" in calc_mode:
                     title_str = f"PRDF: {comb[0]}-{comb[1]}"
 
                     fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=prdf_data,
-                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                        name=f"{comb[0]}-{comb[1]}",
-                        line=dict(color=hex_color),
-                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                    ))
+                    if plot_style == "Bars (Histogram)":
+                        fig.add_trace(go.Bar(
+                            x=all_distance_dict[comb],
+                            y=prdf_data,
+                            name=f"{comb[0]}-{comb[1]}",
+                            marker=dict(color=hex_color, line=dict(width=0)),
+                            width=bin_size * 0.8
+                        ))
+
+                    elif plot_style == "Smooth Curve":
+                        if smoothing_method == "Gaussian":
+                            y_smooth = smooth_gaussian(prdf_data, sigma=sigma)
+                            x_plot = all_distance_dict[comb]
+
+                        elif smoothing_method == "Savitzky-Golay":
+                            y_smooth = smooth_savgol(prdf_data, window, polyorder)
+                            x_plot = all_distance_dict[comb]
+
+                        else:  # Cubic Spline
+                            x_plot, y_smooth = smooth_spline(
+                                np.array(all_distance_dict[comb]),
+                                prdf_data,
+                                spline_points
+                            )
+
+                        fig.add_trace(go.Scatter(
+                            x=x_plot,
+                            y=y_smooth,
+                            mode='lines',
+                            name=f"{comb[0]}-{comb[1]}",
+                            line=dict(color=hex_color, width=2)
+                        ))
+
+                    else:  # Raw Data Points (original behavior)
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=prdf_data,
+                            mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                            name=f"{comb[0]}-{comb[1]}",
+                            line=dict(color=hex_color, width=2),
+                            marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                        ))
 
                 elif use_lammps_traj and lammps_file and st.session_state.display_mode == "Individual frame PRDFs":
 
@@ -5867,14 +6041,48 @@ if "📊 (P)RDF" in calc_mode:
                         title_str = f"Averaged PRDF: {comb[0]}-{comb[1]}" if multi_structures else f"PRDF: {comb[0]}-{comb[1]}"
 
                     fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=all_distance_dict[comb],
-                        y=prdf_data,
-                        mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                        name=f"{comb[0]}-{comb[1]}",
-                        line=dict(color=hex_color, width=2),
-                        marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-                    ))
+                    if plot_style == "Bars (Histogram)":
+                        fig.add_trace(go.Bar(
+                            x=all_distance_dict[comb],
+                            y=prdf_data,
+                            name=f"{comb[0]}-{comb[1]}",
+                            marker=dict(color=hex_color, line=dict(width=0)),
+                            width=bin_size * 0.8
+                        ))
+
+                    elif plot_style == "Smooth Curve":
+                        if smoothing_method == "Gaussian":
+                            y_smooth = smooth_gaussian(prdf_data, sigma=sigma)
+                            x_plot = all_distance_dict[comb]
+
+                        elif smoothing_method == "Savitzky-Golay":
+                            y_smooth = smooth_savgol(prdf_data, window, polyorder)
+                            x_plot = all_distance_dict[comb]
+
+                        else:  # Cubic Spline
+                            x_plot, y_smooth = smooth_spline(
+                                np.array(all_distance_dict[comb]),
+                                prdf_data,
+                                spline_points
+                            )
+
+                        fig.add_trace(go.Scatter(
+                            x=x_plot,
+                            y=y_smooth,
+                            mode='lines',
+                            name=f"{comb[0]}-{comb[1]}",
+                            line=dict(color=hex_color, width=2)
+                        ))
+
+                    else:  # Raw Data Points
+                        fig.add_trace(go.Scatter(
+                            x=all_distance_dict[comb],
+                            y=prdf_data,
+                            mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                            name=f"{comb[0]}-{comb[1]}",
+                            line=dict(color=hex_color, width=2),
+                            marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                        ))
 
                     if use_lammps_traj and lammps_file and multi_structures and len(valid_prdf) > 1:
                         prdf_std = np.std(prdf_array, axis=0)
@@ -6039,14 +6247,48 @@ if "📊 (P)RDF" in calc_mode:
                 global_rdf_std.append(np.std(vals))
 
             fig_global = go.Figure()
-            fig_global.add_trace(go.Scatter(
-                x=global_bins,
-                y=global_rdf_avg,
-                mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
-                name="Global RDF",
-                line=dict(color=hex_color_global, width=2),
-                marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
-            ))
+            if plot_style == "Bars (Histogram)":
+                fig_global.add_trace(go.Bar(
+                    x=global_bins,
+                    y=global_rdf_avg,
+                    name="Global RDF",
+                    marker=dict(color=hex_color_global, line=dict(width=0)),
+                    width=bin_size * bar_width_factor
+                ))
+
+            elif plot_style == "Smooth Curve":
+                if smoothing_method == "Gaussian":
+                    y_smooth = smooth_gaussian(np.array(global_rdf_avg), sigma=sigma)
+                    x_plot = global_bins
+
+                elif smoothing_method == "Savitzky-Golay":
+                    y_smooth = smooth_savgol(np.array(global_rdf_avg), window, polyorder)
+                    x_plot = global_bins
+
+                else:  # Cubic Spline
+                    x_plot, y_smooth = smooth_spline(
+                        np.array(global_bins),
+                        np.array(global_rdf_avg),
+                        spline_points
+                    )
+
+                fig_global.add_trace(go.Scatter(
+                    x=x_plot,
+                    y=y_smooth,
+                    mode='lines',
+                    name="Global RDF",
+                    line=dict(color=hex_color_global, width=2)
+                ))
+
+            else:  # Raw Data Points
+                fig_global.add_trace(go.Scatter(
+                    x=global_bins,
+                    y=global_rdf_avg,
+                    mode='lines+markers' if st.session_state.line_style == "Lines + Markers" else 'lines',
+                    name="Global RDF",
+                    line=dict(color=hex_color_global, width=2),
+                    marker=dict(size=10) if st.session_state.line_style == "Lines + Markers" else dict()
+                ))
 
             if use_lammps_traj and lammps_file:
                 fig_global.add_trace(go.Scatter(
@@ -7082,7 +7324,7 @@ if "📈 Interactive Data Plot" in calc_mode:
                 data=buffer.getvalue(),
                 file_name=download_name,
                 mime="text/plain",
-                key=f"download_btn_{i}_{base_name}" 
+                key=f"download_btn_{i}_{base_name}"
             )
     else:
         st.info(f"Upload your data file first to see all options.")
@@ -7109,8 +7351,6 @@ def get_session_memory_usage():
     return total_size / 1024  # in KB
 
 
-memory_kb = get_session_memory_usage()
-st.markdown(f"🧠 Estimated session memory usage: **{memory_kb:.2f} KB**")
 st.markdown("""
 **The XRDlicious application is open-source and released under the [MIT License](https://github.com/bracerino/xrdlicious/blob/main/LICENSE).**
 """)
