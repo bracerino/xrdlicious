@@ -4006,7 +4006,36 @@ if "💥 Powder Diffraction" in calc_mode:
                             }
                         }
                         st.success(f"Background subtraction has been permanently applied to {selected_exp_file}!")
-
+                        col_download1, col_download2 = st.columns(2)
+                    
+                        with col_download1:
+                            download_data = np.column_stack((x_exp, y_bg_subtracted))
+                            download_str = "# X-axis  Intensity (Background Subtracted)\n"
+                            download_str += "\n".join([f"{row[0]:.6f}  {row[1]:.6f}" for row in download_data])
+                            
+                            st.download_button(
+                                label="💾 Download Background-Subtracted Data (.xy)",
+                                data=download_str,
+                                file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_bg_subtracted.xy",
+                                mime="text/plain",
+                                type="secondary",
+                                help="Download the background-subtracted data as a .xy file"
+                            )
+                        
+                        with col_download2:
+                            background_data = np.column_stack((x_exp, background))
+                            background_str = "# X-axis  Background\n"
+                            background_str += "\n".join([f"{row[0]:.6f}  {row[1]:.6f}" for row in background_data])
+                            
+                            st.download_button(
+                                label="💾 Download Background Curve (.xy)",
+                                data=background_str,
+                                file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_background.xy",
+                                mime="text/plain",
+                                type="secondary",
+                                help="Download the estimated background curve as a .xy file"
+                            )
+                            
                     col1, col2, col3 = st.columns([1, 2, 1])
 
                     # with col2:
