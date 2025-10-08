@@ -4047,7 +4047,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 data=download_str,
                                 file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_bg_subtracted.xy",
                                 mime="text/plain",
-                                type="secondary",
+                                type="primary",
                             )
                         
                         with col_download2:
@@ -4060,7 +4060,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 data=background_str,
                                 file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_background.xy",
                                 mime="text/plain",
-                                type="secondary",
+                                type="primary",
                             )
                     col1, col2, col3 = st.columns([1, 2, 1])
 
