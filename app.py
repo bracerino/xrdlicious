@@ -112,12 +112,6 @@ with col3:
         """
     )
 
-    st.markdown(
-        """
-        ###### 🔹 Separated Module for XRD File Conversion  
-
-        """
-    )
 
 with col2:
     st.info(
