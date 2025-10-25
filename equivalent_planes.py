@@ -90,7 +90,7 @@ def run_equivalent_hkl_app():
         except Exception as e:
             return [], [], f"An unexpected error occurred: {e}"
 
-    st.header("↔️ Equivalent {hkl} Planes Calculator")
+    st.header("↔️ Equivalent (hkl) Planes Calculator")
     st.write("Enter a space group (number or Hermann-Mauguin (international) symbol) and the Miller indices (h k l) to find all symmetrically equivalent planes (without multiples).")
 
     col1, col2 = st.columns(2)
