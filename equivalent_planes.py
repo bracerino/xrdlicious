@@ -82,12 +82,13 @@ def run_equivalent_hkl_app():
                 canonical = min(plane, neg_plane)
                 unique_families.add(canonical)
 
-            return sorted(list(unique_families)), None
+            full_list = sorted(list(equivalent_planes))
+            unique_families_list = sorted(list(unique_families))
+            return unique_families_list, full_list, None
         except (ValueError, KeyError):
-            return [], f"Error: Invalid space group symbol or number '{space_group_symbol}'. Please check the input and try again."
+            return [], [], f"Error: Invalid space group symbol or number '{space_group_symbol}'. Please check the input and try again."
         except Exception as e:
-            return [], f"An unexpected error occurred: {e}"
-
+            return [], [], f"An unexpected error occurred: {e}"
 
     st.header("↔️ Equivalent {hkl} Planes Calculator")
     st.write("Enter a space group (number or Hermann-Mauguin (international) symbol) and the Miller indices (h k l) to find all symmetrically equivalent planes (without multiples).")
@@ -116,31 +117,50 @@ def run_equivalent_hkl_app():
                 return
 
             with st.spinner("Calculating..."):
-                equivalent_hkls, error_message = get_equivalent_hkl(space_group_symbol, h, k, l)
+                unique_families_list, full_list, error_message = get_equivalent_hkl(space_group_symbol, h, k, l)
 
                 if error_message:
                     st.error(error_message)
-                elif equivalent_hkls:
-                    st.success(f"Found **{len(equivalent_hkls)}** unique (without multiples) equivalent planes for **{{{h} {k} {l}}}** in space group **{selected_option}**.")
+                elif unique_families_list:
+                    st.success(
+                        f"Found **{len(unique_families_list)}** unique families (e.g., {{100}}) for **{{{h} {k} {l}}}** in space group **{selected_option}**.")
 
                     num_columns = 4
                     cols = st.columns(num_columns)
-                    #for i, plane in enumerate(equivalent_hkls):
-                    #    col_index = i % num_columns
-                    #    formatted_plane_latex = f"({ '\\ '.join(map(str, plane)) })"
-                    #    cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
-                    
-                    for i, plane in enumerate(equivalent_hkls):
+
+                    for i, plane in enumerate(unique_families_list):
                         col_index = i % num_columns
+
                         def to_latex_overbar(n):
                             if n < 0:
                                 return f"\\bar{{{abs(n)}}}"
                             return str(n)
+
                         latex_hkl = ' '.join(map(to_latex_overbar, plane))
                         formatted_plane_latex = f"({latex_hkl})"
                         cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
+
+                    st.markdown("---")
+                    st.markdown(f"#### Full List of Equivalent Planes ({len(full_list)} planes)")
+                    st.write(r"This list includes both $(h k l)$ and $(\bar{h} \bar{k} \bar{l})$ where applicable.")
+
+                    full_list_cols = st.columns(num_columns)
+                    for i, plane in enumerate(full_list):
+                        col_index = i % num_columns
+
+                        def to_latex_overbar(n):
+                            if n < 0:
+                                return f"\\bar{{{abs(n)}}}"
+                            return str(n)
+
+                        latex_hkl = ' '.join(map(to_latex_overbar, plane))
+                        formatted_plane_latex = f"({latex_hkl})"
+                        full_list_cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
+                    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
+
                 else:
-                    st.warning("No equivalent planes were found. This may be expected for certain special planes and space groups.")
+                    st.warning(
+                        "No equivalent planes were found. This may be expected for certain special planes and space groups.")
 
         except ValueError:
             st.error("Invalid input for Miller indices or Space Group. Please check your inputs (e.g., '1 1 1' and '225 (Fm-3m)').")
