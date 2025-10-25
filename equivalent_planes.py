@@ -123,7 +123,7 @@ def run_equivalent_hkl_app():
                     st.error(error_message)
                 elif unique_families_list:
                     st.success(
-                        f"Found **{len(unique_families_list)}** unique families (e.g., {{100}}) for **{{{h} {k} {l}}}** in space group **{selected_option}**.")
+                        f"Found **{len(unique_families_list)}** unique planes equivalent to **({h} {k} {l})** in space group **{selected_option}**.")
 
                     num_columns = 4
                     cols = st.columns(num_columns)
