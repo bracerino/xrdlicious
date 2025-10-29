@@ -122,6 +122,15 @@ def run_equivalent_hkl_app():
                 if error_message:
                     st.error(error_message)
                 elif unique_families_list:
+
+                    num_columns = 4
+                    cols = st.columns(num_columns)
+
+                    for i, plane in enumerate(unique_families_list):
+                        col_index = i % num_columns
+
+
+                    st.markdown("---")
                     st.markdown(f"#### Full List of Equivalent Planes ({len(full_list)} planes)")
                     st.write(r"This list includes both $(h k l)$ and $(\bar{h} \bar{k} \bar{l})$ where applicable.")
 
