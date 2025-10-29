@@ -122,25 +122,6 @@ def run_equivalent_hkl_app():
                 if error_message:
                     st.error(error_message)
                 elif unique_families_list:
-                    st.success(
-                        f"Found **{len(unique_families_list)}** unique planes equivalent to **({h} {k} {l})** in space group **{selected_option}**.")
-
-                    num_columns = 4
-                    cols = st.columns(num_columns)
-
-                    for i, plane in enumerate(unique_families_list):
-                        col_index = i % num_columns
-
-                        def to_latex_overbar(n):
-                            if n < 0:
-                                return f"\\bar{{{abs(n)}}}"
-                            return str(n)
-
-                        latex_hkl = ' '.join(map(to_latex_overbar, plane))
-                        formatted_plane_latex = f"({latex_hkl})"
-                        cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
-
-                    st.markdown("---")
                     st.markdown(f"#### Full List of Equivalent Planes ({len(full_list)} planes)")
                     st.write(r"This list includes both $(h k l)$ and $(\bar{h} \bar{k} \bar{l})$ where applicable.")
 
