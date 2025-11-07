@@ -13,3 +13,5 @@ aflow==0.0.11
 pillow==11.2.1
 psutil==7.0.0
 requests==2.32.5
+maggma==0.72.0 
+emmet-core==0.84.10rc2
