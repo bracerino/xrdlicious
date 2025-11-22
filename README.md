@@ -5,7 +5,7 @@ It features an integrated search interface for directly accessing and importing 
 
 Quick **[YouTube tutorial here](https://youtu.be/jHdaNVB2UWE?si=p4gSo90VTXiJVY7O)**.  
 
-If you like this application, **please cite**: [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)
+📖 If you like this application, **please cite**: [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)
 
 # **Use the XRDlicious online**
 🔗 Try the application online here: [XRDlicious](https://rdf-xrd-calculator.streamlit.app/)  
