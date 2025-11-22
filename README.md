@@ -3,7 +3,7 @@
 An online, web-based tool for calculating powder X-ray and neutron diffraction (XRD and ND) patterns, as well as partial and total radial distribution functions (PRDF, RDF) from crystal structures (CIF, VASP, LMP, XYZ (with cell information)).
 It features an integrated search interface for directly accessing and importing structures from the Materials Project (MP), Automatic FLOW (AFLOW), and Crystallography Open Database (COD) databases. Users can also interactively visualize uploaded structures and perform basic modifications (change elements, occupancies, lattice parameters), convert between conventional and primitive cells and introduce point defects, and download the corresponding files in different formats (CIF, VASP, LMP, XYZ).  Moreover, it is possible to convert XRD data between different x-axis values and between XRD formats (.ras, .xrdml <-> .xy).  
 
-Quick **[YouTube tutorial here](https://youtu.be/jHdaNVB2UWE?si=p4gSo90VTXiJVY7O)**.  
+🎥 Overview of the app at **[YouTube](https://youtu.be/jHdaNVB2UWE?si=p4gSo90VTXiJVY7O)**.  
 
 📖 If you like this application, **please cite**: [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)
 
