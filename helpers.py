@@ -43,10 +43,6 @@ from pymatgen.io.cif import CifWriter
 from pymatgen.ext.optimade import OptimadeRester
 
 def search_mc3d_optimade(query_params, limit=300):
-    """
-    Search MC3D database using OPTIMADE API
-    Uses direct REST API calls for better control
-    """
     import requests
     from pymatgen.core import Structure, Lattice, Composition
     import streamlit as st
@@ -213,8 +209,8 @@ def search_mc3d_optimade(query_params, limit=300):
                 #     st.write(f"   - Filtered out (wrong elements): {filtered_out}")
 
                 if structures:
-                    #st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
-                    #st.write("=" * 50)
+                   #st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
+                    # st.write("=" * 50)
                     return structures
                 # else:
                 #     st.error("❌ No structures could be parsed from this endpoint")
@@ -247,6 +243,7 @@ def search_mc3d_optimade(query_params, limit=300):
 
 
 def get_mc3d_structure_by_id(mc3d_id):
+
     import requests
     from pymatgen.core import Structure, Lattice
     import streamlit as st
