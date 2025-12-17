@@ -53,8 +53,8 @@ def search_mc3d_optimade(query_params, limit=300):
     # st.write(f"🔢 Limit: {limit}")
 
     endpoints = [
-        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
         "https://optimade.materialscloud.org/main/mc3d-pbesol-v2/v1/structures",
+        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
     ]
 
     filter_parts = []
@@ -249,8 +249,8 @@ def get_mc3d_structure_by_id(mc3d_id):
     import streamlit as st
 
     endpoints = [
-        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
         "https://optimade.materialscloud.org/main/mc3d-pbesol-v2/v1/structures",
+        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
     ]
 
     params = {
