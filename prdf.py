@@ -380,6 +380,7 @@ def get_space_group_info(number):
 
 
 
+
 if show_database_search:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
         cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
@@ -442,7 +443,7 @@ if show_database_search:
             elif search_mode == "Structure ID":
                 structure_ids = st.text_area(
                     "Enter Structure IDs (one per line):",
-                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5\nmc3d-21328",
+                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5\nmc3d-667864",
                     help="Enter structure IDs. Examples:\n- Materials Project: mp-5229\n- COD: cod_1512124 (with cod_ prefix)\n- AFLOW: aflow:010158cb2b41a1a5 (AUID format)"
                 )
 
