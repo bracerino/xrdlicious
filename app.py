@@ -107,7 +107,7 @@ with col3:
         """
         ###### 🔹 Separated Modules: 
         - Create point defects in a crystal structure: **[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/)**  
-        - Convert between `.xrdml`, `.ras` and `.xy` formats and X/Y-axis: **[Open App 🧩](https://xrd-convert.streamlit.app/)**  
+        - Convert between `.xrdml`, `.ras` and `.xy` formats or X/Y-axis: **[Open App 🧩](https://xrd-convert.streamlit.app/)**  
         - Relations between austenite-martensite crystallographic planes for NiTiHf: **[Open App 🪄](https://austenite-martensite.streamlit.app/)**  
         """
     )
@@ -116,7 +116,7 @@ with col3:
 with col2:
     st.info(
         "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
-        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html).** "
+        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. ❤️🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
     )
 
 # with col3:
@@ -220,17 +220,44 @@ calc_mode = st.sidebar.multiselect(
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
 )
+
 css = '''
 <style>
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size: 1.1rem !important;
-        color: #1e3a8a !important;
-        font-weight: bold !important;
-    }
+.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size: 1.15rem !important;
+    color: #1e3a8a !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
 
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 25px !important;
-    }
+.stTabs [data-baseweb="tab-list"] {
+    gap: 20px !important;
+}
+
+.stTabs [data-baseweb="tab-list"] button {
+    background-color: #f0f4ff !important;
+    border-radius: 12px !important;
+    padding: 8px 16px !important;
+    transition: all 0.3s ease !important;
+    border: none !important;
+    color: #1e3a8a !important;
+}
+
+.stTabs [data-baseweb="tab-list"] button:hover {
+    background-color: #dbe5ff !important;
+    cursor: pointer;
+}
+
+.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    background-color: #e0e7ff !important;
+    color: #1e3a8a !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 6px rgba(30, 58, 138, 0.3) !important;
+}
+
+.stTabs [data-baseweb="tab-list"] button:focus {
+    outline: none !important;
+}
 </style>
 '''
 
@@ -352,14 +379,16 @@ def get_space_group_info(number):
     return symbol
 
 
+
+
 if show_database_search:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
         cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
         with cols:
             db_choices = st.multiselect(
                 "Select Database(s)",
-                options=["Materials Project", "AFLOW", "COD"],
-                default=["Materials Project", "AFLOW", "COD"],
+                options=["Materials Project", "AFLOW", "COD", "MC3D"],
+                default=["Materials Project", "COD", "MC3D"],
                 help="Choose which databases to search for structures. You can select multiple databases."
             )
 
@@ -367,7 +396,7 @@ if show_database_search:
                 st.warning("Please select at least one database to search.")
 
             st.markdown("**Maximum number of structures to be found in each database (for improving performance):**")
-            col_limits = st.columns(3)
+            col_limits = st.columns(4)
 
             search_limits = {}
             if "Materials Project" in db_choices:
@@ -387,6 +416,12 @@ if show_database_search:
                     search_limits["COD"] = st.number_input(
                         "COD Limit:", min_value=1, max_value=2000, value=300, step=10,
                         help="Maximum results from COD"
+                    )
+            if "MC3D" in db_choices:
+                with col_limits[3]:
+                    search_limits["MC3D"] = st.number_input(
+                        "MC3D Limit:", min_value=1, max_value=2000, value=300, step=10,
+                        help="Maximum results from MC3D"
                     )
 
         with cols2:
@@ -408,7 +443,7 @@ if show_database_search:
             elif search_mode == "Structure ID":
                 structure_ids = st.text_area(
                     "Enter Structure IDs (one per line):",
-                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5",
+                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5\nmc3d-667864",
                     help="Enter structure IDs. Examples:\n- Materials Project: mp-5229\n- COD: cod_1512124 (with cod_ prefix)\n- AFLOW: aflow:010158cb2b41a1a5 (AUID format)"
                 )
 
@@ -879,7 +914,134 @@ if show_database_search:
                             except Exception as e:
                                 st.warning(f"No matching structures found in AFLOW.")
                                 st.session_state.aflow_options = []
+                    elif db_choice == "MC3D":
+                        mc3d_limit = search_limits.get("MC3D", 300)
+                        with st.spinner(f"Searching **the MC3D database** (limit: {mc3d_limit}), please wait. 😊"):
+                            results = []
 
+                            try:
+                                query_params = {}
+
+                                if search_mode == "Elements":
+                                    elements_list = [el.strip() for el in search_query.split() if el.strip()]
+                                    if not elements_list:
+                                        st.warning("Please enter elements for MC3D search.")
+                                    else:
+                                        query_params['elements'] = sorted(set(elements_list))
+                                        results = search_mc3d_optimade(query_params, limit=mc3d_limit)
+
+                                elif search_mode == "Structure ID":
+                                    mc3d_ids = []
+                                    for id_line in structure_ids.split('\n'):
+                                        id_line = id_line.strip()
+                                        if id_line.startswith('mc3d-') or id_line.startswith('mcloud-'):
+                                            mc3d_ids.append(id_line)
+
+                                    if not mc3d_ids:
+                                        st.warning("No valid MC3D IDs found (should start with 'mc3d-' or 'mcloud-')")
+                                    else:
+                                        for mc3d_id in mc3d_ids:
+                                            structure = get_mc3d_structure_by_id(mc3d_id)
+                                            if structure:
+                                                results.append({
+                                                    'id': mc3d_id,
+                                                    'structure': structure,
+                                                    'formula': structure.composition.reduced_formula
+                                                })
+
+                                elif search_mode == "Space Group + Elements":
+                                    if not selected_elements:
+                                        st.warning("Please select elements for MC3D space group search.")
+                                    else:
+                                        query_params['elements'] = sorted(selected_elements)
+                                        results = search_mc3d_optimade(query_params, limit=mc3d_limit)
+
+                                        filtered_results = []
+                                        for result in results:
+                                            structure = result['structure']
+                                            analyzer = SpacegroupAnalyzer(structure)
+                                            if analyzer.get_space_group_number() == space_group_number:
+                                                filtered_results.append(result)
+                                        results = filtered_results
+
+                                elif search_mode == "Formula":
+                                    if not formula_input.strip():
+                                        st.warning("Please enter a chemical formula for MC3D search.")
+                                    else:
+                                        try:
+                                            from pymatgen.core import Composition
+
+                                            comp = Composition(formula_input.strip())
+                                            normalized_formula = comp.reduced_formula
+                                            query_params['formula'] = normalized_formula
+                                            st.info(f"Searching for normalized formula: {normalized_formula}")
+                                        except:
+                                            query_params['formula'] = formula_input.strip()
+                                        results = search_mc3d_optimade(query_params, limit=mc3d_limit)
+
+                                elif search_mode == "Search Mineral":
+                                    if not selected_mineral:
+                                        st.warning("Please select a mineral structure for MC3D search.")
+                                    else:
+                                        try:
+                                            from pymatgen.core import Composition
+
+                                            comp = Composition(formula_input.strip())
+                                            normalized_formula = comp.reduced_formula
+                                            query_params['formula'] = normalized_formula
+                                        except:
+                                            query_params['formula'] = formula_input.strip()
+
+                                        results = search_mc3d_optimade(query_params, limit=mc3d_limit)
+
+                                        filtered_results = []
+                                        for result in results:
+                                            structure = result['structure']
+                                            analyzer = SpacegroupAnalyzer(structure)
+                                            if analyzer.get_space_group_number() == space_group_number:
+                                                filtered_results.append(result)
+                                        results = filtered_results
+
+                                else:
+                                    if query_params:
+                                        results = search_mc3d_optimade(query_params, limit=mc3d_limit)
+
+                                if results:
+                                    st.session_state.mc3d_options = []
+                                    st.session_state.mc3d_structures = {}
+
+                                    for result in results:
+                                        mc3d_id = result['id']
+                                        structure = result['structure']
+                                        formula = result['formula']
+
+                                        st.session_state.mc3d_structures[mc3d_id] = structure
+
+                                        analyzer = SpacegroupAnalyzer(structure)
+                                        sg_number = analyzer.get_space_group_number()
+                                        sg_symbol = SPACE_GROUP_SYMBOLS.get(sg_number, f"SG#{sg_number}")
+
+                                        n_elements = len(structure.composition.elements)
+
+                                        option_str = (
+                                            f"{formula} ({sg_symbol} #{sg_number}), "
+                                            f"{n_elements} elements, "
+                                            f"{mc3d_id}"
+                                        )
+                                        st.session_state.mc3d_options.append(option_str)
+
+                                    st.success(
+                                        f"✅ Found {len(st.session_state.mc3d_options)} structures in MC3D via OPTIMADE.")
+                                else:
+                                    st.session_state.mc3d_options = []
+                                    st.warning("No matching structures found in MC3D.")
+
+                            except Exception as e:
+                                st.error(f"MC3D search error: {str(e)}")
+                                import traceback
+
+                                st.write(traceback.format_exc())
+                                st.session_state.mc3d_options = []
                     elif db_choice == "COD":
                         cod_limit = search_limits.get("COD", 50)
                         with st.spinner(f"Searching **the COD database** (limit: {cod_limit}), please wait. 😊"):
@@ -1041,7 +1203,8 @@ if show_database_search:
                     tabs.append("AFLOW")
                 if 'cod_options' in st.session_state and st.session_state.cod_options:
                     tabs.append("COD")
-
+                if 'mc3d_options' in st.session_state and st.session_state.mc3d_options:
+                    tabs.append("MC3D")
                 if tabs:
                     selected_tab = st.tabs(tabs)
 
@@ -1249,6 +1412,79 @@ if show_database_search:
                                 )
                                 st.info(
                                     f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
+
+                    # MC3D tab
+                    if 'mc3d_options' in st.session_state and st.session_state.mc3d_options:
+                        with selected_tab[tab_index]:
+                            st.subheader("🧬 Structures Found in MC3D")
+                            st.info("ℹ️ MC3D structures accessed via OPTIMADE API from Materials Cloud.")
+
+                            selected_structure = st.selectbox("Select a structure from MC3D:",
+                                                              st.session_state.mc3d_options,
+                                                              key='sidebar_select_mc3d')
+                            mc3d_id = selected_structure.split(",")[-1].strip()
+
+                            if mc3d_id in st.session_state.mc3d_structures:
+                                selected_entry = st.session_state.mc3d_structures[mc3d_id]
+
+                                lattice = selected_entry.lattice
+                                cell_volume = lattice.volume
+                                density = str(selected_entry.density).split()[0]
+                                n_atoms = len(selected_entry)
+                                atomic_den = n_atoms / cell_volume
+
+                                structure_type = identify_structure_type(selected_entry)
+                                st.write(f"**Structure type:** {structure_type}")
+
+                                analyzer = SpacegroupAnalyzer(selected_entry)
+                                st.write(
+                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
+
+                                composition = selected_entry.composition.reduced_formula
+                                st.write(
+                                    f"**MC3D ID:** {mc3d_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
+                                st.write(
+                                    f"**Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
+                                    f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° "
+                                    f"(Volume {cell_volume:.1f} Å³)")
+                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
+
+                                mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbe-v1"
+                                st.write(f"**Link:** [View on Materials Cloud]({mc3d_url})")
+
+                                file_name = f"{mc3d_id}_{composition}.cif"
+                                file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
+
+                                col_mc3d1, col_mc3d2 = st.columns([1, 1])
+                                with col_mc3d1:
+                                    if st.button("Add Selected Structure (MC3D)", key="add_btn_mc3d"):
+                                        cif_writer = CifWriter(selected_entry, symprec=0.01)
+                                        cif_data = str(cif_writer)
+                                        st.session_state.full_structures[file_name] = selected_entry
+
+                                        cif_file = io.BytesIO(cif_data.encode('utf-8'))
+                                        cif_file.name = file_name
+
+                                        if 'uploaded_files' not in st.session_state:
+                                            st.session_state.uploaded_files = []
+                                        if all(f.name != file_name for f in st.session_state.uploaded_files):
+                                            st.session_state.uploaded_files.append(cif_file)
+
+                                        check_structure_size_and_warn(selected_entry, file_name)
+                                        st.success("Structure added from MC3D!")
+
+                                with col_mc3d2:
+                                    st.download_button(
+                                        label="💾 Download MC3D CIF",
+                                        data=str(CifWriter(selected_entry, symprec=0.01)),
+                                        file_name=file_name,
+                                        mime="chemical/x-cif",
+                                        type="primary"
+                                    )
+
+                                st.info(
+                                    f"**Note**: Structures retrieved via OPTIMADE API from Materials Cloud MC3D database.")
+                        tab_index += 1
 
 
 def validate_atom_dataframe(df):
@@ -4002,8 +4238,10 @@ if "💥 Powder Diffraction" in calc_mode:
                             }
                         }
                         st.success(f"Background subtraction has been permanently applied to {selected_exp_file}!")
+                        
+                    # Download button for background-subtracted data
                         col_download1, col_download2 = st.columns(2)
-                    
+                        
                         with col_download1:
                             download_data = np.column_stack((x_exp, y_bg_subtracted))
                             download_str = "# X-axis  Intensity (Background Subtracted)\n"
@@ -4014,8 +4252,7 @@ if "💥 Powder Diffraction" in calc_mode:
                                 data=download_str,
                                 file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_bg_subtracted.xy",
                                 mime="text/plain",
-                                type="secondary",
-                                help="Download the background-subtracted data as a .xy file"
+                                type="primary",
                             )
                         
                         with col_download2:
@@ -4028,10 +4265,8 @@ if "💥 Powder Diffraction" in calc_mode:
                                 data=background_str,
                                 file_name=f"{selected_exp_file.rsplit('.', 1)[0]}_background.xy",
                                 mime="text/plain",
-                                type="secondary",
-                                help="Download the estimated background curve as a .xy file"
+                                type="primary",
                             )
-                            
                     col1, col2, col3 = st.columns([1, 2, 1])
 
                     # with col2:
