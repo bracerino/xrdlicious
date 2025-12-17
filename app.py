@@ -363,7 +363,7 @@ if uploaded_files_user_sidebar:
 
 # Then in Streamlit main block
 # display_structure_types()
-show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD)",
+show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD, MC3D)",
                                    value=False, )
 # Define button colors
 buttons_colors()
@@ -443,7 +443,7 @@ if show_database_search:
             elif search_mode == "Structure ID":
                 structure_ids = st.text_area(
                     "Enter Structure IDs (one per line):",
-                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5\nmc3d-667864",
+                    value="mp-5229\ncod_1512124\naflow:010158cb2b41a1a5\nmc3d-82734",
                     help="Enter structure IDs. Examples:\n- Materials Project: mp-5229\n- COD: cod_1512124 (with cod_ prefix)\n- AFLOW: aflow:010158cb2b41a1a5 (AUID format)"
                 )
 
@@ -1449,7 +1449,8 @@ if show_database_search:
                                     f"(Volume {cell_volume:.1f} Å³)")
                                 st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
 
-                                mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbe-v1"
+                                #mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbe-v1"
+                                mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbesol-v2"
                                 st.write(f"**Link:** [View on Materials Cloud]({mc3d_url})")
 
                                 file_name = f"{mc3d_id}_{composition}.cif"
