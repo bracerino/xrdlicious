@@ -212,10 +212,10 @@ def search_mc3d_optimade(query_params, limit=300):
                 # if strict_elements:
                 #     st.write(f"   - Filtered out (wrong elements): {filtered_out}")
 
-                if structures:
-                    st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
+                #if structures:
+                    #st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
                     # st.write("=" * 50)
-                    return structures
+                #    return structures
                 # else:
                 #     st.error("❌ No structures could be parsed from this endpoint")
 
