@@ -40,6 +40,273 @@ from PIL import Image
 # import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
+from pymatgen.ext.optimade import OptimadeRester
+
+def search_mc3d_optimade(query_params, limit=300):
+    """
+    Search MC3D database using OPTIMADE API
+    Uses direct REST API calls for better control
+    """
+    import requests
+    from pymatgen.core import Structure, Lattice, Composition
+    import streamlit as st
+
+    # st.write("=" * 50)
+    # st.write("🔍 **MC3D SEARCH DEBUG INFO**")
+    # st.write(f"📝 Query parameters: {query_params}")
+    # st.write(f"🔢 Limit: {limit}")
+
+    endpoints = [
+        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
+        "https://optimade.materialscloud.org/main/mc3d-pbesol-v2/v1/structures",
+    ]
+
+    filter_parts = []
+    strict_elements = None
+    target_composition = None
+    check_composition = False
+
+    if 'elements' in query_params:
+        elements = query_params['elements']
+        strict_elements = set(elements)
+        # st.write(f"🧪 Searching for elements: {elements} (STRICT - only these elements)")
+        for el in elements:
+            filter_parts.append(f'elements HAS "{el}"')
+
+    if 'formula' in query_params:
+        formula_input = query_params['formula'].replace(' ', '')
+        # st.write(f"⚗️ Formula input from user: {formula_input}")
+
+        try:
+            target_composition = Composition(formula_input)
+            check_composition = True
+            elements_from_formula = sorted([str(el) for el in target_composition.elements])
+
+            # st.write(f"✨ User's formula: {formula_input}")
+            # st.write(f"✨ Pymatgen reduced formula: {target_composition.reduced_formula}")
+            # st.write(f"✨ MC3D likely stores as: {''.join([el + str(int(target_composition[el])) if target_composition[el] != 1 else el for el in elements_from_formula])}")
+            # st.write(f"🧪 Searching by elements: {elements_from_formula} (order-independent)")
+
+            for el in elements_from_formula:
+                filter_parts.append(f'elements HAS "{el}"')
+
+            strict_elements = set(elements_from_formula)
+
+        except Exception as e:
+            st.warning(f"⚠️ Could not parse formula: {e}")
+
+    filter_str = " AND ".join(filter_parts) if filter_parts else None
+
+    params = {
+        'page_limit': min(limit, 100)
+    }
+    if filter_str:
+        params['filter'] = filter_str
+        # st.write(f"🔍 **OPTIMADE Filter**: `{filter_str}`")
+    # else:
+    #     st.write("⚠️ No filter applied - fetching first results")
+
+    for idx, endpoint in enumerate(endpoints):
+        # st.write("-" * 50)
+        # st.write(f"🌐 **Endpoint {idx + 1}/{len(endpoints)}**: {endpoint}")
+
+        try:
+            # st.write(f"📤 Sending request with params: {params}")
+            response = requests.get(endpoint, params=params, timeout=30)
+            # st.write(f"📡 **Response Status Code**: {response.status_code}")
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # st.write(f"📦 Response keys: {list(data.keys())}")
+
+                entries = data.get('data', [])
+                # st.write(f"📊 **Number of entries in response**: {len(entries)}")
+
+                if not entries:
+                    # st.warning(f"⚠️ No entries returned from this endpoint")
+                    # if 'meta' in data:
+                    #     st.write(f"ℹ️ Meta info: {data['meta']}")
+                    continue
+
+                # if entries:
+                #     st.write(f"🔬 First entry ID: {entries[0].get('id', 'N/A')}")
+                #     st.write(f"🔬 First entry attributes keys: {list(entries[0].get('attributes', {}).keys())}")
+
+                structures = []
+                parse_errors = 0
+                filtered_out = 0
+
+                for entry_idx, entry in enumerate(entries[:limit]):
+                    try:
+                        attrs = entry['attributes']
+                        entry_id = attrs.get('_mcloud_mc3d_id', entry['id'])
+
+                        lattice_vectors = attrs.get('lattice_vectors')
+                        if not lattice_vectors:
+                            parse_errors += 1
+                            continue
+
+                        lattice = Lattice(lattice_vectors)
+
+                        species = attrs.get('species_at_sites', [])
+                        if not species:
+                            parse_errors += 1
+                            continue
+
+                        if 'cartesian_site_positions' in attrs:
+                            coords = attrs['cartesian_site_positions']
+                            coords_are_cartesian = True
+                        elif 'fractional_site_positions' in attrs:
+                            coords = attrs['fractional_site_positions']
+                            coords_are_cartesian = False
+                        else:
+                            parse_errors += 1
+                            continue
+
+                        structure = Structure(
+                            lattice,
+                            species,
+                            coords,
+                            coords_are_cartesian=coords_are_cartesian
+                        )
+
+                        if strict_elements:
+                            structure_elements = set([str(el) for el in structure.composition.elements])
+                            if structure_elements != strict_elements:
+                                filtered_out += 1
+                                continue
+
+                            if check_composition and target_composition:
+                                structure_comp = structure.composition.reduced_composition
+                                target_comp = target_composition.reduced_composition
+
+                                # if entry_idx < 3:
+                                #     st.write(f"🔬 Entry #{entry_idx + 1} - {entry_id}:")
+                                #     st.write(f"   - Target composition: {target_comp}")
+                                #     st.write(f"   - Structure composition: {structure_comp}")
+                                #     st.write(f"   - Match: {structure_comp == target_comp}")
+
+                                if structure_comp != target_comp:
+                                    filtered_out += 1
+                                    continue
+
+                        formula = attrs.get('chemical_formula_reduced', structure.composition.reduced_formula)
+
+                        structures.append({
+                            'id': entry_id,
+                            'structure': structure,
+                            'formula': formula
+                        })
+
+                        # if (entry_idx + 1) % 10 == 0:
+                        #     st.write(f"✅ Parsed {entry_idx + 1}/{len(entries[:limit])} entries...")
+
+                    except Exception as e:
+                        parse_errors += 1
+                        continue
+
+                # st.write(f"📈 **Parsing Summary**:")
+                # st.write(f"   - Successfully parsed: {len(structures)}")
+                # st.write(f"   - Failed to parse: {parse_errors}")
+                # if strict_elements:
+                #     st.write(f"   - Filtered out (wrong elements): {filtered_out}")
+
+                if structures:
+                    st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
+                    # st.write("=" * 50)
+                    return structures
+                # else:
+                #     st.error("❌ No structures could be parsed from this endpoint")
+
+            # elif response.status_code == 404:
+            #     st.warning(f"⚠️ Endpoint not found (404)")
+            # elif response.status_code == 500:
+            #     st.error(f"❌ Server error (500)")
+            #     try:
+            #         error_data = response.json()
+            #         st.write(f"Error details: {error_data}")
+            #     except:
+            #         st.write(f"Raw response: {response.text[:500]}")
+            # else:
+            #     st.warning(f"⚠️ Unexpected status code: {response.status_code}")
+            #     st.write(f"Response text: {response.text[:500]}")
+
+        except requests.exceptions.Timeout:
+            st.error(f"⏱️ Request timed out for {endpoint}")
+        except requests.exceptions.ConnectionError:
+            st.error(f"🔌 Connection error for {endpoint}")
+        except Exception as e:
+            st.error(f"❌ Unexpected error with endpoint {endpoint}: {str(e)}")
+            import traceback
+            st.write(f"Traceback: {traceback.format_exc()}")
+            continue
+
+    st.error("❌ Could not retrieve structures from any MC3D endpoint")
+    return []
+
+
+def get_mc3d_structure_by_id(mc3d_id):
+    import requests
+    from pymatgen.core import Structure, Lattice
+    import streamlit as st
+
+    endpoints = [
+        "https://optimade.materialscloud.org/main/mc3d-pbe-v1/v1/structures",
+        "https://optimade.materialscloud.org/main/mc3d-pbesol-v2/v1/structures",
+    ]
+
+    params = {
+        'filter': f'_mcloud_mc3d_id="{mc3d_id}"'
+    }
+
+    for endpoint in endpoints:
+        try:
+            response = requests.get(endpoint, params=params, timeout=30)
+
+            if response.status_code == 200:
+                data = response.json()
+                entries = data.get('data', [])
+
+                if not entries:
+                    continue
+
+                entry = entries[0]
+                attrs = entry['attributes']
+
+                lattice_vectors = attrs.get('lattice_vectors')
+                if not lattice_vectors:
+                    continue
+
+                lattice = Lattice(lattice_vectors)
+                species = attrs.get('species_at_sites', [])
+
+                if not species:
+                    continue
+
+                if 'cartesian_site_positions' in attrs:
+                    coords = attrs['cartesian_site_positions']
+                    coords_are_cartesian = True
+                elif 'fractional_site_positions' in attrs:
+                    coords = attrs['fractional_site_positions']
+                    coords_are_cartesian = False
+                else:
+                    continue
+
+                structure = Structure(
+                    lattice,
+                    species,
+                    coords,
+                    coords_are_cartesian=coords_are_cartesian
+                )
+
+                return structure
+
+        except Exception as e:
+            continue
+
+    st.warning(f"Could not fetch structure {mc3d_id} from MC3D")
+    return None
 
 ELEMENTS = [
     'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
