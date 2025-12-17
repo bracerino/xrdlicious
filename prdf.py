@@ -1029,8 +1029,8 @@ if show_database_search:
                                         )
                                         st.session_state.mc3d_options.append(option_str)
 
-                                    #st.success(
-                                    #    f"Found {len(st.session_state.mc3d_options)} structures in MC3D via OPTIMADE.")
+                                    st.success(
+                                        f"✅ Found {len(st.session_state.mc3d_options)} structures in MC3D via OPTIMADE.")
                                 else:
                                     st.session_state.mc3d_options = []
                                     st.warning("No matching structures found in MC3D.")
