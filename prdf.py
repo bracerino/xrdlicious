@@ -363,7 +363,7 @@ if uploaded_files_user_sidebar:
 
 # Then in Streamlit main block
 # display_structure_types()
-show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD)",
+show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD, MC3D)",
                                    value=False, )
 # Define button colors
 buttons_colors()
