@@ -214,7 +214,7 @@ def search_mc3d_optimade(query_params, limit=300):
 
                 if structures:
                     #st.success(f"✅ Found {len(structures)} structures in MC3D via OPTIMADE.")
-                    pass
+                    continue
                     # st.write("=" * 50)
                     return structures
                 # else:
