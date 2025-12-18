@@ -1021,11 +1021,12 @@ if show_database_search:
                                         sg_number = analyzer.get_space_group_number()
                                         sg_symbol = SPACE_GROUP_SYMBOLS.get(sg_number, f"SG#{sg_number}")
 
-                                        n_elements = len(structure.composition.elements)
+                                        #n_elements = len(structure.composition.elements)
+                                        n_atoms = len(structure)
 
                                         option_str = (
                                             f"{formula} ({sg_symbol} #{sg_number}), "
-                                            f"{n_elements} elements, "
+                                            f"{n_atoms} elements, "
                                             f"{mc3d_id}"
                                         )
                                         st.session_state.mc3d_options.append(option_str)
