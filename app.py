@@ -1026,7 +1026,7 @@ if show_database_search:
 
                                         option_str = (
                                             f"{formula} ({sg_symbol} #{sg_number}), "
-                                            f"{n_atoms} elements, "
+                                            f"{n_atoms} atoms, "
                                             f"{mc3d_id}"
                                         )
                                         st.session_state.mc3d_options.append(option_str)
