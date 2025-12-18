@@ -17,11 +17,10 @@ def show_xrdlicious_roadmap():
 #### Wavelength Input: Energy Specification
 * ✅ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
 
-#### Improved Database Search
+#### Improved Database Search / Adding More Databases
 * ✅ Add search by keywords, space groups, ids... in database queries.
-
-#### Adding More Databases
-* ⏳Potentially add additional databases such as NOMAD, or implement the OPTIMADE aggregator 
+* ✅ Add search in MC3D database.
+* ⏳Potentially add additional databases.
 
 #### Expanded Correction Factors & Peak Shapes
 * ⏳ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
@@ -158,6 +157,7 @@ def show_citation_section():
             - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
             [M. Esters et al., aflow.org: A web ecosystem of databases, software and tools, Comput. Mater. Sci. 216, 111808 (2023)](https://www.sciencedirect.com/science/article/pii/S0927025622005195?casa_token=crrT7T_7vKoAAAAA:7UQbszQokpBT04i8kBqyN9JPXhaLf7ydlwuZen0taWZPXDx46zuYMPeaCJKeznY-BKKczMLzvw). 
             - **Crystallography Open Database (COD)** [S. Gražulis et al., Crystallography Open Database – an open-access collection of crystal structures, J. Appl. Crystallogr. 42, 726 (2009)](https://journals.iucr.org/j/issues/2009/04/00/kk5039/index.html).
+            - **Materials Cloud Three-Dimensional Structure Database (MC3D)** [HUBER, Sebastiaan P., et al. MC3D: The materials cloud computational database of experimentally known stoichiometric inorganics. arXiv preprint arXiv:2508.19223, 2025.](https://arxiv.org/abs/2508.19223).
         - **Important**: Always check the structure's original entry link in the database for any **associated publication** to cite.
 
         ---
