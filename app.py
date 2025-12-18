@@ -1484,8 +1484,6 @@ if show_database_search:
                                         type="primary"
                                     )
 
-                                st.info(
-                                    f"**Note**: Structures retrieved via OPTIMADE API from Materials Cloud MC3D database.")
                         tab_index += 1
 
 
