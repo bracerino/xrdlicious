@@ -12,7 +12,7 @@ It features an integrated search interface for directly accessing and importing 
 🔗 For creation of supercells and point defects, please use the submodule here: [Point defects](https://xrdlicious-point-defects.streamlit.app/)  
 🔗 Separated submodule for converting XRD data files between formats (.xrdml, .ras, .raw, .xy) and between different X/Y axis: [Converter](https://xrd-convert.streamlit.app/)  
 🔗 For (P)RDF calculations from LAMMPS or XYZ trajectories, please compile separated module locally here: [(P)RDF from LAMMPS/XYZ](https://github.com/bracerino/PRDF-CP2K-LAMMPS)  
-🔗 For tutorials how to use the XRDlicious, please visit this site:[implant.fs.cvut.cz/xrdlicious](https://implant.fs.cvut.cz/xrdlicious/)
+🔗 For tutorials how to use the XRDlicious, please visit this site: [implant.fs.cvut.cz/xrdlicious](https://implant.fs.cvut.cz/xrdlicious/)
 
 ![XRDlicious web-based application](Illu_images/xrdlicious.png)
 
