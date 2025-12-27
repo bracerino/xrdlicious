@@ -1196,7 +1196,7 @@ if show_database_search:
         #     st.image(image, use_container_width=True)
 
         with cols3:
-            if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options']):
+            if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options', 'mc3d_options']):
                 tabs = []
                 if 'mp_options' in st.session_state and st.session_state.mp_options:
                     tabs.append("Materials Project")
@@ -1413,7 +1413,7 @@ if show_database_search:
                                 )
                                 st.info(
                                     f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-
+                        tab_index += 1
                     # MC3D tab
                     if 'mc3d_options' in st.session_state and st.session_state.mc3d_options:
                         with selected_tab[tab_index]:
