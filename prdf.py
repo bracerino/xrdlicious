@@ -26,6 +26,11 @@ from matminer.featurizers.structure import PartialRadialDistributionFunction
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
 from pymatgen.analysis.diffraction.neutron import NDCalculator
+try:
+    from xrd_rust_calculator import XRDCalculatorRust
+    HAS_RUST = True
+except ImportError:
+    HAS_RUST = False
 from collections import defaultdict
 from itertools import combinations
 import streamlit.components.v1 as components
@@ -1484,8 +1489,6 @@ if show_database_search:
                                         type="primary"
                                     )
 
-                                st.info(
-                                    f"**Note**: Structures retrieved via OPTIMADE API from Materials Cloud MC3D database.")
                         tab_index += 1
 
 
@@ -3305,22 +3308,39 @@ if "💥 Powder Diffraction" in calc_mode:
     colmain_1, colmain_2 = st.columns([0.5, 1])
     with colmain_1:
         with st.expander("Diffraction Settings", icon="⚙️", expanded=st.session_state["expander_diff_settings"]):
-            st.subheader(
-                "⚙️ Diffraction Settings",
-                help=(
-                    "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
-                    "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
-                    "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
-                    "factors. The atomic scattering factor is given by:\n\n"
-                    "  f(s) = Z − 41.78214·s²·Σᵢ aᵢ exp(−bᵢ s²)  with s = sinθ/λ\n\n"
-                    "Here:\n"
-                    " • f(s) is the atomic scattering factor.\n"
-                    " • Z is the atomic number.\n"
-                    " • aᵢ and bᵢ are tabulated fitted parameters that describe the decay of f(s) with increasing s.\n\n"
-                    "The intensity is then computed as Iₕₖₗ = |Fₕₖₗ|², and a Lorentz-polarization correction P(θ) = "
-                    "(1+cos²(2θ))/(sin²θ cosθ) is applied."
+            col_sub_1, col_sub_2 = st.columns([3, 1])
+            with col_sub_1:
+                st.subheader(
+                    "⚙️ Diffraction Settings",
+                    help=(
+                        "The powder XRD pattern is calculated using Bragg-Brentano geometry. First, the reciprocal lattice is computed "
+                        "and all points within a sphere of radius 2/λ are identified. For each (hkl) plane, the Bragg condition "
+                        "(sinθ = λ/(2dₕₖₗ)) is applied. The structure factor, Fₕₖₗ, is computed as the sum of the atomic scattering "
+                        "factors. The atomic scattering factor is given by:\n\n"
+                        "  f(s) = Z − 41.78214·s²·Σᵢ aᵢ exp(−bᵢ s²)  with s = sinθ/λ\n\n"
+                        "Here:\n"
+                        " • f(s) is the atomic scattering factor.\n"
+                        " • Z is the atomic number.\n"
+                        " • aᵢ and bᵢ are tabulated fitted parameters that describe the decay of f(s) with increasing s.\n\n"
+                        "The intensity is then computed as Iₕₖₗ = |Fₕₖₗ|², and a Lorentz-polarization correction P(θ) = "
+                        "(1+cos²(2θ))/(sin²θ cosθ) is applied."
+                    )
                 )
-            )
+            with col_sub_2:
+                try:
+                    from xrd_rust_calculator import XRDCalculatorRust
+
+                    HAS_RUST = True
+                except ImportError:
+                    HAS_RUST = False
+                if HAS_RUST:
+                    use_rust = st.checkbox(
+                        "⚡",
+                        value=True,
+                        help="Use Rust-accelerated calculator (5-50x faster)"
+                    )
+                else:
+                    use_rust = False
             st.session_state["expander_diff_settings"] = True
 
 
@@ -4647,9 +4667,16 @@ if "💥 Powder Diffraction" in calc_mode:
                                 if diffraction_choice == "ND (Neutron)":
                                     diff_calc = NDCalculator(wavelength=wavelength_A_comp,
                                                              debye_waller_factors=debye_waller_dict)
+                                elif use_rust:
+                                    diff_calc = XRDCalculatorRust(
+                                        wavelength=wavelength_A_comp,
+                                        debye_waller_factors=debye_waller_dict
+                                    )
                                 else:
-                                    diff_calc = XRDCalculator(wavelength=wavelength_A_comp,
-                                                              debye_waller_factors=debye_waller_dict)
+                                    diff_calc = XRDCalculator(
+                                        wavelength=wavelength_A_comp,
+                                        debye_waller_factors=debye_waller_dict
+                                    )
                                 diff_pattern = diff_calc.get_pattern(mg_structure,
                                                                      two_theta_range=user_calculation_range,
                                                                      scaled=False)
@@ -4703,9 +4730,16 @@ if "💥 Powder Diffraction" in calc_mode:
                             if diffraction_choice == "ND (Neutron)":
                                 diff_calc = NDCalculator(wavelength=wavelength_A,
                                                          debye_waller_factors=debye_waller_dict)
+                            elif use_rust:
+                                diff_calc = XRDCalculatorRust(
+                                    wavelength=wavelength_A,
+                                    debye_waller_factors=debye_waller_dict
+                                )
                             else:
-                                diff_calc = XRDCalculator(wavelength=wavelength_A,
-                                                          debye_waller_factors=debye_waller_dict)
+                                diff_calc = XRDCalculator(
+                                    wavelength=wavelength_A,
+                                    debye_waller_factors=debye_waller_dict
+                                )
                             try:
                                 diff_pattern = diff_calc.get_pattern(mg_structure,
                                                                      two_theta_range=user_calculation_range,
