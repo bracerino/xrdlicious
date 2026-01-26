@@ -16,4 +16,4 @@ psutil==7.0.0
 requests==2.32.5
 maggma==0.72.0 
 emmet-core==0.84.10rc2
-xrd-rust-calculator
+xrd-rust
