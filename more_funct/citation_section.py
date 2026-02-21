@@ -25,8 +25,8 @@ def show_xrdlicious_roadmap():
 #### Expanded Correction Factors & Peak Shapes
 * ✅ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
 * ⏳ Introduce preferred orientation and basic absorption corrections.
-* ⏳ Instrumental broadening - introduce Caglioti formula.
-* ⏳ Calculate and apply peak shifts due to sample displacement error.
+* ✅ Instrumental broadening - introduce Caglioti formula.
+* ✅ Calculate and apply peak shifts due to sample displacement error.
 
 #### Enhanced Structure Visualization 
 * ✅ Allow to change structure visualization style between Plotly and Py3Dmol
