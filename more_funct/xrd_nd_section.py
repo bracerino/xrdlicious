@@ -1283,7 +1283,8 @@ def _diffraction_settings_ui():
                     value=st.session_state.get("use_rust_cb", True),
                     key="use_rust_cb",
                     help="⚡ checked = Rust-accelerated calculator (fast)\n\n"
-                         "Unchecked = original pymatgen implementation",
+                         "Unchecked = original pymatgen implementation\n\n"
+                         "[📄 Details (arXiv paper)](https://arxiv.org/abs/2602.11709)",
                 )
             else:
                 use_rust = False
