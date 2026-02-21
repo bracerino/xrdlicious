@@ -55,10 +55,9 @@ def first_run_note():
             image = Image.open("./images/cedule.png")
             st.image(image)
         with colh2:
-            st.warning("We are now using free hosting by Streamlit Community Cloud servis, which has a strict limit on RAM memory. We soon plan to migrate the website to a better server. For more extensive computations, please compile the application locally from the GitHub.")
+            st.warning("We currently use free Streamlit hosting with limited RAM and will upgrade soon. For heavy computations, run the app locally from [GitHub](https://github.com/bracerino/xrdlicious).")
             st.info("""
-            From the **sidebar**, choose the calculation tool you'd like to use — **Structure Modification**, **Powder Diffraction Calculator**, **(P)RDF Calculator**, or **Interactive Data Plot**. Next, use the **sidebar** to **upload your crystal structure files** (**CIF**, **POSCAR**, **LMP**, or **XSF** formats) or your **two-column experimental data**.  
-            If you don’t have crystal structure files, you can directly **add them using the search interface** for the **online databases**.
+            Select a tool in the sidebar, then upload your structure files or data or import structures from online databases directly.
             """)
         st.session_state["first_run_note"] = False
 
