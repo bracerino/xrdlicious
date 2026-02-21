@@ -433,14 +433,36 @@ PROFILE_OPTIONS = [
 SCHERRER_K = 0.9
 
 
+def _caglioti_fwhm(two_theta_deg, U, V, W):
+    tan_theta = np.tan(np.deg2rad(np.asarray(two_theta_deg, dtype=float) / 2.0))
+    fwhm2 = U * tan_theta**2 + V * tan_theta + W
+    return np.sqrt(np.maximum(fwhm2, 1e-8))
+
+
 def _fwhm_at_twotheta(two_theta_deg, wavelength_A, crystallite_size_nm,
-                       instrumental_fwhm_deg):
+                       instrumental_fwhm_deg,
+                       use_scherrer=False,
+                       use_caglioti=False, caglioti_U=0.0,
+                       caglioti_V=0.0, caglioti_W=0.01):
+    if use_caglioti:
+        fwhm_instr = _caglioti_fwhm(two_theta_deg, caglioti_U, caglioti_V, caglioti_W)
+    else:
+        fwhm_instr = instrumental_fwhm_deg
+
+    if not use_scherrer:
+        return fwhm_instr
+
     theta_rad = np.deg2rad(np.asarray(two_theta_deg, dtype=float) / 2.0)
     cos_theta = np.cos(theta_rad)
     L_A = crystallite_size_nm * 10.0
     beta_rad = (SCHERRER_K * wavelength_A) / (L_A * cos_theta)
     beta_deg = np.rad2deg(beta_rad)
-    return np.sqrt(beta_deg**2 + instrumental_fwhm_deg**2)
+    return np.sqrt(beta_deg**2 + fwhm_instr**2)
+
+
+def _displacement_shift(two_theta_deg, displacement_mm, radius_mm):
+    theta_rad = np.deg2rad(np.asarray(two_theta_deg, dtype=float) / 2.0)
+    return np.rad2deg(-2.0 * displacement_mm * np.cos(theta_rad) / radius_mm)
 
 
 def _sigma_from_fwhm(fwhm_deg):
@@ -491,8 +513,13 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                          num_annotate,
                          use_scherrer=False, crystallite_size_nm=100.0,
                          pseudo_voigt_eta=0.5, pearson_m=1.5,
-                         profile_norm="area"):
+                         profile_norm="area",
+                         use_caglioti=False, caglioti_U=0.0,
+                         caglioti_V=0.0, caglioti_W=0.01,
+                         use_displacement=False, displacement_mm=0.0,
+                         goniometer_radius_mm=250.0):
     instrumental_fwhm = sigma * 2.0 * np.sqrt(2.0 * np.log(2.0))
+    _FWHM2S = 2.0 * np.sqrt(2.0 * np.log(2.0))
     pattern_details = {}
 
     for file_name, raw in raw_patterns.items():
@@ -527,6 +554,10 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
         fx = np.array(fx)
         fy = np.array(fy)
 
+        if use_displacement and goniometer_radius_mm > 0 and len(fx) > 0:
+            fx = fx + _displacement_shift(fx, displacement_mm, goniometer_radius_mm)
+            fx = np.clip(fx, 0.01, 179.9)
+
         y_dense = np.zeros_like(_DENSE_X)
         if peak_representation == "Delta (stick)":
             for peak, inten in zip(fx, fy):
@@ -534,10 +565,15 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                 y_dense[idx] += inten
         else:
             for peak, inten in zip(fx, fy):
-                if use_scherrer:
+                if use_scherrer or use_caglioti:
                     fwhm = _fwhm_at_twotheta(peak, wavelength_A,
                                              crystallite_size_nm,
-                                             instrumental_fwhm)
+                                             instrumental_fwhm,
+                                             use_scherrer=use_scherrer,
+                                             use_caglioti=use_caglioti,
+                                             caglioti_U=caglioti_U,
+                                             caglioti_V=caglioti_V,
+                                             caglioti_W=caglioti_W)
                 else:
                     fwhm = instrumental_fwhm
                 curve = _profile_curve(_DENSE_X, peak, fwhm,
@@ -1209,7 +1245,6 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
 
 
 def _diffraction_settings_ui():
-
     defaults = dict(
         peak_representation="Delta (stick)",
         intensity_scale_option="Normalized",
@@ -1248,14 +1283,12 @@ def _diffraction_settings_ui():
                     value=st.session_state.get("use_rust_cb", True),
                     key="use_rust_cb",
                     help="⚡ checked = Rust-accelerated calculator (fast)\n\n"
-                         "Unchecked = original pymatgen implementation\n\n"
-                        "[📄 Details (arXiv paper)](https://arxiv.org/abs/2602.11709)",
-
+                         "Unchecked = original pymatgen implementation",
                 )
             else:
                 use_rust = False
 
-        set_tab1, set_tab2, set_tab3 = st.tabs(["⚙️ General", "📐 Axes", "🔔 Broadening"])
+        set_tab1, set_tab2, set_tab3 = st.tabs(["⚙️ General", "📐 Axes", "Broadening"])
 
         with set_tab1:
 
@@ -1332,12 +1365,10 @@ def _diffraction_settings_ui():
                 if st.button("Calculate ND", type="primary"):
                     st.session_state.calc_xrd = True
                     st.session_state.raw_patterns_cache_key = None
-
             else:
                 if st.button("Calculate XRD", type="primary"):
                     st.session_state.calc_xrd = True
                     st.session_state.raw_patterns_cache_key = None
-
 
             _calc_status = st.empty()
 
@@ -1409,6 +1440,44 @@ def _diffraction_settings_ui():
                 st.session_state.two_theta_max = metric_to_twotheta(
                     raw_max, x_axis_metric, wavelength_A, wavelength_nm, diffraction_choice)
 
+            st.markdown("#### ⏳ Sample displacement correction")
+            use_displacement = st.checkbox(
+                "Apply sample displacement peak shift",
+                value=st.session_state.get("use_displacement", False),
+                key="use_displacement",
+                help="Shifts each peak by Δ(2θ) = −2s·cosθ / R, where s is "
+                     "the sample displacement from the focusing circle and "
+                     "R is the goniometer radius.",
+            )
+            if use_displacement:
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    displacement_mm = st.number_input(
+                        "Sample displacement s (mm)",
+                        value=st.session_state.get("displacement_mm", 0.0),
+                        min_value=-10.0, max_value=10.0,
+                        step=0.01, format="%.3f", key="displacement_mm",
+                        help="Positive = sample above focusing circle "
+                             "(peaks shift to lower 2θ).",
+                        on_change=lambda: None)
+                with col_d2:
+                    goniometer_radius_mm = st.number_input(
+                        "Goniometer radius R (mm)",
+                        value=st.session_state.get("goniometer_radius_mm", 250.0),
+                        min_value=50.0, max_value=1000.0,
+                        step=5.0, format="%.1f", key="goniometer_radius_mm",
+                        help="Distance from sample to detector. "
+                             "Common: 250 mm (Bragg-Brentano), 173 mm (STOE).",
+                        on_change=lambda: None)
+                _shift_45 = _displacement_shift(45.0, displacement_mm, goniometer_radius_mm)
+                _shift_90 = _displacement_shift(90.0, displacement_mm, goniometer_radius_mm)
+                st.caption(
+                    f"Shifts at 2θ: 45° → {_shift_45:+.4f}°,  "
+                    f"90° → {_shift_90:+.4f}°")
+            else:
+                displacement_mm      = st.session_state.get("displacement_mm", 0.0)
+                goniometer_radius_mm = st.session_state.get("goniometer_radius_mm", 250.0)
+
         with set_tab3:
 
             _wl_A = wavelength_A
@@ -1445,6 +1514,13 @@ def _diffraction_settings_ui():
                 crystallite_size_nm = st.session_state.get("crystallite_size_nm", 100.0)
                 show_delta_ref      = True
                 profile_norm        = st.session_state.get("profile_norm", "area")
+                use_caglioti        = st.session_state.get("use_caglioti", False)
+                caglioti_U          = st.session_state.get("caglioti_U", 0.01)
+                caglioti_V          = st.session_state.get("caglioti_V", -0.002)
+                caglioti_W          = st.session_state.get("caglioti_W", 0.005)
+                use_displacement     = st.session_state.get("use_displacement", False)
+                displacement_mm      = st.session_state.get("displacement_mm", 0.0)
+                goniometer_radius_mm = st.session_state.get("goniometer_radius_mm", 250.0)
             else:
                 show_delta_ref = st.checkbox(
                     "Show reference delta lines",
@@ -1460,7 +1536,7 @@ def _diffraction_settings_ui():
                         "Instrumental σ (°)",
                         min_value=0.01, max_value=5.0,
                         value = 0.05,
-                        step=0.01, format="%.3f", key="sigma",
+                        step=0.01, format="%.2f", key="sigma",
                         help="Gaussian σ for the instrumental broadening contribution. "
                              "FWHM = σ × 2√(2 ln 2) = 2.354820 × σ",
                         on_change=lambda: None)
@@ -1537,6 +1613,57 @@ def _diffraction_settings_ui():
                     crystallite_size_nm = st.session_state.get(
                         "crystallite_size_nm", 100.0)
 
+                st.markdown("#### ⏳ Caglioti instrumental broadening")
+                use_caglioti = st.checkbox(
+                    "Use Caglioti angle-dependent FWHM",
+                    value=st.session_state.get("use_caglioti", False),
+                    key="use_caglioti",
+                    help="Replaces the constant-σ instrumental broadening with "
+                         "the Caglioti formula: FWHM²(2θ) = U·tan²θ + V·tanθ + W. "
+                         "This is the standard description of instrument resolution "
+                         "functions used in Rietveld refinement.",
+                )
+                if use_caglioti:
+                    import math as _math
+                    col_u, col_v, col_w = st.columns(3)
+                    with col_u:
+                        caglioti_U = st.number_input(
+                            "U", value=st.session_state.get("caglioti_U", 0.01),
+                            min_value=-1.0, max_value=5.0,
+                            step=0.001, format="%.4f", key="caglioti_U",
+                            help="Coefficient of tan²θ — controls broadening at high angles.",
+                            on_change=lambda: None)
+                    with col_v:
+                        caglioti_V = st.number_input(
+                            "V", value=st.session_state.get("caglioti_V", -0.002),
+                            min_value=-5.0, max_value=5.0,
+                            step=0.001, format="%.4f", key="caglioti_V",
+                            help="Coefficient of tanθ.",
+                            on_change=lambda: None)
+                    with col_w:
+                        caglioti_W = st.number_input(
+                            "W", value=st.session_state.get("caglioti_W", 0.005),
+                            min_value=0.0001, max_value=5.0,
+                            step=0.001, format="%.4f", key="caglioti_W",
+                            help="Constant term — minimum FWHM at θ = 0.",
+                            on_change=lambda: None)
+                    _preview_angles = [20.0, 45.0, 90.0, 120.0]
+                    _preview_fwhm = [
+                        float(_caglioti_fwhm(tt, caglioti_U, caglioti_V, caglioti_W))
+                        for tt in _preview_angles
+                    ]
+                    _tbl = " | ".join(
+                        f"**{tt}°:** {fw:.4f}°"
+                        for tt, fw in zip(_preview_angles, _preview_fwhm)
+                    )
+                    st.caption(f"FWHM preview — {_tbl}")
+                else:
+                    caglioti_U = st.session_state.get("caglioti_U", 0.01)
+                    caglioti_V = st.session_state.get("caglioti_V", -0.002)
+                    caglioti_W = st.session_state.get("caglioti_W", 0.005)
+
+
+
     return (wavelength_A, wavelength_nm, diffraction_choice, preset_choice,
             peak_representation, intensity_scale_option, line_thickness,
             use_debye_waller, sigma, x_axis_metric, y_axis_scale,
@@ -1545,7 +1672,9 @@ def _diffraction_settings_ui():
             st.session_state.two_theta_max,
             use_rust, y_axis_title,
             use_scherrer, crystallite_size_nm, pseudo_voigt_eta, pearson_m,
-            show_delta_ref, profile_norm)
+            show_delta_ref, profile_norm,
+            use_caglioti, caglioti_U, caglioti_V, caglioti_W,
+            use_displacement, displacement_mm, goniometer_radius_mm)
 
 
 
@@ -1761,7 +1890,6 @@ def _tab_lattice(uploaded_files):
             data=csv,
             file_name="lattice_parameters.csv",
             mime="text/csv",
-            type = 'primary'
         )
 
     for fname, err in errors:
@@ -1784,7 +1912,10 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
          use_rust, y_axis_title,
          use_scherrer, crystallite_size_nm,
          pseudo_voigt_eta, pearson_m,
-         show_delta_ref, profile_norm) = _diffraction_settings_ui()
+         show_delta_ref, profile_norm,
+         use_caglioti, caglioti_U, caglioti_V, caglioti_W,
+         use_displacement, displacement_mm,
+         goniometer_radius_mm) = _diffraction_settings_ui()
 
     with colmain_2:
         if user_pattern_file:
@@ -1842,10 +1973,17 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
         _stored_patterns = st.session_state.get("raw_patterns") or {}
         _expected_files  = {f.name for f in uploaded_files}
         _stored_files    = set(_stored_patterns.keys())
+
+        stale_keys = _stored_files - _expected_files
+        if stale_keys:
+            for _k in stale_keys:
+                del st.session_state.raw_patterns[_k]
+            _stored_patterns = st.session_state.raw_patterns
+
         needs_recalc = (
             st.session_state.get("raw_patterns_cache_key") != current_key
             or "raw_patterns" not in st.session_state
-            or _expected_files != _stored_files
+            or (_expected_files - _stored_files)
         )
 
         if needs_recalc:
@@ -1880,6 +2018,13 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
             pseudo_voigt_eta=pseudo_voigt_eta,
             pearson_m=pearson_m,
             profile_norm=profile_norm,
+            use_caglioti=use_caglioti,
+            caglioti_U=caglioti_U,
+            caglioti_V=caglioti_V,
+            caglioti_W=caglioti_W,
+            use_displacement=use_displacement,
+            displacement_mm=displacement_mm,
+            goniometer_radius_mm=goniometer_radius_mm,
         )
 
         show_Ka1 = show_Ka2 = show_Kb = True
@@ -1923,6 +2068,13 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                     pseudo_voigt_eta=pseudo_voigt_eta,
                     pearson_m=pearson_m,
                     profile_norm=profile_norm,
+                    use_caglioti=use_caglioti,
+                    caglioti_U=caglioti_U,
+                    caglioti_V=caglioti_V,
+                    caglioti_W=caglioti_W,
+                    use_displacement=use_displacement,
+                    displacement_mm=displacement_mm,
+                    goniometer_radius_mm=goniometer_radius_mm,
                 )
                 for idx, file in enumerate(uploaded_files):
                     fname   = file.name
