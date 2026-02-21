@@ -51,7 +51,8 @@ def first_run_note():
     if st.session_state["first_run_note"] == True:
         colh1, colh2 = st.columns([1, 3])
         with colh1:
-            image = Image.open("./images/Rb.png")
+            #image = Image.open("./images/Rb.png")
+            image = Image.open("./images/cedule.png")
             st.image(image)
         with colh2:
             st.warning("We are now using free hosting by Streamlit Community Cloud servis, which has a strict limit on RAM memory. We soon plan to migrate the website to a better server. For more extensive computations, please compile the application locally from the GitHub.")
