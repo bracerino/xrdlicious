@@ -1289,7 +1289,7 @@ def _diffraction_settings_ui():
             else:
                 use_rust = False
 
-        set_tab1, set_tab2, set_tab3 = st.tabs(["⚙️ General", "📐 Axes", "Broadening"])
+        set_tab1, set_tab2, set_tab3 = st.tabs(["⚙️ General", "📐 Axes", "🔔 Broadening"])
 
         with set_tab1:
 
