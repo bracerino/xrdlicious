@@ -11,7 +11,7 @@ def show_xrdlicious_roadmap():
 
 #### Code optimization 
 * ⏳ Optimizing the code for better performance. 
-* ⏳ Separate critical parameters (such as wavelength, new file, debye-waller factors) for diffraction patterns complete recalculations from non-critical (such as intensity scale or x-axis units) 
+* ✅ Separate critical parameters (such as wavelength, new file, debye-waller factors) for diffraction patterns complete recalculations from non-critical (such as intensity scale or x-axis units) 
 * ✅ Optimized search in COD database.
 * ⏳ Repair visualization based on Wyckoff positions
 #### Wavelength Input: Energy Specification
@@ -23,7 +23,7 @@ def show_xrdlicious_roadmap():
 * ⏳Potentially add additional databases.
 
 #### Expanded Correction Factors & Peak Shapes
-* ⏳ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
+* ✅ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
 * ⏳ Introduce preferred orientation and basic absorption corrections.
 * ⏳ Instrumental broadening - introduce Caglioti formula.
 * ⏳ Calculate and apply peak shifts due to sample displacement error.
@@ -33,11 +33,11 @@ def show_xrdlicious_roadmap():
 * ✅ Added option to change between perspective and orthogonal view
 
 #### Enhanced Background Subtraction (Experimental Data)
-* ⏳ Improve tools for background removal on uploaded experimental patterns.
+* ✅ Improve tools for background removal on uploaded experimental patterns.
 
 #### Enhanced XRD Data Conversion
 * ⏳ More accessible conversion interface - not hidden within the interactive plot.
-* ⏳ Batch operations on multiple files at once (e.g., FDS/VDS, wavelength).
+* ✅ Batch operations on multiple files at once (e.g., FDS/VDS, wavelength) (available on https://xrd-convert.streamlit.app/).
 * ✅ Add conversion from PANalytical .xrdml and Rigaku .ras diffraction pattern file format to .xy file format 
 
 #### Basic Peak Fitting (Experimental Data)
