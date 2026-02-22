@@ -1902,7 +1902,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
     if "calc_xrd" not in st.session_state:
         st.session_state.calc_xrd = False
 
-    colmain_1, colmain_2 = st.columns([0.4, 1])
+    colmain_1, colmain_2 = st.columns([0.5, 1])
 
     with colmain_1:
         (wavelength_A, wavelength_nm, diffraction_choice, preset_choice,
