@@ -1,6 +1,4 @@
 import warnings
-warnings.filterwarnings("ignore", message=".*fractional coordinates rounded.*")
-warnings.filterwarnings("ignore", message=".*to_reduced_dict is deprecated.*")
 
 import streamlit as st
 
