@@ -89,11 +89,21 @@ st.markdown(
         <span style='color:#8b0000;'>
             <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
         </span>
+        <span style="
+            background-color:#f5e6e6;
+            color:#8b0000;
+            font-size:0.7em;
+            padding:3px 8px;
+            border-radius:8px;
+            margin-left:10px;
+            vertical-align:middle;
+        ">
+            v0.5 • 3/30/2026
+        </span>
     </h4>
     """,
     unsafe_allow_html=True
 )
-
 st.markdown(
     """
     <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
@@ -348,8 +358,8 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
-    "Upload additional XRD pattern (2 columns: X-values and Intensity. The first line is skipped assuming a header.)",
-    type=["csv", "txt", "xy", "data", "dat"],
+    "Upload additional XRD pattern (.xy, .xrdml, .ras — or any two-column text file).",
+    type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras"],
     key="user_xrd", accept_multiple_files=True
 )
 
