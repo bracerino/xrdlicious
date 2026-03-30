@@ -644,15 +644,21 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
         )
         selected_file_obj = next(f for f in files if f.name == selected_exp_name)
     else:
-        selected_file_obj  = files[0]
-        selected_exp_name  = selected_file_obj.name
+        selected_file_obj = files[0]
+        selected_exp_name = selected_file_obj.name
+
+    # ── parse the file regardless of format ──────────────────────────────
+    try:
+        x_exp, y_exp = _load_exp_xy(selected_file_obj)
+    except Exception as e:
+        st.error(f"Failed to read '{selected_exp_name}': {e}")
+        return
+
+    if x_exp is None or y_exp is None or len(x_exp) == 0:
+        st.error(f"No data could be extracted from '{selected_exp_name}'.")
+        return
 
     try:
-        df      = pd.read_csv(selected_file_obj, sep=r"\s+|,|;",
-                              engine="python", header=None, skiprows=1)
-        x_exp   = df.iloc[:, 0].values
-        y_exp   = df.iloc[:, 1].values
-
         if "original_exp_data" not in st.session_state:
             st.session_state.original_exp_data = {}
         if selected_exp_name not in st.session_state.original_exp_data:
@@ -758,7 +764,8 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
             z = y.copy()
             for _ in range(n_iter):
                 W = _sp_diags(w, 0, shape=(n, n))
-                z = _spsolve(W + H, w * y)
+                #z = _spsolve(W + H, w * y)
+                z = _spsolve((W + H).tocsc(), w * y)
                 w = p * (y > z) + (1 - p) * (y <= z)
             background = z
 
@@ -836,10 +843,9 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
     except Exception as exc:
         st.error(f"Error processing {selected_exp_name}: {exc}")
 
-
-
 def _load_exp_xy(file_obj):
     fname = file_obj.name
+    ext   = fname.lower().rsplit(".", 1)[-1]
 
     if ("permanent_exp_data" in st.session_state
             and fname in st.session_state.permanent_exp_data):
@@ -852,6 +858,63 @@ def _load_exp_xy(file_obj):
             and fname in st.session_state.bg_subtracted_data):
         d = st.session_state.bg_subtracted_data[fname]
         return d["x"], d["y"]
+
+    if ext in ("xrdml", "xml"):
+        try:
+            import xml.etree.ElementTree as ET
+            file_obj.seek(0)
+            content = file_obj.read().decode("utf-8", errors="replace")
+            file_obj.seek(0)
+            root = ET.fromstring(content)
+            ns_uri = root.tag.split("}")[0][1:] if "}" in root.tag else ""
+            ns = {"x": ns_uri} if ns_uri else {}
+            prefix = "x:" if ns_uri else ""
+
+            def _ft(path):
+                el = root.find(path, ns)
+                return el.text if el is not None else None
+
+            dp = f"{prefix}xrdMeasurement/{prefix}scan/{prefix}dataPoints"
+            start = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}startPosition")
+            end   = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}endPosition")
+            ints  = _ft(f"{dp}/{prefix}intensities")
+
+            if start is not None and end is not None and ints is not None:
+                intensities  = np.array(ints.split(), dtype=float)
+                two_theta    = np.linspace(float(start), float(end),
+                                           len(intensities))
+                return two_theta, intensities
+            st.warning(f"Could not locate data nodes in '{fname}'.")
+        except Exception as exc:
+            st.warning(f"Could not parse '{fname}' as XRDML: {exc}")
+
+    if ext == "ras":
+        try:
+            file_obj.seek(0)
+            content = file_obj.read().decode("utf-8", errors="replace")
+            file_obj.seek(0)
+            angles, intensities = [], []
+            in_data = False
+            for line in content.splitlines():
+                line = line.strip()
+                if line == "*RAS_INT_START":
+                    in_data = True
+                    continue
+                if line == "*RAS_INT_END":
+                    break
+                if in_data:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        try:
+                            angles.append(float(parts[0]))
+                            intensities.append(float(parts[1]))
+                        except ValueError:
+                            continue
+            if angles:
+                return np.array(angles), np.array(intensities)
+            st.warning(f"No data points found in '{fname}'.")
+        except Exception as exc:
+            st.warning(f"Could not parse '{fname}' as RAS: {exc}")
 
     file_obj.seek(0)
     raw = file_obj.read()
@@ -1470,11 +1533,79 @@ def _diffraction_settings_ui():
                         help="Distance from sample to detector. "
                              "Common: 250 mm (Bragg-Brentano), 173 mm (STOE).",
                         on_change=lambda: None)
+                _shift_15 = _displacement_shift(15.0, displacement_mm, goniometer_radius_mm)
                 _shift_45 = _displacement_shift(45.0, displacement_mm, goniometer_radius_mm)
                 _shift_90 = _displacement_shift(90.0, displacement_mm, goniometer_radius_mm)
                 st.caption(
-                    f"Shifts at 2θ: 45° → {_shift_45:+.4f}°,  "
-                    f"90° → {_shift_90:+.4f}°")
+                    f"Shifts at 2θ: 15° → {_shift_15:+.2f}°,  "
+                    f"45° → {_shift_45:+.2f}°, "
+                    f"90° → {_shift_90:+.2f}°")
+                s = displacement_mm
+                R = goniometer_radius_mm
+                tt_min = float(st.session_state.get("two_theta_min", 5))
+                tt_max = float(st.session_state.get("two_theta_max", 90))
+
+                two_theta = np.linspace(tt_min, tt_max, 800)
+                theta_rad = np.radians(two_theta / 2.0)
+                delta_2theta = (-(2.0 * s * np.cos(theta_rad)) / R
+                                * (180.0 / np.pi)) if R > 0 \
+                    else np.zeros_like(two_theta)
+
+                fig_disp = go.Figure()
+
+                fig_disp.add_trace(go.Scatter(
+                    x=two_theta, y=delta_2theta,
+                    mode="lines", name="Δ(2θ)",
+                    line=dict(color="#e63946", width=3),
+                    hovertemplate=(
+                        "2θ = %{x:.2f}°<br>"
+                        "Δ(2θ) = %{y:.5f}°<extra></extra>"),
+                ))
+                fig_disp.add_hline(
+                    y=0,
+                    line=dict(color="black", width=1.5, dash="dash"),
+                )
+
+                fig_disp.update_layout(
+                    height=500,
+                    margin=dict(l=70, r=30, t=60, b=70),
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    hovermode="x unified",
+                    hoverlabel=dict(font=dict(size=22)),
+                    xaxis=dict(
+                        title=dict(text="2θ (°)",
+                                   font=dict(size=32, color="black")),
+                        tickfont=dict(size=28, color="black"),
+                        showgrid=True, gridcolor="#e0e0e0",
+                        showline=True, linecolor="black", mirror=True,
+                    ),
+                    yaxis=dict(
+                        title=dict(text="Δ(2θ) (°)",
+                                   font=dict(size=32, color="black")),
+                        tickfont=dict(size=28, color="black"),
+                        showgrid=True, gridcolor="#e0e0e0",
+                        showline=True, linecolor="black", mirror=True,
+                        zeroline=True, zerolinecolor="black",
+                        zerolinewidth=1.5,
+                    ),
+                    legend=dict(font=dict(size=26)),
+                )
+
+                st.plotly_chart(fig_disp, use_container_width=True)
+
+                _dl_csv = "\n".join(
+                    ["# 2theta_deg  delta_2theta_deg"] +
+                    [f"{x:.4f}  {y:.6f}"
+                     for x, y in zip(two_theta, delta_2theta)]
+                )
+                st.download_button(
+                    label="💾 Download displacement curve data (.xy)",
+                    data=_dl_csv,
+                    file_name="displacement_correction.xy",
+                    mime="text/plain",
+                    key="download_disp_curve",
+                )
             else:
                 displacement_mm      = st.session_state.get("displacement_mm", 0.0)
                 goniometer_radius_mm = st.session_state.get("goniometer_radius_mm", 250.0)
