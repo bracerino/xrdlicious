@@ -54,11 +54,31 @@ def first_run_note():
             #image = Image.open("./images/Rb.png")
             image = Image.open("./images/cedule.png")
             st.image(image)
+
         with colh2:
-            st.warning("We currently use free Streamlit hosting with limited RAM and will upgrade soon. For heavy computations, run the app locally from [GitHub](https://github.com/bracerino/xrdlicious).")
+            is_local = False
+            try:
+                host = st.context.headers.get("host", "")
+                if "localhost" in host or "127.0.0.1" in host:
+                    is_local = True
+            except:
+                pass
+
+            if is_local:
+                st.success(
+                    "Running locally."
+                )
+            else:
+                st.warning(
+                    "We currently use free Streamlit hosting with limited RAM and will upgrade soon. "
+                    "For heavy computations, run the app locally from "
+                    "[GitHub](https://github.com/bracerino/xrdlicious)."
+                )
+
             st.info("""
             Select a tool in the sidebar, then upload your structure files or data or import structures from online databases directly.
             """)
+
         st.session_state["first_run_note"] = False
 
 
