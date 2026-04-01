@@ -1606,9 +1606,16 @@ def _diffraction_settings_ui():
                     mime="text/plain",
                     key="download_disp_curve",
                 )
+
+                show_original_on_plot = st.checkbox(
+                    "Show original (undisplaced) peaks on pattern plot",
+                    value=st.session_state.get("show_original_on_plot", True),
+                    key="show_original_on_plot",
+                )
             else:
-                displacement_mm      = st.session_state.get("displacement_mm", 0.0)
+                displacement_mm = st.session_state.get("displacement_mm", 0.0)
                 goniometer_radius_mm = st.session_state.get("goniometer_radius_mm", 250.0)
+                show_original_on_plot = False
 
         with set_tab3:
 
@@ -1794,8 +1801,6 @@ def _diffraction_settings_ui():
                     caglioti_V = st.session_state.get("caglioti_V", -0.002)
                     caglioti_W = st.session_state.get("caglioti_W", 0.005)
 
-
-
     return (wavelength_A, wavelength_nm, diffraction_choice, preset_choice,
             peak_representation, intensity_scale_option, line_thickness,
             use_debye_waller, sigma, x_axis_metric, y_axis_scale,
@@ -1806,7 +1811,8 @@ def _diffraction_settings_ui():
             use_scherrer, crystallite_size_nm, pseudo_voigt_eta, pearson_m,
             show_delta_ref, profile_norm,
             use_caglioti, caglioti_U, caglioti_V, caglioti_W,
-            use_displacement, displacement_mm, goniometer_radius_mm)
+            use_displacement, displacement_mm, goniometer_radius_mm,
+            show_original_on_plot)
 
 
 
@@ -2047,7 +2053,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
          show_delta_ref, profile_norm,
          use_caglioti, caglioti_U, caglioti_V, caglioti_W,
          use_displacement, displacement_mm,
-         goniometer_radius_mm) = _diffraction_settings_ui()
+         goniometer_radius_mm, show_original_on_plot) = _diffraction_settings_ui()
 
     with colmain_2:
         if user_pattern_file:
@@ -2250,6 +2256,68 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                     show_Kbeta_hover=show_Kb,
                     show_delta_ref=show_delta_ref,
                 )
+
+            if use_displacement and show_original_on_plot:
+                _pattern_no_disp = _process_for_display(
+                    st.session_state.raw_patterns,
+                    two_theta_min, two_theta_max,
+                    intensity_filter, peak_representation, sigma,
+                    intensity_scale_option, y_axis_scale, x_axis_metric,
+                    wavelength_A, wavelength_nm, diffraction_choice,
+                    num_annotate,
+                    use_scherrer=use_scherrer,
+                    crystallite_size_nm=crystallite_size_nm,
+                    pseudo_voigt_eta=pseudo_voigt_eta,
+                    pearson_m=pearson_m,
+                    profile_norm=profile_norm,
+                    use_caglioti=use_caglioti,
+                    caglioti_U=caglioti_U,
+                    caglioti_V=caglioti_V,
+                    caglioti_W=caglioti_W,
+                    use_displacement=False,
+                    displacement_mm=0.0,
+                    goniometer_radius_mm=goniometer_radius_mm,
+                )
+                _tab10 = plt.cm.tab10.colors
+                for _idx, _file in enumerate(uploaded_files):
+                    _fname = _file.name
+                    if _fname not in _pattern_no_disp:
+                        continue
+                    _d = _pattern_no_disp[_fname]
+                    _c_orig = rgb_color(_tab10[_idx % len(_tab10)], opacity=0.35)
+                    if peak_representation == "Delta (stick)":
+                        _vx, _vy = [], []
+                        for _pv, _inten in zip(_d["peak_vals"], _d["intensities"]):
+                            _can = metric_to_twotheta(
+                                _pv, x_axis_metric, wavelength_A,
+                                wavelength_nm, diffraction_choice)
+                            if not (two_theta_min <= _can <= two_theta_max):
+                                continue
+                            _vx.extend([_pv, _pv, None])
+                            _vy.extend([0, _inten, None])
+                        fig.add_trace(go.Scatter(
+                            x=_vx, y=_vy, mode="lines",
+                            name=f"{_fname} (no displacement)",
+                            line=dict(color=_c_orig, width=max(1.0, line_thickness - 0.5),
+                                      dash="dot"),
+                            hoverinfo="skip",
+                        ))
+                    else:
+                        _mask = (
+                                (_d["x_dense_full"] >= two_theta_min) &
+                                (_d["x_dense_full"] <= two_theta_max)
+                        )
+                        _x_orig = twotheta_to_metric(
+                            _d["x_dense_full"][_mask], x_axis_metric,
+                            wavelength_A, wavelength_nm, diffraction_choice,
+                        )
+                        fig.add_trace(go.Scatter(
+                            x=_x_orig, y=_d["y_dense"][_mask], mode="lines",
+                            name=f"{_fname} (no displacement)",
+                            line=dict(color=_c_orig, width=max(1.0, line_thickness - 0.5),
+                                      dash="dot"),
+                            hoverinfo="skip",
+                        ))
 
             _add_exp_traces(
                 fig, user_pattern_file, intensity_scale_option, y_axis_scale,
