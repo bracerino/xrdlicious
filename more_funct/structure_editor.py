@@ -110,7 +110,7 @@ def _compute_view_rotations(view_dir_cart, up_dir_cart):
     rot_z1_rad = np.radians(rot_z1_deg)
 
     xy_mag = np.sqrt(dx**2 + dy**2)
-    rot_y_deg = np.degrees(np.arctan2(xy_mag, dz))
+    rot_y_deg = -np.degrees(np.arctan2(xy_mag, dz))
     rot_y_rad = np.radians(rot_y_deg)
 
     Rz1 = np.array([
@@ -255,7 +255,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
             if dot_cond != 0:
                 st.caption(
                     f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward vector not strictly in projection plane. "
-                    f"Up direction will be auto-adjusted."
+                    f"Up direction will be auto-adjusted (same as VESTA)."
                 )
             view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
             M = _compute_orientation_matrix(view_dir, up_dir)
@@ -627,6 +627,7 @@ def _atoms_section(atoms, structure, selected_file):
         value=False, key=f"se_unique_{selected_file}",
     )
 
+
     show_add = st.checkbox("➕ Add new atomic site", value=False, key=f"se_show_add_{selected_file}")
     if show_add:
         with st.container(border=True):
@@ -671,6 +672,8 @@ def _atoms_section(atoms, structure, selected_file):
                             st.info("Click once more to confirm.")
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
+
 
     display_atoms = _get_unique_wyckoff_atoms(updated_atoms) if use_unique else updated_atoms
 
@@ -932,6 +935,7 @@ def run_structure_editor(uploaded_files):
                 except Exception as e:
                     st.error(f"Error preparing download: {e}")
 
+    # ── tabs ──────────────────────────────────────────────────────────────────
 
     tab_viz, tab_lattice, tab_atoms, tab_export = st.tabs([
         "\U0001f52c Visualization",
