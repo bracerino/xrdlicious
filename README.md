@@ -50,7 +50,7 @@ Open your terminal console and write the following commands (the bold text):
       **pip install -r requirements.txt**
 
 6) Run the XRDlicious app (always before running it, make sure to activate its Python virtual environment (Step 4):  
-     **streamlit run app.py**  
+     **streamlit run app.py**  (or 'streamlit run prdf_app.py' for (P)RDF separated module)  
 7) To update the application, write in the main folder:
      **git pull**  
 
