@@ -24,6 +24,24 @@ ELEMENTS = [
 ]
 
 
+def _vesta_lattice(lattice):
+    a, b, c = lattice.abc
+    al, be, ga = lattice.angles
+    return PmgLattice.from_parameters(a, b, c, al, be, ga)
+
+
+
+def _vesta_lattice(lattice):
+    import math
+    a, b, c = lattice.abc
+    al, be, ga = [math.radians(x) for x in lattice.angles]
+    a_vec = [a, 0.0, 0.0]
+    b_vec = [b * math.cos(ga), b * math.sin(ga), 0.0]
+    c_x = c * math.cos(be)
+    c_y = c * (math.cos(al) - math.cos(be) * math.cos(ga)) / math.sin(ga)
+    c_z = math.sqrt(max(0.0, c**2 - c_x**2 - c_y**2))
+    return PmgLattice(np.array([a_vec, b_vec, [c_x, c_y, c_z]]))
+
 def _draw_supercell_boxes(view, lattice_matrix, sx, sy, sz):
     a, b, c = lattice_matrix[0], lattice_matrix[1], lattice_matrix[2]
     edge_pairs = [(0,1),(2,3),(4,5),(6,7),(0,2),(1,3),(4,6),(5,7),(0,4),(1,5),(2,6),(3,7)]
@@ -49,14 +67,6 @@ def _d_spacing(lattice_matrix, h, k, l):
 
 
 def _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl):
-    """
-    Returns (view_dir_cart, up_dir_cart) in Cartesian coordinates.
-
-    Mode 'uvw': look along real-space direction [u v w].
-                up is along the plane normal of (h k l) in reciprocal space.
-    Mode 'hkl': look along reciprocal-space direction = normal to (h k l) plane.
-                up is along real-space direction [u v w].
-    """
     lm = lattice_matrix
     a, b, c = lm[0], lm[1], lm[2]
     recip = 2 * np.pi * np.linalg.inv(lm).T
@@ -84,20 +94,6 @@ def _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl):
 
 
 def _compute_view_rotations(view_dir_cart, up_dir_cart):
-    """
-    Compute three sequential world-axis rotations (ZYZ) for py3Dmol that orient
-    the scene so view_dir_cart faces the camera (+z) and up_dir_cart is screen-up (+y).
-
-    py3Dmol convention: camera at +z looking toward -z, y is screen-up.
-    view.rotate(angle, axis) rotates the scene around the world axis.
-
-    Step 1 – rotate scene around world-Z by rot_z1:
-             brings the view_dir's xy projection onto the +x half-plane.
-    Step 2 – rotate scene around world-Y by rot_y:
-             tilts view_dir up to align with world +z (→ toward camera).
-    Step 3 – rotate scene around world-Z by rot_z2:
-             spins so that up_dir ends up pointing along world +y (screen-up).
-    """
     vd = np.asarray(view_dir_cart, dtype=float)
     norm_vd = np.linalg.norm(vd)
     if norm_vd < 1e-10:
@@ -147,13 +143,6 @@ def _compute_view_rotations(view_dir_cart, up_dir_cart):
 
 
 def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
-    """
-    Returns the 3x3 rotation matrix matching VESTA's convention:
-      Row 0 = screen-right axis  (xd) as Cartesian unit vector
-      Row 1 = screen-up axis     (ud) as Cartesian unit vector
-      Row 2 = into-screen axis   (vd) as Cartesian unit vector
-    Values are dimensionless (pure rotation matrix), matching VESTA's display.
-    """
     vd = np.asarray(view_dir_cart, dtype=float)
     vd /= np.linalg.norm(vd)
 
@@ -172,14 +161,6 @@ def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
 
 
 def _orientation_controls(key_suffix, lattice_matrix=None):
-    """
-    VESTA-style orientation control matching the dialog layout:
-    - Mode radio (project along [uvw] | project along normal to (hkl))
-    - Orientation matrix display
-    - Projection vector u,v,w  |  Upward vector h,k,l
-    - Apply button
-    - Supercell repeats
-    """
     enable = st.checkbox(
         "🔄 Set crystallographic orientation",
         value=False,
@@ -187,6 +168,15 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
     )
     if not enable:
         return None
+
+    _opts = ["Project along [u v w]", "Project along the normal to (h k l)"]
+    st.session_state.setdefault(f"orient_mode_{key_suffix}", _opts[0])
+    st.session_state.setdefault(f"orient_u_{key_suffix}", 0)
+    st.session_state.setdefault(f"orient_v_{key_suffix}", 0)
+    st.session_state.setdefault(f"orient_w_{key_suffix}", 1)
+    st.session_state.setdefault(f"orient_h_{key_suffix}", 0)
+    st.session_state.setdefault(f"orient_k_{key_suffix}", 1)
+    st.session_state.setdefault(f"orient_l_{key_suffix}", 0)
 
     PRESETS = [
         ("a",  "uvw", [1,0,0], [0,0,1]),
@@ -202,7 +192,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
     _preset_mode, _preset_uvw, _preset_hkl = None, None, None
     for col, (label, p_mode, p_uvw, p_hkl) in zip(preset_cols, PRESETS):
         if col.button(label, key=f"orient_preset_{label}_{key_suffix}", use_container_width=True):
-            _mode_str = "Project along [u v w]" if p_mode == "uvw" else "Project along the normal to (h k l)"
+            _mode_str = _opts[0] if p_mode == "uvw" else _opts[1]
             st.session_state[f"orient_mode_{key_suffix}"] = _mode_str
             st.session_state[f"orient_u_{key_suffix}"]    = p_uvw[0]
             st.session_state[f"orient_v_{key_suffix}"]    = p_uvw[1]
@@ -218,7 +208,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
 
     mode_label = st.radio(
         "Projection mode:",
-        options=["Project along [u v w]", "Project along the normal to (h k l)"],
+        options=_opts,
         key=f"orient_mode_{key_suffix}",
         horizontal=False,
     )
@@ -228,15 +218,15 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
 
     with col_proj:
         st.markdown("<div style='font-weight:600;font-size:0.85rem;margin-bottom:4px;'>Projection vector</div>", unsafe_allow_html=True)
-        u = int(st.number_input("u", value=0, step=1, format="%d", key=f"orient_u_{key_suffix}"))
-        v = int(st.number_input("v", value=0, step=1, format="%d", key=f"orient_v_{key_suffix}"))
-        w = int(st.number_input("w", value=1, step=1, format="%d", key=f"orient_w_{key_suffix}"))
+        u = int(st.number_input("u", step=1, format="%d", key=f"orient_u_{key_suffix}"))
+        v = int(st.number_input("v", step=1, format="%d", key=f"orient_v_{key_suffix}"))
+        w = int(st.number_input("w", step=1, format="%d", key=f"orient_w_{key_suffix}"))
 
     with col_up:
         st.markdown("<div style='font-weight:600;font-size:0.85rem;margin-bottom:4px;'>Upward vector</div>", unsafe_allow_html=True)
-        h = int(st.number_input("h", value=0, step=1, format="%d", key=f"orient_h_{key_suffix}"))
-        k = int(st.number_input("k", value=1, step=1, format="%d", key=f"orient_k_{key_suffix}"))
-        l = int(st.number_input("l", value=0, step=1, format="%d", key=f"orient_l_{key_suffix}"))
+        h = int(st.number_input("h", step=1, format="%d", key=f"orient_h_{key_suffix}"))
+        k = int(st.number_input("k", step=1, format="%d", key=f"orient_k_{key_suffix}"))
+        l = int(st.number_input("l", step=1, format="%d", key=f"orient_l_{key_suffix}"))
 
     uvw = [u, v, w] if not _preset_fired else _preset_uvw
     hkl = [h, k, l] if not _preset_fired else _preset_hkl
@@ -304,15 +294,16 @@ def _apply_orientation_to_view(view, lattice_matrix, mode, uvw, hkl, sx=1, sy=1,
         return False, f"Orientation failed: {e}"
 
 
-def _make_supercell_xyz(atoms, structure, sx, sy, sz):
-    lm = structure.lattice.matrix
+def _make_supercell_xyz(atoms, structure, sx, sy, sz, norm_lat=None):
+    lat = norm_lat if norm_lat is not None else structure.lattice
+    lm = lat.matrix
     rows = []
     for ai in range(sx):
         for bi in range(sy):
             for ci in range(sz):
                 tr = ai*lm[0] + bi*lm[1] + ci*lm[2]
                 for atom in atoms:
-                    cart = structure.lattice.get_cartesian_coords([atom["x"], atom["y"], atom["z"]]) + tr
+                    cart = lat.get_cartesian_coords([atom["x"], atom["y"], atom["z"]]) + tr
                     rows.append(f"{atom['element']} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
     return "\n".join([str(len(rows)), f"Supercell {sx}x{sy}x{sz}"] + rows)
 
@@ -403,16 +394,17 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
     if orientation_result is not None:
         _, _, _, _, sx, sy, sz = orientation_result
 
-    lm = structure.lattice.matrix
+    norm_lat = _vesta_lattice(structure.lattice)
+    lm = norm_lat.matrix
 
     if sx == 1 and sy == 1 and sz == 1:
         lines = [str(len(atoms)), "py3Dmol"]
         for atom in atoms:
-            cart = structure.lattice.get_cartesian_coords([atom["x"], atom["y"], atom["z"]])
+            cart = norm_lat.get_cartesian_coords([atom["x"], atom["y"], atom["z"]])
             lines.append(f"{atom['element']} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
         xyz_str = "\n".join(lines)
     else:
-        xyz_str = _make_supercell_xyz(atoms, structure, sx, sy, sz)
+        xyz_str = _make_supercell_xyz(atoms, structure, sx, sy, sz, norm_lat)
 
     view = py3Dmol.view(width=900, height=700)
     view.addModel(xyz_str, "xyz")
@@ -436,7 +428,7 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
     if show_atom_labels:
         if len(atoms) <= 200:
             for idx, atom in enumerate(atoms):
-                cart = structure.lattice.get_cartesian_coords([atom["x"], atom["y"], atom["z"]])
+                cart = norm_lat.get_cartesian_coords([atom["x"], atom["y"], atom["z"]])
                 view.addLabel(f"{atom['element']}{idx+1}", {
                     "position": {"x": float(cart[0]), "y": float(cart[1]), "z": float(cart[2])},
                     "backgroundColor": "white", "fontColor": "black", "fontSize": 12,
@@ -672,7 +664,6 @@ def _atoms_section(atoms, structure, selected_file):
                             st.info("Click once more to confirm.")
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
 
 
     display_atoms = _get_unique_wyckoff_atoms(updated_atoms) if use_unique else updated_atoms
@@ -935,7 +926,6 @@ def run_structure_editor(uploaded_files):
                 except Exception as e:
                     st.error(f"Error preparing download: {e}")
 
-    # ── tabs ──────────────────────────────────────────────────────────────────
 
     tab_viz, tab_lattice, tab_atoms, tab_export = st.tabs([
         "\U0001f52c Visualization",
@@ -966,7 +956,7 @@ def run_structure_editor(uploaded_files):
             show_labels = st.checkbox("Show atom labels",            value=False, key=f"se_labels_{selected_file}")
             orientation_result = _orientation_controls(
                 key_suffix=f"se_{selected_file}",
-                lattice_matrix=preview_struct.lattice.matrix,
+                lattice_matrix=_vesta_lattice(preview_struct.lattice).matrix,
             )
             _pl      = preview_struct.lattice
             _density = float(str(preview_struct.density).split()[0])
