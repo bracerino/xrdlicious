@@ -255,7 +255,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
             if dot_cond != 0:
                 st.caption(
                     f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward vector not strictly in projection plane. "
-                    f"Up direction will be auto-adjusted (same as VESTA)."
+                    f"Up direction will be auto-adjusted."
                 )
             view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
             M = _compute_orientation_matrix(view_dir, up_dir)
