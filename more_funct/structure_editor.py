@@ -146,17 +146,21 @@ def _compute_view_rotations(view_dir_cart, up_dir_cart):
     return rotations
 
 
-def _compute_orientation_matrix(lattice_matrix, view_dir_cart, up_dir_cart):
+def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
     """
-    Returns 3x3 matrix M where rows are the view-frame axes (right, up, toward-viewer)
-    expressed in Cartesian, and each column shows the projection of lattice vectors a,b,c.
-    Display format: rows = a,b,c  columns = view-right, view-up, view-z.
+    Returns the 3x3 rotation matrix matching VESTA's convention:
+      Row 0 = screen-right axis  (xd) as Cartesian unit vector
+      Row 1 = screen-up axis     (ud) as Cartesian unit vector
+      Row 2 = into-screen axis   (vd) as Cartesian unit vector
+    Values are dimensionless (pure rotation matrix), matching VESTA's display.
     """
-    vd = view_dir_cart / np.linalg.norm(view_dir_cart)
+    vd = np.asarray(view_dir_cart, dtype=float)
+    vd /= np.linalg.norm(vd)
 
-    ud_raw = up_dir_cart - np.dot(up_dir_cart, vd) * vd
+    ud_raw = np.asarray(up_dir_cart, dtype=float)
+    ud_raw = ud_raw - np.dot(ud_raw, vd) * vd
     if np.linalg.norm(ud_raw) < 1e-10:
-        for cand in [[0.0,1.0,0.0],[1.0,0.0,0.0],[0.0,0.0,1.0]]:
+        for cand in [[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]:
             ud_raw = np.array(cand, float) - np.dot(cand, vd) * vd
             if np.linalg.norm(ud_raw) > 1e-10:
                 break
@@ -164,13 +168,7 @@ def _compute_orientation_matrix(lattice_matrix, view_dir_cart, up_dir_cart):
     xd = np.cross(ud, vd)
     xd /= np.linalg.norm(xd)
 
-    a, b, c = lattice_matrix[0], lattice_matrix[1], lattice_matrix[2]
-    M = np.zeros((3, 3))
-    for row, vec in enumerate([a, b, c]):
-        M[row, 0] = np.dot(vec, xd)
-        M[row, 1] = np.dot(vec, ud)
-        M[row, 2] = np.dot(vec, vd)
-    return M
+    return np.array([xd, ud, vd])
 
 
 def _orientation_controls(key_suffix, lattice_matrix=None):
@@ -189,6 +187,34 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
     )
     if not enable:
         return None
+
+    PRESETS = [
+        ("a",  "uvw", [1,0,0], [0,0,1]),
+        ("b",  "uvw", [0,1,0], [1,0,0]),
+        ("c",  "uvw", [0,0,1], [0,1,0]),
+        ("a*", "hkl", [1,0,0], [0,0,1]),
+        ("b*", "hkl", [0,1,0], [1,0,0]),
+        ("c*", "hkl", [0,0,1], [0,1,0]),
+    ]
+    st.caption("Quick presets:")
+    preset_cols = st.columns(len(PRESETS))
+    _preset_fired = False
+    _preset_mode, _preset_uvw, _preset_hkl = None, None, None
+    for col, (label, p_mode, p_uvw, p_hkl) in zip(preset_cols, PRESETS):
+        if col.button(label, key=f"orient_preset_{label}_{key_suffix}", use_container_width=True):
+            _mode_str = "Project along [u v w]" if p_mode == "uvw" else "Project along the normal to (h k l)"
+            st.session_state[f"orient_mode_{key_suffix}"] = _mode_str
+            st.session_state[f"orient_u_{key_suffix}"]    = p_uvw[0]
+            st.session_state[f"orient_v_{key_suffix}"]    = p_uvw[1]
+            st.session_state[f"orient_w_{key_suffix}"]    = p_uvw[2]
+            st.session_state[f"orient_h_{key_suffix}"]    = p_hkl[0]
+            st.session_state[f"orient_k_{key_suffix}"]    = p_hkl[1]
+            st.session_state[f"orient_l_{key_suffix}"]    = p_hkl[2]
+            st.session_state["se_stored_orient"] = {
+                "active": True, "mode": p_mode, "uvw": p_uvw, "hkl": p_hkl
+            }
+            _preset_fired = True
+            _preset_mode, _preset_uvw, _preset_hkl = p_mode, p_uvw, p_hkl
 
     mode_label = st.radio(
         "Projection mode:",
@@ -212,8 +238,9 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
         k = int(st.number_input("k", value=1, step=1, format="%d", key=f"orient_k_{key_suffix}"))
         l = int(st.number_input("l", value=0, step=1, format="%d", key=f"orient_l_{key_suffix}"))
 
-    uvw = [u, v, w]
-    hkl = [h, k, l]
+    uvw = [u, v, w] if not _preset_fired else _preset_uvw
+    hkl = [h, k, l] if not _preset_fired else _preset_hkl
+    mode = mode if not _preset_fired else _preset_mode
 
     if mode == "uvw" and all(x == 0 for x in uvw):
         st.warning("⚠️ Projection vector [u v w] = [0 0 0] is not a valid direction.")
@@ -224,22 +251,28 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
 
     if lattice_matrix is not None:
         try:
+            dot_cond = hkl[0]*uvw[0] + hkl[1]*uvw[1] + hkl[2]*uvw[2]
+            if dot_cond != 0:
+                st.caption(
+                    f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward vector not strictly in projection plane. "
+                    f"Up direction will be auto-adjusted."
+                )
             view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
-            M = _compute_orientation_matrix(lattice_matrix, view_dir, up_dir)
+            M = _compute_orientation_matrix(view_dir, up_dir)
             st.markdown("<div style='font-weight:600;font-size:0.85rem;margin-top:8px;'>Orientation matrix</div>", unsafe_allow_html=True)
             st.markdown(
                 f"<div style='font-family:monospace;font-size:0.80rem;background:#f4f4f4;"
                 f"padding:8px 10px;border-radius:6px;line-height:1.7;'>"
-                f"a: {M[0,0]:+.6f}  {M[0,1]:+.6f}  {M[0,2]:+.6f}<br>"
-                f"b: {M[1,0]:+.6f}  {M[1,1]:+.6f}  {M[1,2]:+.6f}<br>"
-                f"c: {M[2,0]:+.6f}  {M[2,1]:+.6f}  {M[2,2]:+.6f}"
+                f"{M[0,0]:+.6f}  {M[0,1]:+.6f}  {M[0,2]:+.6f}<br>"
+                f"{M[1,0]:+.6f}  {M[1,1]:+.6f}  {M[1,2]:+.6f}<br>"
+                f"{M[2,0]:+.6f}  {M[2,1]:+.6f}  {M[2,2]:+.6f}"
                 f"</div>",
                 unsafe_allow_html=True,
             )
             if mode == "hkl":
                 try:
-                    d = _d_spacing(lattice_matrix, h, k, l)
-                    st.caption(f"d-spacing ({h} {k} {l}): {d:.4f} Å")
+                    d = _d_spacing(lattice_matrix, hkl[0], hkl[1], hkl[2])
+                    st.caption(f"d-spacing ({hkl[0]} {hkl[1]} {hkl[2]}): {d:.4f} Å")
                 except Exception:
                     pass
         except Exception:
@@ -253,7 +286,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
     sy = int(cy.number_input("Repeat Y", min_value=1, max_value=5, value=1, step=1, key=f"orient_sy_{key_suffix}"))
     sz = int(cz.number_input("Repeat Z", min_value=1, max_value=5, value=1, step=1, key=f"orient_sz_{key_suffix}"))
 
-    return mode, uvw, hkl, apply, sx, sy, sz
+    return mode, uvw, hkl, (apply or _preset_fired), sx, sy, sz
 
 
 def _apply_orientation_to_view(view, lattice_matrix, mode, uvw, hkl, sx=1, sy=1, sz=1):
@@ -586,7 +619,6 @@ def _atoms_section(atoms, structure, selected_file):
     add_pending_key    = f"se_add_pending_{selected_file}"
     remove_pending_key = f"se_remove_pending_{selected_file}"
 
-    # Read latest atoms from session state so any prior button action is visible
     atoms = list(st.session_state.get("se_atoms") or atoms)
     updated_atoms = list(atoms)
 
@@ -594,9 +626,6 @@ def _atoms_section(atoms, structure, selected_file):
         "✨ Show & edit unique Wyckoff positions only (changes propagate to all equivalent atoms)",
         value=False, key=f"se_unique_{selected_file}",
     )
-
-    # --- ADD / REMOVE controls rendered BEFORE atom rows ---
-    # This ensures button handlers fire and update updated_atoms before the rows are drawn.
 
     show_add = st.checkbox("➕ Add new atomic site", value=False, key=f"se_show_add_{selected_file}")
     if show_add:
@@ -642,9 +671,6 @@ def _atoms_section(atoms, structure, selected_file):
                             st.info("Click once more to confirm.")
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
-    # --- ATOM ROWS rendered AFTER add/remove buttons ---
-    # updated_atoms already reflects any add/remove that just happened above.
 
     display_atoms = _get_unique_wyckoff_atoms(updated_atoms) if use_unique else updated_atoms
 
@@ -820,7 +846,6 @@ def run_structure_editor(uploaded_files):
     lat     = structure.lattice
     formula = structure.composition.reduced_formula
 
-    # ── helpers defined inside function so they close over selected_file ──────
 
     def _build_export_struct():
         _lat_stored = st.session_state.get(f"se_lat_{selected_file}", {})
@@ -907,7 +932,6 @@ def run_structure_editor(uploaded_files):
                 except Exception as e:
                     st.error(f"Error preparing download: {e}")
 
-    # ── tabs ──────────────────────────────────────────────────────────────────
 
     tab_viz, tab_lattice, tab_atoms, tab_export = st.tabs([
         "\U0001f52c Visualization",
