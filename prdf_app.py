@@ -343,8 +343,8 @@ def make_layout(title, barmode=None):
     d = dict(
         title=dict(text=title, font=FONT),
         xaxis=dict(title=dict(text="Distance (Å)", font=FONT), tickfont=FONT),
-        yaxis=dict(title=dict(text="(P)RDF Intensity", font=FONT),
-                   tickfont=FONT, range=[0, None]),
+        yaxis=dict(title=dict(text="Pair correlation function g(r) (dimensionless)", font=FONT),
+           tickfont=FONT, range=[0, None]),
         hovermode="x",
         font=FONT,
         hoverlabel=dict(font=FONT),
