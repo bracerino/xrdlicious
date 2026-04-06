@@ -1,6 +1,8 @@
 <div align="center">
+  
 # **XRDlicious: Powder XRD/ND patterns and PRDF online calculator**
-![logo](Illu_images/logo.png)
+![logo](images/logo.png)
+
 </div>
 
 An online, web-based tool for calculating powder X-ray and neutron diffraction (XRD and ND) patterns, as well as partial and total radial distribution functions (PRDF, RDF) from crystal structures (CIF, VASP, LMP, XYZ (with cell information)).
