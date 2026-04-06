@@ -13,7 +13,7 @@ def show_xrdlicious_roadmap():
 * ⏳ Optimizing the code for better performance. 
 * ✅ Separate critical parameters (such as wavelength, new file, debye-waller factors) for diffraction patterns complete recalculations from non-critical (such as intensity scale or x-axis units) 
 * ✅ Optimized search in COD database.
-* ⏳ Repair visualization based on Wyckoff positions
+* ✅ Repair visualization based on Wyckoff positions
 #### Wavelength Input: Energy Specification
 * ✅ Allow direct input of X-ray energy (keV) for synchrotron measurements, converting to wavelength automatically.
 
@@ -36,7 +36,7 @@ def show_xrdlicious_roadmap():
 * ✅ Improve tools for background removal on uploaded experimental patterns.
 
 #### Enhanced XRD Data Conversion
-* ⏳ More accessible conversion interface - not hidden within the interactive plot.
+* ✅ More accessible conversion interface - not hidden within the interactive plot (available on https://xrd-convert.streamlit.app/, 🔄 X/Y-Axis Converter).
 * ✅ Batch operations on multiple files at once (e.g., FDS/VDS, wavelength) (available on https://xrd-convert.streamlit.app/).
 * ✅ Add conversion from PANalytical .xrdml and Rigaku .ras diffraction pattern file format to .xy file format 
 
