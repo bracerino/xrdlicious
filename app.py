@@ -135,6 +135,15 @@ with col2:
         "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. ❤️🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
     )
 
+def is_running_locally():
+    try:
+        host = st.context.headers.get("host", "")
+        return "localhost" in host or "127.0.0.1" in host
+    except:
+        return False
+
+IS_LOCAL = is_running_locally()
+
 # with col3:
 #    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
 
@@ -349,13 +358,22 @@ col3, col1, col2 = st.columns(3)
 if 'full_structures' not in st.session_state:
     st.session_state.full_structures = {}
 
+
+
+allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg"]
+if IS_LOCAL:
+    allowed_types.append("lmp")
+
 st.sidebar.subheader("📁📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload structure files (CIF, POSCAR, LMP, XSF, PW, CFG, XYZ (with cell)):",
-    type=["cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
+    "Upload structure files (CIF, POSCAR, XSF, PW, CFG, XYZ (with cell)"
+    + (", LMP" if IS_LOCAL else "") + "):",
+    type=allowed_types,
     accept_multiple_files=True,
     key="sidebar_uploader"
 )
+if not IS_LOCAL:
+    st.sidebar.caption("ℹ️ .lmp format is only supported when running locally.")
 
 st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
