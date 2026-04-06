@@ -1,6 +1,5 @@
 <div align="center">
-  
-# **XRDlicious: Powder XRD/ND patterns and PRDF calculator**
+
 ![logo](images/logo.png)
 
 </div>
@@ -45,6 +44,7 @@
   - Different **x-axis representations**
   - File formats: `.ras`, `.xrdml` ↔ `.xy`
 Common file formats (.ras, .xrdml ↔ .xy)
+
 
 
 
