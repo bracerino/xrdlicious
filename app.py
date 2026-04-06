@@ -17,6 +17,7 @@ from xrd_convert import *
 from equivalent_planes import *
 from more_funct.reorient import *
 from more_funct.citation_section import *
+from more_funct.db_results_display import show_database_results
 
 import gc
 import numpy as np
@@ -98,7 +99,7 @@ st.markdown(
             margin-left:10px;
             vertical-align:middle;
         ">
-            v0.5 • 3/30/2026
+            v0.5.1 • 6-Apr-2026
         </span>
     </h4>
     """,
@@ -398,7 +399,7 @@ def get_space_group_info(number):
 
 if show_database_search:
     with st.expander("Search for Structures Online in Databases", icon="🔍", expanded=True):
-        cols, cols2, cols3 = st.columns([1.5, 1.5, 3.5])
+        cols, cols2 = st.columns([1.5, 1.5])
         with cols:
             db_choices = st.multiselect(
                 "Select Database(s)",
@@ -1210,296 +1211,10 @@ if show_database_search:
         #     image = Image.open("images/Rabbit2.png")
         #     st.image(image, use_container_width=True)
 
-        with cols3:
-            if any(x in st.session_state for x in ['mp_options', 'aflow_options', 'cod_options', 'mc3d_options']):
-                tabs = []
-                if 'mp_options' in st.session_state and st.session_state.mp_options:
-                    tabs.append("Materials Project")
-                if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                    tabs.append("AFLOW")
-                if 'cod_options' in st.session_state and st.session_state.cod_options:
-                    tabs.append("COD")
-                if 'mc3d_options' in st.session_state and st.session_state.mc3d_options:
-                    tabs.append("MC3D")
-                if tabs:
-                    selected_tab = st.tabs(tabs)
-
-                    tab_index = 0
-                    if 'mp_options' in st.session_state and st.session_state.mp_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in Materials Project")
-                            selected_structure = st.selectbox("Select a structure from MP:",
-                                                              st.session_state.mp_options)
-                            selected_id = selected_structure.split(",")[-1].replace(":", "").strip()
-                            composition = selected_structure.split("(")[0].strip()
-                            file_name = f"{selected_id}_{composition}.cif"
-                            file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
-
-                            if selected_id in st.session_state.full_structures_see:
-                                selected_entry = st.session_state.full_structures_see[selected_id]
-
-                                conv_lattice = selected_entry.lattice
-                                cell_volume = selected_entry.lattice.volume
-                                density = str(selected_entry.density).split()[0]
-                                n_atoms = len(selected_entry)
-                                atomic_den = n_atoms / cell_volume
-
-                                structure_type = identify_structure_type(selected_entry)
-                                st.write(f"**Structure type:** {structure_type}")
-                                analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                                st.write(
-                                    f"**Material ID:** {selected_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
-
-                                st.write(
-                                    f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-                                mp_url = f"https://materialsproject.org/materials/{selected_id}"
-                                st.write(f"**Link:** {mp_url}")
-
-                                col_mpd, col_mpb = st.columns([2, 1])
-                                with col_mpd:
-                                    if st.button("Add Selected Structure (MP)", key="add_btn_mp"):
-                                        pmg_structure = st.session_state.full_structures_see[selected_id]
-                                        check_structure_size_and_warn(pmg_structure, f"MP structure {selected_id}")
-                                        st.session_state.full_structures[file_name] = pmg_structure
-                                        cif_writer = CifWriter(pmg_structure)
-                                        cif_content = cif_writer.__str__()
-                                        cif_file = io.BytesIO(cif_content.encode('utf-8'))
-                                        cif_file.name = file_name
-                                        if 'uploaded_files' not in st.session_state:
-                                            st.session_state.uploaded_files = []
-                                        if all(f.name != file_name for f in st.session_state.uploaded_files):
-                                            st.session_state.uploaded_files.append(cif_file)
-                                        st.success("Structure added from Materials Project!")
-                                with col_mpb:
-                                    st.download_button(
-                                        label="Download MP CIF",
-                                        data=str(
-                                            CifWriter(st.session_state.full_structures_see[selected_id], symprec=0.01)),
-                                        file_name=file_name,
-                                        type="primary",
-                                        mime="chemical/x-cif"
-                                    )
-                                st.info(
-                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-                        tab_index += 1
-
-                    if 'aflow_options' in st.session_state and st.session_state.aflow_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in AFLOW")
-                            st.warning(
-                                "The AFLOW does not provide atomic occupancies and includes only information about primitive cell in API. For better performance, volume and n. of atoms are purposely omitted from the expander.")
-                            selected_structure = st.selectbox("Select a structure from AFLOW:",
-                                                              st.session_state.aflow_options)
-                            selected_auid = selected_structure.split(",")[-1].strip()
-                            selected_entry = next(
-                                (entry for entry in st.session_state.entrys.values() if entry.auid == selected_auid),
-                                None)
-                            if selected_entry:
-
-                                cif_files = [f for f in selected_entry.files if
-                                             f.endswith("_sprim.cif") or f.endswith(".cif")]
-
-                                if cif_files:
-
-                                    cif_filename = cif_files[0]
-
-                                    # Correct the AURL: replace the first ':' with '/'
-
-                                    host_part, path_part = selected_entry.aurl.split(":", 1)
-
-                                    corrected_aurl = f"{host_part}/{path_part}"
-
-                                    file_url = f"http://{corrected_aurl}/{cif_filename}"
-                                    response = requests.get(file_url)
-                                    cif_content = response.content
-
-                                    structure_from_aflow = Structure.from_str(cif_content.decode('utf-8'), fmt="cif")
-                                    converted_structure = get_full_conventional_structure(structure_from_aflow,
-                                                                                          symprec=0.1)
-
-                                    conv_lattice = converted_structure.lattice
-                                    cell_volume = converted_structure.lattice.volume
-                                    density = str(converted_structure.density).split()[0]
-                                    n_atoms = len(converted_structure)
-                                    atomic_den = n_atoms / cell_volume
-
-                                    structure_type = identify_structure_type(converted_structure)
-                                    st.write(f"**Structure type:** {structure_type}")
-                                    analyzer = SpacegroupAnalyzer(structure_from_aflow)
-                                    st.write(
-                                        f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-                                    st.write(
-                                        f"**AUID:** {selected_entry.auid}, **Formula:** {selected_entry.compound}, **N. of Atoms:** {n_atoms}")
-                                    st.write(
-                                        f"**Conventional Lattice:** a = {conv_lattice.a:.4f} Å, b = {conv_lattice.b:.4f} Å, c = {conv_lattice.c:.4f} Å, α = {conv_lattice.alpha:.1f}°, β = {conv_lattice.beta:.1f}°, "
-                                        f"γ = {conv_lattice.gamma:.1f}° (Volume {cell_volume:.1f} Å³)")
-                                    st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-                                    linnk = f"https://aflowlib.duke.edu/search/ui/material/?id=" + selected_entry.auid
-                                    st.write("**Link:**", linnk)
-
-                                    if st.button("Add Selected Structure (AFLOW)", key="add_btn_aflow"):
-                                        if 'uploaded_files' not in st.session_state:
-                                            st.session_state.uploaded_files = []
-                                        cif_file = io.BytesIO(cif_content)
-                                        cif_file.name = f"{selected_entry.compound}_{selected_entry.auid}.cif"
-
-                                        st.session_state.full_structures[cif_file.name] = structure_from_aflow
-
-                                        check_structure_size_and_warn(structure_from_aflow, cif_file.name)
-                                        if all(f.name != cif_file.name for f in st.session_state.uploaded_files):
-                                            st.session_state.uploaded_files.append(cif_file)
-                                        st.success("Structure added from AFLOW!")
-
-                                    st.download_button(
-                                        label="Download AFLOW CIF",
-                                        data=cif_content,
-                                        file_name=f"{selected_entry.compound}_{selected_entry.auid}.cif",
-                                        type="primary",
-                                        mime="chemical/x-cif"
-                                    )
-                                    st.info(
-                                        f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-                                else:
-                                    st.warning("No CIF file found for this AFLOW entry.")
-                        tab_index += 1
-
-                    # COD tab
-                    if 'cod_options' in st.session_state and st.session_state.cod_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in COD")
-                            selected_cod_structure = st.selectbox(
-                                "Select a structure from COD:",
-                                st.session_state.cod_options,
-                                key='sidebar_select_cod'
-                            )
-                            cod_id = selected_cod_structure.split(",")[-1].strip()
-                            if cod_id in st.session_state.full_structures_see_cod:
-                                selected_entry = st.session_state.full_structures_see_cod[cod_id]
-                                lattice = selected_entry.lattice
-                                cell_volume = selected_entry.lattice.volume
-                                density = str(selected_entry.density).split()[0]
-                                n_atoms = len(selected_entry)
-                                atomic_den = n_atoms / cell_volume
-
-                                idcodd = cod_id.removeprefix("cod_")
-
-                                structure_type = identify_structure_type(selected_entry)
-                                st.write(f"**Structure type:** {structure_type}")
-                                analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                                st.write(
-                                    f"**COD ID:** {idcodd}, **Formula:** {selected_entry.composition.reduced_formula}, **N. of Atoms:** {n_atoms}")
-                                st.write(
-                                    f"**Conventional Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° (Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-                                cod_url = f"https://www.crystallography.net/cod/{cod_id.split('_')[1]}.html"
-                                st.write(f"**Link:** {cod_url}")
-
-                                file_name = f"{selected_entry.composition.reduced_formula}_COD_{cod_id.split('_')[1]}.cif"
-
-                                if st.button("Add Selected Structure (COD)", key="sid_add_btn_cod"):
-                                    cif_writer = CifWriter(selected_entry, symprec=0.01)
-                                    cif_data = str(cif_writer)
-                                    st.session_state.full_structures[file_name] = selected_entry
-                                    cif_file = io.BytesIO(cif_data.encode('utf-8'))
-                                    cif_file.name = file_name
-                                    if 'uploaded_files' not in st.session_state:
-                                        st.session_state.uploaded_files = []
-                                    if all(f.name != file_name for f in st.session_state.uploaded_files):
-                                        st.session_state.uploaded_files.append(cif_file)
-
-                                    check_structure_size_and_warn(selected_entry, file_name)
-                                    st.success("Structure added from COD!")
-
-                                st.download_button(
-                                    label="Download COD CIF",
-                                    data=str(CifWriter(selected_entry, symprec=0.01)),
-                                    file_name=file_name,
-                                    mime="chemical/x-cif", type="primary",
-                                )
-                                st.info(
-                                    f"**Note**: If H element is missing in CIF file, it is not shown in the formula either.")
-                        tab_index += 1
-                    # MC3D tab
-                    if 'mc3d_options' in st.session_state and st.session_state.mc3d_options:
-                        with selected_tab[tab_index]:
-                            st.subheader("🧬 Structures Found in MC3D")
-                            st.info("ℹ️ MC3D structures accessed via OPTIMADE API from Materials Cloud.")
-
-                            selected_structure = st.selectbox("Select a structure from MC3D:",
-                                                              st.session_state.mc3d_options,
-                                                              key='sidebar_select_mc3d')
-                            mc3d_id = selected_structure.split(",")[-1].strip()
-
-                            if mc3d_id in st.session_state.mc3d_structures:
-                                selected_entry = st.session_state.mc3d_structures[mc3d_id]
-
-                                lattice = selected_entry.lattice
-                                cell_volume = lattice.volume
-                                density = str(selected_entry.density).split()[0]
-                                n_atoms = len(selected_entry)
-                                atomic_den = n_atoms / cell_volume
-
-                                structure_type = identify_structure_type(selected_entry)
-                                st.write(f"**Structure type:** {structure_type}")
-
-                                analyzer = SpacegroupAnalyzer(selected_entry)
-                                st.write(
-                                    f"**Space Group:** {analyzer.get_space_group_symbol()} ({analyzer.get_space_group_number()})")
-
-                                composition = selected_entry.composition.reduced_formula
-                                st.write(
-                                    f"**MC3D ID:** {mc3d_id}, **Formula:** {composition}, **N. of Atoms:** {n_atoms}")
-                                st.write(
-                                    f"**Lattice:** a = {lattice.a:.3f} Å, b = {lattice.b:.3f} Å, c = {lattice.c:.3f} Å, "
-                                    f"α = {lattice.alpha:.2f}°, β = {lattice.beta:.2f}°, γ = {lattice.gamma:.2f}° "
-                                    f"(Volume {cell_volume:.1f} Å³)")
-                                st.write(f"**Density:** {float(density):.2f} g/cm³ ({atomic_den:.4f} 1/Å³)")
-
-                                #mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbe-v1"
-                                mc3d_url = f"https://mc3d.materialscloud.org/#/details/{mc3d_id}/pbesol-v2"
-                                st.write(f"**Link:** [View on Materials Cloud]({mc3d_url})")
-
-                                file_name = f"{mc3d_id}_{composition}.cif"
-                                file_name = re.sub(r'[\\/:"*?<>|]+', '_', file_name)
-
-                                col_mc3d1, col_mc3d2 = st.columns([1, 1])
-                                with col_mc3d1:
-                                    if st.button("Add Selected Structure (MC3D)", key="add_btn_mc3d"):
-                                        cif_writer = CifWriter(selected_entry, symprec=0.01)
-                                        cif_data = str(cif_writer)
-                                        st.session_state.full_structures[file_name] = selected_entry
-
-                                        cif_file = io.BytesIO(cif_data.encode('utf-8'))
-                                        cif_file.name = file_name
-
-                                        if 'uploaded_files' not in st.session_state:
-                                            st.session_state.uploaded_files = []
-                                        if all(f.name != file_name for f in st.session_state.uploaded_files):
-                                            st.session_state.uploaded_files.append(cif_file)
-
-                                        check_structure_size_and_warn(selected_entry, file_name)
-                                        st.success("Structure added from MC3D!")
-
-                                with col_mc3d2:
-                                    st.download_button(
-                                        label="💾 Download MC3D CIF",
-                                        data=str(CifWriter(selected_entry, symprec=0.01)),
-                                        file_name=file_name,
-                                        mime="chemical/x-cif",
-                                        type="primary"
-                                    )
-
-                        tab_index += 1
+        show_database_results()
+        st.write("")
+        st.write("")
+        st.write("")
 
 
 def validate_atom_dataframe(df):
@@ -1901,7 +1616,7 @@ def smooth_spline(x_data, y_data, smoothing_factor=300):
 
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
-    PRDF_APP_URL = "https://prdf-xrdlicious.streamlit.app/"  
+    PRDF_APP_URL = "https://prdf-xrdlicious.streamlit.app/"
     st.markdown(
         """
         <hr style="border:none;height:6px;background-color:#8b0000;
