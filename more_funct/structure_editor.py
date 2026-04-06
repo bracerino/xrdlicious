@@ -245,7 +245,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
             if dot_cond != 0:
                 st.caption(
                     f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward vector not strictly in projection plane. "
-                    f"Up direction will be auto-adjusted."
+                    f"Up direction will be auto-adjusted (same as VESTA)."
                 )
             view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
             M = _compute_orientation_matrix(view_dir, up_dir)
@@ -954,6 +954,7 @@ def run_structure_editor(uploaded_files):
             show_lv     = st.checkbox("Show lattice vectors & cell", value=True,  key=f"se_show_lv_{selected_file}")
             use_ortho   = st.checkbox("Orthographic projection",     value=False, key=f"se_ortho_{selected_file}")
             show_labels = st.checkbox("Show atom labels",            value=False, key=f"se_labels_{selected_file}")
+            show_asym   = st.checkbox("Show asymmetric unit only",   value=False, key=f"se_asym_{selected_file}")
             orientation_result = _orientation_controls(
                 key_suffix=f"se_{selected_file}",
                 lattice_matrix=_vesta_lattice(preview_struct.lattice).matrix,
@@ -972,9 +973,30 @@ def run_structure_editor(uploaded_files):
                 f"</div>",
                 unsafe_allow_html=True,
             )
+        if show_asym:
+            try:
+                sga = SpacegroupAnalyzer(preview_struct, symprec=0.1)
+                sym_data = sga.get_symmetry_dataset()
+                equiv = sym_data.equivalent_atoms
+                seen = set()
+                asym_atoms = []
+                for atom in render_atoms:
+                    si = atom["site_idx"]
+                    rep = int(equiv[si]) if si < len(equiv) else si
+                    if rep not in seen:
+                        seen.add(rep)
+                        asym_atoms.append(atom)
+                viz_atoms = asym_atoms
+                st.caption(f"Asymmetric unit: {len(viz_atoms)} of {len(render_atoms)} sites shown.")
+            except Exception as e:
+                st.caption(f"⚠️ Could not determine asymmetric unit: {e}")
+                viz_atoms = render_atoms
+        else:
+            viz_atoms = render_atoms
+
         with viz_right:
             _render_py3dmol(
-                atoms=render_atoms, structure=preview_struct,
+                atoms=viz_atoms, structure=preview_struct,
                 base_atom_size=base_atom_size, show_lattice_vectors=show_lv,
                 use_orthographic=use_ortho, show_atom_labels=show_labels,
                 orientation_result=orientation_result,
