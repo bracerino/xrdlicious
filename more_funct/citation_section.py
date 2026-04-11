@@ -70,9 +70,9 @@ def first_run_note():
                 )
             else:
                 st.warning(
-                    "We currently use free Streamlit hosting with limited RAM and will upgrade soon. "
-                    "For heavy computations, run the app locally from "
-                    "[GitHub](https://github.com/bracerino/xrdlicious)."
+                    "**We currently use free Streamlit hosting with limited RAM and will upgrade soon.** "
+                    "For heavier computations or to have a stable personal version, run the app locally from** "
+                    "**[GitHub](https://github.com/bracerino/xrdlicious).**"
                 )
 
             st.info("""
