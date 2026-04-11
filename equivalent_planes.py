@@ -1,7 +1,7 @@
 import streamlit as st
 from pymatgen.symmetry.groups import SpaceGroup
+import numpy as np
 import math
-from typing import Union
 
 SPACE_GROUP_OPTIONS = [
         '1 (P1)', '2 (P-1)', '3 (P2)', '4 (P2_1)', '5 (C2)', '6 (Pm)', '7 (Pc)',
@@ -52,29 +52,29 @@ SPACE_GROUP_OPTIONS = [
         '223 (Pm-3n)', '224 (Pn-3m)', '225 (Fm-3m)', '226 (Fm-3c)', '227 (Fd-3m)',
         '228 (Fd-3c)', '229 (Im-3m)', '230 (Ia-3d)'
     ]
+
+
 def run_equivalent_hkl_app():
+
     def get_equivalent_hkl(space_group_symbol: str, h: int, k: int, l: int):
         try:
             sg = SpaceGroup(space_group_symbol)
-            
+
             equivalent_planes = set()
-            
 
             for op in sg.symmetry_ops:
-                rotation_matrix = op.rotation_matrix
-                
-                new_hkl = rotation_matrix.dot([h, k, l])
+                R = op.rotation_matrix
+                R_inv_T = np.linalg.inv(R).T
+                new_hkl = R_inv_T.dot([h, k, l])
                 h_new, k_new, l_new = [int(round(x)) for x in new_hkl]
-                
+
                 gcd_val = math.gcd(math.gcd(abs(h_new), abs(k_new)), abs(l_new))
                 if gcd_val > 0:
                     h_reduced = h_new // gcd_val
                     k_reduced = k_new // gcd_val
                     l_reduced = l_new // gcd_val
-                    
-
                     equivalent_planes.add((h_reduced, k_reduced, l_reduced))
-            
+
             unique_families = set()
             for plane in equivalent_planes:
                 h_pl, k_pl, l_pl = plane
@@ -85,16 +85,29 @@ def run_equivalent_hkl_app():
             full_list = sorted(list(equivalent_planes))
             unique_families_list = sorted(list(unique_families))
             return unique_families_list, full_list, None
+
         except (ValueError, KeyError):
-            return [], [], f"Error: Invalid space group symbol or number '{space_group_symbol}'. Please check the input and try again."
+            return [], [], f"Error: Invalid space group symbol '{space_group_symbol}'. Please check the input."
         except Exception as e:
             return [], [], f"An unexpected error occurred: {e}"
 
+    def to_latex_overbar(n):
+        if n < 0:
+            return f"\\bar{{{abs(n)}}}"
+        return str(n)
+
+    def render_plane_latex(plane):
+        latex_hkl = ' '.join(map(to_latex_overbar, plane))
+        return f"$({latex_hkl})$"
+
+    # ── UI ──────────────────────────────────────────────────────────────────
     st.header("↔️ Equivalent (hkl) Planes Calculator")
-    st.write("Enter a space group (number or Hermann-Mauguin (international) symbol) and the Miller indices (h k l) to find all symmetrically equivalent planes (without multiples).")
+    st.write(
+        "Enter a space group and Miller indices (h k l) to find all symmetrically "
+        "equivalent planes."
+    )
 
     col1, col2 = st.columns(2)
-
     with col1:
         selected_option = st.selectbox(
             "Space Group",
@@ -103,56 +116,48 @@ def run_equivalent_hkl_app():
             help="Start typing to search by number or symbol.",
             key="hkl_space_group"
         )
-
     with col2:
-        hkl_input = st.text_input("Miller Indices (h k l)", "1 1 1", help="Enter as space-separated integers, e.g., 1 0 0", key="hkl_indices")
+        hkl_input = st.text_input(
+            "Miller Indices (h k l)", "1 0 0",
+            help="Enter as space-separated integers, e.g., 1 0 0",
+            key="hkl_indices"
+        )
 
     if st.button("Calculate Equivalent Planes", key="hkl_calculate_button"):
         try:
             h, k, l = map(int, hkl_input.split())
-            if selected_option:
-                space_group_symbol = selected_option.split('(')[1][:-1]
-            else:
-                st.error("Please select a space group.")
-                return
-
-            with st.spinner("Calculating..."):
-                unique_families_list, full_list, error_message = get_equivalent_hkl(space_group_symbol, h, k, l)
-
-                if error_message:
-                    st.error(error_message)
-                elif unique_families_list:
-
-                    num_columns = 4
-                    cols = st.columns(num_columns)
-
-                    for i, plane in enumerate(unique_families_list):
-                        col_index = i % num_columns
-
-
-                    st.markdown("---")
-                    st.markdown(f"#### Full List of Equivalent Planes ({len(full_list)} planes)")
-                    st.write(r"This list includes both $(h k l)$ and $(\bar{h} \bar{k} \bar{l})$ where applicable.")
-
-                    full_list_cols = st.columns(num_columns)
-                    for i, plane in enumerate(full_list):
-                        col_index = i % num_columns
-
-                        def to_latex_overbar(n):
-                            if n < 0:
-                                return f"\\bar{{{abs(n)}}}"
-                            return str(n)
-
-                        latex_hkl = ' '.join(map(to_latex_overbar, plane))
-                        formatted_plane_latex = f"({latex_hkl})"
-                        full_list_cols[col_index].markdown(f"$$ {formatted_plane_latex} $$")
-                    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
-
-                else:
-                    st.warning(
-                        "No equivalent planes were found. This may be expected for certain special planes and space groups.")
-
         except ValueError:
-            st.error("Invalid input for Miller indices or Space Group. Please check your inputs (e.g., '1 1 1' and '225 (Fm-3m)').")
-        except Exception as e:
-            st.error(f"An application error occurred: {e}")
+            st.error("Invalid Miller indices. Enter three space-separated integers, e.g. '1 0 0'.")
+            return
+
+        if not selected_option:
+            st.error("Please select a space group.")
+            return
+
+        space_group_symbol = selected_option.split('(')[1][:-1]
+
+        with st.spinner("Calculating..."):
+            unique_families_list, full_list, error_message = get_equivalent_hkl(
+                space_group_symbol, h, k, l
+            )
+
+        if error_message:
+            st.error(error_message)
+            return
+
+        if not unique_families_list:
+            st.warning("No equivalent planes were found. This may be expected for certain special planes and space groups.")
+            return
+
+        num_columns = 4
+
+        st.markdown(f"#### Full List of Equivalent Planes ({len(full_list)} planes)")
+        st.write(
+            r"Includes both $(hkl)$ and $(\bar{h}\bar{k}\bar{l})$ where they are "
+            r"crystallographically distinct (i.e. no inversion centre in the space group)."
+        )
+        full_cols = st.columns(num_columns)
+        for i, plane in enumerate(full_list):
+            full_cols[i % num_columns].markdown(render_plane_latex(plane))
+
+        st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
