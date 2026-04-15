@@ -40,9 +40,9 @@ except ImportError:
     DEFAULT_TWO_THETA_MAX_FOR_PRESET = {}
     DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET = {}
 
-LOCAL_MAX_PEAKS = None # Maximum number of peaks for local version
+LOCAL_MAX_PEAKS = None
 
-ONLINE_MAX_PEAKS = 1000 # Maximum number of peaks for online version
+ONLINE_MAX_PEAKS = 1000
 
 MULTI_COMPONENT_PRESETS = {
     "Cu(Ka1+Ka2)": {
@@ -352,7 +352,7 @@ def _load_mg_structure(file):
 
 def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
                             use_debye_waller, debye_waller_factors_per_file,
-                            use_rust, preset_choice):
+                            use_rust, preset_choice, max_peaks=None):
     full_range = (0.01, 179.9)
     is_multi = preset_choice in MULTI_COMPONENT_PRESETS
     raw_patterns = {}
@@ -412,9 +412,28 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
                 all_hkls.append(hg)
                 all_types.append("Kα1")
 
+        all_x = np.array(all_x)
+        all_y = np.array(all_y)
+
+        if 'pat' in dir(): del pat
+        if 'calc' in dir(): del calc
+        del mg
+
+        original_count = len(all_x)
+        if max_peaks is not None and len(all_x) > max_peaks:
+            top_idx = np.sort(np.argsort(all_y)[::-1][:max_peaks])
+            all_x = all_x[top_idx]
+            all_y = all_y[top_idx]
+            all_hkls = [all_hkls[i] for i in top_idx]
+            all_types = [all_types[i] for i in top_idx]
+
+        import gc
+        gc.collect()
+
         raw_patterns[file.name] = dict(
-            raw_x=np.array(all_x), raw_y=np.array(all_y),
+            raw_x=all_x, raw_y=all_y,
             raw_hkls=all_hkls, peak_types=all_types,
+            original_count=original_count,
         )
 
     return raw_patterns
@@ -521,7 +540,7 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                          goniometer_radius_mm=250.0,
                          max_peaks=None):
     instrumental_fwhm = sigma * 2.0 * np.sqrt(2.0 * np.log(2.0))
-    peak_reduction_notices = []
+    pattern_details = {}
     _FWHM2S = 2.0 * np.sqrt(2.0 * np.log(2.0))
     pattern_details = {}
 
@@ -556,22 +575,6 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
 
         fx = np.array(fx)
         fy = np.array(fy)
-
-        if max_peaks is not None and len(fx) > max_peaks:
-            original_count = len(fx)
-            top_idx = np.argsort(fy)[::-1][:max_peaks]
-            top_idx_ordered = np.sort(top_idx)
-            fx = fx[top_idx_ordered]
-            fy = fy[top_idx_ordered]
-            fhkls = [fhkls[i] for i in top_idx_ordered]
-            ftypes = [ftypes[i] for i in top_idx_ordered]
-            peak_reduction_notices.append(
-                f"ℹ️ **{file_name}**: the calculated pattern contains "
-                f"**{original_count:,} peaks** in the selected range. "
-                f"To keep memory usage low on this server, only the "
-                f"**top {max_peaks:,} peaks by intensity** are displayed. "
-                f"Run the app locally to see all peaks without this limit."
-            )
 
         if use_displacement and goniometer_radius_mm > 0 and len(fx) > 0:
             fx = fx + _displacement_shift(fx, displacement_mm, goniometer_radius_mm)
@@ -641,7 +644,7 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
             y_dense=y_dense,
         )
 
-    return pattern_details, peak_reduction_notices
+    return pattern_details
 
 
 def _tab_background_subtraction(user_pattern_file, x_axis_metric):
@@ -2212,7 +2215,25 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                 use_debye_waller,
                 st.session_state.get("debye_waller_factors_per_file", {}),
                 use_rust, preset_choice,
+                max_peaks=_max_peaks,
             )
+            if _max_peaks is not None:
+                _trimmed = [
+                    f"**{fname}**: {raw['original_count']:,} → {len(raw['raw_x']):,} peaks"
+                    for fname, raw in st.session_state.raw_patterns.items()
+                    if raw["original_count"] > len(raw["raw_x"])
+                ]
+                if _trimmed:
+                    st.session_state._peak_notices = (
+                            f"ℹ️ To keep memory usage low on this server, only the top "
+                            f"**{_max_peaks:,} peaks by intensity** are stored and displayed. "
+                            f"Run the app locally to see all peaks without this limit.\n\n"
+                            + "\n\n".join(f"• {t}" for t in _trimmed)
+                    )
+                else:
+                    st.session_state._peak_notices = None
+            else:
+                st.session_state._peak_notices = None
             st.session_state.raw_patterns_cache_key = current_key
             _elapsed = time.perf_counter() - _t0
             st.session_state.last_calc_time_s = _elapsed
@@ -2221,7 +2242,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                           if _elapsed < 1.0 else f"{_elapsed:.2f} s")
                 _status_ph.caption(f"⏱ Last calculation: {_t_str}")
 
-        pattern_details, _peak_notices = _process_for_display(
+        pattern_details = _process_for_display(
             st.session_state.raw_patterns,
             two_theta_min, two_theta_max,
             intensity_filter, peak_representation, sigma,
@@ -2269,13 +2290,14 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                         f"'{st.session_state.new_structure_name}' added.")
                 st.session_state.new_structure_added = False
 
-            for _notice in _peak_notices:
+            _notice = st.session_state.get("_peak_notices")
+            if _notice:
                 st.info(_notice)
 
             fig = go.Figure()
 
             if use_scherrer and peak_representation != "Delta (stick)":
-                pattern_details_no_scherrer, _ = _process_for_display(
+                pattern_details_no_scherrer = _process_for_display(
                     st.session_state.raw_patterns,
                     two_theta_min, two_theta_max,
                     intensity_filter, peak_representation, sigma,
@@ -2339,7 +2361,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                 )
 
             if use_displacement and show_original_on_plot:
-                _pattern_no_disp, _ = _process_for_display(
+                _pattern_no_disp = _process_for_display(
                     st.session_state.raw_patterns,
                     two_theta_min, two_theta_max,
                     intensity_filter, peak_representation, sigma,
