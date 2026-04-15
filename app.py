@@ -99,7 +99,7 @@ st.markdown(
             margin-left:10px;
             vertical-align:middle;
         ">
-            v0.5.1 • 6-Apr-2026
+            v0.5.2 • 15-Apr-2026
         </span>
     </h4>
     """,
@@ -1559,7 +1559,7 @@ if "parsed_exp_data" not in st.session_state:
 
 if "💥 Powder Diffraction" in calc_mode:
     from more_funct.xrd_nd_section import run_diffraction_section
-    run_diffraction_section(uploaded_files, user_pattern_file)
+    run_diffraction_section(uploaded_files, user_pattern_file, is_local=IS_LOCAL)
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
