@@ -19,6 +19,7 @@ from streamlit_plotly_events import plotly_events
 
 try:
     from xrd_rust_calculator import XRDCalculatorRust
+
     HAS_RUST = True
 except ImportError:
     HAS_RUST = False
@@ -39,67 +40,70 @@ except ImportError:
     DEFAULT_TWO_THETA_MAX_FOR_PRESET = {}
     DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET = {}
 
+LOCAL_MAX_PEAKS = None # Maximum number of peaks for local version
+
+ONLINE_MAX_PEAKS = 1000 # Maximum number of peaks for online version
 
 MULTI_COMPONENT_PRESETS = {
     "Cu(Ka1+Ka2)": {
         "wavelengths": [0.15406, 0.15444],
-        "factors":     [1.0,     1 / 2.0],
-        "labels":      ["Kα1",   "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Cu(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.15406, 0.15444, 0.13922],
-        "factors":     [1.0,     1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",   "Kα2",   "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
     "Mo(Ka1+Ka2)": {
         "wavelengths": [0.07093, 0.0711],
-        "factors":     [1.0,     1 / 2.0],
-        "labels":      ["Kα1",   "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Mo(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.07093, 0.0711, 0.064],
-        "factors":     [1.0,     1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",   "Kα2",  "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
     "Cr(Ka1+Ka2)": {
         "wavelengths": [0.22897, 0.22888],
-        "factors":     [1.0,     1 / 2.0],
-        "labels":      ["Kα1",   "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Cr(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.22897, 0.22888, 0.208],
-        "factors":     [1.0,     1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",   "Kα2",  "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
     "Fe(Ka1+Ka2)": {
         "wavelengths": [0.19360, 0.194],
-        "factors":     [1.0,     1 / 2.0],
-        "labels":      ["Kα1",   "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Fe(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.19360, 0.194, 0.176],
-        "factors":     [1.0,     1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",   "Kα2",  "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
     "Co(Ka1+Ka2)": {
         "wavelengths": [0.17889, 0.17927],
-        "factors":     [1.0,     1 / 2.0],
-        "labels":      ["Kα1",   "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Co(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.17889, 0.17927, 0.163],
-        "factors":     [1.0,     1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",   "Kα2",  "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
     "Ag(Ka1+Ka2)": {
         "wavelengths": [0.0561, 0.05634],
-        "factors":     [1.0,    1 / 2.0],
-        "labels":      ["Kα1",  "Kα2"],
+        "factors": [1.0, 1 / 2.0],
+        "labels": ["Kα1", "Kα2"],
     },
     "Ag(Ka1+Ka2+Kb1)": {
         "wavelengths": [0.0561, 0.05634, 0.0496],
-        "factors":     [1.0,    1 / 2.0, 1 / 9.0],
-        "labels":      ["Kα1",  "Kα2",  "Kβ"],
+        "factors": [1.0, 1 / 2.0, 1 / 9.0],
+        "labels": ["Kα1", "Kα2", "Kβ"],
     },
 }
 
@@ -115,43 +119,43 @@ PRESET_OPTIONS = [
 ]
 
 PRESET_WAVELENGTHS = {
-    "Copper (CuKa1)":      0.15406,
-    "Cu(Ka1+Ka2)":         0.154,
-    "CuKa2":               0.15444,
-    "Cu(Ka1+Ka2+Kb1)":     0.153339,
-    "CuKb1":               0.13922,
-    "Molybdenum (MoKa1)":  0.07093,
-    "Mo(Ka1+Ka2)":         0.071,
-    "MoKa2":               0.0711,
-    "Mo(Ka1+Ka2+Kb1)":     0.07059119,
-    "MoKb1":               0.064,
-    "Chromium (CrKa1)":    0.22897,
-    "Cr(Ka1+Ka2)":         0.229,
-    "CrKa2":               0.22888,
-    "Cr(Ka1+Ka2+Kb1)":     0.22775471,
-    "CrKb1":               0.208,
-    "Iron (FeKa1)":        0.19360,
-    "Fe(Ka1+Ka2)":         0.194,
-    "FeKa2":               0.194,
-    "Fe(Ka1+Ka2+Kb1)":     0.1927295,
-    "FeKb1":               0.176,
-    "Cobalt (CoKa1)":      0.17889,
-    "Co(Ka1+Ka2)":         0.179,
-    "CoKa2":               0.17927,
-    "Co(Ka1+Ka2+Kb1)":     0.1781100,
-    "CoKb1":               0.163,
-    "Silver (AgKa1)":      0.0561,
-    "AgKa2":               0.05634,
-    "Ag(Ka1+Ka2)":         0.0561,
-    "AgKb1":               0.0496,
-    "Ag(Ka1+Ka2+Kb1)":     0.0557006,
+    "Copper (CuKa1)": 0.15406,
+    "Cu(Ka1+Ka2)": 0.154,
+    "CuKa2": 0.15444,
+    "Cu(Ka1+Ka2+Kb1)": 0.153339,
+    "CuKb1": 0.13922,
+    "Molybdenum (MoKa1)": 0.07093,
+    "Mo(Ka1+Ka2)": 0.071,
+    "MoKa2": 0.0711,
+    "Mo(Ka1+Ka2+Kb1)": 0.07059119,
+    "MoKb1": 0.064,
+    "Chromium (CrKa1)": 0.22897,
+    "Cr(Ka1+Ka2)": 0.229,
+    "CrKa2": 0.22888,
+    "Cr(Ka1+Ka2+Kb1)": 0.22775471,
+    "CrKb1": 0.208,
+    "Iron (FeKa1)": 0.19360,
+    "Fe(Ka1+Ka2)": 0.194,
+    "FeKa2": 0.194,
+    "Fe(Ka1+Ka2+Kb1)": 0.1927295,
+    "FeKb1": 0.176,
+    "Cobalt (CoKa1)": 0.17889,
+    "Co(Ka1+Ka2)": 0.179,
+    "CoKa2": 0.17927,
+    "Co(Ka1+Ka2+Kb1)": 0.1781100,
+    "CoKb1": 0.163,
+    "Silver (AgKa1)": 0.0561,
+    "AgKa2": 0.05634,
+    "Ag(Ka1+Ka2)": 0.0561,
+    "AgKb1": 0.0496,
+    "Ag(Ka1+Ka2+Kb1)": 0.0557006,
 }
 
 PRESET_OPTIONS_NEUTRON = ["Thermal Neutrons", "Cold Neutrons", "Hot Neutrons"]
 PRESET_WAVELENGTHS_NEUTRON = {
     "Thermal Neutrons": 0.154,
-    "Cold Neutrons":    0.475,
-    "Hot Neutrons":     0.087,
+    "Cold Neutrons": 0.475,
+    "Hot Neutrons": 0.087,
 }
 
 X_AXIS_OPTIONS = [
@@ -241,12 +245,12 @@ def metric_to_twotheta(metric_value, metric, wavelength_A, wavelength_nm,
     elif metric == "energy (keV)":
         if diffraction_choice == "ND (Neutron)":
             lam_nm = np.sqrt(0.003956 / metric_value)
-            sin_t  = np.clip(lam_nm / (2 * wavelength_nm), 0, 1)
+            sin_t = np.clip(lam_nm / (2 * wavelength_nm), 0, 1)
         else:
             sin_t = np.clip(metric_value * wavelength_A / 24.796, 0, 1)
         return np.rad2deg(2 * np.arcsin(np.clip(sin_t, 0, 1)))
     elif metric == "frequency (PHz)":
-        f_Hz  = metric_value * 1e15
+        f_Hz = metric_value * 1e15
         E_keV = f_Hz / 2.418e17
         sin_t = np.clip(E_keV * wavelength_A / 24.796, 0, 1)
         return np.rad2deg(2 * np.arcsin(sin_t))
@@ -287,7 +291,6 @@ def _is_zero_hkl(hkl_group):
     return False
 
 
-
 def _file_fingerprint(f):
     try:
         size = f.size
@@ -305,7 +308,7 @@ def _file_fingerprint(f):
 def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
                use_debye_waller, debye_waller_factors_per_file, preset_choice):
     file_key = tuple(sorted(_file_fingerprint(f) for f in uploaded_files))
-    dw_key   = None
+    dw_key = None
     if use_debye_waller and debye_waller_factors_per_file:
         dw_key = tuple(
             (fn, tuple(sorted(fac.items())))
@@ -313,7 +316,6 @@ def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
         )
     return (file_key, round(wavelength_A, 7), diffraction_choice,
             use_debye_waller, dw_key, preset_choice)
-
 
 
 def _get_calculator(diffraction_choice, wavelength_A, dw_dict, use_rust):
@@ -349,10 +351,10 @@ def _load_mg_structure(file):
 
 
 def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
-                             use_debye_waller, debye_waller_factors_per_file,
-                             use_rust, preset_choice):
-    full_range   = (0.01, 179.9)
-    is_multi     = preset_choice in MULTI_COMPONENT_PRESETS
+                            use_debye_waller, debye_waller_factors_per_file,
+                            use_rust, preset_choice):
+    full_range = (0.01, 179.9)
+    is_multi = preset_choice in MULTI_COMPONENT_PRESETS
     raw_patterns = {}
 
     for file in uploaded_files:
@@ -371,7 +373,7 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
         all_x, all_y, all_hkls, all_types = [], [], [], []
 
         if is_multi:
-            comp   = MULTI_COMPONENT_PRESETS[preset_choice]
+            comp = MULTI_COMPONENT_PRESETS[preset_choice]
             labels = comp.get("labels", ["Kα1"] * len(comp["wavelengths"]))
             for ci, (wl_nm, factor) in enumerate(
                     zip(comp["wavelengths"], comp["factors"])):
@@ -412,11 +414,10 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
 
         raw_patterns[file.name] = dict(
             raw_x=np.array(all_x), raw_y=np.array(all_y),
-            raw_hkls=all_hkls,    peak_types=all_types,
+            raw_hkls=all_hkls, peak_types=all_types,
         )
 
     return raw_patterns
-
 
 
 _DENSE_X = np.linspace(0.01, 179.9, 8000)
@@ -435,15 +436,15 @@ SCHERRER_K = 0.9
 
 def _caglioti_fwhm(two_theta_deg, U, V, W):
     tan_theta = np.tan(np.deg2rad(np.asarray(two_theta_deg, dtype=float) / 2.0))
-    fwhm2 = U * tan_theta**2 + V * tan_theta + W
+    fwhm2 = U * tan_theta ** 2 + V * tan_theta + W
     return np.sqrt(np.maximum(fwhm2, 1e-8))
 
 
 def _fwhm_at_twotheta(two_theta_deg, wavelength_A, crystallite_size_nm,
-                       instrumental_fwhm_deg,
-                       use_scherrer=False,
-                       use_caglioti=False, caglioti_U=0.0,
-                       caglioti_V=0.0, caglioti_W=0.01):
+                      instrumental_fwhm_deg,
+                      use_scherrer=False,
+                      use_caglioti=False, caglioti_U=0.0,
+                      caglioti_V=0.0, caglioti_W=0.01):
     if use_caglioti:
         fwhm_instr = _caglioti_fwhm(two_theta_deg, caglioti_U, caglioti_V, caglioti_W)
     else:
@@ -457,7 +458,7 @@ def _fwhm_at_twotheta(two_theta_deg, wavelength_A, crystallite_size_nm,
     L_A = crystallite_size_nm * 10.0
     beta_rad = (SCHERRER_K * wavelength_A) / (L_A * cos_theta)
     beta_deg = np.rad2deg(beta_rad)
-    return np.sqrt(beta_deg**2 + fwhm_instr**2)
+    return np.sqrt(beta_deg ** 2 + fwhm_instr ** 2)
 
 
 def _displacement_shift(two_theta_deg, displacement_mm, radius_mm):
@@ -475,27 +476,27 @@ def _profile_curve(x_arr, peak_pos, fwhm, profile, eta=0.5, m=1.5,
 
     if profile == "Gaussian":
         sigma = _sigma_from_fwhm(fwhm)
-        y = np.exp(-dx**2 / (2.0 * sigma**2))
+        y = np.exp(-dx ** 2 / (2.0 * sigma ** 2))
 
     elif profile == "Lorentzian":
         gamma = fwhm / 2.0
-        y = 1.0 / (1.0 + (dx / gamma)**2)
+        y = 1.0 / (1.0 + (dx / gamma) ** 2)
 
     elif profile == "Pseudo-Voigt":
         sigma = _sigma_from_fwhm(fwhm)
         gamma = fwhm / 2.0
-        G = np.exp(-dx**2 / (2.0 * sigma**2))
-        L = 1.0 / (1.0 + (dx / gamma)**2)
+        G = np.exp(-dx ** 2 / (2.0 * sigma ** 2))
+        L = 1.0 / (1.0 + (dx / gamma) ** 2)
         y = eta * L + (1.0 - eta) * G
 
     elif profile == "Pearson VII":
-        denom = 2.0 * np.sqrt(2.0**(1.0 / m) - 1.0)
+        denom = 2.0 * np.sqrt(2.0 ** (1.0 / m) - 1.0)
         w = fwhm / denom if denom > 0 else fwhm
-        y = (1.0 + (dx / w)**2) ** (-m)
+        y = (1.0 + (dx / w) ** 2) ** (-m)
 
     else:
         sigma = _sigma_from_fwhm(fwhm)
-        y = np.exp(-dx**2 / (2.0 * sigma**2))
+        y = np.exp(-dx ** 2 / (2.0 * sigma ** 2))
 
     if norm == "height":
         peak_max = float(np.max(y))
@@ -517,8 +518,10 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                          use_caglioti=False, caglioti_U=0.0,
                          caglioti_V=0.0, caglioti_W=0.01,
                          use_displacement=False, displacement_mm=0.0,
-                         goniometer_radius_mm=250.0):
+                         goniometer_radius_mm=250.0,
+                         max_peaks=None):
     instrumental_fwhm = sigma * 2.0 * np.sqrt(2.0 * np.log(2.0))
+    peak_reduction_notices = []
     _FWHM2S = 2.0 * np.sqrt(2.0 * np.log(2.0))
     pattern_details = {}
 
@@ -537,8 +540,8 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
 
         in_range = (raw_x >= two_theta_min) & (raw_x <= two_theta_max)
         y_in_rng = raw_y[in_range]
-        max_rng  = float(np.max(y_in_rng)) if len(y_in_rng) > 0 else 1.0
-        thresh   = (intensity_filter / 100.0) * max_rng if intensity_filter > 0 else 0.0
+        max_rng = float(np.max(y_in_rng)) if len(y_in_rng) > 0 else 1.0
+        thresh = (intensity_filter / 100.0) * max_rng if intensity_filter > 0 else 0.0
 
         fx, fy, fhkls, ftypes = [], [], [], []
         for i in range(len(raw_x)):
@@ -553,6 +556,22 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
 
         fx = np.array(fx)
         fy = np.array(fy)
+
+        if max_peaks is not None and len(fx) > max_peaks:
+            original_count = len(fx)
+            top_idx = np.argsort(fy)[::-1][:max_peaks]
+            top_idx_ordered = np.sort(top_idx)
+            fx = fx[top_idx_ordered]
+            fy = fy[top_idx_ordered]
+            fhkls = [fhkls[i] for i in top_idx_ordered]
+            ftypes = [ftypes[i] for i in top_idx_ordered]
+            peak_reduction_notices.append(
+                f"ℹ️ **{file_name}**: the calculated pattern contains "
+                f"**{original_count:,} peaks** in the selected range. "
+                f"To keep memory usage low on this server, only the "
+                f"**top {max_peaks:,} peaks by intensity** are displayed. "
+                f"Run the app locally to see all peaks without this limit."
+            )
 
         if use_displacement and goniometer_radius_mm > 0 and len(fx) > 0:
             fx = fx + _displacement_shift(fx, displacement_mm, goniometer_radius_mm)
@@ -583,8 +602,8 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                 y_dense += inten * curve
 
         if y_axis_scale != "Linear":
-            y_dense    = convert_intensity_scale(y_dense, y_axis_scale)
-            fy_display = convert_intensity_scale(fy,      y_axis_scale)
+            y_dense = convert_intensity_scale(y_dense, y_axis_scale)
+            fy_display = convert_intensity_scale(fy, y_axis_scale)
         else:
             fy_display = fy.copy()
 
@@ -602,7 +621,7 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
             if len(fx) > 0 else np.array([])
         )
 
-        ka1_idx  = [i for i, pt in enumerate(ftypes) if pt == "Kα1"]
+        ka1_idx = [i for i, pt in enumerate(ftypes) if pt == "Kα1"]
         if ka1_idx and len(fy_display) > 0:
             sorted_ka1 = sorted(
                 ((i, float(fy_display[i])) for i in ka1_idx),
@@ -622,9 +641,7 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
             y_dense=y_dense,
         )
 
-    return pattern_details
-
-
+    return pattern_details, peak_reduction_notices
 
 
 def _tab_background_subtraction(user_pattern_file, x_axis_metric):
@@ -647,7 +664,6 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
         selected_file_obj = files[0]
         selected_exp_name = selected_file_obj.name
 
-    # ── parse the file regardless of format ──────────────────────────────
     try:
         x_exp, y_exp = _load_exp_xy(selected_file_obj)
     except Exception as e:
@@ -666,6 +682,10 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 "x": x_exp.copy(), "y": y_exp.copy()
             }
 
+        _orig = st.session_state.original_exp_data.get(selected_exp_name)
+        if _orig is not None:
+            x_exp, y_exp = _orig["x"].copy(), _orig["y"].copy()
+
         bg_method = st.radio(
             "Background Estimation Method",
             ["None", "Polynomial Fit", "SNIP Algorithm",
@@ -674,8 +694,16 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
         )
 
         if bg_method == "None":
+
+            st.session_state.use_bg_subtracted = False
+            st.session_state.active_bg_subtracted_file = None
+
+            orig = st.session_state.get("original_exp_data", {}).get(selected_exp_name)
+            x_plot = orig["x"] if orig is not None else x_exp
+            y_plot = orig["y"] if orig is not None else y_exp
+
             fig_raw = go.Figure()
-            fig_raw.add_trace(go.Scatter(x=x_exp, y=y_exp, mode="lines",
+            fig_raw.add_trace(go.Scatter(x=x_plot, y=y_plot, mode="lines",
                                          name="Data", line=dict(color="black", width=2)))
             fig_raw.update_layout(
                 title="Experimental Data Preview",
@@ -683,6 +711,39 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 height=450, hovermode="x unified",
             )
             st.plotly_chart(fig_raw, use_container_width=True)
+
+            _has_permanent = (
+                    "permanent_exp_data" in st.session_state
+                    and selected_exp_name in st.session_state.permanent_exp_data
+            )
+            if _has_permanent:
+                st.warning(
+                    f"A background subtraction is currently permanently applied "
+                    f"to **{selected_exp_name}**. Click below to restore the "
+                    f"original data."
+                )
+                if st.button(
+                        "↩️ Remove Background Subtraction & Restore Original Data",
+                        type="primary",
+                        key="reset_bg_btn",
+                ):
+                    del st.session_state.permanent_exp_data[selected_exp_name]
+                    st.success(
+                        f"Background subtraction removed. "
+                        f"Original data restored for **{selected_exp_name}**."
+                    )
+            else:
+                st.info("No background subtraction is currently applied.")
+
+            dl_orig = "\n".join(
+                f"{x:.6f}  {y:.6f}" for x, y in zip(x_plot, y_plot)
+            )
+            st.download_button(
+                "💾 Download Experimental Data (.xy)",
+                data="# X-axis  Intensity\n" + dl_orig,
+                file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_experimental.xy",
+                mime="text/plain",
+            )
             return
 
         from scipy.signal import savgol_filter as _savgol
@@ -702,26 +763,34 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 except Exception:
                     fitted = ywork
                 ywork = np.minimum(ywork, fitted)
-            coeffs     = np.polyfit(xs, ywork, poly_degree)
-            bg_sorted  = np.polyval(coeffs, xs)
-            unsort     = np.argsort(sort_idx)
+            coeffs = np.polyfit(xs, ywork, poly_degree)
+            bg_sorted = np.polyval(coeffs, xs)
+            unsort = np.argsort(sort_idx)
             background = bg_sorted[unsort]
 
         elif bg_method == "SNIP Algorithm":
-            snip_iters  = st.slider("SNIP Iterations", 1, 100, 20, 1)
-            snip_window = st.slider("Window Size", 3, 101, 21, 2)
-            if snip_window % 2 == 0:
-                snip_window += 1
-            half = snip_window // 2
-            y_bg = y_exp.copy()
-            for _ in range(snip_iters):
-                for i in range(half, len(y_exp) - half):
-                    y_bg[i] = min(y_bg[i],
-                                  min(y_bg[i - half], y_bg[i + half]))
-            background = y_bg
+            snip_iters = st.slider(
+                "SNIP Iterations (M)", 1, 100, 20, 1,
+                help="Controls the maximum half-width of spectral features "
+                     "that are removed. Larger M removes broader peaks / "
+                     "follows a more gradually varying baseline."
+            )
+
+            v = np.log(np.log(np.sqrt(np.maximum(y_exp, 0.0) + 1.0) + 1.0) + 1.0)
+
+            for p in range(1, snip_iters + 1):
+                avg = (np.roll(v, p) + np.roll(v, -p)) / 2.0
+                v_new = np.minimum(v, avg)
+                v_new[:p] = v[:p]
+                v_new[-p:] = v[-p:]
+                v = v_new
+
+            background = np.maximum(
+                (np.exp(np.exp(v) - 1.0) - 1.0) ** 2 - 1.0, 0.0
+            )
 
         elif bg_method == "Rolling Ball Algorithm":
-            ball_radius   = st.slider("Ball Radius", 1, 100, 30, 1)
+            ball_radius = st.slider("Ball Radius", 1, 100, 30, 1)
             ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1)
             ys = y_exp.copy()
             if ball_smoothing > 0:
@@ -764,18 +833,11 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
             z = y.copy()
             for _ in range(n_iter):
                 W = _sp_diags(w, 0, shape=(n, n))
-                #z = _spsolve(W + H, w * y)
                 z = _spsolve((W + H).tocsc(), w * y)
                 w = p * (y > z) + (1 - p) * (y <= z)
             background = z
 
         y_bg_sub = np.maximum(0, y_exp - background)
-
-        if "bg_subtracted_data" not in st.session_state:
-            st.session_state.bg_subtracted_data = {}
-        st.session_state.bg_subtracted_data[selected_exp_name] = {
-            "x": x_exp, "y": y_bg_sub, "background": background,
-        }
 
         if st.button("Permanently Apply This Background Subtraction",
                      type="primary"):
@@ -785,9 +847,16 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 "x": x_exp.copy(), "y": y_bg_sub.copy(),
                 "background": background.copy(),
             }
+            if "bg_subtracted_data" not in st.session_state:
+                st.session_state.bg_subtracted_data = {}
+            st.session_state.bg_subtracted_data[selected_exp_name] = {
+                "x": x_exp, "y": y_bg_sub, "background": background,
+            }
+            st.session_state.use_bg_subtracted = True
+            st.session_state.active_bg_subtracted_file = selected_exp_name
             st.success(f"Background subtraction applied to {selected_exp_name}!")
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 dl_data = "\n".join(
                     f"{r[0]:.6f}  {r[1]:.6f}"
@@ -810,12 +879,26 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                     file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_background.xy",
                     mime="text/plain", type="primary",
                 )
+            with col3:
+                orig = st.session_state.get("original_exp_data", {}).get(selected_exp_name)
+                x_orig_dl = orig["x"] if orig is not None else x_exp
+                y_orig_dl = orig["y"] if orig is not None else x_exp
+                dl_orig = "\n".join(
+                    f"{r[0]:.6f}  {r[1]:.6f}"
+                    for r in np.column_stack((x_orig_dl, y_orig_dl))
+                )
+                st.download_button(
+                    "💾 Download Original Experimental Data (.xy)",
+                    data="# X-axis  Intensity (Original)\n" + dl_orig,
+                    file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_original.xy",
+                    mime="text/plain",
+                )
 
         fig_bg = go.Figure()
         for trace_y, name, color in [
-            (y_exp,      "Original Data",        "black"),
+            (y_exp, "Original Data", "black"),
             (background, "Estimated Background", "red"),
-            (y_bg_sub,   "After Subtraction",    "blue"),
+            (y_bg_sub, "After Subtraction", "blue"),
         ]:
             fig_bg.add_trace(go.Scatter(
                 x=x_exp, y=trace_y, mode="lines", name=name,
@@ -834,18 +917,13 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
         )
         st.plotly_chart(fig_bg, use_container_width=True)
 
-        use_bg = st.checkbox("Use background-subtracted data for visualization",
-                             value=True)
-        st.session_state.use_bg_subtracted       = use_bg
-        st.session_state.active_bg_subtracted_file = selected_exp_name if use_bg \
-            else None
-
     except Exception as exc:
         st.error(f"Error processing {selected_exp_name}: {exc}")
 
+
 def _load_exp_xy(file_obj):
     fname = file_obj.name
-    ext   = fname.lower().rsplit(".", 1)[-1]
+    ext = fname.lower().rsplit(".", 1)[-1]
 
     if ("permanent_exp_data" in st.session_state
             and fname in st.session_state.permanent_exp_data):
@@ -876,13 +954,13 @@ def _load_exp_xy(file_obj):
 
             dp = f"{prefix}xrdMeasurement/{prefix}scan/{prefix}dataPoints"
             start = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}startPosition")
-            end   = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}endPosition")
-            ints  = _ft(f"{dp}/{prefix}intensities")
+            end = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}endPosition")
+            ints = _ft(f"{dp}/{prefix}intensities")
 
             if start is not None and end is not None and ints is not None:
-                intensities  = np.array(ints.split(), dtype=float)
-                two_theta    = np.linspace(float(start), float(end),
-                                           len(intensities))
+                intensities = np.array(ints.split(), dtype=float)
+                two_theta = np.linspace(float(start), float(end),
+                                        len(intensities))
                 return two_theta, intensities
             st.warning(f"Could not locate data nodes in '{fname}'.")
         except Exception as exc:
@@ -926,13 +1004,12 @@ def _load_exp_xy(file_obj):
     return df.iloc[:, 0].values, df.iloc[:, 1].values
 
 
-
 def _add_exp_traces(fig, user_pattern_file, intensity_scale_option,
                     y_axis_scale, two_theta_min, two_theta_max, x_axis_metric,
                     wavelength_A, wavelength_nm, diffraction_choice):
     if not user_pattern_file:
         return
-    files  = user_pattern_file if isinstance(user_pattern_file, list) \
+    files = user_pattern_file if isinstance(user_pattern_file, list) \
         else [user_pattern_file]
     colors = ["black", "brown", "grey", "purple"]
 
@@ -970,7 +1047,7 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
     tab10 = plt.cm.tab10.colors
 
     for idx, file in enumerate(uploaded_files):
-        fname   = file.name
+        fname = file.name
         if fname not in pattern_details:
             continue
         details = pattern_details[fname]
@@ -1000,7 +1077,7 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
             pt_style = {
                 "Kα1": dict(opacity=0.18, width=1.2, dash="solid"),
                 "Kα2": dict(opacity=0.12, width=0.9, dash="dot"),
-                "Kβ":  dict(opacity=0.10, width=0.8, dash="dash"),
+                "Kβ": dict(opacity=0.10, width=0.8, dash="dash"),
             }
             for pt, g in stem_groups.items():
                 style = pt_style.get(pt, dict(opacity=0.10, width=0.8, dash="dot"))
@@ -1028,7 +1105,7 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
                 groups = {}
                 for i, pv in enumerate(details["peak_vals"]):
                     can = metric_to_twotheta(pv, x_axis_metric, wavelength_A,
-                                            wavelength_nm, diffraction_choice)
+                                             wavelength_nm, diffraction_choice)
                     if not (two_theta_min <= can <= two_theta_max):
                         continue
                     pt = details["peak_types"][i]
@@ -1040,24 +1117,24 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
 
                 for pt, data in groups.items():
                     if pt == "Kα1":
-                        pt_color   = base_color
-                        dash_type  = "solid"
+                        pt_color = base_color
+                        dash_type = "solid"
                         skip_hover = False
                     elif pt == "Kα2":
-                        pt_color   = rgb_color(tab10[idx % len(tab10)],
-                                               opacity=0.6)
-                        dash_type  = "dot"
+                        pt_color = rgb_color(tab10[idx % len(tab10)],
+                                             opacity=0.6)
+                        dash_type = "dot"
                         skip_hover = True
                     else:
-                        pt_color   = rgb_color(tab10[idx % len(tab10)],
-                                               opacity=0.4)
-                        dash_type  = "dash"
+                        pt_color = rgb_color(tab10[idx % len(tab10)],
+                                             opacity=0.4)
+                        dash_type = "dash"
                         skip_hover = True
 
                     vx, vy, vh = [], [], []
                     for j in range(len(data["x"])):
                         vx.extend([data["x"][j], data["x"][j], None])
-                        vy.extend([0,             data["y"][j], None])
+                        vy.extend([0, data["y"][j], None])
                         vh.extend([data["hover"][j], data["hover"][j], None])
 
                     fig.add_trace(go.Scatter(
@@ -1082,7 +1159,7 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
                 vx, vy, vh = [], [], []
                 for i, pv in enumerate(details["peak_vals"]):
                     can = metric_to_twotheta(pv, x_axis_metric, wavelength_A,
-                                            wavelength_nm, diffraction_choice)
+                                             wavelength_nm, diffraction_choice)
                     if not (two_theta_min <= can <= two_theta_max):
                         continue
                     vx.extend([pv, pv, None])
@@ -1107,7 +1184,6 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
                 line=dict(color=base_color, width=line_thickness),
                 hoverinfo="skip",
             ))
-
 
 
 def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
@@ -1157,16 +1233,16 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
     for file in uploaded_files:
         try:
             struct = load_structure(file)
-            sga    = SpacegroupAnalyzer(struct)
+            sga = SpacegroupAnalyzer(struct)
             sg_infos[file.name] = {
-                "symbol":        sga.get_space_group_symbol(),
-                "operations":    sga.get_space_group_operations(),
+                "symbol": sga.get_space_group_symbol(),
+                "operations": sga.get_space_group_operations(),
                 "crystal_system": sga.get_crystal_system(),
             }
         except Exception:
             sg_infos[file.name] = {
-                "symbol":        "Unknown",
-                "operations":    None,
+                "symbol": "Unknown",
+                "operations": None,
                 "crystal_system": "unknown",
             }
 
@@ -1175,15 +1251,15 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         st.write(f"• {fn}: {info['symbol']} ({info['crystal_system']})")
 
     fig_ann = go.Figure(fig_interactive)
-    total   = 0
+    total = 0
 
     for file in uploaded_files:
-        fname   = file.name
+        fname = file.name
         if fname not in pattern_details:
             continue
         details = pattern_details[fname]
-        info    = sg_infos.get(fname, {})
-        multis  = _multiples(
+        info = sg_infos.get(fname, {})
+        multis = _multiples(
             plane_hkl, max_m,
             info.get("operations"),
             info.get("crystal_system", "unknown"),
@@ -1215,7 +1291,7 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                 marker=dict(size=12, color="red", symbol="diamond",
                             line=dict(width=2, color="darkred")),
                 name=f"{fname} – {plane_hkl} family "
-                     f"({info.get('symbol','?')})",
+                     f"({info.get('symbol', '?')})",
             ))
 
     fig_ann.update_layout(
@@ -1229,14 +1305,13 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
     )
 
 
-
 def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
     import base64
 
     st.subheader("Quantitative Data for Calculated Diffraction Patterns")
 
     for file in uploaded_files:
-        fname   = file.name
+        fname = file.name
         if fname not in pattern_details:
             continue
         details = pattern_details[fname]
@@ -1277,11 +1352,11 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
         )
         if st.session_state[btn_key]:
             df = pd.DataFrame({
-                "X-axis":  details["x_dense_full"],
+                "X-axis": details["x_dense_full"],
                 "Y-value": details["y_dense"],
             })
-            csv  = df.to_csv(index=False)
-            b64  = base64.b64encode(csv.encode()).decode()
+            csv = df.to_csv(index=False)
+            b64 = base64.b64encode(csv.encode()).decode()
             link = (f'<a href="data:file/csv;base64,{b64}" '
                     f'download="curve_{fname.replace(".", "_")}.csv">'
                     f'Download Continuous Curve Data for {fname}</a>')
@@ -1293,18 +1368,17 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
         with st.expander("📊 Combined Peak Data", expanded=True):
             rows = []
             for file in uploaded_files:
-                fname   = file.name
+                fname = file.name
                 if fname not in pattern_details:
                     continue
                 details = pattern_details[fname]
                 for pv, inten, hg in zip(details["peak_vals"],
-                                          details["intensities"],
-                                          details["hkls"]):
+                                         details["intensities"],
+                                         details["hkls"]):
                     rows.append([float(pv), float(inten), hkl_str(hg), fname])
             df_comb = pd.DataFrame(
                 rows, columns=[x_axis_metric, "Intensity", "(hkl)", "Phase"])
             st.dataframe(df_comb)
-
 
 
 def _diffraction_settings_ui():
@@ -1386,18 +1460,18 @@ def _diffraction_settings_ui():
             prev_diff = st.session_state.get("_prev_diffraction_choice")
             if prev_diff != diffraction_choice:
                 if diffraction_choice == "XRD (X-ray)":
-                    st.session_state.wavelength_value  = PRESET_WAVELENGTHS["Cobalt (CoKa1)"]
-                    st.session_state.preset_choice     = "Cobalt (CoKa1)"
-                    st.session_state._prev_preset      = "Cobalt (CoKa1)"
-                    st.session_state.two_theta_max     = 165.0
-                    st.session_state.two_theta_min     = 5.0
+                    st.session_state.wavelength_value = PRESET_WAVELENGTHS["Cobalt (CoKa1)"]
+                    st.session_state.preset_choice = "Cobalt (CoKa1)"
+                    st.session_state._prev_preset = "Cobalt (CoKa1)"
+                    st.session_state.two_theta_max = 165.0
+                    st.session_state.two_theta_min = 5.0
                 else:
-                    st.session_state.wavelength_value       = PRESET_WAVELENGTHS_NEUTRON["Thermal Neutrons"]
-                    st.session_state.preset_choice_neutron  = "Thermal Neutrons"
-                    st.session_state._prev_preset_nd        = "Thermal Neutrons"
-                    st.session_state.two_theta_max          = 165.0
-                    st.session_state.two_theta_min          = 5.0
-                st.session_state.input_mode      = "Preset"
+                    st.session_state.wavelength_value = PRESET_WAVELENGTHS_NEUTRON["Thermal Neutrons"]
+                    st.session_state.preset_choice_neutron = "Thermal Neutrons"
+                    st.session_state._prev_preset_nd = "Thermal Neutrons"
+                    st.session_state.two_theta_max = 165.0
+                    st.session_state.two_theta_min = 5.0
+                st.session_state.input_mode = "Preset"
                 st.session_state.last_input_mode = "Preset"
                 st.session_state.raw_patterns_cache_key = None
                 st.session_state["_prev_diffraction_choice"] = diffraction_choice
@@ -1407,7 +1481,7 @@ def _diffraction_settings_ui():
             else:
                 wavelength_value, preset_choice = _nd_wavelength_ui()
 
-            wavelength_A  = wavelength_value * 10.0
+            wavelength_A = wavelength_value * 10.0
             wavelength_nm = wavelength_value
 
             _, col_ann = st.columns(2)
@@ -1452,7 +1526,7 @@ def _diffraction_settings_ui():
                 opts = (X_AXIS_OPTIONS_NEUTRON if diffraction_choice == "ND (Neutron)"
                         else X_AXIS_OPTIONS)
                 x_axis_metric = st.selectbox("X-axis metric", opts,
-                                              key="x_axis_metric")
+                                             key="x_axis_metric")
             with col_y:
                 y_axis_scale = st.selectbox(
                     "Y-axis scale",
@@ -1461,7 +1535,7 @@ def _diffraction_settings_ui():
                 )
 
             y_axis_title = {
-                "Linear":      "Intensity (a.u.)",
+                "Linear": "Intensity (a.u.)",
                 "Square Root": "√Intensity (a.u.)",
                 "Logarithmic": "log₁₀(Intensity) (a.u.)",
             }[y_axis_scale]
@@ -1646,19 +1720,19 @@ def _diffraction_settings_ui():
             if is_delta:
                 st.info("Delta (stick) uses no broadening — switch to another "
                         "profile to enable peak shape and broadening parameters.")
-                sigma               = st.session_state.get("sigma", 0.050)
-                pseudo_voigt_eta    = st.session_state.get("pseudo_voigt_eta", 0.5)
-                pearson_m           = st.session_state.get("pearson_m", 1.5)
-                use_scherrer        = False
+                sigma = st.session_state.get("sigma", 0.050)
+                pseudo_voigt_eta = st.session_state.get("pseudo_voigt_eta", 0.5)
+                pearson_m = st.session_state.get("pearson_m", 1.5)
+                use_scherrer = False
                 crystallite_size_nm = st.session_state.get("crystallite_size_nm", 100.0)
-                show_delta_ref      = True
-                profile_norm        = st.session_state.get("profile_norm", "area")
-                use_caglioti        = st.session_state.get("use_caglioti", False)
-                caglioti_U          = st.session_state.get("caglioti_U", 0.01)
-                caglioti_V          = st.session_state.get("caglioti_V", -0.002)
-                caglioti_W          = st.session_state.get("caglioti_W", 0.005)
-                use_displacement     = st.session_state.get("use_displacement", False)
-                displacement_mm      = st.session_state.get("displacement_mm", 0.0)
+                show_delta_ref = True
+                profile_norm = st.session_state.get("profile_norm", "area")
+                use_caglioti = st.session_state.get("use_caglioti", False)
+                caglioti_U = st.session_state.get("caglioti_U", 0.01)
+                caglioti_V = st.session_state.get("caglioti_V", -0.002)
+                caglioti_W = st.session_state.get("caglioti_W", 0.005)
+                use_displacement = st.session_state.get("use_displacement", False)
+                displacement_mm = st.session_state.get("displacement_mm", 0.0)
                 goniometer_radius_mm = st.session_state.get("goniometer_radius_mm", 250.0)
             else:
                 show_delta_ref = st.checkbox(
@@ -1674,7 +1748,7 @@ def _diffraction_settings_ui():
                     sigma = st.number_input(
                         "Instrumental σ (°)",
                         min_value=0.01, max_value=5.0,
-                        value = 0.05,
+                        value=0.05,
                         step=0.01, format="%.2f", key="sigma",
                         help="Gaussian σ for the instrumental broadening contribution. "
                              "FWHM = σ × 2√(2 ln 2) = 2.354820 × σ",
@@ -1815,7 +1889,6 @@ def _diffraction_settings_ui():
             show_original_on_plot)
 
 
-
 def _debye_waller_ui():
     st.markdown("### 🔥 Debye-Waller B-factors")
     if "debye_waller_factors_per_file" not in st.session_state:
@@ -1823,22 +1896,22 @@ def _debye_waller_ui():
 
     preset_map = {
         "Room Temperature (300K)": {
-            "H":1.1,"C":0.8,"N":0.9,"O":0.7,"F":0.8,"Na":1.1,"Mg":0.5,
-            "Al":0.6,"Si":0.5,"P":0.7,"S":0.6,"Cl":0.8,"K":1.2,"Ca":0.6,
-            "Ti":0.4,"V":0.4,"Cr":0.4,"Mn":0.5,"Fe":0.4,"Co":0.4,"Ni":0.4,
-            "Cu":0.5,"Zn":0.6,"Ga":0.7,"Ge":0.6,
+            "H": 1.1, "C": 0.8, "N": 0.9, "O": 0.7, "F": 0.8, "Na": 1.1, "Mg": 0.5,
+            "Al": 0.6, "Si": 0.5, "P": 0.7, "S": 0.6, "Cl": 0.8, "K": 1.2, "Ca": 0.6,
+            "Ti": 0.4, "V": 0.4, "Cr": 0.4, "Mn": 0.5, "Fe": 0.4, "Co": 0.4, "Ni": 0.4,
+            "Cu": 0.5, "Zn": 0.6, "Ga": 0.7, "Ge": 0.6,
         },
         "Low Temperature (100K)": {
-            "H":0.6,"C":0.4,"N":0.5,"O":0.3,"F":0.4,"Na":0.6,"Mg":0.3,
-            "Al":0.3,"Si":0.2,"P":0.3,"S":0.3,"Cl":0.4,"K":0.7,"Ca":0.3,
-            "Ti":0.2,"V":0.2,"Cr":0.2,"Mn":0.3,"Fe":0.2,"Co":0.2,"Ni":0.2,
-            "Cu":0.3,"Zn":0.3,"Ga":0.4,"Ge":0.3,
+            "H": 0.6, "C": 0.4, "N": 0.5, "O": 0.3, "F": 0.4, "Na": 0.6, "Mg": 0.3,
+            "Al": 0.3, "Si": 0.2, "P": 0.3, "S": 0.3, "Cl": 0.4, "K": 0.7, "Ca": 0.3,
+            "Ti": 0.2, "V": 0.2, "Cr": 0.2, "Mn": 0.3, "Fe": 0.2, "Co": 0.2, "Ni": 0.2,
+            "Cu": 0.3, "Zn": 0.3, "Ga": 0.4, "Ge": 0.3,
         },
         "High Temperature (500K)": {
-            "H":1.8,"C":1.3,"N":1.5,"O":1.2,"F":1.3,"Na":1.8,"Mg":0.9,
-            "Al":1.0,"Si":0.8,"P":1.2,"S":1.0,"Cl":1.4,"K":2.0,"Ca":1.0,
-            "Ti":0.7,"V":0.7,"Cr":0.7,"Mn":0.8,"Fe":0.7,"Co":0.7,"Ni":0.7,
-            "Cu":0.8,"Zn":1.0,"Ga":1.2,"Ge":1.0,
+            "H": 1.8, "C": 1.3, "N": 1.5, "O": 1.2, "F": 1.3, "Na": 1.8, "Mg": 0.9,
+            "Al": 1.0, "Si": 0.8, "P": 1.2, "S": 1.0, "Cl": 1.4, "K": 2.0, "Ca": 1.0,
+            "Ti": 0.7, "V": 0.7, "Cr": 0.7, "Mn": 0.8, "Fe": 0.7, "Co": 0.7, "Ni": 0.7,
+            "Cu": 0.8, "Zn": 1.0, "Ga": 1.2, "Ge": 1.0,
         },
     }
 
@@ -1851,9 +1924,9 @@ def _debye_waller_ui():
     with pc2:
         apply_btn = False
         if apply_preset != "Custom (No Preset)":
-            st.write(f"Example: Si={preset_map[apply_preset].get('Si','N/A')} Å², "
-                     f"O={preset_map[apply_preset].get('O','N/A')} Å², "
-                     f"Fe={preset_map[apply_preset].get('Fe','N/A')} Å²")
+            st.write(f"Example: Si={preset_map[apply_preset].get('Si', 'N/A')} Å², "
+                     f"O={preset_map[apply_preset].get('O', 'N/A')} Å², "
+                     f"Fe={preset_map[apply_preset].get('Fe', 'N/A')} Å²")
             apply_btn = st.button("Apply preset to all files")
 
     if "uploaded_files" not in st.session_state:
@@ -1866,7 +1939,7 @@ def _debye_waller_ui():
         st.markdown(f"**{fkey}**")
         try:
             struct = load_structure(fkey)
-            elems  = sorted({
+            elems = sorted({
                 sp.symbol
                 for site in struct
                 for sp in (site.species if not site.is_ordered else [site.specie])
@@ -1884,7 +1957,6 @@ def _debye_waller_ui():
                     f"B ({el}) Å²", 0.0, 10.0, value=dfl, step=0.1,
                     format="%.2f", key=f"b_{fkey}_{el}")
             st.session_state.debye_waller_factors_per_file[fkey][el] = val
-
 
 
 def _xrd_wavelength_ui():
@@ -1907,8 +1979,8 @@ def _xrd_wavelength_ui():
         col_p, col_wl = st.columns([3, 2])
         with col_p:
             preset = st.selectbox("Preset", PRESET_OPTIONS,
-                                   key="preset_choice", index=0,
-                                   label_visibility="collapsed")
+                                  key="preset_choice", index=0,
+                                  label_visibility="collapsed")
         if (st.session_state.get("preset_choice") !=
                 st.session_state.get("_prev_preset")):
             st.session_state.wavelength_value = PRESET_WAVELENGTHS.get(
@@ -1938,9 +2010,9 @@ def _xrd_wavelength_ui():
         col_wl, col_e = st.columns(2)
         with col_wl:
             wl = st.number_input("λ (nm)", 0.01, 5.0,
-                                  value=st.session_state.wavelength_value,
-                                  step=0.001, format="%.5f",
-                                  key="wavelength_value")
+                                 value=st.session_state.wavelength_value,
+                                 step=0.001, format="%.5f",
+                                 key="wavelength_value")
         with col_e:
             st.metric("Energy", f"{wavelength_to_energy(wl):.3f} keV")
         return wl, "Custom"
@@ -1960,13 +2032,12 @@ def _xrd_wavelength_ui():
         return wl, "Custom"
 
 
-
 def _nd_wavelength_ui():
     col_p, col_wl = st.columns([3, 2])
     with col_p:
         preset = st.selectbox("Neutron preset", PRESET_OPTIONS_NEUTRON,
-                               index=0, key="preset_choice_neutron",
-                               label_visibility="collapsed")
+                              index=0, key="preset_choice_neutron",
+                              label_visibility="collapsed")
     if (st.session_state.get("preset_choice_neutron") !=
             st.session_state.get("_prev_preset_nd")):
         st.session_state.wavelength_value = PRESET_WAVELENGTHS_NEUTRON.get(
@@ -1986,7 +2057,6 @@ def _nd_wavelength_ui():
     return wl, preset
 
 
-
 def _tab_lattice(uploaded_files):
     st.subheader("🔷 Lattice Parameters Overview")
 
@@ -1999,21 +2069,21 @@ def _tab_lattice(uploaded_files):
     for file in uploaded_files:
         try:
             struct = load_structure(file)
-            conv   = get_full_conventional_structure_diffra(struct)
-            sga    = SpacegroupAnalyzer(conv)
-            lat    = conv.lattice
+            conv = get_full_conventional_structure_diffra(struct)
+            sga = SpacegroupAnalyzer(conv)
+            lat = conv.lattice
             rows.append({
-                "File":           file.name,
-                "Space group":    sga.get_space_group_symbol(),
+                "File": file.name,
+                "Space group": sga.get_space_group_symbol(),
                 "Crystal system": sga.get_crystal_system().capitalize(),
-                "a (Å)":          round(lat.a,   5),
-                "b (Å)":          round(lat.b,   5),
-                "c (Å)":          round(lat.c,   5),
-                "α (°)":          round(lat.alpha, 4),
-                "β (°)":          round(lat.beta,  4),
-                "γ (°)":          round(lat.gamma, 4),
-                "V (Å³)":         round(lat.volume, 3),
-                "Sites":          len(conv),
+                "a (Å)": round(lat.a, 5),
+                "b (Å)": round(lat.b, 5),
+                "c (Å)": round(lat.c, 5),
+                "α (°)": round(lat.alpha, 4),
+                "β (°)": round(lat.beta, 4),
+                "γ (°)": round(lat.gamma, 4),
+                "V (Å³)": round(lat.volume, 3),
+                "Sites": len(conv),
             })
         except Exception as exc:
             errors.append((file.name, str(exc)))
@@ -2034,10 +2104,16 @@ def _tab_lattice(uploaded_files):
         st.warning(f"Could not read '{fname}': {err}")
 
 
-
-def run_diffraction_section(uploaded_files, user_pattern_file):
+def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
     if "calc_xrd" not in st.session_state:
         st.session_state.calc_xrd = False
+
+    if LOCAL_MAX_PEAKS is not None:
+        _max_peaks = LOCAL_MAX_PEAKS
+    elif is_local:
+        _max_peaks = None
+    else:
+        _max_peaks = ONLINE_MAX_PEAKS
 
     colmain_1, colmain_2 = st.columns([0.5, 1])
 
@@ -2067,12 +2143,12 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
         tab1 = _tabs[0]
         if user_pattern_file:
             tab_exp = _tabs[1]
-            tab2    = _tabs[2]
+            tab2 = _tabs[2]
             tab_ann = _tabs[3]
             tab_lat = _tabs[4]
         else:
             tab_exp = None
-            tab2    = _tabs[1]
+            tab2 = _tabs[1]
             tab_ann = _tabs[2]
             tab_lat = _tabs[3]
 
@@ -2109,8 +2185,8 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
             preset_choice,
         )
         _stored_patterns = st.session_state.get("raw_patterns") or {}
-        _expected_files  = {f.name for f in uploaded_files}
-        _stored_files    = set(_stored_patterns.keys())
+        _expected_files = {f.name for f in uploaded_files}
+        _stored_files = set(_stored_patterns.keys())
 
         stale_keys = _stored_files - _expected_files
         if stale_keys:
@@ -2119,9 +2195,9 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
             _stored_patterns = st.session_state.raw_patterns
 
         needs_recalc = (
-            st.session_state.get("raw_patterns_cache_key") != current_key
-            or "raw_patterns" not in st.session_state
-            or (_expected_files - _stored_files)
+                st.session_state.get("raw_patterns_cache_key") != current_key
+                or "raw_patterns" not in st.session_state
+                or (_expected_files - _stored_files)
         )
 
         if needs_recalc:
@@ -2145,7 +2221,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                           if _elapsed < 1.0 else f"{_elapsed:.2f} s")
                 _status_ph.caption(f"⏱ Last calculation: {_t_str}")
 
-        pattern_details = _process_for_display(
+        pattern_details, _peak_notices = _process_for_display(
             st.session_state.raw_patterns,
             two_theta_min, two_theta_max,
             intensity_filter, peak_representation, sigma,
@@ -2163,6 +2239,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
             use_displacement=use_displacement,
             displacement_mm=displacement_mm,
             goniometer_radius_mm=goniometer_radius_mm,
+            max_peaks=_max_peaks,
         )
 
         show_Ka1 = show_Ka2 = show_Kb = True
@@ -2171,17 +2248,17 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                 st.sidebar.subheader("Include Kα/Kβ for hovering:")
                 n_comp = len(MULTI_COMPONENT_PRESETS[preset_choice]["wavelengths"])
                 show_Ka1 = st.sidebar.checkbox("Include Kα1 hover", value=True,
-                                                key="hover_ka1")
+                                               key="hover_ka1")
                 if n_comp >= 2:
                     show_Ka2 = st.sidebar.checkbox("Include Kα2 hover", value=False,
-                                                    key="hover_ka2")
+                                                   key="hover_ka2")
                 if n_comp >= 3:
-                    show_Kb  = st.sidebar.checkbox("Include Kβ hover", value=False,
-                                                    key="hover_kb")
+                    show_Kb = st.sidebar.checkbox("Include Kβ hover", value=False,
+                                                  key="hover_kb")
             else:
                 st.sidebar.subheader("Include Kα1 for hovering:")
                 show_Ka1 = st.sidebar.checkbox("Include Kα1 hover", value=True,
-                                                key="hover_ka1_single")
+                                               key="hover_ka1_single")
 
         with tab1:
             if ("new_structure_added" in st.session_state
@@ -2192,10 +2269,13 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                         f"'{st.session_state.new_structure_name}' added.")
                 st.session_state.new_structure_added = False
 
+            for _notice in _peak_notices:
+                st.info(_notice)
+
             fig = go.Figure()
 
             if use_scherrer and peak_representation != "Delta (stick)":
-                pattern_details_no_scherrer = _process_for_display(
+                pattern_details_no_scherrer, _ = _process_for_display(
                     st.session_state.raw_patterns,
                     two_theta_min, two_theta_max,
                     intensity_filter, peak_representation, sigma,
@@ -2213,20 +2293,21 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                     use_displacement=use_displacement,
                     displacement_mm=displacement_mm,
                     goniometer_radius_mm=goniometer_radius_mm,
+                    max_peaks=_max_peaks,
                 )
                 for idx, file in enumerate(uploaded_files):
-                    fname   = file.name
+                    fname = file.name
                     if fname not in pattern_details_no_scherrer:
                         continue
-                    d_orig  = pattern_details_no_scherrer[fname]
-                    mask    = ((d_orig["x_dense_full"] >= two_theta_min) &
-                               (d_orig["x_dense_full"] <= two_theta_max))
-                    x_orig  = twotheta_to_metric(
+                    d_orig = pattern_details_no_scherrer[fname]
+                    mask = ((d_orig["x_dense_full"] >= two_theta_min) &
+                            (d_orig["x_dense_full"] <= two_theta_max))
+                    x_orig = twotheta_to_metric(
                         d_orig["x_dense_full"][mask], x_axis_metric,
                         wavelength_A, wavelength_nm, diffraction_choice)
-                    y_orig  = d_orig["y_dense"][mask]
-                    tab10   = plt.cm.tab10.colors
-                    c_orig  = rgb_color(tab10[idx % len(tab10)], opacity=0.6)
+                    y_orig = d_orig["y_dense"][mask]
+                    tab10 = plt.cm.tab10.colors
+                    c_orig = rgb_color(tab10[idx % len(tab10)], opacity=0.6)
                     fig.add_trace(go.Scatter(
                         x=x_orig, y=y_orig, mode="lines",
                         name=f"{fname} — instr. only",
@@ -2258,7 +2339,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                 )
 
             if use_displacement and show_original_on_plot:
-                _pattern_no_disp = _process_for_display(
+                _pattern_no_disp, _ = _process_for_display(
                     st.session_state.raw_patterns,
                     two_theta_min, two_theta_max,
                     intensity_filter, peak_representation, sigma,
@@ -2277,6 +2358,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
                     use_displacement=False,
                     displacement_mm=0.0,
                     goniometer_radius_mm=goniometer_radius_mm,
+                    max_peaks=_max_peaks,
                 )
                 _tab10 = plt.cm.tab10.colors
                 for _idx, _file in enumerate(uploaded_files):
@@ -2347,9 +2429,6 @@ def run_diffraction_section(uploaded_files, user_pattern_file):
             _tab_lattice(uploaded_files)
 
 
-
-
-
 def _apply_layout(fig, x_axis_metric, y_axis_title,
                   two_theta_min, two_theta_max,
                   intensity_scale_option, peak_representation,
@@ -2366,8 +2445,8 @@ def _apply_layout(fig, x_axis_metric, y_axis_title,
         x_range = [disp_min, disp_max]
 
     y_range = [0, 125] if (
-        peak_representation == "Delta (stick)"
-        and intensity_scale_option != "Absolute"
+            peak_representation == "Delta (stick)"
+            and intensity_scale_option != "Absolute"
     ) else None
 
     fig.update_layout(
