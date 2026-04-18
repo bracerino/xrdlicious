@@ -25,7 +25,7 @@
 #### Integrated Database Access
 - Search and import structures directly from:
   - Materials Project (MP)
-  - AFLOW
+  - MC3D
   - Crystallography Open Database (COD)
 
 #### Interactive Structure Editing
