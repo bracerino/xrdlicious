@@ -77,7 +77,7 @@ from matminer.featurizers.structure import PartialRadialDistributionFunction
 
 
 # Limits
-MAX_ATOMS   = 500
+MAX_ATOMS   = 1000
 MAX_SPECIES = 6
 
 
