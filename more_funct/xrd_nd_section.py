@@ -895,6 +895,7 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                     data="# X-axis  Intensity (Original)\n" + dl_orig,
                     file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_original.xy",
                     mime="text/plain",
+                    type = 'primary',
                 )
 
         fig_bg = go.Figure()
