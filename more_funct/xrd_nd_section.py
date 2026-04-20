@@ -42,7 +42,7 @@ except ImportError:
 
 LOCAL_MAX_PEAKS = None
 
-ONLINE_MAX_PEAKS = 2000
+ONLINE_MAX_PEAKS = 1500
 
 MULTI_COMPONENT_PRESETS = {
     "Cu(Ka1+Ka2)": {
