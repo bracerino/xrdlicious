@@ -285,6 +285,10 @@ with st.expander("📖 How to **Cite**", expanded=False):
     st.markdown(
         "\n### How to cite\n\nIf you use **XRDlicious**, please cite:\n\n- **XRDlicious**:   \n  [LEBEDA, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)\n\n\n- **Matminer**:  \n  [WARD, Logan, et al. *Matminer: An open source toolkit for materials data mining.* Computational Materials Science, 2018, 152: 60–69.](https://www.sciencedirect.com/science/article/pii/S0927025618303252)\n    "
     )
+    
+st.sidebar.info(
+    "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: **lebedmi2@cvut.cz**. To compile the full app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you use this tool, please cite the **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. ❤️🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
+)
 st.sidebar.header("📁 Upload Structure Files")
 uploaded_files = st.sidebar.file_uploader(
     "CIF, POSCAR, LMP, XSF, XYZ (with cell), CFG, PW …",
@@ -833,9 +837,7 @@ st.markdown(
     '<hr style="border:none;height:5px;background-color:#8b0000;\n                 border-radius:6px;margin:0 0 12px 0;">',
     unsafe_allow_html=True,
 )
-st.sidebar.info(
-    "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: **lebedmi2@cvut.cz**. To compile the full app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you use this tool, please cite the **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. ❤️🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
-)
+
 st.markdown(
     "\n### Acknowledgments\n\nThis module uses several open-source tools. We gratefully acknowledge their authors:\n\n- **[Matminer](https://github.com/hackingmaterials/matminer)**\n- **[Pymatgen](https://github.com/materialsproject/pymatgen)**\n- **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)**\n- **[Plotly](https://plotly.com)**\n- **[SciPy](https://scipy.org)**\n\n**XRDlicious (P)RDF module** is open-source and released under the\n[MIT License](https://github.com/bracerino/xrdlicious/blob/main/LICENSE).\n"
 )
