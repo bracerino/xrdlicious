@@ -124,7 +124,8 @@ with col3:
         ###### 🔹 Separated Modules: 
         - Create point defects in a crystal structure: **[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/)**  
         - Convert between `.xrdml`, `.ras` and `.xy` formats or X/Y-axis: **[Open App 🧩](https://xrd-convert.streamlit.app/)**  
-        - Relations between austenite-martensite crystallographic planes for NiTiHf: **[Open App 🪄](https://austenite-martensite.streamlit.app/)**  
+        - Austenite-martensite crystallographic planes for NiTiHf: **[Open App 🌐](https://austenite-martensite.streamlit.app/)** 
+        - Calculate (P)RDF: **[Open App 🧩](https://prdf-xrdlicious.streamlit.app/)** 
         """
     )
 
