@@ -23,7 +23,6 @@ ELEMENTS = [
     "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
 ]
 
-
 def _vesta_lattice(lattice):
     import math
     a, b, c = lattice.abc
@@ -34,7 +33,6 @@ def _vesta_lattice(lattice):
     c_y = c * (math.cos(al) - math.cos(be) * math.cos(ga)) / math.sin(ga)
     c_z = math.sqrt(max(0.0, c**2 - c_x**2 - c_y**2))
     return PmgLattice(np.array([a_vec, b_vec, [c_x, c_y, c_z]]))
-
 
 def _draw_supercell_boxes(view, lattice_matrix, sx, sy, sz):
     a, b, c = lattice_matrix[0], lattice_matrix[1], lattice_matrix[2]
@@ -53,12 +51,10 @@ def _draw_supercell_boxes(view, lattice_matrix, sx, sy, sz):
                         "color": color, "linewidth": 1.5,
                     })
 
-
 def _d_spacing(lattice_matrix, h, k, l):
     recip = 2 * np.pi * np.linalg.inv(lattice_matrix).T
     n = h*recip[0] + k*recip[1] + l*recip[2]
     return 2 * np.pi / np.linalg.norm(n)
-
 
 def _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl):
     lm = lattice_matrix
@@ -75,7 +71,6 @@ def _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl):
     up_dir   = float(u)*a      + float(v)*b      + float(w)*c
     return np.array(view_dir, dtype=float), np.array(up_dir, dtype=float)
 
-
 def _rotate_vector_about_axis(vector, axis, angle_deg):
     v  = np.asarray(vector, dtype=float)
     ax = np.asarray(axis,   dtype=float)
@@ -89,7 +84,6 @@ def _rotate_vector_about_axis(vector, axis, angle_deg):
         + np.cross(ax, v) * np.sin(th)
         + ax * np.dot(ax, v) * (1.0 - np.cos(th))
     )
-
 
 def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
     vd = np.asarray(view_dir_cart, dtype=float)
@@ -107,7 +101,6 @@ def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
     xd /= np.linalg.norm(xd)
 
     return np.array([xd, ud, vd])
-
 
 def _orientation_controls(key_suffix, lattice_matrix=None):
     enable = st.checkbox(
@@ -242,7 +235,6 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
 
     return mode, uvw, hkl, (apply or _preset_fired), sx, sy, sz, float(st.session_state.get(roll_key, 0.0))
 
-
 def _make_supercell_xyz(atoms, structure, sx, sy, sz, norm_lat=None):
     lat = norm_lat if norm_lat is not None else structure.lattice
     lm = lat.matrix
@@ -256,14 +248,12 @@ def _make_supercell_xyz(atoms, structure, sx, sy, sz, norm_lat=None):
                     rows.append(f"{atom['element']} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
     return "\n".join([str(len(rows)), f"Supercell {sx}x{sy}x{sz}"] + rows)
 
-
 def _get_wyckoffs(structure):
     try:
         sga = SpacegroupAnalyzer(structure, symprec=0.1)
         return sga.get_symmetry_dataset().wyckoffs
     except Exception:
         return ["-"] * len(structure.sites)
-
 
 def _load_atoms_from_structure(structure):
     wyckoffs = _get_wyckoffs(structure)
@@ -281,7 +271,6 @@ def _load_atoms_from_structure(structure):
                 "site_idx": i,
             })
     return atoms
-
 
 def _rebuild_structure_from_atoms(atoms, lattice):
     site_groups = {}
@@ -302,7 +291,6 @@ def _rebuild_structure_from_atoms(atoms, lattice):
         )
     return new_struct
 
-
 def _get_unique_wyckoff_atoms(atoms):
     seen = {}
     unique = []
@@ -318,7 +306,6 @@ def _get_unique_wyckoff_atoms(atoms):
         unique.append(entry)
     return unique
 
-
 def _propagate_wyckoff_change(atoms, original_wyckoff, original_element, changed_fields):
     result = []
     for atom in atoms:
@@ -328,15 +315,12 @@ def _propagate_wyckoff_change(atoms, original_wyckoff, original_element, changed
         result.append(a)
     return result
 
-
 def _get_ordered_structure(export_struct):
     return Structure(
         export_struct.lattice,
         [max(site.species.items(), key=lambda x: x[1])[0] for site in export_struct],
         [site.frac_coords for site in export_struct],
     )
-
-
 
 _COVALENT_RADII = {
     "H":0.31,"He":0.28,"Li":1.28,"Be":0.96,"B":0.84,"C":0.76,"N":0.71,"O":0.66,
@@ -351,7 +335,6 @@ _COVALENT_RADII = {
     "Ta":1.70,"W":1.62,"Re":1.51,"Os":1.44,"Ir":1.41,"Pt":1.36,"Au":1.36,"Hg":1.32,
     "Tl":1.45,"Pb":1.46,"Bi":1.48,"Po":1.40,"At":1.50,"Rn":1.50,
 }
-
 
 def _compute_bonds_cartesian(cart_positions, elements, lattice_matrix, tolerance=1.15, include_pbc=True):
     n = len(cart_positions)
@@ -390,7 +373,6 @@ def _compute_bonds_cartesian(cart_positions, elements, lattice_matrix, tolerance
                             image_atoms_dict[key] = (p2.copy(), elements[j])
     return bonds, list(image_atoms_dict.values())
 
-
 def _add_bonds_to_view(view, bonds, bond_radius=0.08):
     for p1, p2, el1, el2 in bonds:
         mid = (p1 + p2) * 0.5
@@ -407,11 +389,10 @@ def _add_bonds_to_view(view, bonds, bond_radius=0.08):
             "radius": bond_radius, "fromCap": False, "toCap": False, "color": c2,
         })
 
-
 def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                     use_orthographic, show_atom_labels, orientation_result,
                     show_bonds=False, bonds_pbc=True, bond_tolerance=1.15,
-                    bond_radius=0.08, roll_key=None):
+                    bond_radius=0.08, show_bond_lengths=False, roll_key=None):
 
     active_orient = None
     show_success  = False
@@ -531,6 +512,16 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         bonds_display = [(_dc(p1), _dc(p2), el1, el2) for p1, p2, el1, el2 in bonds_raw]
         _add_bonds_to_view(view, bonds_display, bond_radius=bond_radius)
 
+        if show_bond_lengths:
+            for (p1_raw, p2_raw, el1, el2), (p1_d, p2_d, _, _) in zip(bonds_raw, bonds_display):
+                length = float(np.linalg.norm(p2_raw - p1_raw))
+                mid_d  = (p1_d + p2_d) * 0.5
+                view.addLabel(f"{length:.3f} Å", {
+                    "position": {"x": float(mid_d[0]), "y": float(mid_d[1]), "z": float(mid_d[2])},
+                    "backgroundColor": "white", "fontColor": "black",
+                    "fontSize": 10, "borderThickness": 0.5, "borderColor": "grey",
+                })
+
         if bonds_pbc and image_atoms_raw:
             ghost_lines = [str(len(image_atoms_raw)), "ghost atoms"]
             for cart_raw, el in image_atoms_raw:
@@ -618,42 +609,19 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
     st.info("🖱️ Left click + drag to rotate · Scroll to zoom · Middle click + drag to pan")
 
     if roll_key is not None and orientation_result is not None:
-        col_roll_btn, col_roll_step, col_roll_reset = st.columns([2, 1, 1])
-        with col_roll_step:
-            roll_step = st.number_input(
-                "Roll step (°)",
-                min_value=0.1, max_value=180.0, value=1.0, step=0.5,
-                format="%.1f",
-                key=f"{roll_key}_step",
-                label_visibility="collapsed",
-            )
-        with col_roll_btn:
-            if st.button(
-                f"↻ Roll {roll_step:.1f}°",
-                key=f"{roll_key}_btn",
-                use_container_width=True,
-            ):
-                new_roll = float(st.session_state.get(roll_key, 0.0)) + roll_step
-                st.session_state[roll_key] = new_roll
-                stored = dict(st.session_state.get("se_stored_orient", {}))
-                stored["roll_deg"] = new_roll
-                st.session_state["se_stored_orient"] = stored
-                st.rerun()
-        with col_roll_reset:
-            if st.button(
-                "Reset roll",
-                key=f"{roll_key}_reset",
-                use_container_width=True,
-            ):
-                st.session_state[roll_key] = 0.0
-                stored = dict(st.session_state.get("se_stored_orient", {}))
-                stored["roll_deg"] = 0.0
-                st.session_state["se_stored_orient"] = stored
-                st.rerun()
-        current_roll = float(st.session_state.get(roll_key, 0.0))
-        if abs(current_roll) > 1e-9:
-            st.caption(f"Current roll: {current_roll:.1f}°")
-
+        new_roll = st.slider(
+            "↻ Roll around projection axis (°)",
+            min_value=0.0, max_value=360.0,
+            value=float(st.session_state.get(roll_key, 0.0)),
+            step=0.5,
+            key=f"{roll_key}_slider",
+        )
+        if abs(new_roll - float(st.session_state.get(roll_key, 0.0))) > 1e-9:
+            st.session_state[roll_key] = new_roll
+            stored = dict(st.session_state.get("se_stored_orient", {}))
+            stored["roll_deg"] = new_roll
+            st.session_state["se_stored_orient"] = stored
+            st.rerun()
 
 def _lattice_section(structure, selected_file):
     lat_key = f"se_lat_{selected_file}"
@@ -757,7 +725,6 @@ def _lattice_section(structure, selected_file):
             new_gamma = fixed_ga
 
     return new_a, new_b, new_c, new_alpha, new_beta, new_gamma, lat_key
-
 
 def _atoms_section(atoms, structure, selected_file):
     add_pending_key    = f"se_add_pending_{selected_file}"
@@ -876,7 +843,6 @@ def _atoms_section(atoms, structure, selected_file):
 
     return updated_atoms
 
-
 def _build_download_content(export_struct, dl_format, selected_file):
     ordered = _get_ordered_structure(export_struct)
     ase_atoms = AseAtomsAdaptor.get_atoms(ordered)
@@ -932,7 +898,6 @@ def _build_download_content(export_struct, dl_format, selected_file):
 
     return file_content, dl_name, mime
 
-
 def _merge_uploaded_files(original, session_key="uploaded_files"):
     merged = list(original) if original else []
     existing_names = {f.name for f in merged}
@@ -941,7 +906,6 @@ def _merge_uploaded_files(original, session_key="uploaded_files"):
             merged.append(f)
             existing_names.add(f.name)
     return merged
-
 
 def run_structure_editor(uploaded_files):
     if not uploaded_files:
@@ -1113,6 +1077,10 @@ def run_structure_editor(uploaded_files):
                     "Extend bonds across periodic boundaries",
                     value=True, key=f"se_bonds_pbc_{selected_file}",
                 )
+                show_bond_lengths = st.checkbox(
+                    "Show bond lengths",
+                    value=False, key=f"se_bond_lengths_{selected_file}",
+                )
                 bond_tol = st.slider(
                     "Bond tolerance (× covalent radii sum)",
                     min_value=0.80, max_value=1.50, value=1.15, step=0.01,
@@ -1125,6 +1093,7 @@ def run_structure_editor(uploaded_files):
                 )
             else:
                 bonds_pbc, bond_tol, bond_r = True, 1.15, 0.08
+                show_bond_lengths = False
             st.markdown(
                 "<div style='height:1px;background:#e2e8f0;margin:8px 0;'></div>",
                 unsafe_allow_html=True,
@@ -1178,6 +1147,7 @@ def run_structure_editor(uploaded_files):
                 orientation_result=orientation_result,
                 show_bonds=show_bonds, bonds_pbc=bonds_pbc,
                 bond_tolerance=bond_tol, bond_radius=bond_r,
+                show_bond_lengths=show_bond_lengths,
                 roll_key=f"orient_roll_deg_se_{selected_file}",
             )
 
