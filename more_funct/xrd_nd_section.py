@@ -439,8 +439,8 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
     return raw_patterns
 
 
-_DENSE_X = np.linspace(0.01, 179.9, 8000)
-_DENSE_DX = _DENSE_X[1] - _DENSE_X[0]
+#_DENSE_X = np.linspace(0.01, 179.9, 8000)
+#_DENSE_DX = _DENSE_X[1] - _DENSE_X[0]
 
 PROFILE_OPTIONS = [
     "Delta (stick)",
@@ -539,7 +539,17 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                          use_displacement=False, displacement_mm=0.0,
                          goniometer_radius_mm=250.0,
                          max_peaks=None):
+
+
+
     instrumental_fwhm = sigma * 2.0 * np.sqrt(2.0 * np.log(2.0))
+
+    _pad = max(instrumental_fwhm * 3, 0.5)
+    _lo = max(0.01, two_theta_min - _pad)
+    _hi = min(179.9, two_theta_max + _pad)
+    _DENSE_X = np.linspace(_lo, _hi, 8000)
+
+
     pattern_details = {}
     _FWHM2S = 2.0 * np.sqrt(2.0 * np.log(2.0))
     pattern_details = {}
