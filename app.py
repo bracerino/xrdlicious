@@ -99,7 +99,7 @@ st.markdown(
             margin-left:10px;
             vertical-align:middle;
         ">
-            v0.5.2 • 15-Apr-2026
+            v0.5.3 • 27-Apr-2026
         </span>
     </h4>
     """,
