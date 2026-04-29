@@ -238,7 +238,6 @@ calc_mode = st.sidebar.multiselect(
         "🔬 Structure Modification",
         "💥 Powder Diffraction",
         "📊 (P)RDF",
-        "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)",
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories",
         "➡️ .xrdml ↔️ .xy ↔️ .ras Converter",
@@ -303,12 +302,6 @@ if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
         unsafe_allow_html=True
     )
 
-if "🛠️ Online Search/Match** (UNDER TESTING, being regularly upgraded 😊)" in calc_mode:
-    st.subheader("For the Online Peak Search/Match Subtool, Please visit (USE ONLY FOR TESTING PURPOSES): ")
-    st.markdown(
-        '<p style="font-size:24px;">🔗 <a href="https://xrdlicious-peak-match.streamlit.app/" target="_blank">Go to Peak Matching Tool</a></p>',
-        unsafe_allow_html=True
-    )
 
 st.session_state.two_theta_min = 5
 
