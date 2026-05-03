@@ -28,8 +28,8 @@ from pymatgen.io.cif import CifParser, CifWriter
 from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
 from matminer.featurizers.structure import PartialRadialDistributionFunction
 
-MAX_ATOMS = 1000
-MAX_SUPERCELL_ATOMS = 1000
+MAX_ATOMS = 750
+MAX_SUPERCELL_ATOMS = 750
 MAX_SPECIES = 6
 
 
@@ -279,7 +279,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.info(
-    f"Upload one or more crystal structure files in the **sidebar** and press **▶️ Calculate RDF**. Each structure is processed **individually**. Use the **🔀 Comparison** tab to overlay PRDFs from different structures.  \n⚠️ Limits: **max {MAX_ATOMS} atoms** and **max {MAX_SPECIES} element types** per structure. Disordered CIFs are auto-converted to vacancy supercells capped at **{MAX_SUPERCELL_ATOMS} sites** (vacancies placed randomly)."
+    f"Upload one or more crystal structure files in the **sidebar** and press **▶️ Calculate RDF**. Each structure is processed **individually**. Use the **🔀 Comparison** tab to overlay PRDFs from different structures.  \n⚠️ Limits: **max {MAX_ATOMS} atoms** and **max {MAX_SPECIES} element types** per structure. To increase this limit or to have a stable personal version, please compile the app locally from **[GitHub](https://github.com/bracerino/xrdlicious)**, open file prdf_app.py, and change value for MAX_ATOMS. Disordered CIFs are auto-converted to vacancy supercells capped at **{MAX_SUPERCELL_ATOMS} sites** (vacancies placed randomly)."
 )
 with st.expander("📖 How to **Cite**", expanded=False):
     st.markdown(
