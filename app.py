@@ -223,7 +223,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.sidebar.markdown("## 🍕 XRDlicious")
+st.sidebar.markdown("## XRDlicious")
 mode = "Advanced"
 st.markdown(
     """
@@ -365,7 +365,7 @@ allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg"]
 if IS_LOCAL:
     allowed_types.append("lmp")
 
-st.sidebar.subheader("📁📤 Upload Your Structure Files")
+st.sidebar.subheader("📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
     "Upload structure files (CIF, POSCAR, XSF, PW, CFG, XYZ (with cell)"
     + (", LMP" if IS_LOCAL else "") + "):",
@@ -376,7 +376,7 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 if not IS_LOCAL:
     st.sidebar.caption("ℹ️ .lmp format is only supported when running locally.")
 
-st.sidebar.subheader("📁🧫 Upload Your Experimental Data ")
+st.sidebar.subheader("📁 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
     "Upload additional XRD pattern (.xy, .xrdml, .ras — or any two-column text file).",
     type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras"],
