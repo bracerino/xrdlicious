@@ -95,7 +95,7 @@ Open your terminal console and write the following commands (the bold text):
 7) To update the application, write in the main folder:
      **git pull**  
 
---
+---
 
 ### **Compile the app onWindows (Command Prompt)**  
 Open your terminal console and write the following commands (the bold text):  
