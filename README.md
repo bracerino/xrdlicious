@@ -64,12 +64,12 @@ For planned features and modifications in the app, please see the Roadmap on the
 
 ### **Prerequisities**: 
 - Python 3.x (Tested 3.12)
-- Console (For Windows, I recommend to use WSL2 (Windows Subsystem for Linux))
+- Console (For Windows, I recommend to use WSL2 (Windows Subsystem for Linux), or see also below the tutorial for Command Prompt)
 - Git (optional for downloading the code)
   
 
 
-### **Compile the app Linux/WSL**  
+### **Compile the app on Linux/WSL**  
 Open your terminal console and write the following commands (the bold text):  
 (Optional) Install Git:  
       **sudo apt update**  
