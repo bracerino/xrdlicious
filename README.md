@@ -95,9 +95,9 @@ Open your terminal console and write the following commands (the bold text):
 7) To update the application, write in the main folder:
      **git pull**  
 
+--
 
-
-### **Compile the app Windows (Command Prompt)**  
+### **Compile the app onWindows (Command Prompt)**  
 Open your terminal console and write the following commands (the bold text):  
 (Optional) Install Git:  
       **winget install --id Git.Git -e --source winget**   
@@ -122,6 +122,7 @@ Open your terminal console and write the following commands (the bold text):
      **streamlit run app.py**  (or 'streamlit run prdf_app.py' for (P)RDF separated module)  
 7) To update the application, write in the main folder:
      **git pull**
+--
    
 ### **Tested versions of Python packages**
 Python 3.12.3, 3.13.2  
