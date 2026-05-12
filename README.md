@@ -121,7 +121,7 @@ Open your terminal console and write the following commands (the bold text):
 
 6) Run the XRDlicious app (always before running it, make sure to activate its Python virtual environment (Step 4):  
      **streamlit run app.py**  (or 'streamlit run prdf_app.py' for (P)RDF separated module)
-7) 7) Open the localhost link (localhost:8501) in a browser, enjoy using the app :)   
+7) Open the localhost link (localhost:8501) in a browser, enjoy using the app :)   
 8) To update the application, write in the main folder:
      **git pull**
 ---
