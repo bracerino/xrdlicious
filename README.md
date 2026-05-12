@@ -102,7 +102,7 @@ Open your terminal console and write the following commands (the bold text):
 Open your terminal console and write the following commands (the bold text):  
 (Optional) Install Git:  
       **winget install --id Git.Git -e --source winget**   
-      Restart console  
+      **Restart console**  
       
 1) Download the XRDlicious code from GitHub (or download it manually without Git on the following link by clicking on 'Code' and 'Download ZIP', then extract the ZIP. With Git, it is automatically extracted):  
       **git clone https://github.com/bracerino/xrdlicious.git**
