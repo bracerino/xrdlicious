@@ -23,7 +23,6 @@ import gc
 import numpy as np
 import matplotlib.pyplot as plt
 from ase.io import read, write
-from matminer.featurizers.structure import PartialRadialDistributionFunction
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
 from pymatgen.analysis.diffraction.neutron import NDCalculator
@@ -34,7 +33,6 @@ except ImportError:
     HAS_RUST = False
 from collections import defaultdict
 from itertools import combinations
-import streamlit.components.v1 as components
 from pymatgen.analysis.prototypes import AflowPrototypeMatcher
 
 import py3Dmol
@@ -86,28 +84,35 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
 st.markdown(
     """
-    <h4>
-        <span style='color:#8b0000;'>
-            <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
-        </span>
-        <span style="
-            background-color:#f5e6e6;
-            color:#8b0000;
-            font-size:0.7em;
-            padding:3px 8px;
-            border-radius:8px;
-            margin-left:10px;
-            vertical-align:middle;
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
+        <h4 style="margin:0;">
+            <span style='color:#8b0000;'>
+                <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
+            </span>
+        </h4>
+        <div style="
+            display: inline-block;
+            background-color: #ffffff;
+            border-left: 5px solid #8b0000;
+            border-radius: 10px;
+            padding: 10px 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+            color: #111827;
+            font-size: 0.95rem;
+            font-weight: 600;
         ">
-            v0.5.3 • 27-Apr-2026
-        </span>
-    </h4>
+            <span style="color:#8b0000; font-weight:800;">Release:</span>
+            v0.6.0 &nbsp; | &nbsp;
+            <span style="color:#8b0000; font-weight:800;">Updated:</span>
+            May 5, 2026
+        </div>
+    </div>
     """,
     unsafe_allow_html=True
 )
 st.markdown(
     """
-    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 20px 0;">
     """,
     unsafe_allow_html=True
 )
@@ -2572,13 +2577,12 @@ if "📈 Interactive Data Plot" in calc_mode:
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
 
-components.html(
+st.html(
     """
     <head>
         <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
     </head>
-    """,
-    height=0,
+    """
 )
 
 
