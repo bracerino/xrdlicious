@@ -24,7 +24,7 @@ def show_xrdlicious_roadmap():
 
 #### Expanded Correction Factors & Peak Shapes
 * ✅ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
-* ✅ Introduce preferred orientation and basic absorption corrections.
+* ⏳ Introduce preferred orientation and basic absorption corrections.
 * ✅ Instrumental broadening - introduce Caglioti formula.
 * ✅ Calculate and apply peak shifts due to sample displacement error.
 
@@ -76,21 +76,27 @@ def first_run_note():
                     "`more_funct/xrd_nd_section.py`)."
                 )
             else:
-                st.warning(
-                    "**We currently use free Streamlit hosting with limited "
-                    "RAM (upgrade is planned).** "
-                    "**For heavier computations or to have a stable personal "
-                    "version, run the app locally from** "
-                    "**[GitHub](https://github.com/bracerino/xrdlicious).**\n\n"
-                    "**Online limits (per structure):** up to **100,000** "
-                    "estimated reflections in the limiting sphere — beyond "
-                    "this the **Calculate** button is disabled to prevent "
-                    "OOM crashes; and only the **top 1,500 peaks by "
-                    "intensity** are stored / displayed.\n\n"
-                    "**Local limits:** **5,000,000** reflection cap and **no "
-                    "peak-count truncation**. Both thresholds are editable "
-                    "(`LOCAL_MAX_RECIP_POINTS`, `LOCAL_MAX_PEAKS` in "
-                    "`more_funct/xrd_nd_section.py`)."
+                st.markdown(
+                    """
+<div style="
+    background: #f8fbff;
+    border-left: 4px solid #60a5fa;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 6px 0 10px 0;
+    color: #1f2937;
+    font-size: 0.95rem;
+    line-height: 1.55;
+">
+<span style="font-size:1.05rem;">👋 <b>Hi there!</b></span><br>
+This app currently runs on <b>free Streamlit hosting</b> with limited RAM (a hosting upgrade is planned). For heavier computations or a stable personal version, please consider to compile the app locally from <a href="https://github.com/bracerino/xrdlicious" target="_blank"><b>GitHub</b></a>.
+<br><br>
+<b>Online limits per structure:</b> up to <b>100,000</b> estimated reflections. Past that, the <b>Calculate</b> button is disabled to prevent memory overload. Additionally, the <b>top 1,500 peaks</b> by intensity are stored / displayed.
+<br><br>
+<b>Local limits:</b> <b>5,000,000</b> reflection cap and <b>no peak-count limit</b> (all peaks shown). Both thresholds are easy to tweak — see <code>LOCAL_MAX_RECIP_POINTS</code> and <code>LOCAL_MAX_PEAKS</code> in <code>more_funct/xrd_nd_section.py</code>.
+</div>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
             st.info("""
@@ -226,7 +232,7 @@ def show_citation_section():
             - **AFLOW** [S. Curtarolo et al., AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. 58, 218 (2012)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612000717).,
             [M. Esters et al., aflow.org: A web ecosystem of databases, software and tools, Comput. Mater. Sci. 216, 111808 (2023)](https://www.sciencedirect.com/science/article/pii/S0927025622005195?casa_token=crrT7T_7vKoAAAAA:7UQbszQokpBT04i8kBqyN9JPXhaLf7ydlwuZen0taWZPXDx46zuYMPeaCJKeznY-BKKczMLzvw). 
             - **Crystallography Open Database (COD)** [S. Gražulis et al., Crystallography Open Database – an open-access collection of crystal structures, J. Appl. Crystallogr. 42, 726 (2009)](https://journals.iucr.org/j/issues/2009/04/00/kk5039/index.html).
-            - **Materials Cloud Three-Dimensional Structure Database (MC3D)** [HUBER, Sebastiaan P., et al. MC3D: the Materials Cloud computational database of experimentally known stoichiometric inorganics. Digital Discovery, 2026.](https://pubs.rsc.org/en/content/articlelanding/2026/dd/d5dd00415b).
+            - **Materials Cloud Three-Dimensional Structure Database (MC3D)** [HUBER, Sebastiaan P., et al. MC3D: The materials cloud computational database of experimentally known stoichiometric inorganics. arXiv preprint arXiv:2508.19223, 2025.](https://arxiv.org/abs/2508.19223).
         - **Important**: Always check the structure's original entry link in the database for any **associated publication** to cite.
 
         ---
