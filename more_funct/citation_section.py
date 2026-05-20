@@ -213,13 +213,11 @@ def show_citation_section():
         #### 🧪 **Using Calculated XRD Patterns**
         - **XRDlicious, 2025** – for the interface, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://doi.org/10.1107/S1600576725005370)
         - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-        - **ASE (Atomic Simulation Environment)** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
 
         ---
 
         #### 🔁 **Using Calculated PRDF**
         - **XRDlicious, 2025** – for the interface, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://doi.org/10.1107/S1600576725005370)
-        - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
         - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
         - **matminer** – for PRDF calculation, [L. Ward et al., matminer: An open-source toolkit for materials data mining, Comput. Mater. Sci. 152, 60 (2018)](https://www.sciencedirect.com/science/article/abs/pii/S0927025618303252).
 
@@ -245,7 +243,6 @@ def show_citation_section():
         #### 🖼️ **Using Structure Visualizations**
         - **XRDlicious, 2025** – for the interface, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://doi.org/10.1107/S1600576725005370)
         - **pymatgen** – for structure loading, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-        - **ASE** – for structure loading, [A. H. Larsen et al., The Atomic Simulation Environment: A Python library for working with atoms, J. Phys.: Condens. Matter 29, 273002 (2017)](https://iopscience.iop.org/article/10.1088/1361-648X/aa680e).
         - **Py3Dmol** – for 3D visualization, [N. Rego and D. Koes, 3Dmol. js: molecular visualization with WebGL, Bioinformatics 31, 1322 (2015)](https://academic.oup.com/bioinformatics/article/31/8/1322/213186).
 
         ---
