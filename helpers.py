@@ -588,16 +588,51 @@ def get_formula_type(formula):
         else:
             return "Complex"
 import time
-def check_structure_size_and_warn(structure, structure_name="structure"):
-    n_atoms = len(structure)
 
-    if n_atoms > 75:
-        st.info(f"ℹ️ **Structure Notice**: {structure_name} contains a large number of **{n_atoms} atoms**. "
-                f"Calculations may take longer depending on selected parameters. Please be careful to "
-                f"not consume much memory, we are hosted on a free server. 😊")
+LARGE_STRUCTURE_ATOM_THRESHOLD = 75
+
+
+def _detect_running_locally():
+    try:
+        host = st.context.headers.get("host", "")
+        return "localhost" in host or "127.0.0.1" in host
+    except Exception:
+        return False
+
+
+def check_structure_size_and_warn(structure, structure_name="structure",
+                                  is_local=None):
+    n_atoms = len(structure)
+    if is_local is None:
+        is_local = _detect_running_locally()
+    if n_atoms > LARGE_STRUCTURE_ATOM_THRESHOLD:
+        if not is_local:
+            st.info(
+                f"ℹ️ **Structure Notice**: {structure_name} contains a large "
+                f"number of **{n_atoms} atoms**. Calculations may take longer "
+                f"depending on selected parameters. Please be careful to "
+                f"not consume much memory, we are hosted on a free server. 😊"
+            )
         return "moderate"
-    else:
-        return "small"
+    return "small"
+
+
+def report_large_structures(items, is_local=None):
+    if is_local is None:
+        is_local = _detect_running_locally()
+    if is_local:
+        return
+    large = [(name, n) for name, n in items
+             if n > LARGE_STRUCTURE_ATOM_THRESHOLD]
+    if not large:
+        return
+    bullets = "\n".join(f"- **{name}** — {n} atoms" for name, n in large)
+    st.info(
+        "ℹ️ **Structure Notice**: the following structure(s) contain many "
+        "atoms — calculations may take longer and use more memory. We are "
+        "hosted on a free server, so please mind the memory budget 😊.\n\n"
+        f"{bullets}"
+    )
 
 
 
@@ -1037,6 +1072,83 @@ def rgb_color(color_tuple, opacity=0.8):
     return f"rgba({r},{g},{b},{opacity})"
 
 
+_LAMMPS_ATOM_STYLES = (
+    "atomic", "charge", "full", "molecular", "bond", "angle",
+)
+
+
+def _detect_lammps_atom_style(filename):
+    try:
+        with open(filename, "r", errors="ignore") as f:
+            in_atoms_block = False
+            for line in f:
+                s = line.strip()
+                if not in_atoms_block:
+                    if s.lower().startswith("atom_style"):
+                        parts = s.split()
+                        if len(parts) >= 2 and parts[1].lower() in _LAMMPS_ATOM_STYLES:
+                            return parts[1].lower()
+                    if s.startswith("Atoms"):
+                        if "#" in s:
+                            hint = s.split("#", 1)[1].strip().split()
+                            if hint and hint[0].lower() in _LAMMPS_ATOM_STYLES:
+                                return hint[0].lower()
+                        in_atoms_block = True
+                        continue
+                else:
+                    if not s or s.startswith("#"):
+                        continue
+                    cols = s.split()
+                    n = len(cols)
+                    has_images = n in (8, 9, 10) and all(
+                        c.lstrip("-").isdigit() for c in cols[-3:]
+                    )
+                    n_data = n - (3 if has_images else 0)
+                    if n_data == 5:
+                        return "atomic"
+                    if n_data == 6:
+                        try:
+                            float(cols[2])
+                            if "." in cols[2] or "e" in cols[2].lower():
+                                return "charge"
+                        except Exception:
+                            pass
+                        return "molecular"
+                    if n_data == 7:
+                        return "full"
+                    return None
+    except Exception:
+        return None
+    return None
+
+
+def _load_lammps_data(filename):
+    from pymatgen.io.lammps.data import LammpsData
+
+    detected = _detect_lammps_atom_style(filename)
+    candidates = []
+    if detected:
+        candidates.append(detected)
+    for s in _LAMMPS_ATOM_STYLES:
+        if s not in candidates:
+            candidates.append(s)
+
+    last_err = None
+    for style in candidates:
+        try:
+            struct = LammpsData.from_file(filename, atom_style=style).structure
+            if len(struct) > 0:
+                return struct
+        except Exception as exc:
+            last_err = exc
+            continue
+    raise ValueError(
+        "Could not parse LAMMPS data file with any of the common atom_style "
+        f"options ({', '.join(_LAMMPS_ATOM_STYLES)}). "
+        f"Last error: {last_err}"
+    )
+
+
 def load_structure(file_or_name):
     if isinstance(file_or_name, str):
         filename = file_or_name
@@ -1048,11 +1160,9 @@ def load_structure(file_or_name):
         mg_structure = PmgStructure.from_file(filename)
     elif filename.lower().endswith(".data"):
         filename = filename.replace(".data", ".lmp")
-        from pymatgen.io.lammps.data import LammpsData
-        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
+        mg_structure = _load_lammps_data(filename)
     elif filename.lower().endswith(".lmp"):
-        from pymatgen.io.lammps.data import LammpsData
-        mg_structure = LammpsData.from_file(filename, atom_style="atomic").structure
+        mg_structure = _load_lammps_data(filename)
     else:
         atoms = read(filename)
         mg_structure = AseAtomsAdaptor.get_structure(atoms)
