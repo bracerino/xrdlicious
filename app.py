@@ -102,7 +102,7 @@ st.markdown(
             font-weight: 600;
         ">
             <span style="color:#8b0000; font-weight:800;">Release:</span>
-            v0.6.0 &nbsp; | &nbsp;
+            v0.6.1 &nbsp; | &nbsp;
             <span style="color:#8b0000; font-weight:800;">Updated:</span>
             May 5, 2026
         </div>
