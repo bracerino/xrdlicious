@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import py3Dmol
-import streamlit.components.v1 as components
 from pymatgen.core import Structure, Lattice as PmgLattice
 from pymatgen.io.cif import CifWriter
 from pymatgen.io.ase import AseAtomsAdaptor
@@ -130,7 +129,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
     _preset_uvw, _preset_hkl = None, None
 
     for col, (label, p_uvw, p_hkl) in zip(preset_cols, PRESETS):
-        if col.button(label, key=f"orient_preset_{label}_{key_suffix}", use_container_width=True):
+        if col.button(label, key=f"orient_preset_{label}_{key_suffix}", width="stretch"):
             st.session_state[f"orient_u_{key_suffix}"] = p_uvw[0]
             st.session_state[f"orient_v_{key_suffix}"] = p_uvw[1]
             st.session_state[f"orient_w_{key_suffix}"] = p_uvw[2]
@@ -224,7 +223,7 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
         "Apply orientation",
         key=f"orient_apply_{key_suffix}",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     )
     st.caption("Projection normal points out of the screen · [u v w] is the upward direction.")
 
@@ -586,7 +585,7 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         view.rotate(10, "x")
 
     html_content = view._make_html()
-    components.html(
+    st.iframe(
         f"<div style='display:flex;justify-content:center;border:2px solid #333;"
         f"border-radius:10px;overflow:hidden;background-color:#f8f9fa;'>{html_content}</div>",
         height=720,
