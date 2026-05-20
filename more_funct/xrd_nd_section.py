@@ -555,7 +555,9 @@ def _march_dollase(hkl_groups, recip_matrix, hkl_pref, r):
         p_sum = 0.0
         for entry in hg:
             hkl = entry["hkl"]
-            if len(hkl) >= 3:
+            if len(hkl) == 4:
+                h, k, l = float(hkl[0]), float(hkl[1]), float(hkl[3])
+            elif len(hkl) >= 3:
                 h, k, l = float(hkl[0]), float(hkl[1]), float(hkl[2])
             else:
                 continue
