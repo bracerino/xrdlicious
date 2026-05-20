@@ -44,6 +44,13 @@ LOCAL_MAX_PEAKS = None
 
 ONLINE_MAX_PEAKS = 1500
 
+# Pre-flight safety thresholds on the estimated number of reciprocal-lattice
+# points inside the limiting sphere. Large cells with short wavelengths can
+# generate millions of points and OOM the process, so we refuse to launch the
+# calculation when the estimate exceeds the limit.
+LOCAL_MAX_RECIP_POINTS = 500_000
+ONLINE_MAX_RECIP_POINTS = 100_000
+
 MULTI_COMPONENT_PRESETS = {
     "Cu(Ka1+Ka2)": {
         "wavelengths": [0.15406, 0.15444],
@@ -329,6 +336,20 @@ def _get_calculator(diffraction_choice, wavelength_A, dw_dict, use_rust):
                          debye_waller_factors=dw_dict)
 
 
+def _estimate_recip_points(structure, wavelength_A, two_theta_max=179.9):
+    import math
+    V_direct = float(structure.lattice.volume)
+    theta_max_rad = math.radians(two_theta_max / 2.0)
+    max_r = 2.0 * math.sin(theta_max_rad) / wavelength_A
+    return int((4.0 / 3.0) * math.pi * max_r ** 3 * V_direct)
+
+
+def _shortest_wavelength_A(wavelength_A, preset_choice):
+    if preset_choice in MULTI_COMPONENT_PRESETS:
+        return min(MULTI_COMPONENT_PRESETS[preset_choice]["wavelengths"]) * 10.0
+    return wavelength_A
+
+
 def _load_mg_structure(file):
     from pymatgen.core import Structure as PmgStructure
 
@@ -352,10 +373,14 @@ def _load_mg_structure(file):
 
 def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
                             use_debye_waller, debye_waller_factors_per_file,
-                            use_rust, preset_choice, max_peaks=None):
+                            use_rust, preset_choice, max_peaks=None,
+                            is_local=False):
     full_range = (0.01, 179.9)
     is_multi = preset_choice in MULTI_COMPONENT_PRESETS
     raw_patterns = {}
+
+    recip_limit = LOCAL_MAX_RECIP_POINTS if is_local else ONLINE_MAX_RECIP_POINTS
+    worst_case_wl_A = _shortest_wavelength_A(wavelength_A, preset_choice)
 
     for file in uploaded_files:
         dw_dict = None
@@ -368,6 +393,31 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             st.warning(f"Could not load '{file.name}': {exc}")
             raw_patterns[file.name] = dict(raw_x=np.array([]), raw_y=np.array([]),
                                            raw_hkls=[], peak_types=[])
+            continue
+
+        n_recip = _estimate_recip_points(mg, worst_case_wl_A,
+                                         two_theta_max=full_range[1])
+        if n_recip > recip_limit:
+            limit_kind = "local" if is_local else "online"
+            st.error(
+                f"❌ **'{file.name}'**: estimated number of reciprocal-lattice "
+                f"points (**{n_recip:,}**) exceeds the {limit_kind} safety "
+                f"threshold (**{recip_limit:,}**).\n\n"
+                f"Direct cell volume = **{mg.lattice.volume:.1f} Å³** at "
+                f"λ = **{worst_case_wl_A:.4f} Å**. A calculation this large "
+                f"can run out of memory and crash the app.\n\n"
+                f"Try one of: reduce the lattice parameters, use a longer "
+                f"wavelength, or " +
+                ("raise `LOCAL_MAX_RECIP_POINTS` in `xrd_nd_section.py` if you "
+                 "are sure your machine has enough RAM."
+                 if is_local else
+                 "run the app locally where a larger threshold is allowed.")
+            )
+            raw_patterns[file.name] = dict(raw_x=np.array([]), raw_y=np.array([]),
+                                           raw_hkls=[], peak_types=[],
+                                           original_count=0,
+                                           skipped_recip=n_recip)
+            del mg
             continue
 
         all_x, all_y, all_hkls, all_types = [], [], [], []
@@ -415,6 +465,11 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
         all_x = np.array(all_x)
         all_y = np.array(all_y)
 
+        recip_matrix = np.asarray(
+            mg.lattice.reciprocal_lattice_crystallographic.matrix,
+            dtype=float,
+        )
+
         if 'pat' in dir(): del pat
         if 'calc' in dir(): del calc
         del mg
@@ -434,6 +489,7 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             raw_x=all_x, raw_y=all_y,
             raw_hkls=all_hkls, peak_types=all_types,
             original_count=original_count,
+            recip_matrix=recip_matrix,
         )
 
     return raw_patterns
@@ -478,6 +534,45 @@ def _fwhm_at_twotheta(two_theta_deg, wavelength_A, crystallite_size_nm,
     beta_rad = (SCHERRER_K * wavelength_A) / (L_A * cos_theta)
     beta_deg = np.rad2deg(beta_rad)
     return np.sqrt(beta_deg ** 2 + fwhm_instr ** 2)
+
+
+def _march_dollase(hkl_groups, recip_matrix, hkl_pref, r):
+    if recip_matrix is None or r is None or abs(r - 1.0) < 1e-9:
+        return None
+    R = np.asarray(recip_matrix, dtype=float)
+    if R.shape != (3, 3):
+        return None
+    g_pref = (R[0] * float(hkl_pref[0]) + R[1] * float(hkl_pref[1])
+              + R[2] * float(hkl_pref[2]))
+    g_pref_norm = float(np.linalg.norm(g_pref))
+    if g_pref_norm < 1e-12:
+        return None
+    g_pref_unit = g_pref / g_pref_norm
+
+    out = np.ones(len(hkl_groups), dtype=float)
+    for i, hg in enumerate(hkl_groups):
+        weight_sum = 0.0
+        p_sum = 0.0
+        for entry in hg:
+            hkl = entry["hkl"]
+            if len(hkl) >= 3:
+                h, k, l = float(hkl[0]), float(hkl[1]), float(hkl[2])
+            else:
+                continue
+            g = R[0] * h + R[1] * k + R[2] * l
+            g_norm = float(np.linalg.norm(g))
+            if g_norm < 1e-12:
+                continue
+            cos_a = float(np.dot(g, g_pref_unit) / g_norm)
+            cos_a = max(-1.0, min(1.0, cos_a))
+            sin2 = 1.0 - cos_a * cos_a
+            p = (r * r * cos_a * cos_a + sin2 / r) ** (-1.5)
+            mult = float(entry.get("multiplicity", 1))
+            p_sum += p * mult
+            weight_sum += mult
+        if weight_sum > 0:
+            out[i] = p_sum / weight_sum
+    return out
 
 
 def _displacement_shift(two_theta_deg, displacement_mm, radius_mm):
@@ -538,6 +633,8 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
                          caglioti_V=0.0, caglioti_W=0.01,
                          use_displacement=False, displacement_mm=0.0,
                          goniometer_radius_mm=250.0,
+                         use_texture=False, texture_hkl=(0, 0, 1),
+                         texture_r=1.0,
                          max_peaks=None):
 
 
@@ -557,6 +654,12 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
     for file_name, raw in raw_patterns.items():
         raw_x, raw_y = raw["raw_x"], raw["raw_y"]
         raw_hkls, raw_types = raw["raw_hkls"], raw["peak_types"]
+
+        if use_texture and len(raw_x) > 0 and abs(texture_r - 1.0) > 1e-9:
+            corrections = _march_dollase(
+                raw_hkls, raw.get("recip_matrix"), texture_hkl, texture_r)
+            if corrections is not None and len(corrections) == len(raw_y):
+                raw_y = raw_y * corrections
 
         if len(raw_x) == 0:
             pattern_details[file_name] = dict(
@@ -723,7 +826,7 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 xaxis_title=x_axis_metric, yaxis_title="Intensity (a.u.)",
                 height=450, hovermode="x unified",
             )
-            st.plotly_chart(fig_raw, use_container_width=True)
+            st.plotly_chart(fig_raw, width="stretch")
 
             _has_permanent = (
                     "permanent_exp_data" in st.session_state
@@ -929,7 +1032,7 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
             height=600, hovermode="x unified",
             hoverlabel=dict(font=dict(size=20)),
         )
-        st.plotly_chart(fig_bg, use_container_width=True)
+        st.plotly_chart(fig_bg, width="stretch")
 
     except Exception as exc:
         st.error(f"Error processing {selected_exp_name}: {exc}")
@@ -1312,7 +1415,7 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         title=f"Diffraction Pattern — {plane_hkl} Family Annotations",
         plot_bgcolor="white",
     )
-    st.plotly_chart(fig_ann, use_container_width=True, key="annotated_plot")
+    st.plotly_chart(fig_ann, width="stretch", key="annotated_plot")
     st.success(
         f"Annotated {total} peak(s) for the {plane_hkl} family "
         "(symmetry-aware)."
@@ -1331,27 +1434,29 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
         details = pattern_details[fname]
 
         with st.expander(f"View All Peak Data: **{fname}**"):
-            lines = ["#X-axis    Intensity    hkl"]
+            lines = ["#X-axis      Intensity    hkl                                    Mult"]
             for pv, inten, hg in zip(details["peak_vals"],
                                      details["intensities"],
                                      details["hkls"]):
+                mult = sum(h["multiplicity"] for h in hg)
                 lines.append(
                     f"{float(pv):<12.3f} {float(inten):<12.3f} "
-                    f"{hkl_str(hg)}"
+                    f"{hkl_str(hg):<38} {mult:<6d}"
                 )
             st.code("\n".join(lines), language="text")
 
         with st.expander(
                 f"View Highest Intensity Peaks: **{fname}**", expanded=True):
-            lines = ["#X-axis    Intensity    hkl"]
+            lines = ["#X-axis      Intensity    hkl                                    Mult"]
             for i, (pv, inten, hg) in enumerate(
                     zip(details["peak_vals"],
                         details["intensities"],
                         details["hkls"])):
                 if i in details["annotate_indices"]:
+                    mult = sum(h["multiplicity"] for h in hg)
                     lines.append(
                         f"{float(pv):<12.3f} {float(inten):<12.3f} "
-                        f"{hkl_str(hg)}"
+                        f"{hkl_str(hg):<38} {mult:<6d}"
                     )
             st.code("\n".join(lines), language="text")
 
@@ -1389,10 +1494,13 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
                 for pv, inten, hg in zip(details["peak_vals"],
                                          details["intensities"],
                                          details["hkls"]):
-                    rows.append([float(pv), float(inten), hkl_str(hg), fname])
+                    mult = sum(h["multiplicity"] for h in hg)
+                    rows.append([float(pv), float(inten),
+                                 hkl_str(hg), int(mult), fname])
             df_comb = pd.DataFrame(
-                rows, columns=[x_axis_metric, "Intensity", "(hkl)", "Phase"])
-            st.dataframe(df_comb)
+                rows, columns=[x_axis_metric, "Intensity", "(hkl)",
+                               "Multiplicity", "Phase"])
+            st.dataframe(df_comb, width="stretch")
 
 
 def _diffraction_settings_ui():
@@ -1440,7 +1548,9 @@ def _diffraction_settings_ui():
             else:
                 use_rust = False
 
-        set_tab1, set_tab2, set_tab3 = st.tabs(["⚙️ General", "📐 Axes", "🔔 Broadening"])
+        set_tab1, set_tab2, set_tab3, set_tab4 = st.tabs(
+            ["⚙️ General", "📐 Axes", "🔔 Broadening",
+             "🎯 Texture & DW"])
 
         with set_tab1:
 
@@ -1463,13 +1573,6 @@ def _diffraction_settings_ui():
                     "⚙️ Line thickness:", 0.5, 6.0, step=0.1,
                     key="line_thickness",
                 )
-
-            use_debye_waller = st.checkbox(
-                "✓ Apply Debye-Waller temperature factors",
-                key="use_debye_waller",
-            )
-            if use_debye_waller:
-                _debye_waller_ui()
 
             prev_diff = st.session_state.get("_prev_diffraction_choice")
             if prev_diff != diffraction_choice:
@@ -1513,12 +1616,20 @@ def _diffraction_settings_ui():
                 key="intensity_filter_widget")
             st.session_state.intensity_filter = intensity_filter
 
+            _calc_blocked = bool(st.session_state.get("_recip_any_exceeded", False))
+            _calc_help = (
+                "Disabled: one or more structures exceed the reciprocal-point "
+                "safety threshold (see the '🛡️ Reflection Estimate' tab)."
+                if _calc_blocked else None
+            )
             if diffraction_choice == "ND (Neutron)":
-                if st.button("Calculate ND", type="primary"):
+                if st.button("Calculate ND", type="primary",
+                             disabled=_calc_blocked, help=_calc_help):
                     st.session_state.calc_xrd = True
                     st.session_state.raw_patterns_cache_key = None
             else:
-                if st.button("Calculate XRD", type="primary"):
+                if st.button("Calculate XRD", type="primary",
+                             disabled=_calc_blocked, help=_calc_help):
                     st.session_state.calc_xrd = True
                     st.session_state.raw_patterns_cache_key = None
 
@@ -1680,7 +1791,7 @@ def _diffraction_settings_ui():
                     legend=dict(font=dict(size=26)),
                 )
 
-                st.plotly_chart(fig_disp, use_container_width=True)
+                st.plotly_chart(fig_disp, width="stretch")
 
                 _dl_csv = "\n".join(
                     ["# 2theta_deg  delta_2theta_deg"] +
@@ -1889,6 +2000,74 @@ def _diffraction_settings_ui():
                     caglioti_V = st.session_state.get("caglioti_V", -0.002)
                     caglioti_W = st.session_state.get("caglioti_W", 0.005)
 
+        with set_tab4:
+            st.markdown("#### 🔥 Debye-Waller temperature factors")
+            use_debye_waller = st.checkbox(
+                "✓ Apply Debye-Waller temperature factors",
+                key="use_debye_waller",
+                help="Adds the temperature-dependent factor exp(−B·s²) per "
+                     "element to the structure factor (s = sin θ / λ). "
+                     "Reduces intensities, more at higher angles.",
+            )
+            if use_debye_waller:
+                _debye_waller_ui()
+
+            st.markdown("---")
+            st.markdown("#### 🎯 March-Dollase texture (preferred orientation)")
+            use_texture = st.checkbox(
+                "Apply March-Dollase preferred-orientation correction",
+                value=st.session_state.get("use_texture", False),
+                key="use_texture",
+                help=(
+                    "Standard correction for powders with non-random "
+                    "crystallite orientation. Each peak is multiplied by\n\n"
+                    "P(α) = (r²·cos²α + sin²α/r)^(−3/2)\n\n"
+                    "where α is the angle between the preferred direction "
+                    "(hkl_pref) and the reflection vector, and r is the "
+                    "March coefficient. r = 1 → no texture; r < 1 → needle-"
+                    "like crystallites along hkl_pref; r > 1 → plate-like."
+                ),
+            )
+            if use_texture:
+                col_th, col_tk, col_tl, col_tr = st.columns(4)
+                with col_th:
+                    texture_h = st.number_input(
+                        "h", value=int(st.session_state.get("texture_h", 0)),
+                        min_value=-20, max_value=20, step=1, key="texture_h")
+                with col_tk:
+                    texture_k = st.number_input(
+                        "k", value=int(st.session_state.get("texture_k", 0)),
+                        min_value=-20, max_value=20, step=1, key="texture_k")
+                with col_tl:
+                    texture_l = st.number_input(
+                        "l", value=int(st.session_state.get("texture_l", 1)),
+                        min_value=-20, max_value=20, step=1, key="texture_l")
+                with col_tr:
+                    texture_r = st.number_input(
+                        "March r",
+                        value=float(st.session_state.get("texture_r", 1.0)),
+                        min_value=0.05, max_value=10.0,
+                        step=0.05, format="%.3f", key="texture_r",
+                        help="r < 1 → enhances (hkl_pref) family (needle); "
+                             "r > 1 → suppresses (plate).")
+                if texture_h == 0 and texture_k == 0 and texture_l == 0:
+                    st.warning(
+                        "⚠️ Preferred direction (h k l) cannot be (0 0 0). "
+                        "Correction will be skipped.")
+                else:
+                    _regime = ("no effect" if abs(texture_r - 1.0) < 1e-6 else
+                               "needle-like along hkl_pref" if texture_r < 1.0
+                               else "plate-like ⟂ hkl_pref")
+                    st.caption(
+                        f"Preferred orientation **({texture_h} {texture_k} "
+                        f"{texture_l})**, r = **{texture_r:.3f}** → {_regime}."
+                    )
+            else:
+                texture_h = int(st.session_state.get("texture_h", 0))
+                texture_k = int(st.session_state.get("texture_k", 0))
+                texture_l = int(st.session_state.get("texture_l", 1))
+                texture_r = float(st.session_state.get("texture_r", 1.0))
+
     return (wavelength_A, wavelength_nm, diffraction_choice, preset_choice,
             peak_representation, intensity_scale_option, line_thickness,
             use_debye_waller, sigma, x_axis_metric, y_axis_scale,
@@ -1900,7 +2079,9 @@ def _diffraction_settings_ui():
             show_delta_ref, profile_norm,
             use_caglioti, caglioti_U, caglioti_V, caglioti_W,
             use_displacement, displacement_mm, goniometer_radius_mm,
-            show_original_on_plot)
+            show_original_on_plot,
+            use_texture, int(texture_h), int(texture_k), int(texture_l),
+            float(texture_r))
 
 
 def _debye_waller_ui():
@@ -2071,6 +2252,98 @@ def _nd_wavelength_ui():
     return wl, preset
 
 
+def _compute_recip_estimates(uploaded_files, wavelength_A, preset_choice,
+                             is_local):
+    recip_limit = LOCAL_MAX_RECIP_POINTS if is_local else ONLINE_MAX_RECIP_POINTS
+    worst_case_wl_A = _shortest_wavelength_A(wavelength_A, preset_choice)
+    rows = []
+    any_exceeded = False
+    for file in uploaded_files or []:
+        try:
+            mg = _load_mg_structure(file)
+            V = float(mg.lattice.volume)
+            n = _estimate_recip_points(mg, worst_case_wl_A)
+            del mg
+            exceeded = n > recip_limit
+            if exceeded:
+                any_exceeded = True
+            rows.append({
+                "file": file.name,
+                "volume": V,
+                "wavelength_A": worst_case_wl_A,
+                "estimate": n,
+                "exceeded": exceeded,
+                "error": None,
+            })
+        except Exception as exc:
+            rows.append({
+                "file": file.name,
+                "volume": None,
+                "wavelength_A": worst_case_wl_A,
+                "estimate": None,
+                "exceeded": False,
+                "error": str(exc),
+            })
+    return rows, any_exceeded, recip_limit
+
+
+def _tab_recip_estimate(rows, recip_limit, is_local):
+    st.subheader("🛡️ Reciprocal-Space Reflection Estimate")
+    st.caption(
+        f"Estimated number of reciprocal-lattice points inside the limiting "
+        f"sphere of radius 2/λ (using the shortest wavelength of the active "
+        f"preset). Safety threshold: **{recip_limit:,}** "
+        f"({'local' if is_local else 'online'} mode). Structures exceeding "
+        f"this threshold block the calculation to prevent OOM crashes."
+    )
+    if not rows:
+        st.info("Upload structure files to see the estimate.")
+        return
+
+    display_rows = []
+    for r in rows:
+        if r["error"]:
+            display_rows.append({
+                "File": r["file"],
+                "Status": "⚠️ load error",
+                "V (Å³)": "—",
+                "λ_min (Å)": "—",
+                "Estimated reflections": "—",
+                "Threshold": f"{recip_limit:,}",
+                "Detail": r["error"],
+            })
+        else:
+            status = "❌ EXCEEDS" if r["exceeded"] else "✅ OK"
+            display_rows.append({
+                "File": r["file"],
+                "Status": status,
+                "V (Å³)": f"{r['volume']:.2f}",
+                "λ_min (Å)": f"{r['wavelength_A']:.4f}",
+                "Estimated reflections": f"{r['estimate']:,}",
+                "Threshold": f"{recip_limit:,}",
+                "Detail": "—",
+            })
+    df = pd.DataFrame(display_rows).set_index("File")
+    st.dataframe(df, width="stretch")
+
+    if any(r["exceeded"] for r in rows):
+        offenders = ", ".join(f"**{r['file']}**" for r in rows if r["exceeded"])
+        st.error(
+            f"❌ {offenders} exceed the safety threshold. "
+            f"**Calculate XRD/ND is disabled** until you reduce the cell, "
+            f"use a longer wavelength, or remove the offending file(s)."
+            + ("\n\nTo raise the limit, edit `LOCAL_MAX_RECIP_POINTS` in "
+               "`more_funct/xrd_nd_section.py`."
+               if is_local else
+               "\n\nLocal deployments allow a higher threshold "
+               f"(`LOCAL_MAX_RECIP_POINTS = {LOCAL_MAX_RECIP_POINTS:,}`).")
+        )
+    elif any(r["error"] for r in rows):
+        st.warning("⚠️ Some files could not be loaded — they will be skipped during calculation.")
+    else:
+        st.success("✅ All structures are within the threshold.")
+
+
 def _tab_lattice(uploaded_files):
     st.subheader("🔷 Lattice Parameters Overview")
 
@@ -2104,7 +2377,7 @@ def _tab_lattice(uploaded_files):
 
     if rows:
         df = pd.DataFrame(rows).set_index("File")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
         csv = df.reset_index().to_csv(index=False)
         st.download_button(
@@ -2129,6 +2402,18 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
     else:
         _max_peaks = ONLINE_MAX_PEAKS
 
+    _approx_wl_nm = float(st.session_state.get("wavelength_value", 0.17889))
+    _approx_wl_A = _approx_wl_nm * 10.0
+    _approx_diff = st.session_state.get("diffraction_choice", "XRD (X-ray)")
+    if _approx_diff == "XRD (X-ray)":
+        _approx_preset = st.session_state.get("preset_choice", "Cobalt (CoKa1)")
+    else:
+        _approx_preset = st.session_state.get("preset_choice_neutron",
+                                              "Thermal Neutrons")
+    recip_rows, recip_any_exceeded, recip_limit = _compute_recip_estimates(
+        uploaded_files or [], _approx_wl_A, _approx_preset, is_local)
+    st.session_state["_recip_any_exceeded"] = recip_any_exceeded
+
     colmain_1, colmain_2 = st.columns([0.5, 1])
 
     with colmain_1:
@@ -2143,16 +2428,22 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
          show_delta_ref, profile_norm,
          use_caglioti, caglioti_U, caglioti_V, caglioti_W,
          use_displacement, displacement_mm,
-         goniometer_radius_mm, show_original_on_plot) = _diffraction_settings_ui()
+         goniometer_radius_mm, show_original_on_plot,
+         use_texture, texture_h, texture_k, texture_l,
+         texture_r) = _diffraction_settings_ui()
+        texture_hkl = (texture_h, texture_k, texture_l)
+        _texture_active = bool(use_texture) and texture_hkl != (0, 0, 0)
 
     with colmain_2:
         if user_pattern_file:
             _tab_labels = ["➡️ Patterns chart", "📉 Experimental Data",
                            "🖥️ Quantitative peak data",
-                           "🏷️ Annotate Planes", "🔷 Lattice Parameters"]
+                           "🏷️ Annotate Planes", "🔷 Lattice Parameters",
+                           "🛡️ Reflection Estimate"]
         else:
             _tab_labels = ["➡️ Patterns chart", "🖥️ Quantitative peak data",
-                           "🏷️ Annotate Planes", "🔷 Lattice Parameters"]
+                           "🏷️ Annotate Planes", "🔷 Lattice Parameters",
+                           "🛡️ Reflection Estimate"]
         _tabs = st.tabs(_tab_labels)
         tab1 = _tabs[0]
         if user_pattern_file:
@@ -2160,11 +2451,16 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
             tab2 = _tabs[2]
             tab_ann = _tabs[3]
             tab_lat = _tabs[4]
+            tab_recip = _tabs[5]
         else:
             tab_exp = None
             tab2 = _tabs[1]
             tab_ann = _tabs[2]
             tab_lat = _tabs[3]
+            tab_recip = _tabs[4]
+
+        with tab_recip:
+            _tab_recip_estimate(recip_rows, recip_limit, is_local)
 
         if tab_exp is not None:
             with tab_exp:
@@ -2184,12 +2480,25 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                                   two_theta_min, two_theta_max,
                                   intensity_scale_option, peak_representation,
                                   wavelength_A, wavelength_nm, diffraction_choice)
-                    st.plotly_chart(fig_exp, use_container_width=True)
+                    st.plotly_chart(fig_exp, width="stretch")
             return
 
         if not uploaded_files:
             with tab1:
                 st.warning("No structure files loaded.")
+            return
+
+        if recip_any_exceeded:
+            offenders = ", ".join(
+                f"**{r['file']}**" for r in recip_rows if r["exceeded"]
+            )
+            with tab1:
+                st.error(
+                    f"❌ Calculation blocked — {offenders} exceed the "
+                    f"reciprocal-point safety threshold "
+                    f"({recip_limit:,} points). See the "
+                    f"'🛡️ Reflection Estimate' tab for details."
+                )
             return
 
         current_key = _cache_key(
@@ -2227,6 +2536,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                 st.session_state.get("debye_waller_factors_per_file", {}),
                 use_rust, preset_choice,
                 max_peaks=_max_peaks,
+                is_local=is_local,
             )
             if _max_peaks is not None:
                 _trimmed = [
@@ -2271,6 +2581,9 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
             use_displacement=use_displacement,
             displacement_mm=displacement_mm,
             goniometer_radius_mm=goniometer_radius_mm,
+            use_texture=_texture_active,
+            texture_hkl=texture_hkl,
+            texture_r=texture_r,
             max_peaks=_max_peaks,
         )
 
@@ -2326,6 +2639,9 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                     use_displacement=use_displacement,
                     displacement_mm=displacement_mm,
                     goniometer_radius_mm=goniometer_radius_mm,
+                    use_texture=_texture_active,
+                    texture_hkl=texture_hkl,
+                    texture_r=texture_r,
                     max_peaks=_max_peaks,
                 )
                 for idx, file in enumerate(uploaded_files):
@@ -2391,6 +2707,9 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                     use_displacement=False,
                     displacement_mm=0.0,
                     goniometer_radius_mm=goniometer_radius_mm,
+                    use_texture=_texture_active,
+                    texture_hkl=texture_hkl,
+                    texture_r=texture_r,
                     max_peaks=_max_peaks,
                 )
                 _tab10 = plt.cm.tab10.colors
@@ -2443,7 +2762,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                           two_theta_min, two_theta_max,
                           intensity_scale_option, peak_representation,
                           wavelength_A, wavelength_nm, diffraction_choice)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         with tab2:
             _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric)
