@@ -358,20 +358,15 @@ if 'full_structures' not in st.session_state:
 
 
 
-allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg"]
-if IS_LOCAL:
-    allowed_types.append("lmp")
+allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg", "lmp"]
 
 st.sidebar.subheader("📤 Upload Your Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload structure files (CIF, POSCAR, XSF, PW, CFG, XYZ (with cell)"
-    + (", LMP" if IS_LOCAL else "") + "):",
+    "Upload structure files (CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP):",
     type=allowed_types,
     accept_multiple_files=True,
     key="sidebar_uploader"
 )
-if not IS_LOCAL:
-    st.sidebar.caption("ℹ️ .lmp format is only supported when running locally.")
 
 st.sidebar.subheader("📁 Upload Your Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
@@ -1262,13 +1257,15 @@ if uploaded_files_user_sidebar:
     uploaded_files = st.session_state['uploaded_files'] + uploaded_files_user_sidebar
     if 'full_structures' not in st.session_state:
         st.session_state.full_structures = {}
+    _size_items = []
     for file in uploaded_files_user_sidebar:
         try:
             structure = load_structure(file)
             st.session_state['full_structures'][file.name] = structure
-            check_structure_size_and_warn(structure, file.name)
+            _size_items.append((file.name, len(structure)))
         except Exception as e:
             st.error(f"Failed to parse {file.name}: {e}")
+    report_large_structures(_size_items, is_local=IS_LOCAL)
 else:
     uploaded_files = st.session_state['uploaded_files']
 
