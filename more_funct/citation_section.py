@@ -66,13 +66,31 @@ def first_run_note():
 
             if is_local:
                 st.success(
-                    "Running locally."
+                    "**Running locally.**\n\n"
+                    "**Local limits (per structure):** up to **5,000,000** "
+                    "estimated reflections in the limiting sphere — beyond "
+                    "this the **Calculate** button is disabled to prevent "
+                    "OOM crashes; **no peak-count truncation** (all peaks "
+                    "are stored and displayed). Thresholds are editable "
+                    "(`LOCAL_MAX_RECIP_POINTS`, `LOCAL_MAX_PEAKS` in "
+                    "`more_funct/xrd_nd_section.py`)."
                 )
             else:
                 st.warning(
-                    "**We currently use free Streamlit hosting with limited RAM (upgrade is planned).** "
-                    "**For heavier computations or to have a stable personal version, run the app locally from** "
-                    "**[GitHub](https://github.com/bracerino/xrdlicious).**"
+                    "**We currently use free Streamlit hosting with limited "
+                    "RAM (upgrade is planned).** "
+                    "**For heavier computations or to have a stable personal "
+                    "version, run the app locally from** "
+                    "**[GitHub](https://github.com/bracerino/xrdlicious).**\n\n"
+                    "**Online limits (per structure):** up to **500,000** "
+                    "estimated reflections in the limiting sphere — beyond "
+                    "this the **Calculate** button is disabled to prevent "
+                    "OOM crashes; and only the **top 1,500 peaks by "
+                    "intensity** are stored / displayed.\n\n"
+                    "**Local limits:** **5,000,000** reflection cap and **no "
+                    "peak-count truncation**. Both thresholds are editable "
+                    "(`LOCAL_MAX_RECIP_POINTS`, `LOCAL_MAX_PEAKS` in "
+                    "`more_funct/xrd_nd_section.py`)."
                 )
 
             st.info("""
@@ -121,27 +139,58 @@ def buttons_colors():
 def about_app():
     with st.expander("About the app.", icon="📖", expanded=True):
         st.info(
-            "**Calculate powder XRD/ND patterns, (P)RDF, modify structures, and create point defects from crystal structures (CIF, LMP, POSCAR, XYZ), or perform peak matching and XRD data and file conversion.**\n\n"
-            "Upload **structure files** (e.g., **CIF, LMP, POSCAR, XSF** format) and this tool will calculate either the "
-            "**powder X-ray** or **neutron diffraction** (**XRD** or **ND**) patterns or **partial radial distribution function** (**PRDF**) for each **element combination**. Additionally, you can convert "
-            "between primitive and conventional crystal structure representations, modify the structure, and introduce automatically interstitials, vacancies, or substitutes, downloading their outputs in CIF, POSCAR, LMP, or XYZ format. "
-            "If **multiple files** are uploaded, the **PRDF** will be **averaged** for corresponding **element combinations** across the structures. For **XRD/ND patterns**, diffraction data from multiple structures are combined into a **single figure**."
-            "There is also option to interactively plot and modify your two-columns data. In case of XRD data, you can convert between different wavelenghts, d-space, or q-space, and between fixed and automatic divergence slits. "
+            "**XRDlicious** is an online toolbox for **powder XRD / neutron "
+            "diffraction**, **structure inspection and editing**, and **XRD "
+            "data conversion** — all from uploaded crystal structures "
+            "(**CIF, POSCAR, LMP, XSF, XYZ**) or files fetched directly from "
+            "the **Materials Project**, **AFLOW**, **COD**, or **MC3D** "
+            "databases.\n\n"
+            "Pick one or more tools from the **sidebar**, upload structures "
+            "(or grab them from a database), then configure and run."
         )
         st.warning(
-            "🪧 **Step 1**: 📁 Choose which tool to use from the sidebar.\n\n"
-            "- **Structure Visualization** lets you view, convert (primitive ⇄ conventional), modify the structure (atomic elements, occupancies, lattice parameters) and download structures (**CIF, POSCAR, LMP, XYZ**). For creation of **supercells and point defects**, please visit [this site](https://xrdlicious-point-defects.streamlit.app/)\n\n"
-            "- **Powder Diffraction** computes powder diffraction patterns on uploaded structures or shows **experimental data**.\n\n "
-            "- **(P)RDF** calculates **partial and total RDF** for all element pairs on the uploaded structures.\n\n"
-            "- **Peak Matching** allows users to upload their experimental powder XRD pattern and match peaks with structures from MP/AFLOW/COD databases. \n\n"
-            "- **Interactive Data Plot** allows to plot two-column data and convert XRD data between wavelenghts, d-space and q-space. Additionally, it is possible to convert between fixed and automatic divergence slits.. \n\n"
-            f"🪧 **Step 2**:  📁 Using the sidebar, upload your structure files or experimental patterns, or retrieve structures directly from MP, AFLOW, or COD crystal structure databases.."
-            "Make sure the file format is supported (e.g., CIF, POSCAR, LMP, XYZ (with cell information))."
+            "**🧰 Tools available in the sidebar**\n\n"
+            "- **🔬 Structure Modification** — view in 3D, edit lattice "
+            "parameters and atomic sites (element, fractional coordinates, "
+            "occupancy), and download as **CIF / POSCAR / LAMMPS / XYZ**.\n\n"
+            "- **💥 Powder Diffraction (XRD / ND)** — Rust-accelerated "
+            "calculator (toggle the ⚡ icon to switch to pure pymatgen). "
+            "Presets for **Cu, Mo, Co, Fe, Cr, Ag** including Kα1+Kα2(+Kβ) "
+            "mixtures, plus custom λ or energy input. Optional **Debye-"
+            "Waller** factors, **March-Dollase preferred-orientation "
+            "correction**, **Scherrer + Caglioti broadening**, **sample-"
+            "displacement** correction, five **peak profiles** (Delta, "
+            "Gaussian, Lorentzian, Pseudo-Voigt, Pearson VII). Includes a "
+            "**Reflection-Estimate tab** that blocks runaway cells before "
+            "they OOM the server.\n\n"
+            "- **📈 Interactive Data Plot** — plot two-column data; convert "
+            "XRD between **wavelengths**, **d-space**, **q-space**, and "
+            "between **fixed ↔ automatic divergence slits**.\n\n"
+            "- **➡️ .xrdml ↔ .xy ↔ .ras Converter** — file-format conversion "
+            "for common diffractometer outputs.\n\n"
+            "- **↔️ Equivalent Planes** — list symmetry-equivalent (hkl) "
+            "families for a given space group.\n\n"
+            "**🔗 Companion apps** (opened separately)\n\n"
+            "- **Calculate (P)RDF**: "
+            "[Open App 🧩](https://prdf-xrdlicious.streamlit.app/) — "
+            "partial / total radial distribution functions, averaged across "
+            "multiple structures.\n"
+            "- **Point defects, supercells & cell conversion**: "
+            "[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/) "
+            "— vacancies, interstitials, substitutions, supercell builder, "
+            "primitive ↔ conventional cell conversion.\n"
+            "- **Convert between `.xrdml`, `.ras` and `.xy` formats or "
+            "X/Y-axis**: "
+            "[Open App 🧩](https://xrd-convert.streamlit.app/)\n"
+            "- **Austenite-martensite crystallographic planes for NiTiHf**: "
+            "[Open App 🌐](https://austenite-martensite.streamlit.app/)\n"
+            "- **PRDF from LAMMPS / XYZ trajectories** (local, CLI): "
+            "[Open Repo 🐙](https://github.com/bracerino/PRDF-CP2K-LAMMPS) "
+            "— run locally; too heavy for the online server.\n\n"
+            "**Tip:** when multiple structures are uploaded, XRD/ND "
+            "patterns are overlaid in a single figure for direct comparison."
         )
 
-        # from PIL import Image
-        # image = Image.open("images/ts4.png")
-        # st.image(image)
         if st.button("Clear Cache"):
             st.cache_data.clear()
             st.cache_resource.clear()
