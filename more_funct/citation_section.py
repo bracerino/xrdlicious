@@ -24,7 +24,7 @@ def show_xrdlicious_roadmap():
 
 #### Expanded Correction Factors & Peak Shapes
 * ✅ Add more peak shape functions (Lorentzian, Pseudo-Voigt).
-* ⏳ Introduce preferred orientation and basic absorption corrections.
+* ✅ Introduce preferred orientation and basic absorption corrections.
 * ✅ Instrumental broadening - introduce Caglioti formula.
 * ✅ Calculate and apply peak shifts due to sample displacement error.
 
@@ -82,7 +82,7 @@ def first_run_note():
                     "**For heavier computations or to have a stable personal "
                     "version, run the app locally from** "
                     "**[GitHub](https://github.com/bracerino/xrdlicious).**\n\n"
-                    "**Online limits (per structure):** up to **500,000** "
+                    "**Online limits (per structure):** up to **100,000** "
                     "estimated reflections in the limiting sphere — beyond "
                     "this the **Calculate** button is disabled to prevent "
                     "OOM crashes; and only the **top 1,500 peaks by "
