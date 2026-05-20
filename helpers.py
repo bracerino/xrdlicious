@@ -5,6 +5,14 @@
 #for package, version in installed_packages:
 #    st.write(f"{package}=={version}")
 
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"gcd is deprecated.*",
+    category=FutureWarning,
+)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from ase.io import read, write
