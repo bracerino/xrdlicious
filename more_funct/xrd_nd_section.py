@@ -48,7 +48,7 @@ ONLINE_MAX_PEAKS = 1500
 # points inside the limiting sphere. Large cells with short wavelengths can
 # generate millions of points and OOM the process, so we refuse to launch the
 # calculation when the estimate exceeds the limit.
-LOCAL_MAX_RECIP_POINTS = 500_000
+LOCAL_MAX_RECIP_POINTS = 5_000_000
 ONLINE_MAX_RECIP_POINTS = 100_000
 
 MULTI_COMPONENT_PRESETS = {
@@ -1427,6 +1427,17 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
 
     st.subheader("Quantitative Data for Calculated Diffraction Patterns")
 
+    col_ann, _ = st.columns([1, 3])
+    with col_ann:
+        st.number_input(
+            "⚙️ Peaks to annotate in 'View Highest Intensity Peaks':",
+            min_value=0, max_value=30,
+            value=int(st.session_state.get("num_annotate", 5)),
+            step=1, key="num_annotate",
+            help="Number of strongest peaks to list in the 'View Highest "
+                 "Intensity Peaks' expander below.",
+        )
+
     for file in uploaded_files:
         fname = file.name
         if fname not in pattern_details:
@@ -1601,14 +1612,7 @@ def _diffraction_settings_ui():
             wavelength_A = wavelength_value * 10.0
             wavelength_nm = wavelength_value
 
-            _, col_ann = st.columns(2)
-            with col_ann:
-                num_annotate = st.number_input(
-                    "⚙️ Peaks to annotate in table:",
-                    min_value=0, max_value=30,
-                    value=st.session_state.num_annotate,
-                    step=1, key="num_annotate_widget")
-                st.session_state.num_annotate = num_annotate
+            num_annotate = int(st.session_state.get("num_annotate", 5))
 
             intensity_filter = st.slider(
                 "⚙️ Filter peaks (% of max intensity):",
