@@ -1473,7 +1473,7 @@ def run_data_converter():
 
                     if is_batch:
                         st.write(f"**Batch conversion for {len(uploaded_files)} files.**")
-                        if st.button("⬇️ Download All as .xy (.zip)", type="primary", use_container_width=True):
+                        if st.button("⬇️ Download All as .xy (.zip)", type="primary", width="stretch"):
                             zip_buffer = BytesIO()
                             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                                 for uploaded_file in uploaded_files:
@@ -1499,14 +1499,14 @@ def run_data_converter():
                                 data=zip_buffer.getvalue(),
                                 file_name="converted_xy_files.zip",
                                 mime="application/zip",
-                                use_container_width=True
+                                width="stretch"
                             )
                     else:
                         default_name = first_file.name.rsplit('.', 1)[0] + '.xy'
                         download_filename = st.text_input("Enter filename for download:", default_name)
                         xy_data = convert_to_xy(data_df, include_header)
                         st.download_button("⬇️ Download as .xy File", xy_data, download_filename, "text/plain",
-                                           type="primary", use_container_width=True)
+                                           type="primary", width="stretch")
 
                 with col2:
                     st.markdown("#### 📈 Diffraction Pattern")
@@ -1514,7 +1514,7 @@ def run_data_converter():
                         go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
                     fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
                                       yaxis_title="Intensity (counts)", height=550, margin=dict(l=40, r=40, t=50, b=40))
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
 
 
         elif file_ext in ['xy', 'dat', 'txt']:
@@ -1537,7 +1537,7 @@ def run_data_converter():
                     edited_df = st.data_editor(st.session_state[df_state_key], num_rows="dynamic", height=425,
                                                key=f"editor_{output_format}")
 
-                    if st.button("Apply Changes & Prepare Download", use_container_width=True):
+                    if st.button("Apply Changes & Prepare Download", width="stretch"):
                         st.session_state[df_state_key] = edited_df
                         st.success(f"Settings applied. {output_format} file is ready for download below.")
 
@@ -1572,7 +1572,7 @@ def run_data_converter():
                                 file_name=f"converted_to_{output_format}.zip",
                                 mime="application/zip",
                                 type="primary",
-                                use_container_width=True
+                                width="stretch"
                             )
                         else:
                             default_name = first_file.name.rsplit('.', 1)[0] + f'.{file_extension}'
@@ -1597,7 +1597,7 @@ def run_data_converter():
                                     file_name=download_filename,
                                     mime=mime_type,
                                     type="primary",
-                                    use_container_width=True
+                                    width="stretch"
                                 )
 
                 with col2:
@@ -1606,7 +1606,7 @@ def run_data_converter():
                         go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
                     fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
                                       yaxis_title="Intensity", height=550, margin=dict(l=40, r=40, t=50, b=40))
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
 
 
 if __name__ == "__main__":
