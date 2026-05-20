@@ -1,4 +1,4 @@
-streamlit==1.45.1
+streamlit==1.57.0
 numpy==2.2.6
 matplotlib==3.10.3
 ase==3.25.0
@@ -9,11 +9,11 @@ py3Dmol==2.4.2
 plotly==6.1.2
 streamlit-plotly-events
 setuptools
-mp-api==0.45.3
+mp-api==0.46.1
 aflow==0.0.11
 pillow==11.2.1
 psutil==7.0.0
 requests==2.32.5
 maggma==0.72.0 
-emmet-core==0.84.10rc2
+emmet-core==0.86.4
 xrd-rust==0.3.4
