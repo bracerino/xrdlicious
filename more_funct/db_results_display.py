@@ -284,7 +284,7 @@ def _render_mp(sort_by: str, cs_filter: str) -> None:
 
     col_add, col_dl, _ = st.columns([1, 1, 2])
     with col_add:
-        if st.button("➕ Add to workspace", key="mp_add", use_container_width=True):
+        if st.button("➕ Add to workspace", key="mp_add", width="stretch"):
             check_structure_size_and_warn(structure, f"MP {selected_id}")
             st.session_state.full_structures[file_name] = structure
             _push_cif_to_uploads(file_name, str(CifWriter(structure)))
@@ -294,7 +294,7 @@ def _render_mp(sort_by: str, cs_filter: str) -> None:
             "💾 Download CIF", type="primary",
             data=str(CifWriter(structure, symprec=0.01)),
             file_name=file_name, mime="chemical/x-cif",
-            key="mp_dl", use_container_width=True,
+            key="mp_dl", width="stretch",
         )
 
 
@@ -348,7 +348,7 @@ def _render_aflow(sort_by: str, cs_filter: str) -> None:
     fname = f"{entry.compound}_{entry.auid}.cif"
     col_add, col_dl, _ = st.columns([1, 1, 2])
     with col_add:
-        if st.button("➕ Add to workspace", key="aflow_add", use_container_width=True):
+        if st.button("➕ Add to workspace", key="aflow_add", width="stretch"):
             _push_bytes_to_uploads(fname, cif_content)
             st.session_state.full_structures[fname] = structure_raw
             check_structure_size_and_warn(structure_raw, fname)
@@ -357,7 +357,7 @@ def _render_aflow(sort_by: str, cs_filter: str) -> None:
         st.download_button(
             "💾 Download CIF", type="primary",
             data=cif_content, file_name=fname, mime="chemical/x-cif",
-            key="aflow_dl", use_container_width=True,
+            key="aflow_dl", width="stretch",
         )
 
 
@@ -390,7 +390,7 @@ def _render_cod(sort_by: str, cs_filter: str) -> None:
     file_name = f"{structure.composition.reduced_formula}_COD_{numeric_id}.cif"
     col_add, col_dl, _ = st.columns([1, 1, 2])
     with col_add:
-        if st.button("➕ Add to workspace", key="cod_add", use_container_width=True):
+        if st.button("➕ Add to workspace", key="cod_add", width="stretch"):
             st.session_state.full_structures[file_name] = structure
             _push_cif_to_uploads(file_name, str(CifWriter(structure, symprec=0.01)))
             check_structure_size_and_warn(structure, file_name)
@@ -400,7 +400,7 @@ def _render_cod(sort_by: str, cs_filter: str) -> None:
             "💾 Download CIF", type="primary",
             data=str(CifWriter(structure, symprec=0.01)),
             file_name=file_name, mime="chemical/x-cif",
-            key="cod_dl", use_container_width=True,
+            key="cod_dl", width="stretch",
         )
 
 
@@ -433,7 +433,7 @@ def _render_mc3d(sort_by: str, cs_filter: str) -> None:
     file_name = re.sub(r'[\\/:"*?<>|]+', '_', f"{mc3d_id}_{formula}.cif")
     col_add, col_dl, _ = st.columns([1, 1, 2])
     with col_add:
-        if st.button("➕ Add to workspace", key="mc3d_add", use_container_width=True):
+        if st.button("➕ Add to workspace", key="mc3d_add", width="stretch"):
             st.session_state.full_structures[file_name] = structure
             _push_cif_to_uploads(file_name, str(CifWriter(structure, symprec=0.01)))
             check_structure_size_and_warn(structure, file_name)
@@ -443,7 +443,7 @@ def _render_mc3d(sort_by: str, cs_filter: str) -> None:
             "💾 Download CIF", type="primary",
             data=str(CifWriter(structure, symprec=0.01)),
             file_name=file_name, mime="chemical/x-cif",
-            key="mc3d_dl", use_container_width=True,
+            key="mc3d_dl", width="stretch",
         )
 
 
