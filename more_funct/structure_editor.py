@@ -1170,7 +1170,7 @@ def run_structure_editor(uploaded_files):
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
             run_sym = st.button(
                 "\U0001f9ee Determine symmetries for all structures",
-                type="primary", key="se_sym_run_all", use_container_width=True,
+                type="primary", key="se_sym_run_all", width="stretch",
             )
 
         if run_sym:
@@ -1224,7 +1224,7 @@ def run_structure_editor(uploaded_files):
 
             if rows:
                 df_sym = pd.DataFrame(rows)
-                st.dataframe(df_sym, use_container_width=True, hide_index=True)
+                st.dataframe(df_sym, width="stretch", hide_index=True)
                 csv_bytes = df_sym.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     "⬇️ Download symmetry summary (CSV)",
