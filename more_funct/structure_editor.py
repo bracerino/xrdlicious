@@ -1036,8 +1036,9 @@ def run_structure_editor(uploaded_files):
                 except Exception as e:
                     st.error(f"Error preparing download: {e}")
 
-    tab_viz, tab_lattice, tab_atoms, tab_export = st.tabs([
+    tab_viz, tab_sym, tab_lattice, tab_atoms, tab_export = st.tabs([
         "\U0001f52c Visualization",
+        "\U0001f50d Symmetry",
         "\U0001f537 Lattice Parameters",
         "\u269b\ufe0f Atomic Sites",
         "\U0001f4be Export Structure",
@@ -1148,6 +1149,96 @@ def run_structure_editor(uploaded_files):
                 show_bond_lengths=show_bond_lengths,
                 roll_key=f"orient_roll_deg_se_{selected_file}",
             )
+
+    with tab_sym:
+        st.markdown(
+            "<div style='background:#eef2ff;border-left:4px solid #6366f1;border-radius:6px;"
+            "padding:9px 14px;margin-bottom:14px;font-size:0.9rem;'>"
+            "Determine the space group, point group, and crystal system for every uploaded structure. "
+            "Increase the tolerance for structures with slight distortions from ideal symmetry.</div>",
+            unsafe_allow_html=True,
+        )
+        sym_c1, sym_c2 = st.columns([1, 2])
+        with sym_c1:
+            sym_tol = st.number_input(
+                "Symmetry tolerance (Å)",
+                min_value=1e-5, max_value=1.0, value=0.01, step=0.001, format="%.5f",
+                key="se_sym_tol_all",
+                help="Distance tolerance (symprec) passed to SpacegroupAnalyzer.",
+            )
+        with sym_c2:
+            st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+            run_sym = st.button(
+                "\U0001f9ee Determine symmetries for all structures",
+                type="primary", key="se_sym_run_all", use_container_width=True,
+            )
+
+        if run_sym:
+            all_files = _merge_uploaded_files(uploaded_files)
+            rows = []
+            errors = []
+            progress = st.progress(0.0, text="Analyzing structures...")
+            for i, f in enumerate(all_files):
+                name = f.name
+                try:
+                    full = st.session_state.get("full_structures", {}).get(name)
+                    s = full if full is not None else load_structure(f)
+                    sga = SpacegroupAnalyzer(s, symprec=float(sym_tol))
+                    sg_sym = sga.get_space_group_symbol()
+                    sg_num = sga.get_space_group_number()
+                    crys_sys = sga.get_crystal_system()
+                    pg = sga.get_point_group_symbol()
+                    try:
+                        hall = sga.get_hall()
+                    except Exception:
+                        hall = "—"
+                    try:
+                        n_ops = len(sga.get_symmetry_operations())
+                    except Exception:
+                        n_ops = "—"
+                    rows.append({
+                        "File": name,
+                        "Formula": s.composition.reduced_formula,
+                        "Sites": len(s),
+                        "Space group": f"{sg_sym} (#{sg_num})",
+                        "Crystal system": crys_sys,
+                        "Point group": pg,
+                        "Hall symbol": hall,
+                        "Sym. operations": n_ops,
+                    })
+                except Exception as e:
+                    errors.append((name, str(e)))
+                    rows.append({
+                        "File": name,
+                        "Formula": "—",
+                        "Sites": "—",
+                        "Space group": "Error",
+                        "Crystal system": "—",
+                        "Point group": "—",
+                        "Hall symbol": "—",
+                        "Sym. operations": "—",
+                    })
+                progress.progress((i + 1) / max(len(all_files), 1),
+                                  text=f"Analyzed {i + 1}/{len(all_files)}")
+            progress.empty()
+
+            if rows:
+                df_sym = pd.DataFrame(rows)
+                st.dataframe(df_sym, use_container_width=True, hide_index=True)
+                csv_bytes = df_sym.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇️ Download symmetry summary (CSV)",
+                    data=csv_bytes,
+                    file_name=f"symmetry_summary_symprec_{sym_tol:.5f}.csv",
+                    mime="text/csv",
+                    key="se_sym_csv_dl",
+                    type="primary",
+                )
+                st.markdown("<br><br><br>", unsafe_allow_html=True)
+            if errors:
+                with st.expander(f"⚠️ {len(errors)} structure(s) could not be analyzed"):
+                    for name, msg in errors:
+                        st.write(f"**{name}**: {msg}")
 
     with tab_lattice:
         with st.container(border=True):
