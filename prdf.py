@@ -75,13 +75,10 @@ hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header[data-testid="stHeader"] {
-        background: transparent;
-    }
-    [data-testid="stToolbar"] {visibility: hidden;}
     [data-testid="stDecoration"] {display: none;}
     </style>
 """
+
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # st.markdown(
