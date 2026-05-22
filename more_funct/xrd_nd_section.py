@@ -2239,6 +2239,7 @@ def _xrd_wavelength_ui():
                                   label_visibility="collapsed")
         if (st.session_state.get("preset_choice") !=
                 st.session_state.get("_prev_preset")):
+            _first_init = st.session_state.get("_prev_preset") is None
             st.session_state.wavelength_value = PRESET_WAVELENGTHS.get(
                 preset, 0.17889)
             st.session_state["_prev_preset"] = preset
@@ -2249,7 +2250,8 @@ def _xrd_wavelength_ui():
             st.session_state["_prev_wavelength_value"] = float(
                 st.session_state.wavelength_value)
             _apply_auto_two_theta_max(new_max)
-            st.rerun()
+            if not _first_init:
+                st.rerun()
 
         hide_input_for = ["Cu(Ka1+Ka2+Kb1)", "Cu(Ka1+Ka2)"]
         if preset not in hide_input_for:
@@ -2302,6 +2304,7 @@ def _nd_wavelength_ui():
                               label_visibility="collapsed")
     if (st.session_state.get("preset_choice_neutron") !=
             st.session_state.get("_prev_preset_nd")):
+        _first_init_nd = st.session_state.get("_prev_preset_nd") is None
         st.session_state.wavelength_value = PRESET_WAVELENGTHS_NEUTRON.get(
             preset, 0.154)
         st.session_state["_prev_preset_nd"] = preset
@@ -2312,7 +2315,8 @@ def _nd_wavelength_ui():
         st.session_state["_prev_wavelength_value"] = float(
             st.session_state.wavelength_value)
         _apply_auto_two_theta_max(new_max)
-        st.rerun()
+        if not _first_init_nd:
+            st.rerun()
 
     with col_wl:
         wl = st.number_input("λ (nm)", min_value=0.001,
