@@ -313,7 +313,8 @@ def _file_fingerprint(f):
 
 
 def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
-               use_debye_waller, debye_waller_factors_per_file, preset_choice):
+               use_debye_waller, debye_waller_factors_per_file, preset_choice,
+               two_theta_min=0.01, two_theta_max=179.9):
     file_key = tuple(sorted(_file_fingerprint(f) for f in uploaded_files))
     dw_key = None
     if use_debye_waller and debye_waller_factors_per_file:
@@ -322,7 +323,8 @@ def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
             for fn, fac in sorted(debye_waller_factors_per_file.items())
         )
     return (file_key, round(wavelength_A, 7), diffraction_choice,
-            use_debye_waller, dw_key, preset_choice)
+            use_debye_waller, dw_key, preset_choice,
+            round(float(two_theta_min), 4), round(float(two_theta_max), 4))
 
 
 def _get_calculator(diffraction_choice, wavelength_A, dw_dict, use_rust):
@@ -336,12 +338,16 @@ def _get_calculator(diffraction_choice, wavelength_A, dw_dict, use_rust):
                          debye_waller_factors=dw_dict)
 
 
-def _estimate_recip_points(structure, wavelength_A, two_theta_max=179.9):
+def _estimate_recip_points(structure, wavelength_A, two_theta_max=179.9,
+                           two_theta_min=0.0):
     import math
     V_direct = float(structure.lattice.volume)
-    theta_max_rad = math.radians(two_theta_max / 2.0)
-    max_r = 2.0 * math.sin(theta_max_rad) / wavelength_A
-    return int((4.0 / 3.0) * math.pi * max_r ** 3 * V_direct)
+    theta_max_rad = math.radians(max(0.0, two_theta_max) / 2.0)
+    theta_min_rad = math.radians(max(0.0, two_theta_min) / 2.0)
+    r_max = 2.0 * math.sin(theta_max_rad) / wavelength_A
+    r_min = 2.0 * math.sin(theta_min_rad) / wavelength_A
+    shell = max(0.0, r_max ** 3 - r_min ** 3)
+    return int((4.0 / 3.0) * math.pi * shell * V_direct)
 
 
 def _shortest_wavelength_A(wavelength_A, preset_choice):
@@ -374,8 +380,10 @@ def _load_mg_structure(file):
 def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
                             use_debye_waller, debye_waller_factors_per_file,
                             use_rust, preset_choice, max_peaks=None,
-                            is_local=False):
-    full_range = (0.01, 179.9)
+                            is_local=False,
+                            two_theta_min=0.01, two_theta_max=179.9):
+    calc_range = (max(0.01, float(two_theta_min)),
+                  min(179.9, float(two_theta_max)))
     is_multi = preset_choice in MULTI_COMPONENT_PRESETS
     raw_patterns = {}
 
@@ -396,7 +404,8 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             continue
 
         n_recip = _estimate_recip_points(mg, worst_case_wl_A,
-                                         two_theta_max=full_range[1])
+                                         two_theta_max=calc_range[1],
+                                         two_theta_min=calc_range[0])
         if n_recip > recip_limit:
             limit_kind = "local" if is_local else "online"
             st.error(
@@ -431,7 +440,7 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
                 calc = _get_calculator(diffraction_choice, wl_A, dw_dict,
                                        use_rust)
                 try:
-                    pat = calc.get_pattern(mg, two_theta_range=full_range,
+                    pat = calc.get_pattern(mg, two_theta_range=calc_range,
                                            scaled=False)
                 except Exception:
                     continue
@@ -447,7 +456,7 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             calc = _get_calculator(diffraction_choice, wavelength_A, dw_dict,
                                    use_rust)
             try:
-                pat = calc.get_pattern(mg, two_theta_range=full_range,
+                pat = calc.get_pattern(mg, two_theta_range=calc_range,
                                        scaled=False)
             except Exception:
                 raw_patterns[file.name] = dict(raw_x=np.array([]),
@@ -1683,20 +1692,21 @@ def _diffraction_settings_ui():
                 step = 1.0
 
             col_rmin, col_rmax = st.columns(2)
+            _axis_ver = int(st.session_state.get("_axis_widget_version", 0))
             if x_axis_metric in ("d (Å)", "d (nm)"):
                 raw_max = col_rmin.number_input(
                     f"Maximum {x_axis_metric}", value=disp_min, step=step,
-                    key=f"min_val_{x_axis_metric}")
+                    key=f"min_val_{x_axis_metric}_v{_axis_ver}")
                 raw_min = col_rmax.number_input(
                     f"Minimum {x_axis_metric}", value=disp_max, step=step,
-                    key=f"max_val_{x_axis_metric}")
+                    key=f"max_val_{x_axis_metric}_v{_axis_ver}")
             else:
                 raw_min = col_rmin.number_input(
                     f"Minimum {x_axis_metric}", value=disp_min, step=step,
-                    key=f"min_val_{x_axis_metric}")
+                    key=f"min_val_{x_axis_metric}_v{_axis_ver}")
                 raw_max = col_rmax.number_input(
                     f"Maximum {x_axis_metric}", value=disp_max, step=step,
-                    key=f"max_val_{x_axis_metric}")
+                    key=f"max_val_{x_axis_metric}_v{_axis_ver}")
 
             if x_axis_metric in ("d (Å)", "d (nm)"):
                 st.session_state.two_theta_min = metric_to_twotheta(
@@ -2160,6 +2170,51 @@ def _debye_waller_ui():
             st.session_state.debye_waller_factors_per_file[fkey][el] = val
 
 
+def _suggest_two_theta_max(wavelength_nm):
+    wl_A = float(wavelength_nm) * 10.0
+    if wl_A < 0.65:  return 50.0
+    if wl_A < 0.80:  return 60.0
+    if wl_A < 1.00:  return 80.0
+    if wl_A < 1.30:  return 100.0
+    if wl_A < 1.60:  return 120.0
+    if wl_A < 1.85:  return 130.0
+    if wl_A < 2.10:  return 140.0
+    if wl_A < 2.40:  return 150.0
+    return 160.0
+
+
+def _apply_auto_two_theta_max(new_max):
+    new_max = float(new_max)
+    st.session_state.two_theta_max = new_max
+    if st.session_state.get("two_theta_min", 0.0) >= new_max:
+        st.session_state.two_theta_min = max(0.1, new_max * 0.5)
+    for k in list(st.session_state.keys()):
+        if isinstance(k, str) and (
+                k.startswith("min_val_") or k.startswith("max_val_")):
+            st.session_state.pop(k, None)
+    st.session_state["_axis_widget_version"] = int(
+        st.session_state.get("_axis_widget_version", 0)) + 1
+
+
+def _maybe_auto_update_two_theta_max(wavelength_nm):
+    try:
+        wl = float(wavelength_nm)
+    except (TypeError, ValueError):
+        return
+    prev = st.session_state.get("_prev_wavelength_value")
+    if prev is None:
+        st.session_state["_prev_wavelength_value"] = wl
+        return
+    if abs(wl - float(prev)) < 1e-6:
+        return
+    suggested = _suggest_two_theta_max(wl)
+    prev_suggested = _suggest_two_theta_max(prev)
+    st.session_state["_prev_wavelength_value"] = wl
+    if abs(suggested - prev_suggested) > 1e-6:
+        _apply_auto_two_theta_max(suggested)
+        st.rerun()
+
+
 def _xrd_wavelength_ui():
     input_mode = st.radio(
         "Wavelength input",
@@ -2187,11 +2242,14 @@ def _xrd_wavelength_ui():
             st.session_state.wavelength_value = PRESET_WAVELENGTHS.get(
                 preset, 0.17889)
             st.session_state["_prev_preset"] = preset
-            if preset in DEFAULT_TWO_THETA_MAX_FOR_PRESET:
-                new_max = DEFAULT_TWO_THETA_MAX_FOR_PRESET[preset]
-                st.session_state.two_theta_max = new_max
-                if st.session_state.two_theta_min >= new_max:
-                    st.session_state.two_theta_min = max(0.1, new_max * 0.5)
+            new_max = DEFAULT_TWO_THETA_MAX_FOR_PRESET.get(
+                preset,
+                _suggest_two_theta_max(st.session_state.wavelength_value),
+            )
+            st.session_state["_prev_wavelength_value"] = float(
+                st.session_state.wavelength_value)
+            _apply_auto_two_theta_max(new_max)
+            st.rerun()
 
         hide_input_for = ["Cu(Ka1+Ka2+Kb1)", "Cu(Ka1+Ka2)"]
         if preset not in hide_input_for:
@@ -2205,6 +2263,7 @@ def _xrd_wavelength_ui():
             st.session_state.wavelength_value = wl
             with col_wl:
                 st.metric("λ (nm)", f"{wl:.5f}")
+        _maybe_auto_update_two_theta_max(wl)
         return wl, preset
 
     elif input_mode == "Custom λ":
@@ -2216,6 +2275,7 @@ def _xrd_wavelength_ui():
                                  key="wavelength_value")
         with col_e:
             st.metric("Energy", f"{wavelength_to_energy(wl):.3f} keV")
+        _maybe_auto_update_two_theta_max(wl)
         return wl, "Custom"
 
     else:
@@ -2230,6 +2290,7 @@ def _xrd_wavelength_ui():
             wl = energy_to_wavelength(ekev)
             st.session_state.wavelength_value = wl
             st.metric("λ (nm)", f"{wl:.5f}")
+        _maybe_auto_update_two_theta_max(wl)
         return wl, "Custom"
 
 
@@ -2244,22 +2305,26 @@ def _nd_wavelength_ui():
         st.session_state.wavelength_value = PRESET_WAVELENGTHS_NEUTRON.get(
             preset, 0.154)
         st.session_state["_prev_preset_nd"] = preset
-        if preset in DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET:
-            new_max = DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET[preset]
-            st.session_state.two_theta_max = new_max
-            if st.session_state.two_theta_min >= new_max:
-                st.session_state.two_theta_min = max(0.1, new_max * 0.5)
+        new_max = DEFAULT_TWO_THETA_MAX_FOR_NEUTRON_PRESET.get(
+            preset,
+            _suggest_two_theta_max(st.session_state.wavelength_value),
+        )
+        st.session_state["_prev_wavelength_value"] = float(
+            st.session_state.wavelength_value)
+        _apply_auto_two_theta_max(new_max)
+        st.rerun()
 
     with col_wl:
         wl = st.number_input("λ (nm)", min_value=0.001,
                              step=0.001, format="%.5f",
                              key="wavelength_value",
                              label_visibility="collapsed")
+    _maybe_auto_update_two_theta_max(wl)
     return wl, preset
 
 
 def _compute_recip_estimates(uploaded_files, wavelength_A, preset_choice,
-                             is_local):
+                             is_local, two_theta_min=0.0, two_theta_max=179.9):
     recip_limit = LOCAL_MAX_RECIP_POINTS if is_local else ONLINE_MAX_RECIP_POINTS
     worst_case_wl_A = _shortest_wavelength_A(wavelength_A, preset_choice)
     rows = []
@@ -2268,17 +2333,23 @@ def _compute_recip_estimates(uploaded_files, wavelength_A, preset_choice,
         try:
             mg = _load_mg_structure(file)
             V = float(mg.lattice.volume)
-            n = _estimate_recip_points(mg, worst_case_wl_A)
+            n_range = _estimate_recip_points(
+                mg, worst_case_wl_A,
+                two_theta_max=two_theta_max,
+                two_theta_min=two_theta_min,
+            )
             del mg
-            exceeded = n > recip_limit
+            exceeded = n_range > recip_limit
             if exceeded:
                 any_exceeded = True
             rows.append({
                 "file": file.name,
                 "volume": V,
                 "wavelength_A": worst_case_wl_A,
-                "estimate": n,
+                "estimate": n_range,
                 "exceeded": exceeded,
+                "two_theta_min": two_theta_min,
+                "two_theta_max": two_theta_max,
                 "error": None,
             })
         except Exception as exc:
@@ -2288,6 +2359,8 @@ def _compute_recip_estimates(uploaded_files, wavelength_A, preset_choice,
                 "wavelength_A": worst_case_wl_A,
                 "estimate": None,
                 "exceeded": False,
+                "two_theta_min": two_theta_min,
+                "two_theta_max": two_theta_max,
                 "error": str(exc),
             })
     return rows, any_exceeded, recip_limit
@@ -2295,17 +2368,24 @@ def _compute_recip_estimates(uploaded_files, wavelength_A, preset_choice,
 
 def _tab_recip_estimate(rows, recip_limit, is_local):
     st.subheader("🛡️ Reciprocal-Space Reflection Estimate")
+    tt_min = rows[0].get("two_theta_min", 0.0) if rows else 0.0
+    tt_max = rows[0].get("two_theta_max", 179.9) if rows else 179.9
     st.caption(
-        f"Estimated number of reciprocal-lattice points inside the limiting "
-        f"sphere of radius 2/λ (using the shortest wavelength of the active "
-        f"preset). Safety threshold: **{recip_limit:,}** "
+        f"Estimated number of reciprocal-lattice points inside the shell "
+        f"2·sin(θ_min)/λ … 2·sin(θ_max)/λ for the selected "
+        f"**2θ range {tt_min:.2f}°–{tt_max:.2f}°** (taken from the 📐 Axes tab "
+        f"of the Diffraction settings). Wavelength is the shortest of the "
+        f"active preset. Safety threshold: **{recip_limit:,}** "
         f"({'local' if is_local else 'online'} mode). Structures exceeding "
-        f"this threshold block the calculation to prevent OOM crashes."
+        f"this threshold block the calculation to prevent OOM crashes — "
+        f"narrowing the 2θ range reduces the count and can bring an "
+        f"otherwise-blocked structure back under the limit."
     )
     if not rows:
         st.info("Upload structure files to see the estimate.")
         return
 
+    range_col = f"Reflections in 2θ {tt_min:.1f}°–{tt_max:.1f}°"
     display_rows = []
     for r in rows:
         if r["error"]:
@@ -2314,7 +2394,7 @@ def _tab_recip_estimate(rows, recip_limit, is_local):
                 "Status": "⚠️ load error",
                 "V (Å³)": "—",
                 "λ_min (Å)": "—",
-                "Estimated reflections": "—",
+                range_col: "—",
                 "Threshold": f"{recip_limit:,}",
                 "Detail": r["error"],
             })
@@ -2325,7 +2405,7 @@ def _tab_recip_estimate(rows, recip_limit, is_local):
                 "Status": status,
                 "V (Å³)": f"{r['volume']:.2f}",
                 "λ_min (Å)": f"{r['wavelength_A']:.4f}",
-                "Estimated reflections": f"{r['estimate']:,}",
+                range_col: f"{r['estimate']:,}",
                 "Threshold": f"{recip_limit:,}",
                 "Detail": "—",
             })
@@ -2408,18 +2488,6 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
     else:
         _max_peaks = ONLINE_MAX_PEAKS
 
-    _approx_wl_nm = float(st.session_state.get("wavelength_value", 0.17889))
-    _approx_wl_A = _approx_wl_nm * 10.0
-    _approx_diff = st.session_state.get("diffraction_choice", "XRD (X-ray)")
-    if _approx_diff == "XRD (X-ray)":
-        _approx_preset = st.session_state.get("preset_choice", "Cobalt (CoKa1)")
-    else:
-        _approx_preset = st.session_state.get("preset_choice_neutron",
-                                              "Thermal Neutrons")
-    recip_rows, recip_any_exceeded, recip_limit = _compute_recip_estimates(
-        uploaded_files or [], _approx_wl_A, _approx_preset, is_local)
-    st.session_state["_recip_any_exceeded"] = recip_any_exceeded
-
     colmain_1, colmain_2 = st.columns([0.5, 1])
 
     with colmain_1:
@@ -2439,6 +2507,13 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
          texture_r) = _diffraction_settings_ui()
         texture_hkl = (texture_h, texture_k, texture_l)
         _texture_active = bool(use_texture) and texture_hkl != (0, 0, 0)
+
+    recip_rows, recip_any_exceeded, recip_limit = _compute_recip_estimates(
+        uploaded_files or [], wavelength_A, preset_choice, is_local,
+        two_theta_min=float(two_theta_min),
+        two_theta_max=float(two_theta_max),
+    )
+    st.session_state["_recip_any_exceeded"] = recip_any_exceeded
 
     with colmain_2:
         if user_pattern_file:
@@ -2512,6 +2587,8 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
             use_debye_waller,
             st.session_state.get("debye_waller_factors_per_file", {}),
             preset_choice,
+            two_theta_min=two_theta_min,
+            two_theta_max=two_theta_max,
         )
         _stored_patterns = st.session_state.get("raw_patterns") or {}
         _expected_files = {f.name for f in uploaded_files}
@@ -2543,6 +2620,8 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                 use_rust, preset_choice,
                 max_peaks=_max_peaks,
                 is_local=is_local,
+                two_theta_min=two_theta_min,
+                two_theta_max=two_theta_max,
             )
             if _max_peaks is not None:
                 _trimmed = [
