@@ -365,6 +365,9 @@ for name in list(st.session_state.prdf_structures.keys()):
         st.session_state.disorder_messages.pop(name, None)
         st.session_state.disorder_occ_info.pop(name, None)
         st.session_state.prdf_cif_ready.pop(name, None)
+        if "prdf_results" in st.session_state:
+            st.session_state.prdf_results.pop(name, None)
+        st.session_state.prdf_download_ready = False
 for name in list(st.session_state.prdf_rejected.keys()):
     if name not in active_names:
         del st.session_state.prdf_rejected[name]
@@ -402,13 +405,20 @@ st.subheader(
     "⚙️ Settings",
     help="PRDF describes atom-pair distance distributions, providing insight into local environments and structural disorder. Values are unitless relative intensities. Peaks = preferred bonding distances; peak width = disorder.",
 )
-col_cut, col_bin = st.columns(2)
+col_rmin, col_cut, col_bin = st.columns(3)
+r_min = col_rmin.number_input(
+    "Min cutoff (Å)", min_value=0.0, max_value=49.0, value=0.0, step=0.1, format="%.2f",
+    help="Distances below this value are excluded from every PRDF/RDF trace.",
+)
 cutoff = col_cut.number_input(
     "Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=0.5, format="%.1f"
 )
 bin_size = col_bin.number_input(
     "Bin size (Å)", min_value=0.005, max_value=2.0, value=0.1, step=0.005, format="%.3f"
 )
+if r_min >= cutoff:
+    st.warning("Min cutoff must be smaller than Cutoff — Min cutoff will be ignored.")
+    r_min = 0.0
 st.markdown("#### Plot options")
 col_ps, col_ls = st.columns(2)
 plot_style = col_ps.radio(
@@ -545,6 +555,8 @@ if "prdf_do_calc" not in st.session_state:
     st.session_state.prdf_do_calc = False
 if "prdf_download_ready" not in st.session_state:
     st.session_state.prdf_download_ready = False
+if "comp_mode" not in st.session_state:
+    st.session_state.comp_mode = "One pair across structures"
 
 
 def trigger_calculation():
@@ -562,44 +574,49 @@ st.button(
 )
 if not structures:
     st.warning("⬆️ Please upload at least one valid structure file in the sidebar.")
+_calc_status_slot = st.empty()
 if st.session_state.prdf_do_calc and structures:
     struct_items = list(structures.items())
-    progress_bar = st.progress(0, text="Starting …")
-    calc_errors = []
-    for s_idx, (fname, mg_struct) in enumerate(struct_items):
-        progress_bar.progress(s_idx / len(struct_items), text=f"Processing {fname} …")
-        try:
-            featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
-            featurizer.fit([mg_struct])
-            prdf_vals = featurizer.featurize(mg_struct)
-            labels = featurizer.feature_labels()
-            prdf_dict = {}
-            dist_dict = {}
-            global_rdf = {}
-            for j, label in enumerate(labels):
-                pair_str, rng = label.split(" PRDF r=")
-                pair = tuple(pair_str.split("-"))
-                lo, hi = map(float, rng.split("-"))
-                bc = (lo + hi) / 2.0
-                prdf_dict.setdefault(pair, []).append(prdf_vals[j])
-                dist_dict.setdefault(pair, []).append(bc)
-                global_rdf[bc] = global_rdf.get(bc, 0.0) + prdf_vals[j]
-            prdf_dict = {p: np.array(v) for p, v in prdf_dict.items()}
-            st.session_state.prdf_results[fname] = {
-                "prdf_dict": prdf_dict,
-                "dist_dict": dist_dict,
-                "global_rdf": global_rdf,
-            }
-        except Exception as e:
-            calc_errors.append((fname, str(e)))
-    progress_bar.progress(1.0, text="Done!")
+    with _calc_status_slot.container():
+        progress_bar = st.progress(0, text="Starting …")
+        calc_errors = []
+        for s_idx, (fname, mg_struct) in enumerate(struct_items):
+            progress_bar.progress(s_idx / len(struct_items), text=f"Processing {fname} …")
+            try:
+                featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
+                featurizer.fit([mg_struct])
+                prdf_vals = featurizer.featurize(mg_struct)
+                labels = featurizer.feature_labels()
+                prdf_dict = {}
+                dist_dict = {}
+                global_rdf = {}
+                for j, label in enumerate(labels):
+                    pair_str, rng = label.split(" PRDF r=")
+                    pair = tuple(pair_str.split("-"))
+                    lo, hi = map(float, rng.split("-"))
+                    bc = (lo + hi) / 2.0
+                    if bc < r_min:
+                        continue
+                    prdf_dict.setdefault(pair, []).append(prdf_vals[j])
+                    dist_dict.setdefault(pair, []).append(bc)
+                    global_rdf[bc] = global_rdf.get(bc, 0.0) + prdf_vals[j]
+                prdf_dict = {p: np.array(v) for p, v in prdf_dict.items()}
+                st.session_state.prdf_results[fname] = {
+                    "prdf_dict": prdf_dict,
+                    "dist_dict": dist_dict,
+                    "global_rdf": global_rdf,
+                }
+            except Exception as e:
+                calc_errors.append((fname, str(e)))
+        progress_bar.progress(1.0, text="Done!")
     st.session_state.prdf_do_calc = False
+    _calc_status_slot.empty()
     if calc_errors:
         for fname, msg in calc_errors:
-            st.error(f"Error processing **{fname}**: {msg}")
+            st.toast(f"Error processing {fname}: {msg}", icon="❌")
     else:
         n = len(st.session_state.prdf_results)
-        st.success(f"✅ Calculated PRDF for {n} structure(s).")
+        st.toast(f"Calculated PRDF for {n} structure(s).", icon="✅")
 results: dict = st.session_state.prdf_results
 if results:
     st.divider()
@@ -666,86 +683,151 @@ if results:
                 st.plotly_chart(fig, width="stretch")
     with tab_comp:
         st.markdown("### Compare PRDFs across structures")
-        if len(results) < 2:
-            st.info("Upload and calculate at least **2 structures** to use the comparison view.")
+        if len(results) < 1:
+            st.info("Upload and calculate at least **1 structure** to use the comparison view.")
         else:
-            col_pair, col_structs = st.columns([1, 2])
-            with col_pair:
-                pair_labels = [f"{p[0]}–{p[1]}" for p in all_pairs]
-                chosen_label = st.selectbox("Element pair:", pair_labels, key="comp_pair")
-                chosen_pair = all_pairs[pair_labels.index(chosen_label)]
-            with col_structs:
-                all_names = list(results.keys())
-                chosen_structs = st.multiselect(
-                    "Structures to overlay:", all_names, default=all_names, key="comp_structs"
-                )
-            if not chosen_structs:
-                st.warning("Select at least one structure.")
+            comp_mode = st.radio(
+                "Comparison mode",
+                ["One pair across structures", "Multiple pairs in one plot"],
+                horizontal=True,
+                key="comp_mode",
+                help=(
+                    "• **One pair across structures**: pick a single element pair and "
+                    "overlay it from every selected structure.\n\n"
+                    "• **Multiple pairs in one plot**: pick one structure and overlay "
+                    "any number of element pairs from it."
+                ),
+            )
+            if comp_mode == "One pair across structures":
+                if len(results) < 2:
+                    st.info("Upload and calculate at least **2 structures** to use this mode.")
+                else:
+                    col_pair, col_structs = st.columns([1, 2])
+                    with col_pair:
+                        pair_labels = [f"{p[0]}–{p[1]}" for p in all_pairs]
+                        chosen_label = st.selectbox("Element pair:", pair_labels, key="comp_pair")
+                        chosen_pair = all_pairs[pair_labels.index(chosen_label)]
+                    with col_structs:
+                        all_names = list(results.keys())
+                        chosen_structs = st.multiselect(
+                            "Structures to overlay:", all_names, default=all_names, key="comp_structs"
+                        )
+                    if not chosen_structs:
+                        st.warning("Select at least one structure.")
+                    else:
+                        fig_comp = go.Figure()
+                        skipped = []
+                        for s_idx, sname in enumerate(chosen_structs):
+                            r = results[sname]
+                            if chosen_pair not in r["prdf_dict"]:
+                                skipped.append(sname)
+                                continue
+                            short = sname if len(sname) <= 35 else sname[:32] + "…"
+                            add_trace(
+                                fig_comp,
+                                r["dist_dict"][chosen_pair],
+                                r["prdf_dict"][chosen_pair],
+                                short,
+                                COLORS[s_idx % len(COLORS)],
+                            )
+                        if skipped:
+                            st.warning(
+                                f"Pair **{chosen_label}** not present in: "
+                                + ", ".join((f"*{s}*" for s in skipped))
+                                + " — skipped."
+                            )
+                        if st.session_state.prdf_experimental:
+                            add_experimental_traces(
+                                fig_comp,
+                                list(st.session_state.prdf_experimental.keys()),
+                                color_offset=len(chosen_structs),
+                            )
+                        fig_comp.update_layout(
+                            **make_layout(
+                                f"PRDF comparison: {chosen_label}",
+                                barmode="overlay" if plot_style == "Bars (Histogram)" else None,
+                            )
+                        )
+                        st.plotly_chart(fig_comp, width="stretch")
+                        st.markdown("#### Total RDF comparison")
+                        fig_tot = go.Figure()
+                        for s_idx, sname in enumerate(chosen_structs):
+                            r = results[sname]
+                            bins = sorted(r["global_rdf"].keys())
+                            vals = [r["global_rdf"][b] for b in bins]
+                            short = sname if len(sname) <= 35 else sname[:32] + "…"
+                            add_trace(
+                                fig_tot,
+                                bins,
+                                vals,
+                                short,
+                                COLORS[s_idx % len(COLORS)],
+                            )
+                        if st.session_state.prdf_experimental:
+                            add_experimental_traces(
+                                fig_tot,
+                                list(st.session_state.prdf_experimental.keys()),
+                                color_offset=len(chosen_structs),
+                            )
+                        fig_tot.update_layout(
+                            **make_layout(
+                                "Total RDF comparison",
+                                barmode="overlay" if plot_style == "Bars (Histogram)" else None,
+                            )
+                        )
+                        st.plotly_chart(fig_tot, width="stretch")
             else:
-                dash_styles = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
-                fig_comp = go.Figure()
-                skipped = []
-                for s_idx, sname in enumerate(chosen_structs):
-                    r = results[sname]
-                    if chosen_pair not in r["prdf_dict"]:
-                        skipped.append(sname)
-                        continue
-                    short = sname if len(sname) <= 35 else sname[:32] + "…"
-                    add_trace(
-                        fig_comp,
-                        r["dist_dict"][chosen_pair],
-                        r["prdf_dict"][chosen_pair],
-                        short,
-                        COLORS[s_idx % len(COLORS)],
-                        dash=dash_styles[s_idx % len(dash_styles)],
+                combo_options = []
+                combo_lookup = {}
+                for sname in results.keys():
+                    short = sname if len(sname) <= 30 else sname[:27] + "…"
+                    for pair in sorted(
+                        results[sname]["prdf_dict"].keys(),
+                        key=lambda p: (p[0], p[1]),
+                    ):
+                        label = f"{short} | {pair[0]}–{pair[1]}"
+                        combo_options.append(label)
+                        combo_lookup[label] = (sname, pair)
+                if not combo_options:
+                    st.info("No PRDF data available to plot.")
+                else:
+                    chosen_combos = st.multiselect(
+                        "Structure–pair combinations to overlay:",
+                        combo_options,
+                        default=combo_options,
+                        key="comp_multi_combos",
+                        help=(
+                            "Each entry is a (structure, element pair) pair. "
+                            "Pick any number to overlay them in one plot."
+                        ),
                     )
-                if skipped:
-                    st.warning(
-                        f"Pair **{chosen_label}** not present in: "
-                        + ", ".join((f"*{s}*" for s in skipped))
-                        + " — skipped."
-                    )
-                if st.session_state.prdf_experimental:
-                    add_experimental_traces(
-                        fig_comp,
-                        list(st.session_state.prdf_experimental.keys()),
-                        color_offset=len(chosen_structs),
-                    )
-                fig_comp.update_layout(
-                    **make_layout(
-                        f"PRDF comparison: {chosen_label}",
-                        barmode="overlay" if plot_style == "Bars (Histogram)" else None,
-                    )
-                )
-                st.plotly_chart(fig_comp, width="stretch")
-                st.markdown("#### Total RDF comparison")
-                fig_tot = go.Figure()
-                for s_idx, sname in enumerate(chosen_structs):
-                    r = results[sname]
-                    bins = sorted(r["global_rdf"].keys())
-                    vals = [r["global_rdf"][b] for b in bins]
-                    short = sname if len(sname) <= 35 else sname[:32] + "…"
-                    add_trace(
-                        fig_tot,
-                        bins,
-                        vals,
-                        short,
-                        COLORS[s_idx % len(COLORS)],
-                        dash=dash_styles[s_idx % len(dash_styles)],
-                    )
-                if st.session_state.prdf_experimental:
-                    add_experimental_traces(
-                        fig_tot,
-                        list(st.session_state.prdf_experimental.keys()),
-                        color_offset=len(chosen_structs),
-                    )
-                fig_tot.update_layout(
-                    **make_layout(
-                        "Total RDF comparison",
-                        barmode="overlay" if plot_style == "Bars (Histogram)" else None,
-                    )
-                )
-                st.plotly_chart(fig_tot, width="stretch")
+                    if not chosen_combos:
+                        st.warning("Select at least one structure–pair combination.")
+                    else:
+                        fig_comp = go.Figure()
+                        for c_idx, lbl in enumerate(chosen_combos):
+                            sname, pair = combo_lookup[lbl]
+                            r = results[sname]
+                            add_trace(
+                                fig_comp,
+                                r["dist_dict"][pair],
+                                r["prdf_dict"][pair],
+                                lbl,
+                                COLORS[c_idx % len(COLORS)],
+                            )
+                        if st.session_state.prdf_experimental:
+                            add_experimental_traces(
+                                fig_comp,
+                                list(st.session_state.prdf_experimental.keys()),
+                                color_offset=len(chosen_combos),
+                            )
+                        fig_comp.update_layout(
+                            **make_layout(
+                                "PRDF overlay – multiple structures & pairs",
+                                barmode="overlay" if plot_style == "Bars (Histogram)" else None,
+                            )
+                        )
+                        st.plotly_chart(fig_comp, width="stretch")
     with tab_total:
         st.markdown("### Total RDF – individual structures")
         for s_idx, (fname, r) in enumerate(results.items()):
