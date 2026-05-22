@@ -1177,6 +1177,7 @@ def run_structure_editor(uploaded_files):
             all_files = _merge_uploaded_files(uploaded_files)
             rows = []
             errors = []
+            refined_cifs = []
             progress = st.progress(0.0, text="Analyzing structures...")
             for i, f in enumerate(all_files):
                 name = f.name
@@ -1206,6 +1207,18 @@ def run_structure_editor(uploaded_files):
                         "Hall symbol": hall,
                         "Sym. operations": n_ops,
                     })
+                    try:
+                        refined = sga.get_refined_structure()
+                        cif_str = CifWriter(
+                            refined, symprec=float(sym_tol),
+                            write_site_properties=True
+                        ).__str__()
+                        base = name.rsplit(".", 1)[0]
+                        refined_cifs.append(
+                            (f"{base}_refined_sg{sg_num}.cif", cif_str)
+                        )
+                    except Exception as e:
+                        errors.append((name, f"refined CIF: {e}"))
                 except Exception as e:
                     errors.append((name, str(e)))
                     rows.append({
@@ -1226,14 +1239,52 @@ def run_structure_editor(uploaded_files):
                 df_sym = pd.DataFrame(rows)
                 st.dataframe(df_sym, width="stretch", hide_index=True)
                 csv_bytes = df_sym.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    "⬇️ Download symmetry summary (CSV)",
-                    data=csv_bytes,
-                    file_name=f"symmetry_summary_symprec_{sym_tol:.5f}.csv",
-                    mime="text/csv",
-                    key="se_sym_csv_dl",
-                    type="primary",
-                )
+                dl_c1, dl_c2 = st.columns(2)
+                with dl_c1:
+                    st.download_button(
+                        "⬇️ Download symmetry summary (CSV)",
+                        data=csv_bytes,
+                        file_name=f"symmetry_summary_symprec_{sym_tol:.5f}.csv",
+                        mime="text/csv",
+                        key="se_sym_csv_dl",
+                        type="primary",
+                        width="stretch",
+                    )
+                with dl_c2:
+                    if len(refined_cifs) == 1:
+                        fname, cif_str = refined_cifs[0]
+                        st.download_button(
+                            "⬇️ Download refined CIF",
+                            data=cif_str.encode("utf-8"),
+                            file_name=fname,
+                            mime="chemical/x-cif",
+                            key="se_sym_cif_dl",
+                            type="primary",
+                            width="stretch",
+                        )
+                    elif len(refined_cifs) > 1:
+                        import zipfile
+                        zip_buf = io.BytesIO()
+                        with zipfile.ZipFile(zip_buf, "w",
+                                             zipfile.ZIP_DEFLATED) as zf:
+                            for fname, cif_str in refined_cifs:
+                                zf.writestr(fname, cif_str)
+                        st.download_button(
+                            f"⬇️ Download refined CIFs (ZIP, {len(refined_cifs)} files)",
+                            data=zip_buf.getvalue(),
+                            file_name=f"refined_cifs_symprec_{sym_tol:.5f}.zip",
+                            mime="application/zip",
+                            key="se_sym_cif_zip_dl",
+                            type="primary",
+                            width="stretch",
+                        )
+                    else:
+                        st.button(
+                            "⬇️ Download refined CIF",
+                            disabled=True, width="stretch",
+                            help="No refined structures available.",
+                            key="se_sym_cif_dl_disabled",
+                        )
                 st.markdown("<br><br><br>", unsafe_allow_html=True)
             if errors:
                 with st.expander(f"⚠️ {len(errors)} structure(s) could not be analyzed"):
