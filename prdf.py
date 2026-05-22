@@ -2,13 +2,14 @@ import streamlit as st
 
 st.set_page_config(
     page_title="XRDlicious: Online Calculator for Powder XRD/ND patterns and (P)RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, ...), or XRD data conversion",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 # Remove top padding
 st.markdown("""
     <style>
     .block-container {
-        padding-top: 0rem;
+        padding-top: 3rem;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -73,9 +74,21 @@ memory_use_limit = 1600
 
 hide_streamlit_style = """
     <style>
+    /* hamburger menu + footer + top decoration bar */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
+    [data-testid="stDecoration"] {display: none;}
+
+    /* the Share / Star / Fork / GitHub / Edit / Deploy buttons (Community Cloud) */
+    [data-testid="stToolbarActions"] {display: none;}
+
+    /* the "Hosted with Streamlit" / fork badge, if present */
+    .viewerBadge_link__qRIco {display: none;}
+    [data-testid="stStatusWidget"] {display: none;}
+
+    /* SAFETY NET: make sure the sidebar open/close control stays visible */
+    [data-testid="stSidebarCollapsedControl"] {visibility: visible !important; display: block !important;}
+    [data-testid="collapsedControl"] {visibility: visible !important; display: block !important;}
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
