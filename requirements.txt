@@ -4,7 +4,7 @@ matplotlib==3.10.3
 ase==3.25.0
 matminer==0.9.3 # Moved to separated app for PRDF
 scipy==1.16.1
-pymatgen==2025.5.28
+pymatgen==2026.5.4 # 2025.5.28
 py3Dmol==2.4.2
 plotly==6.1.2
 streamlit-plotly-events
