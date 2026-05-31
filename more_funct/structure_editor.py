@@ -1104,6 +1104,7 @@ def run_structure_editor(uploaded_files):
             )
             _pl      = preview_struct.lattice
             _density = float(str(preview_struct.density).split()[0])
+            _atom_density = preview_struct.composition.num_atoms / _pl.volume
             st.markdown(
                 f"<div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-top:10px;"
                 f"font-size:0.82rem;color:#333;line-height:1.7;'>"
@@ -1112,7 +1113,9 @@ def run_structure_editor(uploaded_files):
                 f"{len(preview_struct)} sites<br>"
                 f"a={_pl.a:.4f} b={_pl.b:.4f} c={_pl.c:.4f} \u00c5<br>"
                 f"\u03b1={_pl.alpha:.2f}\u00b0 \u03b2={_pl.beta:.2f}\u00b0 \u03b3={_pl.gamma:.2f}\u00b0<br>"
-                f"V={_pl.volume:.2f} \u00c5\u00b3 &nbsp; \u03c1={_density:.3f} g/cm\u00b3"
+                f"V={_pl.volume:.2f} \u00c5\u00b3 &nbsp; "
+                f"\u03c1={_density:.3f} g/cm\u00b3 &nbsp; "
+                f"n={_atom_density:.4f} atoms/\u00c5\u00b3"
                 f"</div>",
                 unsafe_allow_html=True,
             )
