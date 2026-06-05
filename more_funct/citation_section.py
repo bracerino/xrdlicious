@@ -65,16 +65,7 @@ def first_run_note():
                 pass
 
             if is_local:
-                st.success(
-                    "**Running locally.**\n\n"
-                    "**Local limits (per structure):** up to **5,000,000** "
-                    "estimated reflections in the limiting sphere — beyond "
-                    "this the **Calculate** button is disabled to prevent "
-                    "OOM crashes; **no peak-count truncation** (all peaks "
-                    "are stored and displayed). Thresholds are editable "
-                    "(`LOCAL_MAX_RECIP_POINTS`, `LOCAL_MAX_PEAKS` in "
-                    "`more_funct/xrd_nd_section.py`)."
-                )
+                st.success("**Running locally.**")
             else:
                 st.markdown(
                     """
@@ -91,9 +82,7 @@ def first_run_note():
 <span style="font-size:1.05rem;">👋 <b>Hi there!</b></span><br>
 This app currently runs on <b>free Streamlit hosting</b> with limited RAM (a hosting upgrade is planned). For heavier computations or a stable personal version, please consider to compile the app locally from <a href="https://github.com/bracerino/xrdlicious" target="_blank"><b>GitHub</b></a>.
 <br><br>
-<b>Online limits per structure:</b> up to <b>100,000</b> estimated reflections. Past that, the <b>Calculate</b> button is disabled to prevent memory overload. Additionally, the <b>top 1,500 peaks</b> by intensity are stored / displayed.
-<br><br>
-<b>Local limits:</b> <b>5,000,000</b> reflection cap and <b>no peak-count limit</b> (all peaks shown). Both thresholds are easy to tweak — see <code>LOCAL_MAX_RECIP_POINTS</code> and <code>LOCAL_MAX_PEAKS</code> in <code>more_funct/xrd_nd_section.py</code>.
+<b>Online limits per structure:</b> up to <b>50,000</b> reflections. Past that, the <b>Calculate</b> button is disabled to prevent memory overload. Additionally, the <b>top 1,500 peaks</b> by intensity are stored / displayed.
 </div>
                     """,
                     unsafe_allow_html=True,
