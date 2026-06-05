@@ -49,7 +49,7 @@ ONLINE_MAX_PEAKS = 1500
 # generate millions of points and OOM the process, so we refuse to launch the
 # calculation when the estimate exceeds the limit.
 LOCAL_MAX_RECIP_POINTS = 5_000_000
-ONLINE_MAX_RECIP_POINTS = 100_000
+ONLINE_MAX_RECIP_POINTS = 50_000
 
 MULTI_COMPONENT_PRESETS = {
     "Cu(Ka1+Ka2)": {
@@ -1326,7 +1326,27 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
 
     plane_hkl = (h_idx, k_idx, l_idx)
 
-    if not st.button("Generate Annotated Plot", type="primary"):
+    oc1, oc2 = st.columns([2, 2])
+    other_mode = oc1.radio(
+        "Other (non-matching) peaks:",
+        ["Show normally", "Transparent", "Hide"],
+        horizontal=True, key="ann_other_mode",
+        help="Control how peaks that do NOT belong to the selected (hkl) "
+             "family and its multiples are displayed. The matched family "
+             "(and its multiples) always stays fully visible.",
+    )
+    other_opacity = oc2.slider(
+        "Opacity for 'Transparent' mode",
+        0.0, 1.0, 0.15, 0.05, key="ann_other_opacity",
+        help="Opacity applied to all other peaks when 'Transparent' is "
+             "selected (0 = invisible, 1 = fully opaque). Ignored for the "
+             "other modes.",
+    )
+
+    if st.button("Generate Annotated Plot", type="primary"):
+        st.session_state["ann_generated"] = True
+
+    if not st.session_state.get("ann_generated", False):
         return
 
     def _equiv(hkl_base, sg_ops, crystal_system):
@@ -1379,14 +1399,22 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         st.write(f"• {fn}: {info['symbol']} ({info['crystal_system']})")
 
     fig_ann = go.Figure(fig_interactive)
-    total = 0
 
-    for file in uploaded_files:
+    if other_mode != "Show normally":
+        new_opacity = 0.0 if other_mode == "Hide" else other_opacity
+        for tr in fig_ann.data:
+            tr.opacity = new_opacity
+
+    total = 0
+    tab10 = plt.cm.tab10.colors
+
+    for idx, file in enumerate(uploaded_files):
         fname = file.name
         if fname not in pattern_details:
             continue
         details = pattern_details[fname]
         info = sg_infos.get(fname, {})
+        base_color = rgb_color(tab10[idx % len(tab10)], opacity=0.8)
         multis = _multiples(
             plane_hkl, max_m,
             info.get("operations"),
@@ -1394,9 +1422,11 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         )
 
         ann_x, ann_y, ann_txt = [], [], []
+        stick_x, stick_y = [], []
         for i, (pv, inten, hg) in enumerate(
                 zip(details["peak_vals"], details["intensities"],
                     details["hkls"])):
+            matched_here = False
             for hd in hg:
                 hkl = hd["hkl"]
                 cmp = tuple(hkl[:4]) if len(hkl) == 4 else tuple(hkl[:3])
@@ -1410,6 +1440,18 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                         ann_txt.append(
                             f"({' '.join(str(v) for v in hkl)})")
                         total += 1
+                        matched_here = True
+            if matched_here:
+                stick_x.extend([pv, pv, None])
+                stick_y.extend([0, inten, None])
+
+        if other_mode != "Show normally" and stick_x:
+            fig_ann.add_trace(go.Scatter(
+                x=stick_x, y=stick_y, mode="lines",
+                line=dict(color=base_color, width=2),
+                name=f"{fname} – {plane_hkl} family peaks",
+                showlegend=False, hoverinfo="skip",
+            ))
 
         if ann_x:
             fig_ann.add_trace(go.Scatter(
