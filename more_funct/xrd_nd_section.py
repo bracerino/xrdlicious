@@ -1402,8 +1402,15 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
 
     if other_mode != "Show normally":
         new_opacity = 0.0 if other_mode == "Hide" else other_opacity
+        # Only dim/hide the theoretical (computed) traces, whose names derive
+        # from the uploaded structure file names. Experimental patterns are
+        # left untouched.
+        theo_names = {f.name for f in uploaded_files}
         for tr in fig_ann.data:
-            tr.opacity = new_opacity
+            tr_name = tr.name or ""
+            if any(tr_name == n or tr_name.startswith(n + " ")
+                   for n in theo_names):
+                tr.opacity = new_opacity
 
     total = 0
     tab10 = plt.cm.tab10.colors
