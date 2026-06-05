@@ -116,9 +116,9 @@ st.markdown(
             font-weight: 600;
         ">
             <span style="color:#8b0000; font-weight:800;">Release:</span>
-            v0.6.2 &nbsp; | &nbsp;
+            v0.6.3 &nbsp; | &nbsp;
             <span style="color:#8b0000; font-weight:800;">Updated:</span>
-            May 22, 2026
+            June 5, 2026
         </div>
     </div>
     """,
@@ -152,7 +152,7 @@ with col3:
 with col2:
     st.info(
         "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
-        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. ❤️🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
+        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. 🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
     )
 
 def is_running_locally():
@@ -252,7 +252,7 @@ st.markdown(
 )
 
 calc_mode = st.sidebar.multiselect(
-    "Choose Type(s) of Calculation/Analysis",
+    "Choose Type(s) of Calculation",
     options=[
         "🔬 Structure Modification",
         "💥 Powder Diffraction",
@@ -307,13 +307,25 @@ css = '''
 
 st.markdown(css, unsafe_allow_html=True)
 
+
+def section_divider():
+    st.markdown(
+        '<hr style="border: none; height: 6px; background-color: #1e3a8a; '
+        'border-radius: 8px; margin: 20px 0;">',
+        unsafe_allow_html=True,
+    )
+
+
 if "➡️ .xrdml ↔️ .xy ↔️ .ras Converter" in calc_mode:
+    section_divider()
     run_data_converter()
 
 if "↔️ Equivalent Planes" in calc_mode:
+    section_divider()
     run_equivalent_hkl_app()
 
 if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
+    section_divider()
     st.subheader(
         "This module calculates the Pair Radial Distribution Function (PRDF) across frames in LAMMPS or XYZ trajectories. Due to its high computational demands, it cannot be run on our free online server. Instead, it is provided as a standalone module that must be compiled and executed locally. Please visit to see how to compile and run the code:")
     st.markdown(
@@ -374,17 +386,17 @@ if 'full_structures' not in st.session_state:
 
 allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg", "lmp"]
 
-st.sidebar.subheader("📤 Upload Your Structure Files")
+st.sidebar.subheader("📤 Upload Structure Files")
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "Upload structure files (CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP):",
+    "(CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP):",
     type=allowed_types,
     accept_multiple_files=True,
     key="sidebar_uploader"
 )
 
-st.sidebar.subheader("📁 Upload Your Experimental Data ")
+st.sidebar.subheader("📁 Upload Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
-    "Upload additional XRD pattern (.xy, .xrdml, .ras — or any two-column text file).",
+    "(.xy, .xrdml, .ras — or any two-column text file).",
     type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras"],
     key="user_xrd", accept_multiple_files=True
 )
@@ -1469,6 +1481,7 @@ def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
 if "run_before" not in st.session_state:
     st.session_state["run_before"] = False
 if "🔬 Structure Modification" in calc_mode:
+    section_divider()
     from more_funct.structure_editor import run_structure_editor
     uploaded_files = run_structure_editor(uploaded_files)
 
@@ -1567,6 +1580,7 @@ if "parsed_exp_data" not in st.session_state:
 
 
 if "💥 Powder Diffraction" in calc_mode:
+    section_divider()
     from more_funct.xrd_nd_section import run_diffraction_section
     run_diffraction_section(uploaded_files, user_pattern_file, is_local=IS_LOCAL)
 
@@ -1643,6 +1657,7 @@ def smooth_spline(x_data, y_data, smoothing_factor=300):
 
 # Main PRDF section
 if "📊 (P)RDF" in calc_mode:
+    section_divider()
     PRDF_APP_URL = "https://prdf-xrdlicious.streamlit.app/"
     st.markdown(
         """
@@ -1693,6 +1708,7 @@ if "📊 (P)RDF" in calc_mode:
     )
 
 if "📈 Interactive Data Plot" in calc_mode:
+    section_divider()
     render_interactive_data_plot(user_pattern_file)
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
