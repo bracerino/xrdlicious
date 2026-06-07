@@ -82,7 +82,7 @@ def first_run_note():
 <span style="font-size:1.05rem;">👋 <b>Hi there!</b></span><br>
 This app currently runs on <b>free Streamlit hosting</b> with limited RAM (a hosting upgrade is planned). For heavier computations or a stable personal version, please consider to compile the app locally from <a href="https://github.com/bracerino/xrdlicious" target="_blank"><b>GitHub</b></a>.
 <br><br>
-<b>Online limits per structure:</b> up to <b>50,000</b> reflections. Past that, the <b>Calculate</b> button is disabled to prevent memory overload. Additionally, the <b>top 1,500 peaks</b> by intensity are stored / displayed.
+<b>Online limits per structure:</b> up to <b>50,000</b> reflections. Past that, the <b>Calculate</b> button is disabled to prevent memory overload. Additionally, the <b>top 1,500 peaks</b> by intensity are stored / displayed. For unlimited version, please compile locally.
 </div>
                     """,
                     unsafe_allow_html=True,
