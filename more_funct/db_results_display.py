@@ -265,7 +265,9 @@ def _render_mp(sort_by: str, cs_filter: str) -> None:
         st.info("No structures match the selected crystal system filter.")
         return
 
-    selected    = st.selectbox("Select a structure:", options, key="mp_sel_disp")
+    _selection_prompt("Materials Project", len(options))
+    selected    = st.selectbox("Select a structure:", options, key="mp_sel_disp",
+                               label_visibility="collapsed")
     selected_id = selected.split(",")[-1].replace(":", "").strip()
     composition = selected.split("(")[0].strip()
     file_name   = re.sub(r'[\\/:"*?<>|]+', '_', f"{selected_id}_{composition}.cif")
@@ -313,7 +315,9 @@ def _render_aflow(sort_by: str, cs_filter: str) -> None:
         st.info("No structures match the selected crystal system filter.")
         return
 
-    selected      = st.selectbox("Select a structure:", options, key="aflow_sel_disp")
+    _selection_prompt("AFLOW", len(options))
+    selected      = st.selectbox("Select a structure:", options, key="aflow_sel_disp",
+                                 label_visibility="collapsed")
     selected_auid = selected.split(",")[-1].strip()
     entry = next((e for e in entrys.values() if e.auid == selected_auid), None)
 
@@ -371,7 +375,9 @@ def _render_cod(sort_by: str, cs_filter: str) -> None:
         st.info("No structures match the selected crystal system filter.")
         return
 
-    selected  = st.selectbox("Select a structure:", options, key="cod_sel_disp")
+    _selection_prompt("COD", len(options))
+    selected  = st.selectbox("Select a structure:", options, key="cod_sel_disp",
+                             label_visibility="collapsed")
     cod_id    = selected.split(",")[-1].strip()
     structure = structs.get(cod_id)
 
@@ -409,13 +415,14 @@ def _render_mc3d(sort_by: str, cs_filter: str) -> None:
     options = sort_structure_options(raw, sort_by, cs_filter)
     structs = st.session_state.get("mc3d_structures", {})
 
-    st.info("ℹ️ MC3D structures accessed via the OPTIMADE API from Materials Cloud.")
     _count_badge(len(options), len(raw), "MC3D", cs_filter)
     if not options:
         st.info("No structures match the selected crystal system filter.")
         return
 
-    selected  = st.selectbox("Select a structure:", options, key="mc3d_sel_disp")
+    _selection_prompt("MC3D", len(options))
+    selected  = st.selectbox("Select a structure:", options, key="mc3d_sel_disp",
+                             label_visibility="collapsed")
     mc3d_id   = selected.split(",")[-1].strip()
     structure = structs.get(mc3d_id)
 
@@ -446,6 +453,23 @@ def _render_mc3d(sort_by: str, cs_filter: str) -> None:
             key="mc3d_dl", width="stretch",
         )
 
+
+
+def _selection_prompt(db_name: str, n: int) -> None:
+    """Render a prominent, color-coded banner that draws the eye to the
+    structure-selection dropdown directly beneath it."""
+    color  = _DB_COLORS.get(db_name, "#1e3a8a")
+    icon   = _DB_ICONS.get(db_name, "")
+    plural = "s" if n != 1 else ""
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg,{color},{color}cc);color:white;'
+        f'font-size:0.98rem;font-weight:700;padding:9px 16px;border-radius:9px 9px 0 0;'
+        f'margin:10px 0 0 0;display:flex;align-items:center;gap:8px;">'
+        f'<span style="font-size:1.15rem;">👇</span>'
+        f'{icon} Pick one of the {n} {db_name} structure{plural} below to preview &amp; add'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def _count_badge(n_filtered: int, n_total: int, db_name: str, cs_filter: str) -> None:
@@ -500,6 +524,24 @@ def show_database_results() -> None:
 
     st.markdown(
         '<hr style="border:none;height:4px;background:linear-gradient(to right,#1565C0,#E65100,#2E7D32,#6A1B9A);border-radius:4px;margin:22px 0 16px 0;">',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <style>
+        .st-key-mp_sel_disp [data-baseweb="select"] > div,
+        .st-key-aflow_sel_disp [data-baseweb="select"] > div,
+        .st-key-cod_sel_disp [data-baseweb="select"] > div,
+        .st-key-mc3d_sel_disp [data-baseweb="select"] > div {
+            border: 2px solid #1e3a8a;
+            border-radius: 0 0 9px 9px;
+            min-height: 46px;
+            font-size: 1.0rem;
+            font-weight: 600;
+        }
+        </style>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -568,7 +610,15 @@ def show_database_results() -> None:
         with st.container():
             _render_crystal_system_distribution(all_options)
 
-    tabs = st.tabs([f"{_DB_ICONS[db]} {db}" for db in active])
-    for tab, db_name in zip(tabs, active):
-        with tab:
-            _RENDERERS[db_name](sort_by, cs_filter)
+    # Wrap the tabs in a keyed container so they keep a stable identity across
+    # reruns. On the search run, transient elements (the st.spinner status box
+    # and the "Found N structures" messages) are rendered before this point;
+    # on the next run (the first structure selection) they're gone, which shifts
+    # the tabs' position in the element tree and makes Streamlit reset st.tabs
+    # back to the first tab. A keyed container pins the identity so the active
+    # tab is preserved. st.tabs itself accepts no key, hence the container.
+    with st.container(key="db_results_tabs_container"):
+        tabs = st.tabs([f"{_DB_ICONS[db]} {db}" for db in active])
+        for tab, db_name in zip(tabs, active):
+            with tab:
+                _RENDERERS[db_name](sort_by, cs_filter)
