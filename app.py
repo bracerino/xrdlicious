@@ -1481,7 +1481,6 @@ def generate_initial_df_with_occupancy_and_wyckoff(structure: Structure):
 if "run_before" not in st.session_state:
     st.session_state["run_before"] = False
 if "🔬 Structure Modification" in calc_mode:
-    section_divider()
     from more_funct.structure_editor import run_structure_editor
     uploaded_files = run_structure_editor(uploaded_files)
 
