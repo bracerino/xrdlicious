@@ -756,14 +756,11 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                         _prog_txt = st.empty()
 
                         def _progress(iteration, frac, rms, elapsed):
-                            msg = (f"Iteration {iteration} · best RMS Δ2θ ≈ "
-                                   f"{rms:.4f}°")
                             if frac is not None and _prog_bar is not None:
                                 _prog_bar.progress(min(max(frac, 0.0), 1.0))
-                                if frac > 0.02:
-                                    msg += (f" · ~{elapsed * (1 - frac) / frac:.0f}s"
-                                            " remaining (estimate)")
-                            _prog_txt.write(msg)
+                            _prog_txt.write(
+                                f"Iteration {iteration} · best RMS Δ2θ ≈ "
+                                f"{rms:.4f}°")
 
                         result = _refine(
                             matched, base_cell, fit_system, wavelength_A,
