@@ -256,6 +256,7 @@ calc_mode = st.sidebar.multiselect(
     options=[
         "🔬 Structure Modification",
         "💥 Powder Diffraction",
+        "🎯 Fitting Lattice Parameters",
         "📊 (P)RDF",
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories",
@@ -1582,6 +1583,10 @@ if "💥 Powder Diffraction" in calc_mode:
     section_divider()
     from more_funct.xrd_nd_section import run_diffraction_section
     run_diffraction_section(uploaded_files, user_pattern_file, is_local=IS_LOCAL)
+
+if "🎯 Fitting Lattice Parameters" in calc_mode:
+    from more_funct.lattice_fitting import run_lattice_fitting_section
+    run_lattice_fitting_section(uploaded_files, user_pattern_file, is_local=IS_LOCAL)
 
 if "calc_rdf" not in st.session_state:
     st.session_state.calc_rdf = False
