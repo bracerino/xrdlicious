@@ -15,6 +15,7 @@ mirroring the common instrumental parameters used in Rietveld refinement.
 """
 
 import io
+import time
 
 import numpy as np
 import pandas as pd
@@ -220,7 +221,7 @@ ALGORITHMS = [
 def _refine(matched, base_cell, system, wavelength_A,
             refine_params, fit_zero, fit_disp, radius_mm,
             max_change_pct=5.0, algorithm="Differential evolution (global)",
-            all_hkls=None):
+            all_hkls=None, progress_cb=None):
     """Refine the selected lattice parameters against the peak positions.
 
     ``matched`` is a list of dicts with keys ``obs`` (observed 2θ) and ``hkl``.
@@ -304,18 +305,44 @@ def _refine(matched, base_cell, system, wavelength_A,
 
     lower_a = np.asarray(lower, dtype=float)
     upper_a = np.asarray(upper, dtype=float)
+    n_data = len(obs)
+    _t0 = time.time()
 
     # Global search (if requested) to escape local minima, then re-index every
     # observed peak to the nearest reflection of the global cell, then a local
-    # least-squares polish for the final fit and its Jacobian.
+    # least-squares polish for the final fit and its Jacobian. The optimisers
+    # call ``progress_cb`` between iterations so the UI can report progress.
+    DE_MAXITER, DA_MAXITER = 2000, 2000
     if algorithm.startswith("Differential evolution"):
+        _state = {"it": 0}
+
+        def _cb_de(xk, convergence=0.0, *args, **kwargs):
+            _state["it"] += 1
+            if progress_cb is not None:
+                frac = min(max(float(convergence), 0.0), 1.0)
+                rms = (max(_obj_reindex(xk), 0.0) / max(1, n_data)) ** 0.5
+                progress_cb(iteration=_state["it"], frac=frac, rms=rms,
+                            elapsed=time.time() - _t0)
+
         gres = differential_evolution(
             _obj_reindex, list(zip(lower, upper)), tol=1e-12, seed=0,
-            polish=False, maxiter=2000, mutation=(0.5, 1.0), recombination=0.7)
+            polish=False, maxiter=DE_MAXITER, mutation=(0.5, 1.0),
+            recombination=0.7, callback=_cb_de)
         x_start = np.clip(gres.x, lower_a, upper_a)
     elif algorithm.startswith("Dual annealing"):
+        _state = {"it": 0, "best": np.inf}
+
+        def _cb_da(x, f=np.inf, context=0, *args, **kwargs):
+            _state["it"] += 1
+            _state["best"] = min(_state["best"], float(f))
+            if progress_cb is not None:
+                rms = (max(_state["best"], 0.0) / max(1, n_data)) ** 0.5
+                progress_cb(iteration=_state["it"], frac=None, rms=rms,
+                            elapsed=time.time() - _t0)
+
         gres = dual_annealing(
-            _obj_reindex, list(zip(lower, upper)), x0=x0, seed=0, maxiter=2000)
+            _obj_reindex, list(zip(lower, upper)), x0=x0, seed=0,
+            maxiter=DA_MAXITER, callback=_cb_da)
         x_start = np.clip(gres.x, lower_a, upper_a)
     else:
         x_start = np.clip(np.asarray(x0, dtype=float), lower_a, upper_a)
@@ -721,11 +748,29 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                                  f"**{len(obs_peaks)}** peaks for the fit.")
                         st.write(f"Refining {len(refine_params)} lattice "
                                  f"parameter(s) — {algorithm}…")
+                        # Live progress: a bar (convergence) for differential
+                        # evolution, and a text line for both global methods.
+                        _prog_bar = (st.progress(0.0)
+                                     if algorithm.startswith("Differential")
+                                     else None)
+                        _prog_txt = st.empty()
+
+                        def _progress(iteration, frac, rms, elapsed):
+                            msg = (f"Iteration {iteration} · best RMS Δ2θ ≈ "
+                                   f"{rms:.4f}°")
+                            if frac is not None and _prog_bar is not None:
+                                _prog_bar.progress(min(max(frac, 0.0), 1.0))
+                                if frac > 0.02:
+                                    msg += (f" · ~{elapsed * (1 - frac) / frac:.0f}s"
+                                            " remaining (estimate)")
+                            _prog_txt.write(msg)
+
                         result = _refine(
                             matched, base_cell, fit_system, wavelength_A,
                             refine_params, fit_zero, fit_disp, radius_mm,
                             max_change_pct, algorithm,
-                            all_hkls=[r["hkl"] for r in reflections])
+                            all_hkls=[r["hkl"] for r in reflections],
+                            progress_cb=_progress)
                         # Re-assign each peak's (hkl) / intensity from the fit
                         # (the global search may have re-indexed them).
                         _int_by_hkl = {r["hkl"]: r["intensity"]
