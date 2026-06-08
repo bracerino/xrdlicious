@@ -96,65 +96,6 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # st.markdown(
 #    f"#### **XRDlicious**: Online Calculator for Powder XRD/ND Patterns, (P)RDF, Peak Matching, Structure Modification and Point Defects Creation from Uploaded Crystal Structures (CIF, LMP, POSCAR, ...)")
-st.markdown(
-    """
-    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
-        <h4 style="margin:0;">
-            <span style='color:#8b0000;'>
-                <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
-            </span>
-        </h4>
-        <div style="
-            display: inline-block;
-            background-color: #ffffff;
-            border-left: 5px solid #8b0000;
-            border-radius: 10px;
-            padding: 10px 16px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
-            color: #111827;
-            font-size: 0.95rem;
-            font-weight: 600;
-        ">
-            <span style="color:#8b0000; font-weight:800;">Release:</span>
-            v0.6.3 &nbsp; | &nbsp;
-            <span style="color:#8b0000; font-weight:800;">Updated:</span>
-            June 5, 2026
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown(
-    """
-    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 20px 0;">
-    """,
-    unsafe_allow_html=True
-)
-
-# Get current memory usage
-process = psutil.Process(os.getpid())
-mem_info = process.memory_info()
-memory_usage = mem_info.rss / (1024 ** 2)  # in MB
-
-col1, col2, col3 = st.columns([0.2, 0.4, 0.4])
-with col3:
-    st.markdown(
-        """
-        ###### 🔹 Separated Modules: 
-        - Create point defects in a crystal structure: **[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/)**  
-        - Convert between `.xrdml`, `.ras` and `.xy` formats or X/Y-axis: **[Open App 🧩](https://xrd-convert.streamlit.app/)**  
-        - Austenite-martensite crystallographic planes for NiTiHf: **[Open App 🌐](https://austenite-martensite.streamlit.app/)** 
-        - Calculate (P)RDF: **[Open App 🧩](https://prdf-xrdlicious.streamlit.app/)** 
-        """
-    )
-
-
-with col2:
-    st.info(
-        "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
-        "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. 🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
-    )
-
 def is_running_locally():
     try:
         host = st.context.headers.get("host", "")
@@ -164,34 +105,98 @@ def is_running_locally():
 
 IS_LOCAL = is_running_locally()
 
-# with col3:
-#    st.link_button("", "https://github.com/bracerino/xrdlicious", type="primary")
+# Get current memory usage
+process = psutil.Process(os.getpid())
+mem_info = process.memory_info()
+memory_usage = mem_info.rss / (1024 ** 2)  # in MB
 
-with col1:
-    about_app_show = st.checkbox(f"📖 About the app")
+# On first open the intro is shown inline; once the user interacts (the same
+# moment the welcome note disappears) it collapses into an expander so the
+# working area stays clean. The toggled content (About / Roadmap / How to cite /
+# Tutorials) is rendered AFTER the container to avoid nesting expanders.
+_intro_collapsed = not st.session_state.get("first_run_note", True)
+intro_ctx = (
+    st.expander("ℹ️ About XRDlicious — info, separated modules, roadmap, "
+                "how to cite, tutorials", expanded=False)
+    if _intro_collapsed else st.container()
+)
+
+with intro_ctx:
+    st.markdown(
+        """
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
+            <h4 style="margin:0;">
+                <span style='color:#8b0000;'>
+                    <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
+                </span>
+            </h4>
+            <div style="
+                display: inline-block;
+                background-color: #ffffff;
+                border-left: 5px solid #8b0000;
+                border-radius: 10px;
+                padding: 10px 16px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+                color: #111827;
+                font-size: 0.95rem;
+                font-weight: 600;
+            ">
+                <span style="color:#8b0000; font-weight:800;">Release:</span>
+                v0.7.0 &nbsp; | &nbsp;
+                <span style="color:#8b0000; font-weight:800;">Updated:</span>
+                June 9, 2026
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        """
+        <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 20px 0;">
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2, col3 = st.columns([0.2, 0.4, 0.4])
+    with col3:
+        st.markdown(
+            """
+            ###### 🔹 Separated Modules:
+            - Create point defects in a crystal structure: **[Open App 🌐](https://xrdlicious-point-defects.streamlit.app/)**
+            - Convert between `.xrdml`, `.ras` and `.xy` formats or X/Y-axis: **[Open App 🧩](https://xrd-convert.streamlit.app/)**
+            - Austenite-martensite crystallographic planes for NiTiHf: **[Open App 🌐](https://austenite-martensite.streamlit.app/)**
+            - Calculate (P)RDF: **[Open App 🧩](https://prdf-xrdlicious.streamlit.app/)**
+            """
+        )
+    with col2:
+        st.info(
+            "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
+            "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. 🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
+        )
+    with col1:
+        about_app_show = st.checkbox(f"📖 About the app")
+        show_roadmap = st.checkbox(f"🧭 Roadmap", value=False)
+        citations = st.checkbox("📚 How to cite", value=False)
+        tutorials = st.checkbox("📺 Tutorials", value=False)
+
+# Toggled content rendered outside the intro container (top level) so the inner
+# expanders are not nested inside the collapsed intro expander.
 if about_app_show:
     about_app()
-with col1:
-    show_roadmap = st.checkbox(f"🧭 Roadmap", value=False)
 if show_roadmap:
     with st.expander("Roadmap", icon="🧭", expanded=True):
         show_xrdlicious_roadmap()
-with col1:
-    citations = st.checkbox("📚 How to cite", value=False)
 if citations:
     show_citation_section()
-
-with col1:
-    tutorials = st.checkbox("📺 Tutorials", value=False)
 if tutorials:
     with st.expander("Tutorials", icon="📺", expanded=True):
-        st.markdown(""" 
+        st.markdown("""
 
-        - [Calculate powder diffraction patterns](https://youtu.be/jHdaNVB2UWE?si=5OPPsrt-8vr3c9aI)  
-        - [Calculate partial and total radial distribution functions](https://youtu.be/aU7BfwlnqGM?si=Hlyl9_cnt9hTf9wD)  
-        - [Convert XRD file formats (.ras, .xrdml ↔ .xy)](https://youtu.be/KwxVKadPZ6s?si=IvvZQtmlWl9gOGPw)  
-        - [Plot online two-column data & convert XRD between wavelengths / slit types](https://youtu.be/YTzDSI4Jyh0?si=YJt-FS4nBgGA8YhT)  
-        - [Create point defects (vacancies, interstitials, substitutions) in a crystal structure](https://youtu.be/cPp-NPxhAYQ?si=vETf52_IHnsps62f)  
+        - [Calculate powder diffraction patterns](https://youtu.be/jHdaNVB2UWE?si=5OPPsrt-8vr3c9aI)
+        - [Calculate partial and total radial distribution functions](https://youtu.be/aU7BfwlnqGM?si=Hlyl9_cnt9hTf9wD)
+        - [Convert XRD file formats (.ras, .xrdml ↔ .xy)](https://youtu.be/KwxVKadPZ6s?si=IvvZQtmlWl9gOGPw)
+        - [Plot online two-column data & convert XRD between wavelengths / slit types](https://youtu.be/YTzDSI4Jyh0?si=YJt-FS4nBgGA8YhT)
+        - [Create point defects (vacancies, interstitials, substitutions) in a crystal structure](https://youtu.be/cPp-NPxhAYQ?si=vETf52_IHnsps62f)
         """)
 
 pattern_details = None
@@ -1297,9 +1302,6 @@ else:
     uploaded_files = st.session_state['uploaded_files']
 
 if uploaded_files:
-    st.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
-
-if uploaded_files:
     species_set = set()
     for file in uploaded_files:
         with open(file.name, "wb") as f:
@@ -1570,6 +1572,9 @@ with st.sidebar.expander("📁 Final list of structure files", expanded=True):
         st.info("No files uploaded yet")
 
     st.session_state.files_marked_for_removal.clear()
+
+if uploaded_files:
+    st.sidebar.write(f"📄 **{len(uploaded_files)} file(s) uploaded.**")
 
 if "expander_diff_settings" not in st.session_state:
     st.session_state["expander_diff_settings"] = True
