@@ -714,8 +714,9 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                          "range for the chosen wavelength.")
             elif not obs_peaks:
                 st.error("No peak positions available. Add peaks first.")
-            elif not refine_params:
-                st.error("Select at least one lattice parameter to refine.")
+            elif not refine_params and not fit_zero and not fit_disp:
+                st.error("Select at least one parameter to refine — a lattice "
+                         "parameter, the zero-shift, or the sample displacement.")
             elif (not is_local) and len(obs_peaks) > ONLINE_MAX_PEAKS:
                 st.error(
                     f"The online version allows at most {ONLINE_MAX_PEAKS} "
@@ -746,8 +747,16 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                         st.write("Fitting lattice parameters, please wait…")
                         st.write(f"Using **{len(matched)}** of "
                                  f"**{len(obs_peaks)}** peaks for the fit.")
-                        st.write(f"Refining {len(refine_params)} lattice "
-                                 f"parameter(s) — {algorithm}…")
+                        _what = []
+                        if refine_params:
+                            _what.append(f"{len(refine_params)} lattice "
+                                         "parameter(s)")
+                        if fit_zero:
+                            _what.append("zero-shift")
+                        if fit_disp:
+                            _what.append("sample displacement")
+                        st.write(f"Refining {', '.join(_what)} — "
+                                 f"{algorithm}…")
                         # Live progress: a bar (convergence) for differential
                         # evolution, and a text line for both global methods.
                         _prog_bar = (st.progress(0.0)
@@ -776,13 +785,19 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                             _m["hkl"] = _h
                             _m["intensity"] = _int_by_hkl.get(
                                 _h, _m.get("intensity", 0.0))
-                        # Initial (unrefined) calc 2θ for the matched peaks.
+                        # Initial (unrefined) calc 2θ for the matched peaks, and
+                        # the RMS Δ2θ of that initial cell for a before/after
+                        # comparison against the refined RMS.
                         init_calc = _two_theta_from_d(
                             np.array([Lattice.from_parameters(
                                 base_cell["a"], base_cell["b"], base_cell["c"],
                                 base_cell["alpha"], base_cell["beta"],
                                 base_cell["gamma"]).d_hkl(m["hkl"])
                                 for m in matched]), wavelength_A)
+                        init_rms = float(np.sqrt(np.mean(
+                            (np.asarray(init_calc, dtype=float)
+                             - np.array([m["obs"] for m in matched],
+                                        dtype=float)) ** 2)))
                         # Full theoretical pattern of the refined cell (all
                         # reflections), for the before/after comparison and for
                         # exporting the refined structure.
@@ -805,6 +820,7 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                             "refine_params": refine_params, "tol_deg": tol_deg,
                             "radius_mm": radius_mm, "wavelength_A": wavelength_A,
                             "init_calc": list(map(float, init_calc)),
+                            "init_rms": init_rms,
                             "struct_name": sel_struct_name,
                             "crystal_system": crystal_system,
                             "ignore_sym": ignore_sym,
@@ -813,7 +829,9 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                             "reflections_refined": refined_reflections,
                             "refined_struct": refined_struct,
                         }
-                        st.write(f"Done — RMS Δ2θ = {result['rms']:.4f}°.")
+                        st.write(
+                            f"Done — RMS Δ2θ: {init_rms:.4f}° (initial) → "
+                            f"{result['rms']:.4f}° (refined).")
                         status.update(
                             label="✅ Refinement finished — see the "
                                   "“After fitting” tab.",
@@ -962,9 +980,9 @@ def _render_fit_results(stored, x_win, y_win, y_top, tt_min, tt_max):
     st.plotly_chart(fig_fit, width="stretch", key="latfit_result_plot")
 
     # Clean "a → new a" summary for every refined parameter.
-    st.markdown("#### Refined lattice parameters")
     refined_now = [p for p in ALL_PARAMS if p in refine_params]
     if refined_now:
+        st.markdown("#### Refined lattice parameters")
         mcols = st.columns(len(refined_now))
         for col, p in zip(mcols, refined_now):
             old = base_cell[p]
@@ -973,30 +991,58 @@ def _render_fit_results(stored, x_win, y_win, y_top, tt_min, tt_max):
             col.metric(
                 PARAM_LABELS[p], f"{new:.5f}",
                 delta=f"{new - old:+.5f} ({pct:+.2f}%)")
-    summary_lines = []
-    for p in refined_now:
-        old, new = base_cell[p], result["cell"][p]
-        err = result["errors"].get(p)
-        err_txt = "" if (err is None or np.isnan(err)) else f" ± {err:.5f}"
-        unit = "Å" if p in ("a", "b", "c") else "°"
-        summary_lines.append(
-            f"- **{PARAM_LABELS[p]}**: {old:.5f} → **{new:.5f}{err_txt}** {unit}")
-    st.markdown("\n".join(summary_lines))
+        summary_lines = []
+        for p in refined_now:
+            old, new = base_cell[p], result["cell"][p]
+            err = result["errors"].get(p)
+            err_txt = "" if (err is None or np.isnan(err)) else f" ± {err:.5f}"
+            unit = "Å" if p in ("a", "b", "c") else "°"
+            summary_lines.append(
+                f"- **{PARAM_LABELS[p]}**: {old:.5f} → "
+                f"**{new:.5f}{err_txt}** {unit}")
+        st.markdown("\n".join(summary_lines))
+    else:
+        # No lattice parameter was refined — only instrumental corrections.
+        # Show those as the headline result so the refined value is clear.
+        st.markdown("#### Refined instrumental parameters")
+        st.caption("No lattice parameter was refined — only the instrumental "
+                   "correction(s) below were fitted; the cell is unchanged.")
+        instr = []
+        if result["zero"] is not None:
+            instr.append(("Zero-shift (°)", f"{result['zero']:.4f}"))
+        if result["disp"] is not None:
+            instr.append(
+                (f"Sample displacement (mm, R={stored['radius_mm']:.0f} mm)",
+                 f"{result['disp']:.4f}"))
+        if instr:
+            icols = st.columns(len(instr))
+            for col, (label, val) in zip(icols, instr):
+                col.metric(label, val, delta=f"{float(val):+.4f} from 0")
 
-    m1, m2, m3, m4 = st.columns(4)
+    init_rms = stored.get("init_rms")
+    m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Peaks used", f"{result['n_peaks']}")
-    m2.metric("RMS Δ2θ (°)", f"{result['rms']:.4f}")
-    m3.metric("Max |Δ2θ| (°)", f"{result['max_abs']:.4f}")
-    m4.metric("Cell volume (Å³)", f"{result['volume']:.3f}")
+    m2.metric("Initial RMS Δ2θ (°)",
+              "—" if init_rms is None else f"{init_rms:.4f}")
+    m3.metric("Refined RMS Δ2θ (°)", f"{result['rms']:.4f}",
+              delta=(None if init_rms is None
+                     else f"{result['rms'] - init_rms:+.4f}"),
+              delta_color="inverse")
+    m4.metric("Max |Δ2θ| (°)", f"{result['max_abs']:.4f}")
+    m5.metric("Cell volume (Å³)", f"{result['volume']:.3f}")
 
-    extra = []
-    if result["zero"] is not None:
-        extra.append(f"zero-shift = {result['zero']:.4f}°")
-    if result["disp"] is not None:
-        extra.append(f"sample displacement = {result['disp']:.4f} mm "
-                     f"(R = {stored['radius_mm']:.0f} mm)")
-    if extra:
-        st.markdown("**Instrumental corrections:** " + ", ".join(extra))
+    # When lattice parameters were refined, list the instrumental corrections
+    # here too; in the instrumental-only case they are already shown above as
+    # metrics, so this line is skipped to avoid duplication.
+    if refined_now:
+        extra = []
+        if result["zero"] is not None:
+            extra.append(f"zero-shift = {result['zero']:.4f}°")
+        if result["disp"] is not None:
+            extra.append(f"sample displacement = {result['disp']:.4f} mm "
+                         f"(R = {stored['radius_mm']:.0f} mm)")
+        if extra:
+            st.markdown("**Instrumental corrections:** " + ", ".join(extra))
 
     # Full initial-vs-refined table, with the status of every parameter
     # (refined / fixed / constrained by symmetry).
