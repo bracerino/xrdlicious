@@ -953,6 +953,25 @@ def _render_fit_results(stored, x_win, y_win, y_top, tt_min, tt_max):
     # every peak is shown before (initial) and after (refined).
     refl_init = stored.get("reflections_init", [])
     refl_refined = stored.get("reflections_refined", [])
+
+    # The refined-cell peaks are computed from the refined lattice alone (pure
+    # Bragg positions). When a sample displacement was refined, offer to fold
+    # that correction into the plotted refined peaks so they line up with the
+    # observed peaks (as they do in the residuals table). Unchecking shows the
+    # uncorrected Bragg positions of the refined cell.
+    disp = result.get("disp")
+    radius_mm = stored.get("radius_mm")
+    apply_disp = False
+    if disp is not None and refl_refined:
+        apply_disp = st.checkbox(
+            "Apply the fitted sample-displacement correction to the refined "
+            "peak positions",
+            value=True, key="latfit_apply_disp_plot",
+            help=(f"Shift the refined-cell peaks by the fitted sample "
+                  f"displacement ({disp:.4f} mm, R={radius_mm:.0f} mm) so they "
+                  "align with the observed peaks. Uncheck to plot the "
+                  "uncorrected Bragg positions of the refined cell."))
+
     fig_fit = go.Figure()
     if x_win.size:
         fig_fit.add_trace(go.Scatter(
@@ -969,12 +988,20 @@ def _render_fit_results(stored, x_win, y_win, y_top, tt_min, tt_max):
              f"initial 2θ = {r['two_theta']:.3f}°" for r in refl_init],
             name="Calc (initial cell)", color="rgba(255,165,0,0.55)", width=1.5)
     if refl_refined:
+        if apply_disp:
+            ref_tt = [r["two_theta"] + float(_displacement_2theta(
+                r["two_theta"], disp, radius_mm)) for r in refl_refined]
+            disp_note = " (displacement-corrected)"
+        else:
+            ref_tt = [r["two_theta"] for r in refl_refined]
+            disp_note = ""
         _add_stick_trace(
             fig_fit,
-            [r["two_theta"] for r in refl_refined],
+            ref_tt,
             [r["intensity"] / 100.0 * y_top for r in refl_refined],
             [f"(hkl) {''.join(str(v) for v in r['hkl'])}<br>"
-             f"refined 2θ = {r['two_theta']:.3f}°" for r in refl_refined],
+             f"refined 2θ{disp_note} = {tt:.3f}°"
+             for r, tt in zip(refl_refined, ref_tt)],
             name="Calc (refined cell)", color="green", width=2)
     _style_chart(fig_fit, tt_min, tt_max)
     st.plotly_chart(fig_fit, width="stretch", key="latfit_result_plot")
