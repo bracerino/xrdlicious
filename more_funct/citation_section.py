@@ -110,10 +110,16 @@ def buttons_colors():
             height: 3em;
             width: 100%;
         }
+        div.stButton > button:hover {
+            background-color: #007acc !important;
+            color: white !important;
+            border: none !important;
+        }
         div.stButton > button:active,
         div.stButton > button:focus {
             background-color: #0099ff !important;
             color: white !important;
+            border: none !important;
         }
         </style>
         """,
