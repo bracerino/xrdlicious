@@ -1055,7 +1055,7 @@ def _render_fit_results(stored, x_win, y_win, y_top, tt_min, tt_max):
             "Initial": round(base_cell[p], 5),
             "Refined": round(refined, 5),
             "1σ error": ("—" if (p not in refine_params or err is None
-                                 or np.isnan(err)) else round(err, 5)),
+                                 or np.isnan(err)) else f"{round(err, 5)}"),
             "Δ": round(refined - base_cell[p], 5),
             "Status": _param_status(p, crystal_system, refine_params,
                                     ignore_sym),
