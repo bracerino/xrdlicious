@@ -666,22 +666,36 @@ def _lattice_section(structure, selected_file):
     st.caption(f"Constraints: {info['hint']}")
 
     stored = st.session_state[lat_key]
+
+    # The number_input widget raises if the initial value exceeds max_value, so
+    # adapt the upper bound to the actual cell (large super-cells can exceed the limit).
+    DEFAULT_LEN_MAX = 500.0
+    largest_len = max(float(stored["a"]), float(stored["b"]), float(stored["c"]))
+    len_max = DEFAULT_LEN_MAX
+    if largest_len > DEFAULT_LEN_MAX:
+        len_max = float(largest_len) * 2.0
+        st.warning(
+            f"This structure has a lattice parameter of {largest_len:.2f} Å, which exceeds the "
+            f"default {DEFAULT_LEN_MAX:.0f} Å limit. The maximum has been raised to {len_max:.2f} Å "
+            f"for this structure."
+        )
+
     col_a, col_b, col_c = st.columns(3)
     col_al, col_be, col_ga = st.columns(3)
 
     with col_a:
-        new_a = st.number_input("a (Å)", value=float(stored["a"]), min_value=0.1, max_value=200.0,
+        new_a = st.number_input("a (Å)", value=float(stored["a"]), min_value=0.1, max_value=len_max,
                                 step=0.001, format="%.5f", key=f"se_a_{selected_file}")
     with col_b:
         if "b" in modifiable:
-            new_b = st.number_input("b (Å)", value=float(stored["b"]), min_value=0.1, max_value=200.0,
+            new_b = st.number_input("b (Å)", value=float(stored["b"]), min_value=0.1, max_value=len_max,
                                     step=0.001, format="%.5f", key=f"se_b_{selected_file}")
         else:
             st.text_input("b (Å)", value=f"{new_a:.5f}", disabled=True)
             new_b = new_a
     with col_c:
         if "c" in modifiable:
-            new_c = st.number_input("c (Å)", value=float(stored["c"]), min_value=0.1, max_value=200.0,
+            new_c = st.number_input("c (Å)", value=float(stored["c"]), min_value=0.1, max_value=len_max,
                                     step=0.001, format="%.5f", key=f"se_c_{selected_file}")
         else:
             fixed_c = new_a if crystal_system == "cubic" else stored["c"]
