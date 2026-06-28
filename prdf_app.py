@@ -407,11 +407,11 @@ st.subheader(
 )
 col_rmin, col_cut, col_bin = st.columns(3)
 r_min = col_rmin.number_input(
-    "Min cutoff (Å)", min_value=0.0, max_value=49.0, value=0.0, step=0.1, format="%.2f",
+    "Min cutoff (Å)", min_value=0.0, max_value=14.9, value=0.0, step=0.1, format="%.2f",
     help="Distances below this value are excluded from every PRDF/RDF trace.",
 )
 cutoff = col_cut.number_input(
-    "Cutoff (Å)", min_value=1.0, max_value=50.0, value=10.0, step=0.5, format="%.1f"
+    "Cutoff (Å)", min_value=1.0, max_value=15.0, value=10.0, step=0.5, format="%.1f"
 )
 bin_size = col_bin.number_input(
     "Bin size (Å)", min_value=0.005, max_value=2.0, value=0.1, step=0.005, format="%.3f"
@@ -590,6 +590,12 @@ if st.session_state.prdf_do_calc and structures:
                 prdf_dict = {}
                 dist_dict = {}
                 global_rdf = {}
+                # Atomic fractions (c_A = N_A / N), keyed by element symbol.
+                # matminer normalizes each partial g_AB by the central count N_A only,
+                # so the number-weighted total RDF is
+                #   G(r) = Σ_A c_A g_AA(r) + Σ_{A<B} 2 c_A g_AB(r),
+                # which correctly asymptotes to the total number density.
+                comp_frac = mg_struct.composition.fractional_composition.get_el_amt_dict()
                 for j, label in enumerate(labels):
                     pair_str, rng = label.split(" PRDF r=")
                     pair = tuple(pair_str.split("-"))
@@ -599,7 +605,9 @@ if st.session_state.prdf_do_calc and structures:
                         continue
                     prdf_dict.setdefault(pair, []).append(prdf_vals[j])
                     dist_dict.setdefault(pair, []).append(bc)
-                    global_rdf[bc] = global_rdf.get(bc, 0.0) + prdf_vals[j]
+                    c_a = comp_frac.get(pair[0], 0.0)
+                    weight = c_a if pair[0] == pair[1] else 2.0 * c_a
+                    global_rdf[bc] = global_rdf.get(bc, 0.0) + weight * prdf_vals[j]
                 prdf_dict = {p: np.array(v) for p, v in prdf_dict.items()}
                 st.session_state.prdf_results[fname] = {
                     "prdf_dict": prdf_dict,
