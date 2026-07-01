@@ -142,9 +142,9 @@ with intro_ctx:
                 font-weight: 600;
             ">
                 <span style="color:#8b0000; font-weight:800;">Release:</span>
-                v0.7.0 &nbsp; | &nbsp;
+                v0.7.1 &nbsp; | &nbsp;
                 <span style="color:#8b0000; font-weight:800;">Updated:</span>
-                June 9, 2026
+                July 1, 2026
             </div>
         </div>
         """,
