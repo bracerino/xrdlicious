@@ -388,10 +388,111 @@ def _add_bonds_to_view(view, bonds, bond_radius=0.08):
             "radius": bond_radius, "fromCap": False, "toCap": False, "color": c2,
         })
 
+def _expand_boundary_frac(frac, tol=1e-3):
+    """Return all periodic corner/edge/face images of a fractional coordinate
+    that lies on a cell boundary (a component ~0 or ~1).
+
+    An atom sitting exactly on a corner/edge/face of the unit cell has one or
+    more fractional components equal to 0 or 1. Crystallographic viewers (e.g.
+    VESTA) draw such atoms on every equivalent corner/edge/face. For each axis
+    whose value is ~0 we also emit the image at value+1, and for ~1 the image
+    at value-1; the Cartesian product over the three axes yields all images.
+    """
+    axis_vals = []
+    for f in frac:
+        vals = [f]
+        if abs(f) < tol:
+            vals.append(f + 1.0)
+        elif abs(f - 1.0) < tol:
+            vals.append(f - 1.0)
+        axis_vals.append(vals)
+    images = []
+    for xv in axis_vals[0]:
+        for yv in axis_vals[1]:
+            for zv in axis_vals[2]:
+                images.append((xv, yv, zv))
+    return images
+
+def _add_wedge(view, center, radius, phi0, phi1, color, n_phi, n_theta):
+    """Add one azimuthal wedge (lune) of a sphere as a custom mesh."""
+    c = np.asarray(center, dtype=float)
+    two_pi = 2.0 * np.pi
+    n_seg = max(2, int(round(n_phi * (phi1 - phi0) / two_pi)))
+    verts, normals = [], []
+    grid = []
+    for i in range(n_theta + 1):
+        th = np.pi * i / n_theta
+        st_, ct = np.sin(th), np.cos(th)
+        row = []
+        for j in range(n_seg + 1):
+            ph = phi0 + (phi1 - phi0) * j / n_seg
+            nrm = np.array([st_ * np.cos(ph), st_ * np.sin(ph), ct])
+            p = c + radius * nrm
+            verts.append({"x": float(p[0]), "y": float(p[1]), "z": float(p[2])})
+            normals.append({"x": float(nrm[0]), "y": float(nrm[1]), "z": float(nrm[2])})
+            row.append(len(verts) - 1)
+        grid.append(row)
+    faces = []
+    for i in range(n_theta):
+        for j in range(n_seg):
+            a, b = grid[i][j], grid[i][j + 1]
+            cc, d = grid[i + 1][j], grid[i + 1][j + 1]
+            faces += [a, cc, b, b, cc, d]
+    view.addCustom({"vertexArr": verts, "normalArr": normals,
+                    "faceArr": faces, "color": color})
+
+def _add_cap(view, center, radius, phi, color, n_theta, flip=False):
+    """Add the flat half-disk that closes a wedge's meridian cut plane."""
+    c = np.asarray(center, dtype=float)
+    nrm = np.array([np.sin(phi), -np.cos(phi), 0.0])
+    if flip:
+        nrm = -nrm
+    nd = {"x": float(nrm[0]), "y": float(nrm[1]), "z": float(nrm[2])}
+    verts = [{"x": float(c[0]), "y": float(c[1]), "z": float(c[2])}]
+    normals = [nd]
+    for i in range(n_theta + 1):
+        th = np.pi * i / n_theta
+        p = c + radius * np.array([np.sin(th) * np.cos(phi),
+                                   np.sin(th) * np.sin(phi), np.cos(th)])
+        verts.append({"x": float(p[0]), "y": float(p[1]), "z": float(p[2])})
+        normals.append(nd)
+    faces = []
+    for i in range(1, n_theta + 1):
+        faces += [0, i, i + 1]
+    view.addCustom({"vertexArr": verts, "normalArr": normals,
+                    "faceArr": faces, "color": color})
+
+def _add_pie_sphere(view, center, radius, color_fracs, n_phi=32, n_theta=14):
+    """Draw a sphere split into azimuthal color wedges sized by occupancy.
+
+    ``color_fracs`` is a list of (color, fraction) pairs. Wedge angular width
+    is 360°×fraction, so if the fractions sum to less than 1 (a vacancy) the
+    remaining arc is left open and the exposed cut faces are capped.
+    """
+    total = sum(max(0.0, f) for _, f in color_fracs)
+    if total <= 1e-6:
+        return
+    two_pi = 2.0 * np.pi
+    phi = 0.0
+    first_color = last_color = None
+    for color, frac in color_fracs:
+        if frac <= 0:
+            continue
+        if first_color is None:
+            first_color = color
+        last_color = color
+        phi_end = phi + two_pi * frac
+        _add_wedge(view, center, radius, phi, phi_end, color, n_phi, n_theta)
+        phi = phi_end
+    if total < 0.999 and first_color is not None:
+        _add_cap(view, center, radius, 0.0, first_color, n_theta, flip=False)
+        _add_cap(view, center, radius, two_pi * total, last_color, n_theta, flip=True)
+
 def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                     use_orthographic, show_atom_labels, orientation_result,
                     show_bonds=False, bonds_pbc=True, bond_tolerance=1.15,
-                    bond_radius=0.08, show_bond_lengths=False, roll_key=None):
+                    bond_radius=0.08, show_bond_lengths=False, roll_key=None,
+                    show_partial_occ=False, fill_boundary=False):
 
     active_orient = None
     show_success  = False
@@ -461,23 +562,54 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
     def _dc(cart_raw):
         return orient_matrix @ np.asarray(cart_raw, dtype=float)
 
+    # Group atom entries into crystallographic sites (same fractional coords)
+    # so mixed / fractional occupancy can be rendered as a single split sphere.
+    site_map = {}
+    for atom in atoms:
+        key = (round(atom["x"], 4), round(atom["y"], 4), round(atom["z"], 4))
+        if key not in site_map:
+            site_map[key] = {"frac": (atom["x"], atom["y"], atom["z"]),
+                             "comp": {}, "order": []}
+        rec = site_map[key]
+        el = atom["element"]
+        if el not in rec["comp"]:
+            rec["comp"][el] = 0.0
+            rec["order"].append(el)
+        rec["comp"][el] += float(atom.get("occ", 1.0))
+
+    sphere_radius = base_atom_size / 30
     rows = []
-    for ai in range(sx):
-        for bi in range(sy):
-            for ci in range(sz):
-                tr_raw = ai*raw_lm[0] + bi*raw_lm[1] + ci*raw_lm[2]
-                for atom in atoms:
-                    cart_raw = norm_lat.get_cartesian_coords(
-                        [atom["x"], atom["y"], atom["z"]]
-                    ) + tr_raw
-                    cart = _dc(cart_raw)
-                    rows.append(f"{atom['element']} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
+    pie_jobs = []  # (cart_display, [(color, frac), ...])
+
+    for rec in site_map.values():
+        comp, order = rec["comp"], rec["order"]
+        total = sum(comp.values())
+        is_partial = show_partial_occ and (len(order) > 1 or total < 0.999)
+        frac_images = _expand_boundary_frac(rec["frac"]) if fill_boundary else [rec["frac"]]
+
+        for ai in range(sx):
+            for bi in range(sy):
+                for ci in range(sz):
+                    tr_raw = ai*raw_lm[0] + bi*raw_lm[1] + ci*raw_lm[2]
+                    for f in frac_images:
+                        cart_raw = norm_lat.get_cartesian_coords(list(f)) + tr_raw
+                        cart = _dc(cart_raw)
+                        if is_partial:
+                            color_fracs = [(jmol_colors.get(el, "#CCCCCC"), comp[el])
+                                           for el in order]
+                            pie_jobs.append((cart, color_fracs))
+                        else:
+                            for el in order:
+                                rows.append(f"{el} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
 
     xyz_str = "\n".join([str(len(rows)), f"py3Dmol {sx}x{sy}x{sz}"] + rows)
 
     view = py3Dmol.view(width=900, height=700)
     view.addModel(xyz_str, "xyz")
-    view.setStyle({"model": 0}, {"sphere": {"radius": base_atom_size / 30, "colorscheme": "Jmol"}})
+    view.setStyle({"model": 0}, {"sphere": {"radius": sphere_radius, "colorscheme": "Jmol"}})
+
+    for cart, color_fracs in pie_jobs:
+        _add_pie_sphere(view, cart, sphere_radius, color_fracs)
 
     if show_bonds:
         bond_carts_raw = []
@@ -557,16 +689,27 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
             })
 
     if show_atom_labels:
-        if len(atoms) <= 200:
-            for idx, atom in enumerate(atoms):
-                cart = _dc(norm_lat.get_cartesian_coords([atom["x"], atom["y"], atom["z"]]))
-                view.addLabel(f"{atom['element']}{idx+1}", {
+        if len(site_map) <= 200:
+            for site_no, rec in enumerate(site_map.values()):
+                comp, order = rec["comp"], rec["order"]
+                total = sum(comp.values())
+                is_partial = len(order) > 1 or total < 0.999
+                if is_partial:
+                    # one field per site: element/occupancy ratio + any vacancy
+                    parts = [f"{el} {comp[el]:.2f}" for el in order]
+                    if total < 0.999:
+                        parts.append(f"vac {max(0.0, 1.0 - total):.2f}")
+                    text = " / ".join(parts)
+                else:
+                    text = f"{order[0]}{site_no + 1}"
+                cart = _dc(norm_lat.get_cartesian_coords(list(rec["frac"])))
+                view.addLabel(text, {
                     "position": {"x": float(cart[0]), "y": float(cart[1]), "z": float(cart[2])},
                     "backgroundColor": "white", "fontColor": "black", "fontSize": 12,
                     "borderThickness": 1, "borderColor": "grey",
                 })
         else:
-            st.warning("Too many atoms for labeling (>200). Labels disabled.")
+            st.warning("Too many sites for labeling (>200). Labels disabled.")
 
     if use_orthographic:
         view.setProjection("orthogonal")
@@ -1080,6 +1223,13 @@ def run_structure_editor(uploaded_files):
             show_labels = st.checkbox("Show atom labels",            value=False, key=f"se_labels_{selected_file}")
             show_asym   = st.checkbox("Show asymmetric unit only",   value=False, key=f"se_asym_{selected_file}")
 
+            fill_corners = st.checkbox(
+                "🧊 Complete atoms on cell corners/edges/faces",
+                value=True, key=f"se_fill_corners_{selected_file}",
+                help="Draw the periodic images of boundary atoms on all "
+                     "equivalent corners, edges, and faces of the cell (VESTA-like).",
+            )
+
             st.markdown(
                 "<div style='height:1px;background:#e2e8f0;margin:8px 0;'></div>",
                 unsafe_allow_html=True,
@@ -1165,6 +1315,7 @@ def run_structure_editor(uploaded_files):
                 bond_tolerance=bond_tol, bond_radius=bond_r,
                 show_bond_lengths=show_bond_lengths,
                 roll_key=f"orient_roll_deg_se_{selected_file}",
+                show_partial_occ=True, fill_boundary=fill_corners,
             )
 
     with tab_sym:
