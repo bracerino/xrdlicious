@@ -183,12 +183,10 @@ def format_index(index, first=False, last=False):
     s = str(index)
     if s.startswith("-") and len(s) == 2:
         return s
-    elif first and len(s) == 2:
-        return s + " "
-    elif last and len(s) == 2:
-        return " " + s + " "
     elif len(s) >= 2:
-        return " " + s + " "
+        prefix = "" if first else " "
+        suffix = "" if last else " "
+        return prefix + s + suffix
     return s
 
 
@@ -1444,8 +1442,13 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                     if two_theta_min <= can <= two_theta_max:
                         ann_x.append(pv)
                         ann_y.append(inten)
+                        # For hexagonal/trigonal the reflections are stored in
+                        # 4-index (hkil) notation; drop the redundant i index so
+                        # the annotation matches the 3-index pattern labels.
+                        disp = (hkl[0], hkl[1], hkl[3]) if len(hkl) == 4 \
+                            else tuple(hkl[:3])
                         ann_txt.append(
-                            f"({' '.join(str(v) for v in hkl)})")
+                            f"({' '.join(str(v) for v in disp)})")
                         total += 1
                         matched_here = True
             if matched_here:
@@ -1614,7 +1617,7 @@ def _diffraction_settings_ui():
                     key="use_rust_cb",
                     help="⚡ checked = Rust-accelerated calculator (fast)\n\n"
                          "Unchecked = original pymatgen implementation\n\n"
-                         "[📄 Details (arXiv paper)](https://arxiv.org/abs/2602.11709)",
+                         "[📄 Details (paper)](https://doi.org/10.1107/S1600576726005273)",
                 )
             else:
                 use_rust = False
