@@ -177,6 +177,11 @@ def _predict_reflections(structure, wavelength_A, tt_min, tt_max):
         if not hg:
             continue
         hkl = tuple(int(round(v)) for v in hg[0]["hkl"])
+        # Hexagonal/trigonal patterns come back with 4-index Bravais-Miller
+        # indices (h, k, i, l); the redundant i = -(h + k) must be dropped so
+        # the 3-index (h, k, l) works with Lattice.d_hkl during refinement.
+        if len(hkl) == 4:
+            hkl = (hkl[0], hkl[1], hkl[3])
         if hkl == (0, 0, 0):
             continue
         refl.append({"hkl": hkl, "two_theta": float(x), "d": float(d),
@@ -675,12 +680,12 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
             fit_zero = st.checkbox("Refine zero-shift (2θ offset)", value=True,
                                    key="latfit_zero")
         with co2:
-            fit_disp = st.checkbox("Refine sample displacement", value=False,
+            fit_disp = st.checkbox("Refine sample displacement", value=True,
                                    key="latfit_disp")
         with co3:
             radius_mm = st.number_input(
                 "Goniometer radius (mm)", min_value=10.0, max_value=1000.0,
-                value=173.0, step=1.0, key="latfit_radius",
+                value=240.0, step=1.0, key="latfit_radius",
                 disabled=not fit_disp)
 
         tol_deg = st.slider(
