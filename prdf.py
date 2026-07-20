@@ -1794,7 +1794,8 @@ def record_and_get_pageviews():
 
 try:
     today_views, avg_per_day = record_and_get_pageviews()
-    st.write(
+    st.sidebar.markdown("---")
+    st.sidebar.caption(
         f"📈 Page views today: **{today_views}** "
         f"(daily average: **{avg_per_day:.1f}**).")
 except Exception:
