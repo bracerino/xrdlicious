@@ -1756,6 +1756,50 @@ memory_usage = get_memory_usage()
 st.write(
     f"🔍 Current memory usage: **{memory_usage:.2f} MB**.")
 
+
+def record_and_get_pageviews():
+    """Count one page view per user session and return daily view statistics.
+
+    Views are stored in a small JSON file keyed by date. Each browser session is
+    counted only once (tracked via st.session_state). Note: on Streamlit Community
+    Cloud the filesystem is ephemeral, so counts reset when the app reboots.
+    """
+    import json
+    from datetime import date
+
+    counts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pageviews.json")
+    today = date.today().isoformat()
+
+    try:
+        with open(counts_file, "r") as f:
+            counts = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        counts = {}
+
+    if not st.session_state.get("_pageview_counted", False):
+        counts[today] = counts.get(today, 0) + 1
+        try:
+            with open(counts_file, "w") as f:
+                json.dump(counts, f)
+            st.session_state["_pageview_counted"] = True
+        except OSError:
+            pass
+
+    today_views = counts.get(today, 0)
+    total_views = sum(counts.values())
+    num_days = len(counts) if counts else 1
+    avg_per_day = total_views / num_days
+    return today_views, avg_per_day
+
+
+try:
+    today_views, avg_per_day = record_and_get_pageviews()
+    st.write(
+        f"📈 Page views today: **{today_views}** "
+        f"(daily average: **{avg_per_day:.1f}**).")
+except Exception:
+    pass
+
 st.markdown("""
 
 ### Acknowledgments
