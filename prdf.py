@@ -1786,18 +1786,24 @@ def record_and_get_pageviews():
             pass
 
     today_views = counts.get(today, 0)
-    total_views = sum(counts.values())
-    num_days = len(counts) if counts else 1
-    avg_per_day = total_views / num_days
-    return today_views, avg_per_day
+    # Show up to the three most recent finished days (dates before today) that
+    # have recorded views. If there are none yet, nothing extra is shown.
+    finished = sorted(d for d in counts if d < today)[-3:]
+    previous_days = [
+        (f"{date.fromisoformat(d).day}.{date.fromisoformat(d).month}", counts[d])
+        for d in finished
+    ]
+    return today_views, previous_days
 
 
 try:
-    today_views, avg_per_day = record_and_get_pageviews()
+    today_views, previous_days = record_and_get_pageviews()
     st.sidebar.markdown("---")
-    st.sidebar.caption(
-        f"📈 Page views today: **{today_views}** "
-        f"(daily average: **{avg_per_day:.1f}**).")
+    caption = f"📈 Page views today: **{today_views}**"
+    if previous_days:
+        caption += " (" + ", ".join(
+            f"{day} - **{views}**" for day, views in previous_days) + ")"
+    st.sidebar.caption(caption + ".")
 except Exception:
     pass
 
@@ -1807,5 +1813,5 @@ st.markdown("""
 
 This project uses several open-source tools and datasets. We gratefully acknowledge their authors: **[Matminer](https://github.com/hackingmaterials/matminer)** Licensed under the [Modified BSD License](https://github.com/hackingmaterials/matminer/blob/main/LICENSE). **[Pymatgen](https://github.com/materialsproject/pymatgen)** Licensed under the [MIT License](https://github.com/materialsproject/pymatgen/blob/master/LICENSE).
  **[ASE (Atomic Simulation Environment)](https://gitlab.com/ase/ase)** Licensed under the [GNU Lesser General Public License (LGPL)](https://gitlab.com/ase/ase/-/blob/master/COPYING.LESSER). **[Py3DMol](https://pypi.org/project/py3Dmol/)** Licensed under the [BSD-3-Clause License](https://github.com/3dmol/3Dmol.js/blob/master/LICENSE). **[Materials Project](https://next-gen.materialsproject.org/)** Data from the Materials Project is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). **[AFLOW](http://aflow.org)** Licensed under the [GNU General Public License (GPL)](https://www.gnu.org/licenses/gpl-3.0.html)
- **[Crystallography Open Database (COD)](https://www.crystallography.net/cod/)** under the CC0 license.
+ **[Crystallography Open Database (COD)](https://www.crystallography.net/cod/)** under the CC0 license. **[Materials Cloud three-dimensional crystals database (MC3D)](https://www.materialscloud.org/mc3d)** Data is made available under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
 """)
