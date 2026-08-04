@@ -415,7 +415,8 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
 
     if not pattern_files:
         st.info("⬅️ Upload at least one **experimental pattern** "
-                "(.xy / .xrdml / .ras / two-column text) in the sidebar.")
+                "(.xy / .xrdml / .ras / .rasx / .raw / two-column text) "
+                "in the sidebar.")
         return
     if not uploaded_files:
         st.info("⬅️ Upload at least one **structure file** "

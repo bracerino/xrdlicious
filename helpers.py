@@ -1869,7 +1869,7 @@ def fetch_and_parse_cod_cif(entry):
 # data plot) reads them through the helpers below instead of pd.read_csv.
 # ---------------------------------------------------------------------------
 
-INSTRUMENT_PATTERN_EXTENSIONS = ("xrdml", "xml", "ras")
+INSTRUMENT_PATTERN_EXTENSIONS = ("xrdml", "xml", "ras", "rasx", "raw")
 
 
 def _decode_pattern_bytes(raw):
@@ -1947,8 +1947,178 @@ def parse_ras_pattern(content):
     return None
 
 
+def _decode_rasx_text(raw_bytes):
+    """RASX parts are UTF-8 with a BOM; older exports can be Shift-JIS."""
+    for encoding in ("utf-8-sig", "shift_jis"):
+        try:
+            return raw_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw_bytes.decode("utf-8", errors="replace")
+
+
+def parse_rasx_pattern(raw_bytes):
+    """(x, y) from a Rigaku SmartLab .rasx archive, or None.
+
+    A .rasx is a ZIP holding one Profile<N>.txt per scan with tab-separated
+    angle / intensity / attenuator rows.
+    """
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
+        names = zf.namelist()
+
+        def pick(predicate):
+            return next(iter(sorted(f for f in names
+                                    if predicate(f.lower()))), None)
+
+        profile_name = (
+            pick(lambda n: "profile" in n and n.endswith(".txt"))
+            or pick(lambda n: n.endswith(".asc"))
+            or pick(lambda n: n.endswith(".txt"))
+        )
+        if not profile_name:
+            return None
+        profile_text = _decode_rasx_text(zf.read(profile_name))
+
+    angles, intensities = [], []
+    for line in profile_text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("*"):
+            continue
+        parts = line.replace(",", " ").split()
+        if len(parts) < 2:
+            continue
+        try:
+            angle = float(parts[0])
+            intensity = float(parts[1])
+        except ValueError:
+            continue
+        # The third column is the attenuator factor the intensity was measured
+        # through; the true count rate is the product of the two.
+        if len(parts) >= 3:
+            try:
+                intensity *= float(parts[2])
+            except ValueError:
+                pass
+        angles.append(angle)
+        intensities.append(intensity)
+
+    if angles:
+        return np.array(angles), np.array(intensities)
+    return None
+
+
+def _parse_raw_v1(data):
+    """Bruker RAW1.01 (DIFFRACplus). Only the first range is read."""
+    import struct
+
+    file_size = len(data)
+    file_header_size = 712
+
+    range_cnt = struct.unpack_from("<i", data, 12)[0]
+    if range_cnt < 1 or range_cnt > 1000:
+        range_cnt = 1
+
+    cur = file_header_size
+    header_len = struct.unpack_from("<i", data, cur)[0]
+    if header_len < 304 or cur + header_len > file_size:
+        header_len = 304
+
+    num_points = struct.unpack_from("<i", data, cur + 4)[0]
+    start_2theta = struct.unpack_from("<d", data, cur + 16)[0]
+    step_size = struct.unpack_from("<d", data, cur + 176)[0]
+
+    data_offset = cur + header_len
+    available = (file_size - data_offset) // 4
+    if num_points <= 0 or num_points > available:
+        num_points = available
+    if num_points <= 0:
+        return None
+    # A single range whose data does not reach the end of the file: the
+    # intensity block is the trailing num_points float32 values.
+    if range_cnt == 1 and (file_size - data_offset) != num_points * 4:
+        data_offset = file_size - num_points * 4
+
+    if not (np.isfinite(step_size) and 0 < abs(step_size) < 50):
+        step_size = 0.0
+    if not np.isfinite(start_2theta):
+        start_2theta = 0.0
+
+    intensities = np.frombuffer(data, dtype=np.float32, count=num_points,
+                                offset=data_offset).astype(float)
+    angles = np.arange(num_points) * step_size + start_2theta
+    return angles, intensities
+
+
+def _parse_raw4(data):
+    """Bruker RAW4.00: the scan block is located by its signature."""
+    import struct
+
+    fs = len(data)
+    for off in range(8, fs - 20):
+        try:
+            start = struct.unpack_from("<d", data, off)[0]
+            step = struct.unpack_from("<d", data, off + 8)[0]
+            n = struct.unpack_from("<i", data, off + 16)[0]
+        except struct.error:
+            continue
+        if not (-180.0 <= start <= 180.0):
+            continue
+        if not (1e-6 < step < 5.0):
+            continue
+        if not (2 <= n <= 50_000_000):
+            continue
+        if n * 4 > fs - 20:
+            continue
+        # The intensity block (float32) runs to the end of the file.
+        arr = np.frombuffer(data, dtype=np.float32, count=n, offset=fs - n * 4)
+        if not np.all(np.isfinite(arr)):
+            continue
+        if arr.min() < 0 or arr.max() <= 0:
+            continue
+        return np.arange(n) * step + start, arr.astype(float)
+    return None
+
+
+def _parse_raw_v2v3(data):
+    """Older Bruker RAW (v2/v3): fixed header offsets, data at 2600."""
+    import struct
+
+    file_size = len(data)
+    data_offset = 2600
+
+    start_angle = struct.unpack_from("<f", data, 136)[0]
+    step_size = struct.unpack_from("<f", data, 140)[0]
+    try:
+        num_points = struct.unpack_from("<i", data, 148)[0]
+    except struct.error:
+        num_points = 0
+
+    if not num_points or num_points <= 0:
+        num_points = (file_size - data_offset) // 4
+    if num_points <= 0:
+        return None
+    if not (np.isfinite(start_angle) and np.isfinite(step_size)):
+        return None
+
+    intensities = np.frombuffer(data, dtype=np.float32, count=num_points,
+                                offset=data_offset).astype(float)
+    angles = np.arange(num_points) * float(step_size) + float(start_angle)
+    return angles, intensities
+
+
+def parse_raw_pattern(raw_bytes):
+    """(x, y) from a Bruker .raw file of any of the three known versions."""
+    if raw_bytes.startswith(b"RAW1.01"):
+        return _parse_raw_v1(raw_bytes)
+    if raw_bytes.startswith(b"RAW4"):
+        return _parse_raw4(raw_bytes)
+    return _parse_raw_v2v3(raw_bytes)
+
+
 def parse_instrument_pattern(file_obj, warn=False):
-    """(x, y) from an .xrdml/.xml/.ras upload; None for any other format."""
+    """(x, y) from an .xrdml/.ras/.rasx/.raw upload; None for other formats."""
     name = getattr(file_obj, "name", "")
     ext = name.lower().rsplit(".", 1)[-1] if "." in name else ""
     if ext not in INSTRUMENT_PATTERN_EXTENSIONS:
@@ -1956,16 +2126,24 @@ def parse_instrument_pattern(file_obj, warn=False):
 
     try:
         file_obj.seek(0)
-        content = _decode_pattern_bytes(file_obj.read())
+        raw = file_obj.read()
     finally:
         try:
             file_obj.seek(0)
         except Exception:
             pass
+    if not isinstance(raw, bytes):
+        raw = str(raw).encode("utf-8", errors="replace")
 
     try:
-        result = (parse_xrdml_pattern(content) if ext in ("xrdml", "xml")
-                  else parse_ras_pattern(content))
+        if ext == "rasx":
+            result = parse_rasx_pattern(raw)
+        elif ext == "raw":
+            result = parse_raw_pattern(raw)
+        elif ext in ("xrdml", "xml"):
+            result = parse_xrdml_pattern(_decode_pattern_bytes(raw))
+        else:
+            result = parse_ras_pattern(_decode_pattern_bytes(raw))
     except Exception as exc:
         if warn:
             st.warning(f"Could not parse '{name}' as {ext.upper()}: {exc}")

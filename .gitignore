@@ -1,0 +1,9 @@
+# Runtime page-view counter (ephemeral, not versioned)
+pageviews.json
+
+# Locally saved UI settings (per machine, not versioned)
+xrdlicious_settings.json
+
+# Python
+__pycache__/
+*.pyc
