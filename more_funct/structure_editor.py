@@ -11,7 +11,10 @@ from io import StringIO
 from ase.io import write
 from ase.constraints import FixAtoms
 
-from helpers import load_structure, identify_structure_type, jmol_colors, add_box
+from helpers import (
+    load_structure, identify_structure_type, jmol_colors, add_box,
+    extract_cif_space_group, format_cif_space_group,
+)
 
 ELEMENTS = [
     "H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar",
@@ -253,6 +256,48 @@ def _get_wyckoffs(structure):
         return sga.get_symmetry_dataset().wyckoffs
     except Exception:
         return ["-"] * len(structure.sites)
+
+def _cif_space_group_info(structure, selected_file):
+    """Space group declared inside the CIF the structure was loaded from.
+
+    Returns None for non-CIF sources and for CIFs that only declare P1.
+    """
+    candidates = [structure, st.session_state.get("full_structures", {}).get(selected_file)]
+    for src in candidates:
+        try:
+            info = getattr(src, "properties", {}).get("cif_space_group")
+        except Exception:
+            info = None
+        if info:
+            return info
+
+    cached = st.session_state.setdefault("cif_space_groups", {})
+    if selected_file in cached:
+        return cached[selected_file]
+
+    info = None
+    if str(selected_file).lower().endswith(".cif"):
+        # Structures added from the databases / editor are written to disk as CIF,
+        # so read the file directly when it was never routed through load_structure.
+        try:
+            with open(selected_file, "r", errors="ignore") as f:
+                info = extract_cif_space_group(f.read())
+        except Exception:
+            info = None
+        if info is None:
+            for uf in st.session_state.get("uploaded_files", []):
+                if getattr(uf, "name", None) == selected_file:
+                    try:
+                        data = uf.getvalue()
+                        info = extract_cif_space_group(
+                            data.decode("utf-8", errors="ignore")
+                            if isinstance(data, bytes) else str(data)
+                        )
+                    except Exception:
+                        info = None
+                    break
+    cached[selected_file] = info
+    return info
 
 def _load_atoms_from_structure(structure):
     wyckoffs = _get_wyckoffs(structure)
@@ -1269,11 +1314,14 @@ def run_structure_editor(uploaded_files):
             _pl      = preview_struct.lattice
             _density = float(str(preview_struct.density).split()[0])
             _atom_density = preview_struct.composition.num_atoms / _pl.volume
+            _cif_sg = format_cif_space_group(_cif_space_group_info(structure, selected_file))
+            _cif_sg_line = f"Space group: {_cif_sg}<br>" if _cif_sg else ""
             st.markdown(
                 f"<div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-top:10px;"
                 f"font-size:0.82rem;color:#333;line-height:1.7;'>"
                 f"<b style='color:#1e3a8a;font-size:0.95rem;'>{preview_struct.composition.reduced_formula}</b> "
                 f"{identify_structure_type(preview_struct)}<br>"
+                f"{_cif_sg_line}"
                 f"{len(preview_struct)} sites<br>"
                 f"a={_pl.a:.4f} b={_pl.b:.4f} c={_pl.c:.4f} \u00c5<br>"
                 f"\u03b1={_pl.alpha:.2f}\u00b0 \u03b2={_pl.beta:.2f}\u00b0 \u03b3={_pl.gamma:.2f}\u00b0<br>"

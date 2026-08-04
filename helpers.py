@@ -1157,6 +1157,72 @@ def _load_lammps_data(filename):
     )
 
 
+_CIF_SG_SYMBOL_TAGS = (
+    "_space_group_name_H-M_alt",
+    "_symmetry_space_group_name_H-M",
+    "_space_group_name_H-M",
+)
+_CIF_SG_NUMBER_TAGS = (
+    "_space_group_IT_number",
+    "_symmetry_Int_Tables_number",
+)
+
+
+def _clean_cif_value(value):
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        value = value[1:-1]
+    return value.strip()
+
+
+def extract_cif_space_group(cif_text):
+    """Read the space group declared in a CIF file (symbol and/or IT number).
+
+    Returns a dict with 'symbol' and 'number' keys (either may be None), or
+    None when the CIF declares nothing or only the trivial P1 group.
+    """
+    symbol, number = None, None
+    for line in cif_text.splitlines():
+        s = line.strip()
+        if not s.startswith("_"):
+            continue
+        parts = s.split(None, 1)
+        tag = parts[0]
+        value = _clean_cif_value(parts[1]) if len(parts) > 1 else ""
+        if not value or value in ("?", "."):
+            continue
+        if symbol is None and tag in _CIF_SG_SYMBOL_TAGS:
+            symbol = value
+        elif number is None and tag in _CIF_SG_NUMBER_TAGS:
+            try:
+                number = int(float(value))
+            except ValueError:
+                pass
+        if symbol is not None and number is not None:
+            break
+
+    if symbol is None and number is None:
+        return None
+    # P1 (#1) carries no symmetry information, so it is not reported.
+    # P-1 (#2) is a real space group and is kept.
+    if number == 1:
+        return None
+    if number is None and symbol is not None and symbol.replace(" ", "").upper() == "P1":
+        return None
+    return {"symbol": symbol, "number": number}
+
+
+def format_cif_space_group(sg_info):
+    if not sg_info:
+        return None
+    symbol, number = sg_info.get("symbol"), sg_info.get("number")
+    if symbol and number:
+        return f"{symbol} (#{number})"
+    if symbol:
+        return str(symbol)
+    return f"#{number}"
+
+
 def load_structure(file_or_name):
     if isinstance(file_or_name, str):
         filename = file_or_name
@@ -1166,6 +1232,14 @@ def load_structure(file_or_name):
             f.write(file_or_name.getbuffer())
     if filename.lower().endswith(".cif"):
         mg_structure = PmgStructure.from_file(filename)
+        try:
+            with open(filename, "r", errors="ignore") as f:
+                sg_info = extract_cif_space_group(f.read())
+            if sg_info:
+                mg_structure.properties["cif_space_group"] = sg_info
+                st.session_state.setdefault("cif_space_groups", {})[filename] = sg_info
+        except Exception:
+            pass
     elif filename.lower().endswith(".data"):
         filename = filename.replace(".data", ".lmp")
         mg_structure = _load_lammps_data(filename)
@@ -1787,6 +1861,148 @@ def fetch_and_parse_cod_cif(entry):
     except Exception as e:
         return None, None, None, str(e)
 
+# ---------------------------------------------------------------------------
+# Experimental pattern readers (PANalytical .xrdml / Rigaku .ras)
+#
+# These instrument formats are not two-column text, so every place that shows
+# uploaded experimental data (powder diffraction, lattice fitting, interactive
+# data plot) reads them through the helpers below instead of pd.read_csv.
+# ---------------------------------------------------------------------------
+
+INSTRUMENT_PATTERN_EXTENSIONS = ("xrdml", "xml", "ras")
+
+
+def _decode_pattern_bytes(raw):
+    if not isinstance(raw, bytes):
+        return str(raw)
+    for enc in ("utf-8", "latin-1"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
+def parse_xrdml_pattern(content):
+    """(x, y) arrays from a PANalytical XRDML file, or None if not parsable."""
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(content)
+    ns_uri = root.tag.split("}")[0][1:] if "}" in root.tag else ""
+    ns = {"x": ns_uri} if ns_uri else {}
+    prefix = "x:" if ns_uri else ""
+
+    # Scans can sit at different depths depending on the XRDML version, so the
+    # data points are searched for anywhere in the tree.
+    for dp in root.findall(f".//{prefix}dataPoints", ns):
+        ints_el = dp.find(f"{prefix}intensities", ns)
+        if ints_el is None or not (ints_el.text or "").strip():
+            # Some files store counts per second instead of raw counts.
+            ints_el = dp.find(f"{prefix}counts", ns)
+        if ints_el is None or not (ints_el.text or "").strip():
+            continue
+        intensities = np.array(ints_el.text.split(), dtype=float)
+
+        positions = dp.findall(f"{prefix}positions", ns)
+        # Prefer the scan axis, fall back to whatever axis is present.
+        ordered = ([p for p in positions if p.attrib.get("axis") == "2Theta"]
+                   + [p for p in positions if p.attrib.get("axis") != "2Theta"])
+        for pos in ordered:
+            lst = pos.find(f"{prefix}listPositions", ns)
+            if lst is not None and (lst.text or "").strip():
+                x = np.array(lst.text.split(), dtype=float)
+                if len(x) == len(intensities):
+                    return x, intensities
+            start = pos.find(f"{prefix}startPosition", ns)
+            end = pos.find(f"{prefix}endPosition", ns)
+            if start is not None and end is not None:
+                x = np.linspace(float(start.text), float(end.text),
+                                len(intensities))
+                return x, intensities
+    return None
+
+
+def parse_ras_pattern(content):
+    """(x, y) arrays from a Rigaku RAS file, or None if no data block found."""
+    angles, intensities = [], []
+    in_data = False
+    for line in content.splitlines():
+        line = line.strip()
+        if line.startswith("*RAS_INT_START"):
+            in_data = True
+            continue
+        if line.startswith("*RAS_INT_END"):
+            break
+        if not in_data or not line or line.startswith("*"):
+            continue
+        parts = line.replace(",", " ").split()
+        if len(parts) >= 2:
+            try:
+                angles.append(float(parts[0]))
+                intensities.append(float(parts[1]))
+            except ValueError:
+                continue
+    if angles:
+        return np.array(angles), np.array(intensities)
+    return None
+
+
+def parse_instrument_pattern(file_obj, warn=False):
+    """(x, y) from an .xrdml/.xml/.ras upload; None for any other format."""
+    name = getattr(file_obj, "name", "")
+    ext = name.lower().rsplit(".", 1)[-1] if "." in name else ""
+    if ext not in INSTRUMENT_PATTERN_EXTENSIONS:
+        return None
+
+    try:
+        file_obj.seek(0)
+        content = _decode_pattern_bytes(file_obj.read())
+    finally:
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+
+    try:
+        result = (parse_xrdml_pattern(content) if ext in ("xrdml", "xml")
+                  else parse_ras_pattern(content))
+    except Exception as exc:
+        if warn:
+            st.warning(f"Could not parse '{name}' as {ext.upper()}: {exc}")
+        return None
+
+    if result is None and warn:
+        st.warning(f"No diffraction data found in '{name}'.")
+    return result
+
+
+def read_pattern_dataframe(file_obj, has_header=False, skip_header=True):
+    """Two-column DataFrame from any supported experimental pattern file.
+
+    Instrument formats (.xrdml/.ras) are decoded with their own parsers; all
+    other files keep the previous plain-text behaviour (optional header row,
+    comment lines skipped).
+    """
+    parsed = parse_instrument_pattern(file_obj)
+    if parsed is not None:
+        x, y = parsed
+        return pd.DataFrame({"2Theta": x, "Intensity": y})
+
+    file_obj.seek(0)
+    if has_header:
+        return pd.read_csv(file_obj, sep=r'\s+|,|;', engine='python', header=0)
+    if skip_header:
+        content = _decode_pattern_bytes(file_obj.read())
+        lines = content.splitlines()
+        comment_line_indices = [idx for idx, line in enumerate(lines)
+                                if line.strip().startswith('#')]
+        lines_to_skip = sorted(set([0] + comment_line_indices))
+        file_obj.seek(0)
+        return pd.read_csv(file_obj, sep=r'\s+|,|;', engine='python',
+                           header=None, skiprows=lines_to_skip)
+    return pd.read_csv(file_obj, sep=r'\s+|,|;', engine='python', header=None)
+
+
 def auto_normalize_and_stack_plots(files, skip_header, has_header, offset_gap):
     if not files:
         st.warning("Please upload files before trying to normalize and stack.")
@@ -1802,19 +2018,8 @@ def auto_normalize_and_stack_plots(files, skip_header, has_header, offset_gap):
 
     for i, file in enumerate(files):
         try:
-            file.seek(0)
-            if has_header:
-                df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=0)
-            else:
-                if skip_header:
-                    file_content = file.read().decode('utf-8', errors='latin-1')
-                    lines = file_content.splitlines()
-                    comment_line_indices = [idx for idx, line in enumerate(lines) if line.strip().startswith('#')]
-                    lines_to_skip = sorted(set([0] + comment_line_indices))
-                    file.seek(0)
-                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None, skiprows=lines_to_skip)
-                else:
-                    df = pd.read_csv(file, sep=r'\s+|,|;', engine='python', header=None)
+            df = read_pattern_dataframe(file, has_header=has_header,
+                                        skip_header=skip_header)
 
             y_data = df.iloc[:, 1].values
             min_adjustments.append(np.min(y_data))

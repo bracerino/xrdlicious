@@ -5,7 +5,8 @@ import pandas as pd
 import plotly.graph_objs as go
 import streamlit as st
 
-from helpers import auto_normalize_and_stack_plots, reset_layout
+from helpers import (auto_normalize_and_stack_plots, reset_layout,
+                     read_pattern_dataframe)
 
 
 def _displacement_shift(two_theta_deg, displacement_mm, radius_mm):
@@ -35,7 +36,7 @@ def render_interactive_data_plot(user_pattern_file):
     col_thick, col_size, col_fox, col_xmin, col_xmax, = st.columns([2, 1, 1, 1, 1])
     with col_thick:
         st.info(
-            f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot. Enable 'Normalized intensity' to **automatically shift data files in vertical direction**.")
+            f"ℹ️ You can modify the **graph layout** from the sidebar.️ ℹ️ You can **convert** your **XRD** data below the plot, or use the tool [here](https://xrd-convert.streamlit.app/). Enable 'Normalized intensity' to **automatically shift data files in vertical direction**.")
     fix_x_axis = col_fox.checkbox("Fix x-axis range?", value=False)
     if fix_x_axis == True:
         x_axis_min = col_xmin.number_input("X-axis Minimum", value=0.0)
@@ -49,12 +50,7 @@ def render_interactive_data_plot(user_pattern_file):
             try:
                 sample_file = files[0]
                 sample_file.seek(0)
-                df_sample = pd.read_csv(
-                    sample_file,
-                    sep=r'\s+|,|;',
-                    engine='python',
-                    header=0
-                )
+                df_sample = read_pattern_dataframe(sample_file, has_header=True)
                 x_axis_metric = df_sample.columns[0]
                 y_axis_metric = df_sample.columns[1]
             except Exception as e:
@@ -253,12 +249,7 @@ def render_interactive_data_plot(user_pattern_file):
             try:
                 sample_file = files[0]
                 sample_file.seek(0)
-                df_sample = pd.read_csv(
-                    sample_file,
-                    sep=r'\s+|,|;',
-                    engine='python',
-                    header=0
-                )
+                df_sample = read_pattern_dataframe(sample_file, has_header=True)
                 x_axis_metric = df_sample.columns[0]
                 y_axis_metric = df_sample.columns[1]
             except Exception as e:
@@ -483,42 +474,12 @@ def render_interactive_data_plot(user_pattern_file):
         main_trace_indices = {}
         for i, file in enumerate(files):
             try:
-                file.seek(0)
-                if has_header:
-                    df = pd.read_csv(
-                        file,
-                        sep=r'\s+|,|;',
-                        engine='python',
-                        header=0
-                    )
-                else:
-                    if skip_header:
-                        file.seek(0)
-                        try:
-                            file_content = file.read().decode('utf-8')
-                        except UnicodeDecodeError:
-                            file_content = file.read().decode('latin-1')
-
-                        lines = file_content.splitlines()
-                        comment_line_indices = [i for i, line in enumerate(lines) if line.strip().startswith('#')]
-                        lines_to_skip = [0] + comment_line_indices
-                        lines_to_skip = sorted(set(lines_to_skip))
-                        file.seek(0)
-
-                        df = pd.read_csv(
-                            file,
-                            sep=r'\s+|,|;',
-                            engine='python',
-                            header=None,
-                            skiprows=lines_to_skip
-                        )
-                    else:
-                        df = pd.read_csv(
-                            file,
-                            sep=r'\s+|,|;',
-                            engine='python',
-                            header=None
-                        )
+                # .xrdml / .ras instrument files are decoded by their own
+                # parsers inside read_pattern_dataframe; plain text keeps the
+                # header / comment-skipping behaviour.
+                df = read_pattern_dataframe(file, has_header=has_header,
+                                            skip_header=skip_header)
+                if not has_header:
                     df.columns = [f"Column {j + 1}" for j in range(len(df.columns))]
 
                 x_data = df.iloc[:, 0].values
@@ -925,12 +886,7 @@ def render_interactive_data_plot(user_pattern_file):
                 try:
                     sample_file = files[0]
                     sample_file.seek(0)
-                    df_sample = pd.read_csv(
-                        sample_file,
-                        sep=r'\s+|,|;',
-                        engine='python',
-                        header=0
-                    )
+                    df_sample = read_pattern_dataframe(sample_file, has_header=True)
                     x_axis_metric = df_sample.columns[0]
                     y_axis_metric = df_sample.columns[1]
                 except Exception as e:

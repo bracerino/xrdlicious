@@ -133,18 +133,17 @@ with intro_ctx:
             <div style="
                 display: inline-block;
                 background-color: #ffffff;
-                border-left: 5px solid #8b0000;
-                border-radius: 10px;
-                padding: 10px 16px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+                border: 1px solid #d4d4d8;
+                border-radius: 4px;
+                padding: 6px 12px;
                 color: #111827;
                 font-size: 0.95rem;
                 font-weight: 600;
             ">
                 <span style="color:#8b0000; font-weight:800;">Release:</span>
-                v0.7.1 &nbsp; | &nbsp;
+                v0.7.2 &nbsp; | &nbsp;
                 <span style="color:#8b0000; font-weight:800;">Updated:</span>
-                July 1, 2026
+                August 4, 2026
             </div>
         </div>
         """,

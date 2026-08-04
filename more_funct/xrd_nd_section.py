@@ -29,6 +29,8 @@ from helpers import (
     get_full_conventional_structure_diffra,
     rgb_color,
     convert_intensity_scale,
+    parse_instrument_pattern,
+    INSTRUMENT_PATTERN_EXTENSIONS,
 )
 
 try:
@@ -1063,62 +1065,10 @@ def _load_exp_xy(file_obj):
         d = st.session_state.bg_subtracted_data[fname]
         return d["x"], d["y"]
 
-    if ext in ("xrdml", "xml"):
-        try:
-            import xml.etree.ElementTree as ET
-            file_obj.seek(0)
-            content = file_obj.read().decode("utf-8", errors="replace")
-            file_obj.seek(0)
-            root = ET.fromstring(content)
-            ns_uri = root.tag.split("}")[0][1:] if "}" in root.tag else ""
-            ns = {"x": ns_uri} if ns_uri else {}
-            prefix = "x:" if ns_uri else ""
-
-            def _ft(path):
-                el = root.find(path, ns)
-                return el.text if el is not None else None
-
-            dp = f"{prefix}xrdMeasurement/{prefix}scan/{prefix}dataPoints"
-            start = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}startPosition")
-            end = _ft(f"{dp}/{prefix}positions[@axis='2Theta']/{prefix}endPosition")
-            ints = _ft(f"{dp}/{prefix}intensities")
-
-            if start is not None and end is not None and ints is not None:
-                intensities = np.array(ints.split(), dtype=float)
-                two_theta = np.linspace(float(start), float(end),
-                                        len(intensities))
-                return two_theta, intensities
-            st.warning(f"Could not locate data nodes in '{fname}'.")
-        except Exception as exc:
-            st.warning(f"Could not parse '{fname}' as XRDML: {exc}")
-
-    if ext == "ras":
-        try:
-            file_obj.seek(0)
-            content = file_obj.read().decode("utf-8", errors="replace")
-            file_obj.seek(0)
-            angles, intensities = [], []
-            in_data = False
-            for line in content.splitlines():
-                line = line.strip()
-                if line == "*RAS_INT_START":
-                    in_data = True
-                    continue
-                if line == "*RAS_INT_END":
-                    break
-                if in_data:
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        try:
-                            angles.append(float(parts[0]))
-                            intensities.append(float(parts[1]))
-                        except ValueError:
-                            continue
-            if angles:
-                return np.array(angles), np.array(intensities)
-            st.warning(f"No data points found in '{fname}'.")
-        except Exception as exc:
-            st.warning(f"Could not parse '{fname}' as RAS: {exc}")
+    if ext in INSTRUMENT_PATTERN_EXTENSIONS:
+        parsed = parse_instrument_pattern(file_obj, warn=True)
+        if parsed is not None:
+            return parsed
 
     file_obj.seek(0)
     raw = file_obj.read()
@@ -1138,6 +1088,7 @@ def _add_exp_traces(fig, user_pattern_file, intensity_scale_option,
     files = user_pattern_file if isinstance(user_pattern_file, list) \
         else [user_pattern_file]
     colors = ["black", "brown", "grey", "purple"]
+    exp_width = float(st.session_state.get("exp_line_thickness", 1.0))
 
     for i, fobj in enumerate(files):
         try:
@@ -1154,7 +1105,7 @@ def _add_exp_traces(fig, user_pattern_file, intensity_scale_option,
         fig.add_trace(go.Scatter(
             x=x_u[mask], y=y_u[mask],
             mode="lines", name=fobj.name,
-            line=dict(dash="solid", width=1, color=color),
+            line=dict(dash="solid", width=exp_width, color=color),
             hovertemplate=(
                 f"<span style='color:{color};'><b>{fobj.name}:</b><br>"
                 "x = %{x:.2f}<br>Intensity = %{y:.2f}</span><extra></extra>"
@@ -1324,7 +1275,7 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
 
     plane_hkl = (h_idx, k_idx, l_idx)
 
-    oc1, oc2 = st.columns([2, 2])
+    oc1, oc2, oc3, oc4, oc5, oc6 = st.columns([2, 2, 0.7, 1.1, 1.1, 1.1])
     other_mode = oc1.radio(
         "Other (non-matching) peaks:",
         ["Show normally", "Transparent", "Hide"],
@@ -1340,12 +1291,52 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
              "selected (0 = invisible, 1 = fully opaque). Ignored for the "
              "other modes.",
     )
+    ann_color = oc3.color_picker(
+        "Mark colour", "#FF0000", key="ann_mark_color",
+    )
+    ann_thick = oc4.slider(
+        "Mark thickness", 0.5, 8.0, 2.0, 0.1, key="ann_mark_thick",
+    )
+    ann_size = oc5.slider(
+        "Mark size", 4, 30, 12, 1, key="ann_mark_size",
+    )
+    ann_label_size = oc6.slider(
+        "(hkl) label size", 6, 40, 20, 1, key="ann_label_size",
+    )
 
-    if st.button("Generate Annotated Plot", type="primary"):
-        st.session_state["ann_generated"] = True
+    def _darken(hex_color, factor=0.6):
+        try:
+            r, g, b = (int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
+            return f"#{int(r*factor):02x}{int(g*factor):02x}{int(b*factor):02x}"
+        except Exception:
+            return hex_color
+
+    ann_edge_color = _darken(ann_color)
+
+    bc1, bc2, bc3 = st.columns([1.2, 1.4, 1])
+    top_n = int(bc3.number_input(
+        "Highest-intensity peaks", 1, 50, 5, 1, key="ann_top_n",
+        help="How many of the most intense peaks are used as the base planes "
+             "for the second button. Their multiples are added according to "
+             "the 'Max multiple' field above.",
+    ))
+    with bc1:
+        st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+        if st.button("Generate Annotated Plot", type="primary",
+                     width="stretch"):
+            st.session_state["ann_generated"] = True
+            st.session_state["ann_mode"] = "family"
+    with bc2:
+        st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+        if st.button("🔝 Annotate Highest Intensity Peaks", type="primary",
+                     width="stretch"):
+            st.session_state["ann_generated"] = True
+            st.session_state["ann_mode"] = "top"
 
     if not st.session_state.get("ann_generated", False):
         return
+
+    ann_mode = st.session_state.get("ann_mode", "family")
 
     def _equiv(hkl_base, sg_ops, crystal_system):
         h, k, l = hkl_base
@@ -1374,6 +1365,35 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                 all_m.add(tuple(v * n for v in eh))
                 all_m.add(tuple(-v * n for v in eh))
         return all_m
+
+    def _top_base_hkls(details, n_top):
+        """(hkl) of the n_top most intense peaks inside the plotted range."""
+        intens = details["intensities"]
+        types = details.get("peak_types", [])
+        # Kα2/Kβ satellites repeat the same reflections, so only the Kα1
+        # peaks are ranked when the pattern carries several radiation lines.
+        idx = [i for i, pt in enumerate(types) if pt == "Kα1"] \
+            or list(range(len(intens)))
+        idx.sort(key=lambda i: float(intens[i]), reverse=True)
+
+        bases = []
+        for i in idx:
+            can = metric_to_twotheta(
+                details["peak_vals"][i], x_axis_metric, wavelength_A,
+                wavelength_nm, diffraction_choice)
+            if not (two_theta_min <= can <= two_theta_max):
+                continue
+            hg = details["hkls"][i]
+            if not hg:
+                continue
+            hkl = hg[0]["hkl"]
+            base = (hkl[0], hkl[1], hkl[3]) if len(hkl) == 4 \
+                else tuple(hkl[:3])
+            if base not in bases:
+                bases.append(base)
+            if len(bases) >= n_top:
+                break
+        return bases
 
     sg_infos = {}
     for file in uploaded_files:
@@ -1420,11 +1440,17 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         details = pattern_details[fname]
         info = sg_infos.get(fname, {})
         base_color = rgb_color(tab10[idx % len(tab10)], opacity=0.8)
-        multis = _multiples(
-            plane_hkl, max_m,
-            info.get("operations"),
-            info.get("crystal_system", "unknown"),
-        )
+        if ann_mode == "top":
+            base_planes = _top_base_hkls(details, top_n)
+        else:
+            base_planes = [plane_hkl]
+        multis = set()
+        for _base in base_planes:
+            multis |= _multiples(
+                _base, max_m,
+                info.get("operations"),
+                info.get("crystal_system", "unknown"),
+            )
 
         ann_x, ann_y, ann_txt = [], [], []
         stick_x, stick_y = [], []
@@ -1455,11 +1481,14 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                 stick_x.extend([pv, pv, None])
                 stick_y.extend([0, inten, None])
 
+        family_label = (f"{top_n} strongest peaks" if ann_mode == "top"
+                        else f"{plane_hkl} family")
+
         if other_mode != "Show normally" and stick_x:
             fig_ann.add_trace(go.Scatter(
                 x=stick_x, y=stick_y, mode="lines",
-                line=dict(color=base_color, width=2),
-                name=f"{fname} – {plane_hkl} family peaks",
+                line=dict(color=base_color, width=ann_thick),
+                name=f"{fname} – {family_label} peaks",
                 showlegend=False, hoverinfo="skip",
             ))
 
@@ -1467,22 +1496,33 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
             fig_ann.add_trace(go.Scatter(
                 x=ann_x, y=ann_y, mode="markers+text",
                 text=ann_txt, textposition="top center",
-                textfont=dict(size=20, color="red", family="Arial Black"),
-                marker=dict(size=12, color="red", symbol="diamond",
-                            line=dict(width=2, color="darkred")),
-                name=f"{fname} – {plane_hkl} family "
+                textfont=dict(size=ann_label_size, color=ann_color,
+                              family="Arial Black"),
+                marker=dict(size=ann_size, color=ann_color, symbol="diamond",
+                            line=dict(width=ann_thick,
+                                      color=ann_edge_color)),
+                name=f"{fname} – {family_label} "
                      f"({info.get('symbol', '?')})",
             ))
 
+    title_label = (f"{top_n} Strongest Peaks (+ multiples up to {max_m}×)"
+                   if ann_mode == "top" else f"{plane_hkl} Family")
     fig_ann.update_layout(
-        title=f"Diffraction Pattern — {plane_hkl} Family Annotations",
+        title=f"Diffraction Pattern — {title_label} Annotations",
         plot_bgcolor="white",
     )
     st.plotly_chart(fig_ann, width="stretch", key="annotated_plot")
-    st.success(
-        f"Annotated {total} peak(s) for the {plane_hkl} family "
-        "(symmetry-aware)."
-    )
+    if ann_mode == "top":
+        st.success(
+            f"Annotated {total} peak(s): the {top_n} most intense reflection(s) "
+            f"of each pattern and their multiples up to {max_m}× "
+            "(symmetry-aware)."
+        )
+    else:
+        st.success(
+            f"Annotated {total} peak(s) for the {plane_hkl} family "
+            "(symmetry-aware)."
+        )
 
 
 def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
@@ -1577,13 +1617,14 @@ def _tab2_quantitative(pattern_details, uploaded_files, x_axis_metric):
             st.dataframe(df_comb, width="stretch")
 
 
-def _diffraction_settings_ui():
+def _diffraction_settings_ui(has_exp_data=False):
     defaults = dict(
         peak_representation="Delta (stick)",
         intensity_scale_option="Normalized",
         diffraction_choice="XRD (X-ray)",
         _prev_diffraction_choice="XRD (X-ray)",
         line_thickness=2.0,
+        exp_line_thickness=1.0,
         use_debye_waller=False,
         wavelength_value=0.17889,
         sigma=0.050,
@@ -1647,6 +1688,14 @@ def _diffraction_settings_ui():
                     "⚙️ Line thickness:", 0.5, 6.0, step=0.1,
                     key="line_thickness",
                 )
+                if has_exp_data:
+                    st.slider(
+                        "⚙️ Line thickness (experimental data):",
+                        0.1, 6.0, step=0.05,
+                        key="exp_line_thickness",
+                        help="Thickness of the lines of the uploaded "
+                             "experimental patterns.",
+                    )
 
             prev_diff = st.session_state.get("_prev_diffraction_choice")
             if prev_diff != diffraction_choice:
@@ -2560,7 +2609,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
          use_displacement, displacement_mm,
          goniometer_radius_mm, show_original_on_plot,
          use_texture, texture_h, texture_k, texture_l,
-         texture_r) = _diffraction_settings_ui()
+         texture_r) = _diffraction_settings_ui(has_exp_data=bool(user_pattern_file))
         texture_hkl = (texture_h, texture_k, texture_l)
         _texture_active = bool(use_texture) and texture_hkl != (0, 0, 0)
 
