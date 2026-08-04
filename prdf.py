@@ -105,6 +105,16 @@ def is_running_locally():
 
 IS_LOCAL = is_running_locally()
 
+# Settings saved during a previous local run are seeded into the session before
+# any widget is created, so the app starts with the user's own options.
+from more_funct.user_settings import (
+    apply_saved_settings, save_user_settings, saved_settings_info,
+    delete_user_settings,
+)
+
+if IS_LOCAL:
+    apply_saved_settings()
+
 # Get current memory usage
 process = psutil.Process(os.getpid())
 mem_info = process.memory_info()
@@ -401,8 +411,9 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
 
 st.sidebar.subheader("📁 Upload Experimental Data ")
 user_pattern_file = st.sidebar.file_uploader(
-    "(.xy, .xrdml, .ras — or any two-column text file).",
-    type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras"],
+    "(.xy, .xrdml, .ras, .rasx, .raw — or any two-column text file).",
+    type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras", "rasx",
+          "raw"],
     key="user_xrd", accept_multiple_files=True
 )
 
@@ -1805,6 +1816,36 @@ try:
     st.sidebar.caption(caption + ".")
 except Exception:
     pass
+
+# ---------------------------------------------------------------- save settings
+# Local runs can keep their diffraction / structure-modification options for the
+# next start. Disabled online, where the session is not tied to one machine.
+st.sidebar.markdown("---")
+if IS_LOCAL:
+    _has_saved, _saved_at = saved_settings_info()
+    _btn_save, _btn_del = st.sidebar.columns([1, 1])
+
+    if _btn_save.button("💾 Save settings"):
+        try:
+            _saved_path, _saved_n = save_user_settings()
+            st.sidebar.success(f"Saved {_saved_n} settings.")
+        except Exception as exc:
+            st.sidebar.error(f"Could not save the settings: {exc}")
+
+    if _has_saved and _btn_del.button("🗑️ Delete"):
+        delete_user_settings()
+        st.sidebar.info("Saved settings deleted.")
+
+    if _has_saved:
+        st.sidebar.caption(
+            f"Saved settings from {_saved_at} are applied at start."
+            if _saved_at else "Saved settings are applied at start."
+        )
+else:
+    st.sidebar.button(
+        "💾 Save settings", disabled=True,
+        help="Saving settings is available only when the app runs locally.",
+    )
 
 st.markdown("""
 
