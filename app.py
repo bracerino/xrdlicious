@@ -206,6 +206,7 @@ if tutorials:
         - [Convert XRD file formats (.ras, .xrdml ↔ .xy)](https://youtu.be/KwxVKadPZ6s?si=IvvZQtmlWl9gOGPw)
         - [Plot online two-column data & convert XRD between wavelengths / slit types](https://youtu.be/YTzDSI4Jyh0?si=YJt-FS4nBgGA8YhT)
         - [Create point defects (vacancies, interstitials, substitutions) in a crystal structure](https://youtu.be/cPp-NPxhAYQ?si=vETf52_IHnsps62f)
+        - [Refine lattice parameters with the global evolutionary algorithm](https://www.youtube.com/watch?v=SkW9nqJkHWE&t=28s)
         """)
 
 pattern_details = None
