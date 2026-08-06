@@ -283,7 +283,7 @@ st.info(
 )
 with st.expander("📖 How to **Cite**", expanded=False):
     st.markdown(
-        "\n### How to cite\n\nIf you use **XRDlicious**, please cite:\n\n- **XRDlicious**:   \n  [LEBEDA, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)\n\n\n- **Matminer**:  \n  [WARD, Logan, et al. *Matminer: An open source toolkit for materials data mining.* Computational Materials Science, 2018, 152: 60–69.](https://www.sciencedirect.com/science/article/pii/S0927025618303252)\n    "
+        "\n### How to cite\n\nIf you use **XRDlicious**, please cite:\n\n- **XRDlicious**:   \n  [LEBEDA, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Journal of Applied Crystallography, 2025, 58.5.](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)\n\n\n- **Matminer**:  \n  [WARD, Logan, et al. *Matminer: An open source toolkit for materials data mining.* Computational Materials Science, 2018, 152: 60–69.](https://www.sciencedirect.com/science/article/pii/S0927025618303252)\n    "
     )
     
 st.sidebar.info(
