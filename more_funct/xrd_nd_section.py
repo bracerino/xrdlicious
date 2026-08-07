@@ -1691,7 +1691,7 @@ def _diffraction_settings_ui(has_exp_data=False):
                 if has_exp_data:
                     st.slider(
                         "⚙️ Line thickness (experimental data):",
-                        0.1, 6.0, step=0.05,
+                        0.1, 6.0, value=0.5, step=0.05,
                         key="exp_line_thickness",
                         help="Thickness of the lines of the uploaded "
                              "experimental patterns.",
