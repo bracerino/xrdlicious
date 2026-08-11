@@ -6,8 +6,8 @@
 
 🎥 Overview of the app at **[YouTube](https://youtu.be/jHdaNVB2UWE?si=p4gSo90VTXiJVY7O)**.  
 
-If you like this application, **please cite 📖**: Lebeda, Miroslav, et al. [XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html). Journal of Applied Crystallography, 2025, 58.5.  
-Optionally, also **please cite 📖**: Lebeda, Miroslav, et al. [Rust-accelerated powder X-ray diffraction simulation for high-throughput and machine-learning-driven materials science](https://journals.iucr.org/j/issues/2026/04/00/hat5023/index.html). Journal of Applied Crystallography, 2026, 59.4.
+- If you like this application, **please cite 📖**: Lebeda, Miroslav, et al. [XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html). Journal of Applied Crystallography, 2025, 58.5.  
+- Optionally, also **please cite 📖**: Lebeda, Miroslav, et al. [Rust-accelerated powder X-ray diffraction simulation for high-throughput and machine-learning-driven materials science](https://journals.iucr.org/j/issues/2026/04/00/hat5023/index.html). Journal of Applied Crystallography, 2026, 59.4.
 
 ### Features
 #### Diffraction Calculations
