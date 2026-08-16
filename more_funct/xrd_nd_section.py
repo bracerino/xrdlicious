@@ -870,6 +870,7 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                 data="# X-axis  Intensity\n" + dl_orig,
                 file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_experimental.xy",
                 mime="text/plain",
+                type="primary",
             )
             return
 
@@ -1265,7 +1266,8 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
 
 def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                     x_axis_metric, wavelength_A, wavelength_nm,
-                    diffraction_choice, two_theta_min, two_theta_max):
+                    diffraction_choice, two_theta_min, two_theta_max,
+                    line_thickness=2.0):
     st.subheader("🏷️ Annotate Specific Planes")
     c1, c2, c3, c4 = st.columns(4)
     h_idx = c1.number_input("h index", -10, 10, 0, 1, key="h_plane")
@@ -1452,11 +1454,20 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                 info.get("crystal_system", "unknown"),
             )
 
+        # Kα2/Kβ satellites repeat every reflection of the main line, so with a
+        # multi-component wavelength only the Kα1 peaks are annotated —
+        # otherwise each (hkl) label would be drawn two or three times.
+        peak_types = details.get("peak_types", [])
+        main_type = "Kα1" if "Kα1" in peak_types else None
+        skip_satellites = main_type is not None and len(set(peak_types)) > 1
+
         ann_x, ann_y, ann_txt = [], [], []
         stick_x, stick_y = [], []
         for i, (pv, inten, hg) in enumerate(
                 zip(details["peak_vals"], details["intensities"],
                     details["hkls"])):
+            if skip_satellites and peak_types[i] != main_type:
+                continue
             matched_here = False
             for hd in hg:
                 hkl = hd["hkl"]
@@ -1485,9 +1496,12 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                         else f"{plane_hkl} family")
 
         if other_mode != "Show normally" and stick_x:
+            # These sticks stand in for the peaks of the matched family once the
+            # rest of the pattern is dimmed, so they follow the ⚙️ line
+            # thickness of the pattern itself, not the marker thickness.
             fig_ann.add_trace(go.Scatter(
                 x=stick_x, y=stick_y, mode="lines",
-                line=dict(color=base_color, width=ann_thick),
+                line=dict(color=base_color, width=line_thickness),
                 name=f"{fname} – {family_label} peaks",
                 showlegend=False, hoverinfo="skip",
             ))
@@ -1511,7 +1525,10 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         title=f"Diffraction Pattern — {title_label} Annotations",
         plot_bgcolor="white",
     )
-    st.plotly_chart(fig_ann, width="stretch", key="annotated_plot")
+    # No fixed key: a pinned key makes Streamlit reuse the already mounted
+    # chart, so restyling changes (e.g. the ⚙️ line thickness slider) were not
+    # picked up here even though the rebuilt figure carried them.
+    st.plotly_chart(fig_ann, width="stretch")
     if ann_mode == "top":
         st.success(
             f"Annotated {total} peak(s): the {top_n} most intense reflection(s) "
@@ -2963,6 +2980,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
                     pattern_details, uploaded_files, fig,
                     x_axis_metric, wavelength_A, wavelength_nm,
                     diffraction_choice, two_theta_min, two_theta_max,
+                    line_thickness=line_thickness,
                 )
             else:
                 st.info("Calculate a diffraction pattern first to enable annotation.")

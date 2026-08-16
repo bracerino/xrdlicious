@@ -151,9 +151,9 @@ with intro_ctx:
                 font-weight: 600;
             ">
                 <span style="color:#8b0000; font-weight:800;">Release:</span>
-                v0.7.2 &nbsp; | &nbsp;
+                v0.7.3 &nbsp; | &nbsp;
                 <span style="color:#8b0000; font-weight:800;">Updated:</span>
-                August 4, 2026
+                August 16, 2026
             </div>
         </div>
         """,
@@ -275,7 +275,7 @@ calc_mode = st.sidebar.multiselect(
         "📊 (P)RDF",
         "📈 Interactive Data Plot",
         "📉 PRDF from LAMMPS/XYZ trajectories",
-        "➡️ .xrdml ↔️ .xy ↔️ .ras Converter",
+        "➡️ .xrdml ↔️ .xy ↔️ .ras/.rasx Converter",
         "↔️ Equivalent Planes",
     ],
     default=["🔬 Structure Modification", "💥 Powder Diffraction"]
@@ -332,7 +332,7 @@ def section_divider():
     )
 
 
-if "➡️ .xrdml ↔️ .xy ↔️ .ras Converter" in calc_mode:
+if "➡️ .xrdml ↔️ .xy ↔️ .ras/.rasx Converter" in calc_mode:
     section_divider()
     run_data_converter()
 

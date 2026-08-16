@@ -121,41 +121,174 @@ def run_data_converter():
             st.error(f"Failed to parse RAS file. Error: {e}")
             return None, None, None
 
+    def _decode_rasx_text(raw_bytes):
+        """RASX parts are UTF-8 with a BOM; older exports can be Shift-JIS."""
+        for encoding in ('utf-8-sig', 'shift_jis'):
+            try:
+                return raw_bytes.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        return raw_bytes.decode('utf-8', errors='replace')
+
+    def _rasx_metadata_from_conditions(root):
+        """Flatten a MesurementConditions XML tree into flat *.ras-style keys.
+
+        The XML already carries a <RASHeader> block holding the very same
+        `*KEY "value"` pairs that the flat .ras format uses, but Rigaku leaves
+        the most interesting ones out of it and stores them structurally
+        instead (generator, scan range, goniometer axes). So we take the
+        RASHeader pairs first and then fill the gaps from the structured
+        sections, which gives us a header that the .ras code paths understand.
+        """
+        metadata = {}
+
+        ras_header = root.find('RASHeader')
+        if ras_header is not None:
+            for pair in ras_header.findall('Pair'):
+                strings = pair.findall('string')
+                if len(strings) >= 2:
+                    key = (strings[0].text or '').lstrip('*').strip()
+                    if key:
+                        metadata[key] = (strings[1].text or '').strip()
+
+        def section_text(section_name, tag, default=''):
+            section = root.find(section_name)
+            if section is None:
+                return default
+            element = section.find(tag)
+            return (element.text or default).strip() if element is not None else default
+
+        def put(key, value):
+            # RASHeader stays authoritative wherever it actually has the key.
+            if value not in ('', None) and not metadata.get(key):
+                metadata[key] = value
+
+        for tag, key in (('Operator', 'FILE_OPERATOR'), ('UserGroup', 'FILE_USERGROUP'),
+                         ('Comment', 'FILE_COMMENT'), ('SampleName', 'FILE_SAMPLE'),
+                         ('Memo', 'FILE_MEMO'), ('Type', 'FILE_TYPE'),
+                         ('Version', 'FILE_VERSION'), ('SystemName', 'FILE_SYSTEM_NAME'),
+                         ('PackageName', 'FILE_PACKAGE_NAME'), ('PartName', 'FILE_PART_ID')):
+            put(key, section_text('GeneralInformation', tag))
+
+        generator = root.find('HWConfigurations/XrayGenerator')
+        if generator is not None:
+            def gen(tag, default=''):
+                element = generator.find(tag)
+                return (element.text or default).strip() if element is not None else default
+
+            put('HW_XG_TYPE', gen('Type'))
+            put('HW_XG_TARGET_NAME', gen('TargetName'))
+            put('HW_XG_TARGET_ATOMIC_NUMBER', gen('TargetAtomicNumber'))
+            put('HW_XG_FOCUS_SIZE', gen('FocusSize'))
+            put('HW_XG_FOCUS_TYPE', gen('FocusType'))
+            put('HW_XG_WAVE_TYPE', gen('WaveType'))
+            put('HW_XG_WAVE_LENGTH_ALPHA1', gen('WavelengthKalpha1'))
+            put('HW_XG_WAVE_LENGTH_ALPHA2', gen('WavelengthKalpha2'))
+            put('HW_XG_WAVE_LENGTH_BETA', gen('WavelengthKbeta'))
+            put('MEAS_COND_XG_VOLTAGE', gen('Voltage'))
+            put('MEAS_COND_XG_VOLTAGE_UNIT', gen('VoltageUnit'))
+            put('MEAS_COND_XG_CURRENT', gen('Current'))
+            put('MEAS_COND_XG_CURRENT_UNIT', gen('CurrentUnit'))
+
+        put('HW_COUNTER_PIXEL_SIZE', section_text('HWConfigurations/Detector', 'PixelSize'))
+
+        for tag, key in (('AxisName', 'MEAS_SCAN_AXIS_X'), ('Mode', 'MEAS_SCAN_MODE'),
+                         ('Start', 'MEAS_SCAN_START'), ('Stop', 'MEAS_SCAN_STOP'),
+                         ('Step', 'MEAS_SCAN_STEP'), ('Speed', 'MEAS_SCAN_SPEED'),
+                         ('SpeedUnit', 'MEAS_SCAN_SPEED_UNIT'),
+                         ('Resolution', 'MEAS_SCAN_RESOLUTION_X'),
+                         ('PositionUnit', 'MEAS_SCAN_UNIT_X'),
+                         ('IntensityUnit', 'MEAS_SCAN_UNIT_Y'),
+                         ('DataCount', 'MEAS_DATA_COUNT')):
+            put(key, section_text('ScanInformation', tag))
+
+        for tag, key in (('StartTime', 'MEAS_SCAN_START_TIME'), ('EndTime', 'MEAS_SCAN_END_TIME')):
+            # '2022-06-07T13:12:13Z' -> a value datetime.fromisoformat() accepts
+            put(key, section_text('ScanInformation', tag).rstrip('Z'))
+
+        # The Nth <Axis> element lines up with the *MEAS_COND_AXIS_*-N index
+        # used by .ras headers, which is how the key parameters table finds the
+        # DS / SS / RS slits.
+        axes = root.find('Axes')
+        if axes is not None:
+            for index, axis in enumerate(axes.findall('Axis')):
+                for attribute, prefix in (('Position', 'MEAS_COND_AXIS_POSITION'),
+                                          ('Offset', 'MEAS_COND_AXIS_OFFSET'),
+                                          ('Unit', 'MEAS_COND_AXIS_UNIT'),
+                                          ('State', 'MEAS_COND_AXIS_STATE'),
+                                          ('Resolution', 'MEAS_COND_AXIS_RESOLUTION')):
+                    put(f'{prefix}-{index}', axis.attrib.get(attribute, ''))
+                if not metadata.get(f'MEAS_COND_AXIS_NAME-{index}'):
+                    put(f'MEAS_COND_AXIS_NAME-{index}', axis.attrib.get('Name', ''))
+
+        return metadata
+
+    def _parse_rasx_profile(profile_text):
+        """Profile*.txt holds tab-separated angle / intensity / attenuator rows."""
+        rows = []
+        for line in profile_text.splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or line.startswith('*'):
+                continue
+            parts = line.replace(',', ' ').split()
+            if len(parts) < 2:
+                continue
+            try:
+                angle = float(parts[0])
+                intensity = float(parts[1])
+            except ValueError:
+                continue
+            # Third column is the attenuator factor the intensity was measured
+            # through; the true count rate is the product of the two.
+            if len(parts) >= 3:
+                try:
+                    intensity *= float(parts[2])
+                except ValueError:
+                    pass
+            rows.append([angle, intensity])
+
+        if not rows:
+            return None
+        return pd.DataFrame(rows, columns=['2Theta', 'Intensity'])
+
     def parse_rasx(uploaded_file_object):
+        """Parse a Rigaku SmartLab .rasx file.
+
+        A .rasx is a ZIP archive: root.xml lists one Data<N> group per scan and
+        each group holds a Profile<N>.txt with the measured points plus a
+        MesurementConditions<N>.xml with the instrument settings.
+        """
         try:
-            full_metadata = {}
-            data_df = None
+            uploaded_file_object.seek(0)
             with zipfile.ZipFile(uploaded_file_object, 'r') as zf:
-                xml_filename = next((f for f in zf.namelist() if f.lower().endswith('.xml')), None)
-                if not xml_filename:
-                    st.error("No XML metadata file found in the RASX archive.")
+                names = zf.namelist()
+
+                def pick(predicate):
+                    return next(iter(sorted(f for f in names if predicate(f.lower()))), None)
+
+                conditions_name = (
+                    pick(lambda n: 'conditions' in n and n.endswith('.xml'))
+                    or pick(lambda n: n.endswith('.xml') and not n.endswith('root.xml'))
+                )
+                full_metadata = {}
+                if conditions_name:
+                    root = ET.fromstring(_decode_rasx_text(zf.read(conditions_name)))
+                    full_metadata = _rasx_metadata_from_conditions(root)
+
+                profile_name = (
+                    pick(lambda n: 'profile' in n and n.endswith('.txt'))
+                    or pick(lambda n: n.endswith('.asc'))
+                    or pick(lambda n: n.endswith('.txt'))
+                )
+                if not profile_name:
+                    st.error("No profile data (Profile*.txt) found in the RASX archive.")
                     return None, None, None
 
-                xml_bytes = zf.read(xml_filename)
-                xml_content_str = xml_bytes.decode('shift_jis', errors='replace')
-                root = ET.fromstring(xml_content_str)
+                data_df = _parse_rasx_profile(_decode_rasx_text(zf.read(profile_name)))
 
-                for param in root.iter('Parameter'):
-                    if 'name' in param.attrib and 'value' in param.attrib:
-                        full_metadata[param.attrib['name']] = param.attrib['value']
-
-                bin_filename = next((f for f in zf.namelist() if f.lower().endswith('.bin')), None)
-                asc_filename = next((f for f in zf.namelist() if f.lower().endswith('.asc')), None)
-
-                if bin_filename:
-                    binary_content = zf.read(bin_filename)
-                    intensities = np.frombuffer(binary_content, dtype=np.float32)
-                    num_points = len(intensities)
-                    start_angle = float(full_metadata.get('Start', 0))
-                    stop_angle = float(full_metadata.get('Stop', 90))
-                    angles = np.linspace(start_angle, stop_angle, num_points)
-                    data_df = pd.DataFrame({'2Theta': angles, 'Intensity': intensities})
-                elif asc_filename:
-                    asc_content = zf.read(asc_filename).decode('utf-8', errors='replace')
-                    data_df = parse_xy(asc_content)
-                else:
-                    st.error("No data file (.bin or .asc) found in the RASX archive.")
-                    return None, None, None
+            if data_df is None or data_df.empty:
+                st.error("No data points found in the RASX file.")
+                return None, None, None
 
             key_metadata = extract_key_ras_metadata(full_metadata)
             return full_metadata, key_metadata, data_df
@@ -1401,7 +1534,7 @@ def run_data_converter():
             }
         return pd.DataFrame(list(metadata.items()), columns=['Parameter', 'Value'])
 
-    st.markdown("### 📜 XRD File Format Converter (.xrdml, .ras, .raw, .xy)")
+    st.markdown("### 📜 XRD File Format Converter (.xrdml, .ras, .rasx, .raw, .xy)")
     #st.markdown(
     #    """
     #    <div style="background-color:#f8d7da; padding:6px 10px; border-radius:4px; border:1px solid #f5c2c7; width: fit-content;">
@@ -1412,18 +1545,24 @@ def run_data_converter():
     #)
     st.info(
         "📄🔁📄 Upload one or more data powder diffraction files to convert them to a different format. .**xy ➡️ .xrdml, .ras, .raw**. "
-        "Or **.xrdml, .ras, .raw ➡️ .xy**. \n\n ⚠️ Older **.raw** format can currently produce incorrect x-axis values. "
-        "Check if they are correct in the converted .xy format.")
+        "Or **.xrdml, .ras, .rasx, .raw ➡️ .xy**. \n\n ℹ️ For **.raw** (Bruker), check the converted axis values are "
+        "reasonable. **Batch mode** starts automatically with multiple files (same extension, shared settings). "
+        "\n\n ℹ️ This converter is also available as a "
+        "[standalone app](https://xrd-convert.streamlit.app/).")
 
-    allow_batch = st.checkbox(
-        f"Allow multiple file uploads (**batch mode**). All files must have the same extension. The first file will be previewed in the plot. The set settings "
-        f"will propagated to all converted files." ,
-    )
+    # The uploader key holds a counter. Incrementing it (in the clear button
+    # callback below) forces Streamlit to mount a fresh, empty file_uploader,
+    # which is the reliable way to programmatically remove all uploaded files.
+    if "xrd_conv_uploader_key" not in st.session_state:
+        st.session_state.xrd_conv_uploader_key = 0
 
+    def _clear_uploaded_files():
+        st.session_state.xrd_conv_uploader_key += 1
 
     uploaded_files_raw = st.file_uploader("Upload Data File(s)",
-                                          type=["xrdml", "xml", "ras", "xy", "dat", "txt", "raw"],
-                                          accept_multiple_files=allow_batch)
+                                          type=["xrdml", "xml", "ras", "rasx", "xy", "dat", "txt", "raw"],
+                                          accept_multiple_files=True,
+                                          key=f"xrd_conv_file_uploader_{st.session_state.xrd_conv_uploader_key}")
 
     if uploaded_files_raw:
         if isinstance(uploaded_files_raw, list):
@@ -1436,7 +1575,40 @@ def run_data_converter():
             st.error("Error: Please upload files of the same format.")
             return
 
-        first_file = uploaded_files[0]
+        msg_col, clear_col = st.columns([4, 1])
+        with msg_col:
+            if len(uploaded_files) > 1:
+                st.success(f"✅ Successfully uploaded **{len(uploaded_files)}** files "
+                           f"(**.{first_file_ext}** format) - Batch mode activated")
+            else:
+                st.success(f"✅ Successfully uploaded **1** file (**.{first_file_ext}** format)")
+        with clear_col:
+            st.button("🗑️ Remove all files",
+                      key="xrd_conv_remove_all_files",
+                      on_click=_clear_uploaded_files,
+                      width="stretch")
+
+        # In batch mode the user can pick which file is shown in the preview.
+        # The controlling slider is rendered below the preview plot; read its
+        # stored value here (before the widget itself exists).
+        preview_idx = 0
+        if len(uploaded_files) > 1:
+            names = [f.name for f in uploaded_files]
+            stored_name = st.session_state.get("xrd_conv_preview_file_name")
+            if stored_name in names:
+                preview_idx = names.index(stored_name)
+            elif stored_name is not None:
+                del st.session_state["xrd_conv_preview_file_name"]
+
+        def _render_preview_file_slider():
+            if len(uploaded_files) > 1:
+                st.select_slider(
+                    "Preview file",
+                    options=[f.name for f in uploaded_files],
+                    key="xrd_conv_preview_file_name",
+                )
+
+        first_file = uploaded_files[preview_idx]
         file_ext = first_file_ext
         data_df = None
         is_batch = len(uploaded_files) > 1
@@ -1512,9 +1684,17 @@ def run_data_converter():
                     st.markdown("#### 📈 Diffraction Pattern")
                     fig = go.Figure(
                         go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
-                    fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
-                                      yaxis_title="Intensity (counts)", height=550, margin=dict(l=40, r=40, t=50, b=40))
+                    fig.update_layout(
+                        title=dict(text=f"Data from {first_file.name}", font=dict(size=24)),
+                        xaxis_title="2θ (°)", yaxis_title="Intensity (counts)",
+                        height=550, margin=dict(l=40, r=40, t=60, b=40),
+                        font=dict(size=18),
+                        xaxis=dict(title_font=dict(size=22), tickfont=dict(size=16)),
+                        yaxis=dict(title_font=dict(size=22), tickfont=dict(size=16)),
+                        legend=dict(font=dict(size=18)),
+                        hoverlabel=dict(font=dict(size=20)))
                     st.plotly_chart(fig, width="stretch")
+                    _render_preview_file_slider()
 
 
         elif file_ext in ['xy', 'dat', 'txt']:
@@ -1529,10 +1709,13 @@ def run_data_converter():
                         st.info(f"These settings will be applied to all **{len(uploaded_files)} files**.")
                     output_format = st.selectbox("Select Output Format", ['XRDML', 'RAS', 'RAW'])
 
-                    df_state_key = f"meta_df_{output_format}_{first_file.name}"
-                    if st.session_state.get('last_file_format_choice') != (first_file.name, output_format):
+                    # Metadata settings apply to all uploaded files, so key the
+                    # table state by output format only (not the previewed file)
+                    # — switching the preview file then keeps the edited values.
+                    df_state_key = f"meta_df_{output_format}"
+                    if st.session_state.get('last_file_format_choice') != output_format:
                         st.session_state[df_state_key] = get_default_metadata(output_format)
-                        st.session_state['last_file_format_choice'] = (first_file.name, output_format)
+                        st.session_state['last_file_format_choice'] = output_format
 
                     edited_df = st.data_editor(st.session_state[df_state_key], num_rows="dynamic", height=425,
                                                key=f"editor_{output_format}")
@@ -1604,9 +1787,17 @@ def run_data_converter():
                     st.markdown("#### 📈 Diffraction Pattern")
                     fig = go.Figure(
                         go.Scatter(x=data_df['2Theta'], y=data_df['Intensity'], mode='lines', name='Intensity'))
-                    fig.update_layout(title=f"Data from {first_file.name}", xaxis_title="2θ (°)",
-                                      yaxis_title="Intensity", height=550, margin=dict(l=40, r=40, t=50, b=40))
+                    fig.update_layout(
+                        title=dict(text=f"Data from {first_file.name}", font=dict(size=24)),
+                        xaxis_title="2θ (°)", yaxis_title="Intensity",
+                        height=550, margin=dict(l=40, r=40, t=60, b=40),
+                        font=dict(size=18),
+                        xaxis=dict(title_font=dict(size=22), tickfont=dict(size=16)),
+                        yaxis=dict(title_font=dict(size=22), tickfont=dict(size=16)),
+                        legend=dict(font=dict(size=18)),
+                        hoverlabel=dict(font=dict(size=20)))
                     st.plotly_chart(fig, width="stretch")
+                    _render_preview_file_slider()
 
 
 if __name__ == "__main__":
