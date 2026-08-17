@@ -38,8 +38,8 @@ st.markdown(
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"] {display: block !important;}
 
-    /* Same open/close control as in the main app: a solid dark-red button with
-       a white icon, and a MENU label while the sidebar is collapsed. */
+    /* Same open/close control as in the main app: a solid dark-red button
+       with a white icon. */
     [data-testid="stExpandSidebarButton"],
     [data-testid="stSidebarCollapseButton"] button {
         background-color: #8b0000 !important;
@@ -64,19 +64,12 @@ st.markdown(
         fill: #ffffff !important;
     }
     [data-testid="stExpandSidebarButton"] {
-        width: auto !important;
         min-height: 42px !important;
-        padding: 0 14px 0 10px !important;
+        min-width: 42px !important;
+        padding: 0 10px !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 6px !important;
-    }
-    [data-testid="stExpandSidebarButton"]::after {
-        content: "MENU";
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        color: #ffffff;
+        justify-content: center !important;
     }
     </style>
     """,

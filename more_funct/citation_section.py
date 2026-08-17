@@ -1,6 +1,8 @@
 import streamlit as st
 from PIL import Image
 
+from more_funct.example_data import load_example_data, example_load_error
+
 
 def show_xrdlicious_roadmap():
     st.markdown("""
@@ -88,9 +90,23 @@ This app currently runs on <b>free Streamlit hosting</b> with limited RAM (a hos
                     unsafe_allow_html=True,
                 )
 
-            st.info("""
-            Select a tool in the sidebar, then upload your structure files or data or import structures from online databases directly.
-            """)
+            # Nothing can be tried out before a file is at hand, so the bundled
+            # SrTiO3 example sits right next to the note that tells the user to
+            # upload something. The click is handled by a callback: this note is
+            # not rendered any more on the run that processes it, so a plain
+            # "if st.button()" would lose the click.
+            note_col, ex_col = st.columns([2.6, 1])
+            with note_col:
+                st.info("""
+                Select a tool in the sidebar, then upload your structure files or data or import structures from online databases directly.
+                """)
+            with ex_col:
+                st.button("🧪 Load SrTiO₃ example", key="load_example_btn",
+                          on_click=load_example_data, width="stretch",
+                          type="primary")
+            if example_load_error():
+                st.warning(f"The example could not be loaded: "
+                           f"{example_load_error()}")
 
         st.session_state["first_run_note"] = False
 

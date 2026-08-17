@@ -678,7 +678,7 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
 
         co1, co2, co3 = st.columns(3)
         with co1:
-            fit_zero = st.checkbox("Refine zero-shift (2θ offset)", value=True,
+            fit_zero = st.checkbox("Refine zero-shift (2θ offset)", value=False,
                                    key="latfit_zero")
         with co2:
             fit_disp = st.checkbox("Refine sample displacement", value=True,

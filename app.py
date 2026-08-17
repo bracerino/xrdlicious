@@ -21,6 +21,10 @@ from more_funct.citation_section import *
 from more_funct.db_results_display import show_database_results
 from more_funct.interactive_data_plot import render_interactive_data_plot
 from more_funct.version_check import APP_VERSION, APP_UPDATED, update_note_html
+from more_funct.example_data import (
+    example_structure_files, example_pattern_files, merge_example_patterns,
+    remove_example_pattern,
+)
 
 import gc
 import numpy as np
@@ -123,19 +127,12 @@ hide_streamlit_style = """
        enlarged and labelled — without a word next to it, first-time users do
        not realise the sidebar (structure upload, settings) is there. */
     [data-testid="stExpandSidebarButton"] {
-        width: auto !important;
         min-height: 42px !important;
-        padding: 0 14px 0 10px !important;
+        min-width: 42px !important;
+        padding: 0 10px !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 6px !important;
-    }
-    [data-testid="stExpandSidebarButton"]::after {
-        content: "MENU";
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        color: #ffffff;
+        justify-content: center !important;
     }
     </style>
 """
@@ -402,7 +399,11 @@ if "📉 PRDF from LAMMPS/XYZ trajectories" in calc_mode:
         unsafe_allow_html=True
     )
 
-st.session_state.two_theta_min = 5
+# Only a starting value: the minimum belongs to the 2θ range inputs of the
+# diffraction settings (and is set by the example loader), so forcing it on
+# every run would silently undo any change made to it.
+if "two_theta_min" not in st.session_state:
+    st.session_state.two_theta_min = 5
 
 
 def update_element_indices(df):
@@ -470,6 +471,23 @@ user_pattern_file = st.sidebar.file_uploader(
           "raw"],
     key="user_xrd", accept_multiple_files=True
 )
+
+# The bundled example (loaded from the welcome note) is treated exactly like an
+# uploaded file: its structure joins full_structures and its measured pattern is
+# appended to the experimental files.
+for _example_file in example_structure_files():
+    if _example_file.name not in st.session_state.full_structures:
+        try:
+            st.session_state.full_structures[_example_file.name] = \
+                load_structure(_example_file)
+        except Exception as _exc:
+            st.error(f"Could not load the example structure "
+                     f"{_example_file.name}: {_exc}")
+_uploaded_pattern_files = user_pattern_file
+user_pattern_file = merge_example_patterns(user_pattern_file)
+
+if st.session_state.pop("example_just_loaded", False):
+    st.sidebar.success("SrTiO₃ example loaded: structure + measured pattern.")
 
 if uploaded_files_user_sidebar:
     for file in uploaded_files_user_sidebar:
@@ -1605,7 +1623,18 @@ with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expand
         if remaining_count != len(removable_files):
             st.info(f"📊 {remaining_count} files remaining to remove")
 
-    else:
+    # The measured pattern of the example is merged into the uploaded
+    # experimental files on every run, so the uploader cannot take it away — it
+    # gets its own entry here.
+    _example_patterns = example_pattern_files()
+    for _i, _ex_pattern in enumerate(_example_patterns):
+        _col1, _col2 = st.columns([4, 1])
+        _col1.write(f"{_ex_pattern.name} (example data)")
+        if _col2.button("❌", key=f"remove_example_pattern_{_i}"):
+            remove_example_pattern(_ex_pattern.name)
+            st.success(f"✅ Removed: {_ex_pattern.name}")
+
+    if not removable_files and not _example_patterns:
         removed_count = len(st.session_state.files_marked_for_removal)
         if removed_count > 0:
             st.success(f"✅ All database/modified structures removed ({removed_count} total)")
@@ -1614,6 +1643,11 @@ with st.sidebar.expander("🗑️ Remove database/modified structure(s)", expand
     if st.session_state.files_marked_for_removal:
         if st.button("🔄 Update list of files", help="Update the list of files to be removed"):
             pass
+
+# The example pattern may have just been removed in the expander above, which
+# runs after the merge near the uploaders — the list is rebuilt so the modules
+# further down do not receive a file that is no longer there.
+user_pattern_file = merge_example_patterns(_uploaded_pattern_files)
 
 unique_files = {f.name: f for f in uploaded_files
                 if f.name not in st.session_state.files_marked_for_removal}.values()

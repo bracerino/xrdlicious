@@ -1131,6 +1131,17 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
         details = pattern_details[fname]
 
         base_color = rgb_color(tab10[idx % len(tab10)], opacity=0.8)
+
+        # With a multi-component preset the Kα2 (and Kβ) contributions are
+        # convolved into the same profile, so the legend has to say which
+        # radiation lines the curve contains — otherwise the extra shoulders
+        # look like additional reflections. The labels come from the peaks
+        # themselves, so they follow whatever preset was selected.
+        _present = set(details.get("peak_types", []))
+        _components = [lbl for lbl in ("Kα1", "Kα2", "Kβ") if lbl in _present]
+        comp_suffix = (f" ({'+'.join(_components)})"
+                       if len(_components) > 1 else "")
+
         mask = ((details["x_dense_full"] >= two_theta_min) &
                 (details["x_dense_full"] <= two_theta_max))
         x_rng = twotheta_to_metric(
@@ -1258,7 +1269,7 @@ def _plot_patterns(fig, pattern_details, uploaded_files, preset_choice,
                 ))
         else:
             fig.add_trace(go.Scatter(
-                x=x_rng, y=y_rng, mode="lines", name=fname,
+                x=x_rng, y=y_rng, mode="lines", name=f"{fname}{comp_suffix}",
                 line=dict(color=base_color, width=line_thickness),
                 hoverinfo="skip",
             ))
@@ -1722,7 +1733,7 @@ def _diffraction_settings_ui(has_exp_data=False):
                 if has_exp_data:
                     st.slider(
                         "⚙️ Line thickness (experimental data):",
-                        0.1, 6.0, value=0.5, step=0.05,
+                        0.1, 6.0, value=1.0, step=0.05,
                         key="exp_line_thickness",
                         help="Thickness of the lines of the uploaded "
                              "experimental patterns.",
@@ -2315,17 +2326,29 @@ def _suggest_two_theta_max(wavelength_nm):
     return 160.0
 
 
-def _apply_auto_two_theta_max(new_max):
-    new_max = float(new_max)
-    st.session_state.two_theta_max = new_max
-    if st.session_state.get("two_theta_min", 0.0) >= new_max:
-        st.session_state.two_theta_min = max(0.1, new_max * 0.5)
+def set_two_theta_range(two_theta_min, two_theta_max):
+    """Force the plotted 2θ range from outside the settings UI.
+
+    The minimum/maximum number inputs keep their own widget state, which wins
+    over the ``value=`` they are built with, so they have to be dropped and
+    rebuilt under a new key for an externally set range to become visible.
+    """
+    st.session_state.two_theta_min = float(two_theta_min)
+    st.session_state.two_theta_max = float(two_theta_max)
     for k in list(st.session_state.keys()):
         if isinstance(k, str) and (
                 k.startswith("min_val_") or k.startswith("max_val_")):
             st.session_state.pop(k, None)
     st.session_state["_axis_widget_version"] = int(
         st.session_state.get("_axis_widget_version", 0)) + 1
+
+
+def _apply_auto_two_theta_max(new_max):
+    new_max = float(new_max)
+    new_min = float(st.session_state.get("two_theta_min", 0.0))
+    if new_min >= new_max:
+        new_min = max(0.1, new_max * 0.5)
+    set_two_theta_range(new_min, new_max)
 
 
 def _maybe_auto_update_two_theta_max(wavelength_nm):
