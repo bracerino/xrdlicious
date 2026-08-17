@@ -1318,9 +1318,11 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
     bc1, bc2, bc3 = st.columns([1.2, 1.4, 1])
     top_n = int(bc3.number_input(
         "Highest-intensity peaks", 1, 50, 5, 1, key="ann_top_n",
-        help="How many of the most intense peaks are used as the base planes "
-             "for the second button. Their multiples are added according to "
-             "the 'Max multiple' field above.",
+        help="How many of the most intense peaks the second button annotates. "
+             "The peaks are marked as they are — multiples of an already "
+             "annotated reflection count as ordinary peaks — so exactly this "
+             "many peaks are labelled ('Max multiple' applies only to the "
+             "(hkl) family button).",
     ))
     with bc1:
         st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
@@ -1368,8 +1370,13 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                 all_m.add(tuple(-v * n for v in eh))
         return all_m
 
-    def _top_base_hkls(details, n_top):
-        """(hkl) of the n_top most intense peaks inside the plotted range."""
+    def _top_peak_indices(details, n_top):
+        """Indices of the n_top most intense peaks inside the plotted range.
+
+        The peaks are taken exactly as they appear in the pattern: a reflection
+        that happens to be a multiple of an already selected one is ranked like
+        any other peak, so the requested number of peaks is always annotated.
+        """
         intens = details["intensities"]
         types = details.get("peak_types", [])
         # Kα2/Kβ satellites repeat the same reflections, so only the Kα1
@@ -1378,24 +1385,26 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
             or list(range(len(intens)))
         idx.sort(key=lambda i: float(intens[i]), reverse=True)
 
-        bases = []
+        chosen = []
         for i in idx:
+            if not details["hkls"][i]:
+                continue
             can = metric_to_twotheta(
                 details["peak_vals"][i], x_axis_metric, wavelength_A,
                 wavelength_nm, diffraction_choice)
             if not (two_theta_min <= can <= two_theta_max):
                 continue
-            hg = details["hkls"][i]
-            if not hg:
-                continue
-            hkl = hg[0]["hkl"]
-            base = (hkl[0], hkl[1], hkl[3]) if len(hkl) == 4 \
-                else tuple(hkl[:3])
-            if base not in bases:
-                bases.append(base)
-            if len(bases) >= n_top:
+            chosen.append(i)
+            if len(chosen) >= n_top:
                 break
-        return bases
+        return set(chosen)
+
+    def _hkl_label(hkl):
+        # For hexagonal/trigonal the reflections are stored in 4-index (hkil)
+        # notation; drop the redundant i index so the annotation matches the
+        # 3-index pattern labels.
+        disp = (hkl[0], hkl[1], hkl[3]) if len(hkl) == 4 else tuple(hkl[:3])
+        return f"({' '.join(str(v) for v in disp)})"
 
     sg_infos = {}
     for file in uploaded_files:
@@ -1442,14 +1451,16 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
         details = pattern_details[fname]
         info = sg_infos.get(fname, {})
         base_color = rgb_color(tab10[idx % len(tab10)], opacity=0.8)
+        # The "top" mode marks the strongest peaks themselves, so it needs no
+        # symmetry expansion — that is only how the (hkl) family mode collects
+        # the reflections belonging to the requested plane.
         if ann_mode == "top":
-            base_planes = _top_base_hkls(details, top_n)
+            top_indices = _top_peak_indices(details, top_n)
+            multis = set()
         else:
-            base_planes = [plane_hkl]
-        multis = set()
-        for _base in base_planes:
-            multis |= _multiples(
-                _base, max_m,
+            top_indices = set()
+            multis = _multiples(
+                plane_hkl, max_m,
                 info.get("operations"),
                 info.get("crystal_system", "unknown"),
             )
@@ -1469,25 +1480,29 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
             if skip_satellites and peak_types[i] != main_type:
                 continue
             matched_here = False
-            for hd in hg:
-                hkl = hd["hkl"]
-                cmp = tuple(hkl[:4]) if len(hkl) == 4 else tuple(hkl[:3])
-                if cmp in multis:
-                    can = metric_to_twotheta(
-                        pv, x_axis_metric, wavelength_A,
-                        wavelength_nm, diffraction_choice)
-                    if two_theta_min <= can <= two_theta_max:
-                        ann_x.append(pv)
-                        ann_y.append(inten)
-                        # For hexagonal/trigonal the reflections are stored in
-                        # 4-index (hkil) notation; drop the redundant i index so
-                        # the annotation matches the 3-index pattern labels.
-                        disp = (hkl[0], hkl[1], hkl[3]) if len(hkl) == 4 \
-                            else tuple(hkl[:3])
-                        ann_txt.append(
-                            f"({' '.join(str(v) for v in disp)})")
-                        total += 1
-                        matched_here = True
+            if ann_mode == "top":
+                # One label per selected peak (the range check was already made
+                # while ranking), so exactly top_n peaks end up annotated.
+                if i in top_indices:
+                    ann_x.append(pv)
+                    ann_y.append(inten)
+                    ann_txt.append(_hkl_label(hg[0]["hkl"]))
+                    total += 1
+                    matched_here = True
+            else:
+                for hd in hg:
+                    hkl = hd["hkl"]
+                    cmp = tuple(hkl[:4]) if len(hkl) == 4 else tuple(hkl[:3])
+                    if cmp in multis:
+                        can = metric_to_twotheta(
+                            pv, x_axis_metric, wavelength_A,
+                            wavelength_nm, diffraction_choice)
+                        if two_theta_min <= can <= two_theta_max:
+                            ann_x.append(pv)
+                            ann_y.append(inten)
+                            ann_txt.append(_hkl_label(hkl))
+                            total += 1
+                            matched_here = True
             if matched_here:
                 stick_x.extend([pv, pv, None])
                 stick_y.extend([0, inten, None])
@@ -1519,7 +1534,7 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
                      f"({info.get('symbol', '?')})",
             ))
 
-    title_label = (f"{top_n} Strongest Peaks (+ multiples up to {max_m}×)"
+    title_label = (f"{top_n} Strongest Peaks"
                    if ann_mode == "top" else f"{plane_hkl} Family")
     fig_ann.update_layout(
         title=f"Diffraction Pattern — {title_label} Annotations",
@@ -1531,9 +1546,8 @@ def _tab_annotation(pattern_details, uploaded_files, fig_interactive,
     st.plotly_chart(fig_ann, width="stretch")
     if ann_mode == "top":
         st.success(
-            f"Annotated {total} peak(s): the {top_n} most intense reflection(s) "
-            f"of each pattern and their multiples up to {max_m}× "
-            "(symmetry-aware)."
+            f"Annotated {total} peak(s): the {top_n} most intense peak(s) "
+            "of each pattern."
         )
     else:
         st.success(

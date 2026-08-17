@@ -20,6 +20,7 @@ from more_funct.reorient import *
 from more_funct.citation_section import *
 from more_funct.db_results_display import show_database_results
 from more_funct.interactive_data_plot import render_interactive_data_plot
+from more_funct.version_check import APP_VERSION, APP_UPDATED, update_note_html
 
 import gc
 import numpy as np
@@ -131,9 +132,14 @@ intro_ctx = (
     if _intro_collapsed else st.container()
 )
 
+# A local copy keeps running the code it was cloned with, so it is compared
+# against the newest release on GitHub and a note is placed next to the release
+# badge when a newer one is out. Online runs are always up to date.
+_update_note = update_note_html() if IS_LOCAL else ""
+
 with intro_ctx:
     st.markdown(
-        """
+        f"""
         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
             <h4 style="margin:0;">
                 <span style='color:#8b0000;'>
@@ -151,10 +157,11 @@ with intro_ctx:
                 font-weight: 600;
             ">
                 <span style="color:#8b0000; font-weight:800;">Release:</span>
-                v0.7.3 &nbsp; | &nbsp;
+                v{APP_VERSION} &nbsp; | &nbsp;
                 <span style="color:#8b0000; font-weight:800;">Updated:</span>
-                August 16, 2026
+                {APP_UPDATED}
             </div>
+            {_update_note}
         </div>
         """,
         unsafe_allow_html=True

@@ -1268,11 +1268,29 @@ def run_structure_editor(uploaded_files):
             show_labels = st.checkbox("Show atom labels",            value=False, key=f"se_labels_{selected_file}")
             show_asym   = st.checkbox("Show asymmetric unit only",   value=False, key=f"se_asym_{selected_file}")
 
+            # Completing the boundary atoms adds periodic images, which are by
+            # definition not part of the asymmetric unit — the two views
+            # contradict each other, so the corner filling is switched off and
+            # locked while the asymmetric unit is shown. The user's own choice
+            # is put back when they leave that view.
+            _fill_key = f"se_fill_corners_{selected_file}"
+            _fill_saved_key = f"{_fill_key}_before_asym"
+            if show_asym:
+                if _fill_saved_key not in st.session_state:
+                    st.session_state[_fill_saved_key] = st.session_state.get(_fill_key, True)
+                st.session_state[_fill_key] = False
+            elif _fill_saved_key in st.session_state:
+                st.session_state[_fill_key] = st.session_state.pop(_fill_saved_key)
+
             fill_corners = st.checkbox(
                 "🧊 Complete atoms on cell corners/edges/faces",
-                value=True, key=f"se_fill_corners_{selected_file}",
-                help="Draw the periodic images of boundary atoms on all "
-                     "equivalent corners, edges, and faces of the cell (VESTA-like).",
+                value=True, key=_fill_key, disabled=show_asym,
+                help=("Not available while only the asymmetric unit is shown — "
+                      "the completed corners/edges/faces are periodic images of "
+                      "the asymmetric-unit atoms."
+                      if show_asym else
+                      "Draw the periodic images of boundary atoms on all "
+                      "equivalent corners, edges, and faces of the cell (VESTA-like)."),
             )
 
             st.markdown(
