@@ -26,6 +26,21 @@ from more_funct.example_data import (
     remove_example_pattern,
 )
 
+
+def report_loaded_structure(name, structure):
+    """One console line per file, printed when it is read for the first time.
+
+    Only the first read is reported: everything else in the app runs again on
+    every interaction, so logging there would repeat the same lines endlessly.
+    """
+    try:
+        print(f"[XRDlicious] Loaded {name}: "
+              f"{structure.composition.reduced_formula}, "
+              f"{len(structure)} sites", flush=True)
+    except Exception:
+        print(f"[XRDlicious] Loaded {name}", flush=True)
+
+
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -127,9 +142,9 @@ hide_streamlit_style = """
        enlarged and labelled — without a word next to it, first-time users do
        not realise the sidebar (structure upload, settings) is there. */
     [data-testid="stExpandSidebarButton"] {
-        min-height: 42px !important;
-        min-width: 42px !important;
-        padding: 0 10px !important;
+        min-height: 34px !important;
+        min-width: 34px !important;
+        padding: 0 6px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -480,6 +495,9 @@ for _example_file in example_structure_files():
         try:
             st.session_state.full_structures[_example_file.name] = \
                 load_structure(_example_file)
+            report_loaded_structure(
+                _example_file.name,
+                st.session_state.full_structures[_example_file.name])
         except Exception as _exc:
             st.error(f"Could not load the example structure "
                      f"{_example_file.name}: {_exc}")
@@ -495,6 +513,7 @@ if uploaded_files_user_sidebar:
             try:
                 structure = load_structure(file)
                 st.session_state.full_structures[file.name] = structure
+                report_loaded_structure(file.name, structure)
                 # check_structure_size_and_warn(structure, file.name)
             except Exception as e:
                 # st.error(f"Failed to parse {file.name}: {e}")

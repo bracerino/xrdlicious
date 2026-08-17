@@ -680,10 +680,9 @@ def identify_structure_type(structure):
 
         formula = structure.composition.reduced_formula
         formula_type = get_formula_type(formula)
-       # print("------")
-        print(formula)
-       # print(formula_type)
-        #print(spg_number)
+        # No logging here: this runs on every rerun (the structure info panels
+        # call it), which filled the console during ordinary use. Files are
+        # reported once, when they are first read — see app.py.
         if spg_number in STRUCTURE_TYPES and spg_number == 62 and formula_type in STRUCTURE_TYPES[spg_number] and formula == "CaCO3":
            # print("YES")
            # print(spg_number)

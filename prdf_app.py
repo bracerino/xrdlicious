@@ -9,9 +9,9 @@ st.set_page_config(page_title="XRDlicious – (P)RDF Calculator", layout="wide")
 st.markdown(
     """
     <style>
-    /* Just enough room for the MENU button, which is fixed to the top-left
+    /* Just enough room for the sidebar button, which is fixed to the top-left
        corner and would otherwise sit across the title. */
-    .block-container { padding-top: 2.5rem; }
+    .block-container { padding-top: 2.2rem; }
     /* Streamlit keeps its own top padding on the first block and on headings
        as well; it is removed so the gap above the title is only the one set
        above. */
@@ -64,9 +64,9 @@ st.markdown(
         fill: #ffffff !important;
     }
     [data-testid="stExpandSidebarButton"] {
-        min-height: 42px !important;
-        min-width: 42px !important;
-        padding: 0 10px !important;
+        min-height: 34px !important;
+        min-width: 34px !important;
+        padding: 0 6px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
