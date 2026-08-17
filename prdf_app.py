@@ -5,7 +5,8 @@ from math import gcd
 from functools import reduce
 import streamlit as st
 
-st.set_page_config(page_title="XRDlicious – (P)RDF Calculator", layout="wide")
+st.set_page_config(page_title="XRDlicious – (P)RDF Calculator", layout="wide",
+                   initial_sidebar_state="expanded")
 st.markdown(
     """
     <style>
