@@ -7,7 +7,79 @@ import streamlit as st
 
 st.set_page_config(page_title="XRDlicious – (P)RDF Calculator", layout="wide")
 st.markdown(
-    "\n    <style>\n    .block-container { padding-top: 0rem; }\n    #MainMenu {visibility: hidden;}\n    footer     {visibility: hidden;}\n    header     {visibility: hidden;}\n    </style>\n",
+    """
+    <style>
+    /* Just enough room for the MENU button, which is fixed to the top-left
+       corner and would otherwise sit across the title. */
+    .block-container { padding-top: 2.5rem; }
+    /* Streamlit keeps its own top padding on the first block and on headings
+       as well; it is removed so the gap above the title is only the one set
+       above. */
+    .block-container > div:first-child { padding-top: 0 !important; }
+    .block-container [data-testid="stHeading"]:first-child,
+    .block-container [data-testid="stMarkdownContainer"]:first-child > h3:first-child {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    #MainMenu {visibility: hidden;}
+    footer     {visibility: hidden;}
+    /* The top bar is hidden to keep the page compact, but the button that
+       re-opens a collapsed sidebar lives inside it — without the overrides
+       below it disappears with the header and the sidebar cannot be brought
+       back. Visibility is inherited, so the controls are switched back on
+       explicitly. */
+    header     {visibility: hidden;}
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"],
+    [data-testid="stExpandSidebarButton"] * {
+        visibility: visible !important;
+    }
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {display: block !important;}
+
+    /* Same open/close control as in the main app: a solid dark-red button with
+       a white icon, and a MENU label while the sidebar is collapsed. */
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapseButton"] button {
+        background-color: #8b0000 !important;
+        color: #ffffff !important;
+        border: 1px solid #ffffff !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+        transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+    /* Only the collapsed-state button is always on screen; the one inside the
+       sidebar keeps Streamlit's own hover reveal, so its opacity is left
+       alone. */
+    [data-testid="stExpandSidebarButton"] {opacity: 1 !important;}
+    [data-testid="stExpandSidebarButton"]:hover,
+    [data-testid="stSidebarCollapseButton"] button:hover {
+        background-color: #b30000 !important;
+        transform: scale(1.06);
+    }
+    [data-testid="stExpandSidebarButton"] *,
+    [data-testid="stSidebarCollapseButton"] button * {
+        color: #ffffff !important;
+        fill: #ffffff !important;
+    }
+    [data-testid="stExpandSidebarButton"] {
+        width: auto !important;
+        min-height: 42px !important;
+        padding: 0 14px 0 10px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    [data-testid="stExpandSidebarButton"]::after {
+        content: "MENU";
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: #ffffff;
+    }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
 css = '\n<style>\n.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {\n    font-size: 1.15rem !important;\n    color: #1e3a8a !important;\n    font-weight: 600 !important;\n    margin: 0 !important;\n}\n\n.stTabs [data-baseweb="tab-list"] {\n    gap: 20px !important;\n}\n\n.stTabs [data-baseweb="tab-list"] button {\n    background-color: #f0f4ff !important;\n    border-radius: 12px !important;\n    padding: 8px 16px !important;\n    transition: all 0.3s ease !important;\n    border: none !important;\n    color: #1e3a8a !important;\n}\n\n.stTabs [data-baseweb="tab-list"] button:hover {\n    background-color: #dbe5ff !important;\n    cursor: pointer;\n}\n\n.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {\n    background-color: #e0e7ff !important;\n    color: #1e3a8a !important;\n    font-weight: 700 !important;\n    box-shadow: 0 2px 6px rgba(30, 58, 138, 0.3) !important;\n}\n\n.stTabs [data-baseweb="tab-list"] button:focus {\n    outline: none !important;\n}\n</style>\n'
@@ -275,7 +347,7 @@ def smooth_spline(x, y, n_pts=300):
 
 
 st.markdown(
-    "\n    <h3 style='color:#8b0000;'>\n        <strong>XRDlicious</strong> – <em>(P)RDF Calculator</em>\n    </h3>\n    <hr style=\"border:none;height:5px;background-color:#8b0000;\n               border-radius:6px;margin:0 0 8px 0;\">\n",
+    "\n    <h3 style='color:#8b0000; margin-top:0; padding-top:0;'>\n        <strong>XRDlicious</strong> – <em>(P)RDF Calculator</em>\n    </h3>\n    <hr style=\"border:none;height:5px;background-color:#8b0000;\n               border-radius:6px;margin:0 0 8px 0;\">\n",
     unsafe_allow_html=True,
 )
 st.info(
