@@ -521,6 +521,10 @@ if uploaded_files_user_sidebar:
                     f"This does not work. Are you sure you tried to upload here the structure files (CIF, POSCAR, LMP, XSF, PW)? For the **experimental XY data**, put them to the other uploader\n"
                     f"and please remove this wrongly placed file. 😊")
 
+# Files that had to be repaired while reading (e.g. a CIF listing all atoms
+# together with the symmetry operations of its space group) are mentioned here.
+render_cif_repair_notes(st.sidebar)
+
 # Then in Streamlit main block
 # display_structure_types()
 show_database_search = st.checkbox("🗃️ Enable **database search** (MP, AFLOW, COD, MC3D)",

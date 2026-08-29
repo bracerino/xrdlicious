@@ -112,13 +112,23 @@ def load_structure_from_file(uploaded_file) -> Structure:
     raw = uploaded_file.read()
     uploaded_file.seek(0)
     if suffix == "cif":
+        cif_text = raw.decode("utf-8", errors="replace")
         try:
-            parser = CifParser.from_str(raw.decode("utf-8", errors="replace"))
+            parser = CifParser.from_str(cif_text)
             structs = parser.parse_structures(primitive=False)
             if structs:
                 return structs[0]
         except Exception:
-            pass
+            # CIFs pymatgen rejects (e.g. every atom of the cell listed
+            # together with the symmetry operations of its space group) are
+            # repaired and reported instead of falling straight through to ASE.
+            try:
+                from helpers import parse_cif_content, record_cif_repair
+                struct, notes = parse_cif_content(cif_text)
+                record_cif_repair(uploaded_file.name, notes)
+                return struct
+            except Exception:
+                pass
     fmt_map = {
         "poscar": "vasp",
         "vasp": "vasp",
@@ -437,6 +447,11 @@ for name in list(st.session_state.prdf_structures.keys()):
 for name in list(st.session_state.prdf_rejected.keys()):
     if name not in active_names:
         del st.session_state.prdf_rejected[name]
+# Subtle note about CIF files that had to be repaired while reading.
+for _name, _notes in (st.session_state.get("cif_repair_notes") or {}).items():
+    if _name in active_names:
+        for _note in _notes:
+            st.sidebar.caption(f"ℹ️ **{_name}**: {_note}")
 active_exp_names = {f.name for f in uploaded_exp_files} if uploaded_exp_files else set()
 if uploaded_exp_files:
     for ef in uploaded_exp_files:
