@@ -1022,6 +1022,32 @@ STRUCTURE_TYPES = {
 }
 
 
+STRUCTURES_AS_IS_KEY = "use_structures_as_is"
+PENDING_AS_IS_KEY = "_pending_as_is"
+
+
+def use_structures_as_is():
+    """Global toggle set in the Diffraction Settings ("No symmetry search").
+
+    When it is on, uploaded structures are used exactly as they were read
+    from the file — no symmetry search, no conversion to a standardized
+    conventional cell and no symmetry constraints in the structure editor.
+    """
+    try:
+        # Request made by the symmetry pop-up. It is resolved on the first
+        # read of the run — the structure editor renders before the
+        # diffraction settings, so it must not show the standardized cell for
+        # one render before the setting takes effect.
+        if st.session_state.pop(PENDING_AS_IS_KEY, False):
+            st.session_state[STRUCTURES_AS_IS_KEY] = True
+    except Exception:
+        pass
+    try:
+        return bool(st.session_state.get(STRUCTURES_AS_IS_KEY, False))
+    except Exception:
+        return False
+
+
 def get_full_conventional_structure_diffra(structure, symprec=1e-3):
     lattice = structure.lattice.matrix
     positions = structure.frac_coords

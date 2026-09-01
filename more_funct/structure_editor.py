@@ -1,4 +1,5 @@
 import io
+import re
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -13,7 +14,8 @@ from ase.constraints import FixAtoms
 
 from helpers import (
     load_structure, identify_structure_type, jmol_colors, add_box,
-    extract_cif_space_group, format_cif_space_group,
+    extract_cif_space_group, format_cif_space_group, use_structures_as_is,
+    get_full_conventional_structure_diffra,
 )
 
 ELEMENTS = [
@@ -256,6 +258,36 @@ def _get_wyckoffs(structure):
         return sga.get_symmetry_dataset().wyckoffs
     except Exception:
         return ["-"] * len(structure.sites)
+
+# Above this size the space-group search of the displayed cell is skipped to
+# keep large super-cells responsive.
+_SG_MAX_SITES = 500
+
+
+def _normalize_sg_label(label):
+    return "".join(str(label or "").split()).replace("_", "").upper()
+
+
+def _displayed_space_group(preview_struct, structure, selected_file):
+    """Space group label describing the structure that is actually shown.
+
+    With the symmetry search on, the displayed cell is the standardized one,
+    so the symbol declared in the CIF (e.g. a non-standard setting such as
+    'F 1 1 2/m') no longer describes it and the detected one is shown instead.
+    """
+    cif_sg = format_cif_space_group(_cif_space_group_info(structure, selected_file))
+    if use_structures_as_is() or len(preview_struct) > _SG_MAX_SITES:
+        return cif_sg
+    try:
+        sga = SpacegroupAnalyzer(preview_struct)
+        detected = (f"{sga.get_space_group_symbol()} "
+                    f"(#{sga.get_space_group_number()})")
+    except Exception:
+        return cif_sg
+    if cif_sg and _normalize_sg_label(cif_sg) != _normalize_sg_label(detected):
+        return f"{detected} · file: {cif_sg}"
+    return detected
+
 
 def _cif_space_group_info(structure, selected_file):
     """Space group declared inside the CIF the structure was loaded from.
@@ -810,6 +842,17 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
             st.session_state["se_stored_orient"] = stored
             st.rerun()
 
+def _cell_was_changed(uploaded, standardized):
+    """True when standardization altered the cell the user sees."""
+    lu, ls = uploaded.lattice, standardized.lattice
+    if len(uploaded) != len(standardized):
+        return True
+    if max(abs(lu.a - ls.a), abs(lu.b - ls.b), abs(lu.c - ls.c)) > 1e-3:
+        return True
+    return max(abs(lu.alpha - ls.alpha), abs(lu.beta - ls.beta),
+               abs(lu.gamma - ls.gamma)) > 1e-2
+
+
 def _lattice_section(structure, selected_file):
     lat_key = f"se_lat_{selected_file}"
     lattice = structure.lattice
@@ -820,24 +863,33 @@ def _lattice_section(structure, selected_file):
             "alpha": lattice.alpha, "beta": lattice.beta, "gamma": lattice.gamma,
         }
 
-    try:
-        sga = SpacegroupAnalyzer(structure)
-        crystal_system = sga.get_crystal_system()
-        spg_symbol = sga.get_space_group_symbol()
-        spg_number = sga.get_space_group_number()
-        st.markdown(
-            f"<div style='background:#e8f4fd;border-radius:8px;padding:8px 14px;margin-bottom:10px;"
-            f"font-size:0.92rem;'><b>Crystal system:</b> {crystal_system.upper()} &nbsp;·&nbsp; "
-            f"<b>Space group:</b> {spg_symbol} (#{spg_number})</div>",
-            unsafe_allow_html=True,
-        )
-        override = st.checkbox("Override symmetry constraints (allow editing all parameters)",
-                               value=False, key=f"se_override_{selected_file}")
-        if override:
-            crystal_system = "triclinic"
-    except Exception:
+    if use_structures_as_is():
+        # "🔒 No symmetry search" (Diffraction Settings): the cell is kept
+        # exactly as uploaded, so no symmetry constraints are imposed here.
         crystal_system = "triclinic"
-        st.warning("Could not determine crystal system — all parameters editable.")
+        st.caption(
+            "🔒 'No symmetry search' is on — the structure is used exactly as "
+            "uploaded and all lattice parameters are free."
+        )
+    else:
+        try:
+            sga = SpacegroupAnalyzer(structure)
+            crystal_system = sga.get_crystal_system()
+            spg_symbol = sga.get_space_group_symbol()
+            spg_number = sga.get_space_group_number()
+            st.markdown(
+                f"<div style='background:#e8f4fd;border-radius:8px;padding:8px 14px;margin-bottom:10px;"
+                f"font-size:0.92rem;'><b>Crystal system:</b> {crystal_system.upper()} &nbsp;·&nbsp; "
+                f"<b>Space group:</b> {spg_symbol} (#{spg_number})</div>",
+                unsafe_allow_html=True,
+            )
+            override = st.checkbox("Override symmetry constraints (allow editing all parameters)",
+                                   value=False, key=f"se_override_{selected_file}")
+            if override:
+                crystal_system = "triclinic"
+        except Exception:
+            crystal_system = "triclinic"
+            st.warning("Could not determine crystal system — all parameters editable.")
 
     params_info = {
         "cubic":        {"modifiable": ["a"],                                      "hint": "b = a, c = a, α = β = γ = 90°"},
@@ -895,7 +947,9 @@ def _lattice_section(structure, selected_file):
             new_alpha = st.number_input("α (°)", value=float(stored["alpha"]), min_value=0.1, max_value=179.9,
                                         step=0.01, format="%.5f", key=f"se_alpha_{selected_file}")
         else:
-            fixed_al = 90.0 if crystal_system in ["cubic","tetragonal","orthorhombic","hexagonal","monoclinic"] else stored["alpha"]
+            # Keep the angle of the cell being edited instead of an idealized
+            # 90°: the exported structure must match what is on screen.
+            fixed_al = stored["alpha"]
             st.text_input("α (°)", value=f"{fixed_al:.5f}", disabled=True)
             new_alpha = fixed_al
     with col_be:
@@ -903,10 +957,9 @@ def _lattice_section(structure, selected_file):
             new_beta = st.number_input("β (°)", value=float(stored["beta"]), min_value=0.1, max_value=179.9,
                                        step=0.01, format="%.5f", key=f"se_beta_{selected_file}")
         else:
-            if crystal_system in ["cubic","tetragonal","orthorhombic","hexagonal"]:
-                fixed_be = 90.0
-            elif crystal_system == "trigonal" and "alpha" in modifiable:
-                fixed_be = new_alpha
+            if (crystal_system == "trigonal" and "alpha" in modifiable
+                    and abs(stored["beta"] - 90.0) > 1e-3):
+                fixed_be = new_alpha        # rhombohedral cell: β follows α
             else:
                 fixed_be = stored["beta"]
             st.text_input("β (°)", value=f"{fixed_be:.5f}", disabled=True)
@@ -916,10 +969,9 @@ def _lattice_section(structure, selected_file):
             new_gamma = st.number_input("γ (°)", value=float(stored["gamma"]), min_value=0.1, max_value=179.9,
                                         step=0.01, format="%.5f", key=f"se_gamma_{selected_file}")
         else:
-            if crystal_system in ["cubic","tetragonal","orthorhombic","monoclinic"]:
-                fixed_ga = 90.0
-            elif crystal_system in ["hexagonal","trigonal"]:
-                fixed_ga = 120.0
+            if (crystal_system == "trigonal" and "alpha" in modifiable
+                    and abs(stored["gamma"] - 120.0) > 1e-3):
+                fixed_ga = new_alpha        # rhombohedral cell: γ follows α
             else:
                 fixed_ga = stored["gamma"]
             st.text_input("γ (°)", value=f"{fixed_ga:.5f}", disabled=True)
@@ -1044,15 +1096,72 @@ def _atoms_section(atoms, structure, selected_file):
 
     return updated_atoms
 
+EXACT_CELL_OPTION = "None (exact cell)"
+
+
+def _cif_safe_structure(struct):
+    """Copy carrying only numeric site properties.
+
+    CifWriter(write_site_properties=True) formats every property as a float,
+    so a text property such as the Wyckoff letter makes it raise.
+    """
+    safe = struct.copy()
+    for site in safe:
+        for key, value in list(site.properties.items()):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                del site.properties[key]
+    return safe
+
+
+def _cif_cell_parameters(cif_text):
+    """(a, b, c, alpha, beta, gamma) as written in a CIF string."""
+    vals = []
+    for tag in ("length_a", "length_b", "length_c",
+                "angle_alpha", "angle_beta", "angle_gamma"):
+        m = re.search(rf"_cell_{tag}\s+([-\d.eE+]+)", cif_text)
+        if not m:
+            return None
+        vals.append(float(m.group(1)))
+    return tuple(vals)
+
+
+def _warn_if_cif_cell_changed(cif_text, export_struct):
+    """Say so when symmetrization wrote a different cell than the preview."""
+    written = _cif_cell_parameters(cif_text)
+    if not written:
+        return
+    lat = export_struct.lattice
+    shown = (lat.a, lat.b, lat.c, lat.alpha, lat.beta, lat.gamma)
+    if (max(abs(w - v) for w, v in zip(written[:3], shown[:3])) <= 1e-3
+            and max(abs(w - v) for w, v in zip(written[3:], shown[3:])) <= 1e-2):
+        return
+    st.warning(
+        f"⚠️ The chosen symprec symmetrized the structure, so the file "
+        f"differs from the preview above: "
+        f"a={written[0]:.4f} b={written[1]:.4f} c={written[2]:.4f} Å, "
+        f"α={written[3]:.2f}° β={written[4]:.2f}° γ={written[5]:.2f}°. "
+        f"Choose '{EXACT_CELL_OPTION}' to write the cell exactly as shown."
+    )
+
+
 def _build_download_content(export_struct, dl_format, selected_file):
     ordered = _get_ordered_structure(export_struct)
     ase_atoms = AseAtomsAdaptor.get_atoms(ordered)
 
     if dl_format == "CIF":
         symprec_cif = st.selectbox("Symmetry precision (symprec)",
-            options=[0.001, 0.01, 0.1, 1.0], index=1, format_func=str,
-            key=f"se_cif_symprec_{selected_file}")
-        file_content = CifWriter(export_struct, symprec=symprec_cif, write_site_properties=True).__str__()
+            options=[EXACT_CELL_OPTION, 0.001, 0.01, 0.1, 1.0], index=0,
+            format_func=str, key=f"se_cif_symprec_{selected_file}",
+            help="'" + EXACT_CELL_OPTION + "' writes the cell and the sites "
+                 "exactly as previewed. A numeric value lets pymatgen "
+                 "symmetrize the structure first, which can change the "
+                 "lattice parameters and their order.")
+        sp_cif = None if symprec_cif == EXACT_CELL_OPTION else float(symprec_cif)
+        file_content = CifWriter(_cif_safe_structure(export_struct),
+                                 symprec=sp_cif,
+                                 write_site_properties=True).__str__()
+        if sp_cif is not None:
+            _warn_if_cif_cell_changed(file_content, export_struct)
         dl_name, mime = "structure.cif", "chemical/x-cif"
 
     elif dl_format == "VASP (POSCAR)":
@@ -1125,14 +1234,27 @@ def run_structure_editor(uploaded_files):
         else file_options[0]
     )
 
-    if selected_file != st.session_state["se_selected_file"]:
+    # The same rule as in the diffraction module: unless "🔒 No symmetry
+    # search" is on, the structure shown and edited here is the standardized
+    # conventional cell, so the visualization matches the calculated pattern.
+    as_is = use_structures_as_is()
+    if (selected_file != st.session_state["se_selected_file"]
+            or st.session_state.get("se_loaded_as_is") != as_is):
         st.session_state["se_selected_file"]     = selected_file
         st.session_state["se_current_structure"] = None
         st.session_state["se_atoms"]             = None
         st.session_state["se_atoms_loaded"]      = False
         st.session_state["se_stored_orient"]     = {"active": False}
+        # Drop every widget state belonging to this file (lattice inputs,
+        # atom rows, export options). Streamlit gives a widget's stored state
+        # precedence over the `value=` argument, so a leftover a/b/c/α/β/γ
+        # would silently be exported instead of the cell now on screen.
+        _keep = {"se_selected_file", "se_current_structure", "se_atoms",
+                 "se_atoms_loaded", "se_stored_orient", "se_loaded_as_is",
+                 "se_cell_changed"}
         for k in list(st.session_state.keys()):
-            if k.startswith(f"se_lat_{selected_file}"):
+            if (isinstance(k, str) and k.startswith("se_")
+                    and k not in _keep and selected_file in k):
                 del st.session_state[k]
         try:
             structure = load_structure(selected_file)
@@ -1143,11 +1265,36 @@ def run_structure_editor(uploaded_files):
             except Exception as e:
                 st.error(f"Could not load {selected_file}: {e}")
                 return _merge_uploaded_files(uploaded_files)
+        uploaded_cell = structure
+        if not as_is:
+            try:
+                conv = get_full_conventional_structure_diffra(structure)
+                try:            # keep the space group declared in the CIF
+                    conv.properties.update(structure.properties or {})
+                except Exception:
+                    pass
+                structure = conv
+            except Exception:
+                structure = uploaded_cell
+        st.session_state["se_loaded_as_is"] = as_is
+        st.session_state["se_cell_changed"] = (
+            not as_is and _cell_was_changed(uploaded_cell, structure))
         st.session_state["se_current_structure"] = structure
 
     structure = st.session_state["se_current_structure"]
     if structure is None:
         return _merge_uploaded_files(uploaded_files)
+
+    if as_is:
+        st.caption("🔒 Showing the structure exactly as uploaded "
+                   "(no symmetry search).")
+    elif st.session_state.get("se_cell_changed"):
+        st.caption(
+            "🔄 Symmetry was detected — showing the standardized conventional "
+            "cell, the same one used for the diffraction pattern. Enable "
+            "**🔒 No symmetry search** in ⚙️ Diffraction Settings to keep the "
+            "uploaded cell."
+        )
 
     atoms   = st.session_state["se_atoms"]
     lat     = structure.lattice
@@ -1209,7 +1356,12 @@ def run_structure_editor(uploaded_files):
             if st.button("➕ Add to Calculator", type="primary",
                          key=f"se_add_{selected_file}_{tab_suffix}", disabled=not build_ok):
                 try:
-                    cif_content = CifWriter(export_struct, symprec=0.1, write_site_properties=True).__str__()
+                    # symprec=None: the calculator receives exactly the
+                    # previewed cell; the diffraction module decides on its
+                    # own whether to standardize it.
+                    cif_content = CifWriter(_cif_safe_structure(export_struct),
+                                            symprec=None,
+                                            write_site_properties=True).__str__()
                     cif_file = io.BytesIO(cif_content.encode("utf-8"))
                     cif_file.name = custom_name_cif
                     if "uploaded_files" not in st.session_state:
@@ -1332,7 +1484,8 @@ def run_structure_editor(uploaded_files):
             _pl      = preview_struct.lattice
             _density = float(str(preview_struct.density).split()[0])
             _atom_density = preview_struct.composition.num_atoms / _pl.volume
-            _cif_sg = format_cif_space_group(_cif_space_group_info(structure, selected_file))
+            _cif_sg = _displayed_space_group(preview_struct, structure,
+                                             selected_file)
             _cif_sg_line = f"Space group: {_cif_sg}<br>" if _cif_sg else ""
             st.markdown(
                 f"<div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-top:10px;"

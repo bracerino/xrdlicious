@@ -27,6 +27,8 @@ except ImportError:
 from helpers import (
     load_structure,
     get_full_conventional_structure_diffra,
+    use_structures_as_is,
+    format_cif_space_group,
     rgb_color,
     convert_intensity_scale,
     parse_instrument_pattern,
@@ -314,7 +316,7 @@ def _file_fingerprint(f):
 
 def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
                use_debye_waller, debye_waller_factors_per_file, preset_choice,
-               two_theta_min=0.01, two_theta_max=179.9):
+               two_theta_min=0.01, two_theta_max=179.9, as_is=False):
     file_key = tuple(sorted(_file_fingerprint(f) for f in uploaded_files))
     dw_key = None
     if use_debye_waller and debye_waller_factors_per_file:
@@ -324,7 +326,8 @@ def _cache_key(uploaded_files, wavelength_A, diffraction_choice,
         )
     return (file_key, round(wavelength_A, 7), diffraction_choice,
             use_debye_waller, dw_key, preset_choice,
-            round(float(two_theta_min), 4), round(float(two_theta_max), 4))
+            round(float(two_theta_min), 4), round(float(two_theta_max), 4),
+            bool(as_is))
 
 
 def _get_calculator(diffraction_choice, wavelength_A, dw_dict, use_rust):
@@ -356,13 +359,25 @@ def _shortest_wavelength_A(wavelength_A, preset_choice):
     return wavelength_A
 
 
-def _load_mg_structure(file):
+def _use_structures_as_is():
+    """True when the user asked to keep the uploaded cells untouched."""
+    return use_structures_as_is()
+
+
+def _load_mg_structure(file, as_is=None):
     from pymatgen.core import Structure as PmgStructure
 
-    if file.name.lower().endswith(".cif"):
-        mg = load_structure(file)
-    else:
-        mg = load_structure(file)
+    if as_is is None:
+        as_is = _use_structures_as_is()
+
+    mg = load_structure(file)
+
+    if as_is:
+        # No symmetry search: the cell, lattice and sites are used exactly as
+        # they were read from the uploaded file.
+        return mg
+
+    if not file.name.lower().endswith(".cif"):
         cif_writer = CifWriter(mg, symprec=0.01)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cif",
                                          delete=False) as tmp:
@@ -375,6 +390,195 @@ def _load_mg_structure(file):
                 os.remove(tmp_path)
 
     return get_full_conventional_structure_diffra(mg)
+
+
+SYM_TOL_LENGTH = 1e-3   # Angstrom
+SYM_TOL_ANGLE = 1e-2    # degrees
+
+
+def _cell_signature(structure):
+    lat = structure.lattice
+    return (lat.a, lat.b, lat.c, lat.alpha, lat.beta, lat.gamma,
+            len(structure))
+
+
+def _cells_differ(orig, conv):
+    """True if the symmetry search changed the cell in a way the user sees.
+
+    The comparison is order-sensitive on purpose: a → b → c swapped by the
+    standardization counts as a change, even when the cell is geometrically
+    equivalent.
+    """
+    a1, b1, c1, al1, be1, ga1, n1 = _cell_signature(orig)
+    a2, b2, c2, al2, be2, ga2, n2 = _cell_signature(conv)
+    if n1 != n2:
+        return True
+    if max(abs(a1 - a2), abs(b1 - b2), abs(c1 - c2)) > SYM_TOL_LENGTH:
+        return True
+    if max(abs(al1 - al2), abs(be1 - be2),
+           abs(ga1 - ga2)) > SYM_TOL_ANGLE:
+        return True
+    return False
+
+
+def _cell_text(structure):
+    lat = structure.lattice
+    return (f"{lat.a:.3f} × {lat.b:.3f} × {lat.c:.3f} Å, "
+            f"{lat.alpha:.1f}/{lat.beta:.1f}/{lat.gamma:.1f}°, "
+            f"{len(structure)} sites")
+
+
+def _normalize_sg_symbol(symbol):
+    return "".join(str(symbol or "").split()).replace("_", "").upper()
+
+
+def _sg_symbols_match(file_symbol, det_symbol):
+    """True when the two symbols describe the same setting of the same group.
+
+    'P 1 21/c 1' and 'P2_1/c' are the same setting written differently, while
+    'Pbnm' and 'Pnma' are two settings of group #62 — pymatgen normalizes the
+    spelling, so only real setting differences are left.
+    """
+    if not file_symbol or not det_symbol:
+        return True
+    try:
+        from pymatgen.symmetry.groups import SpaceGroup
+        return SpaceGroup(str(file_symbol)).symbol == SpaceGroup(str(det_symbol)).symbol
+    except Exception:
+        return _normalize_sg_symbol(file_symbol) == _normalize_sg_symbol(det_symbol)
+
+
+def _classify_symmetry_change(orig, conv, file_sg, det_symbol, det_number):
+    """Tell a higher-symmetry find from a non-standard cell setting.
+
+    Returns (kind, note) where kind is "higher" or "setting" and note is the
+    one-line markdown explanation shown in the dialog.
+    """
+    det_txt = det_symbol if det_number is None else f"{det_symbol} (#{det_number})"
+    file_symbol = file_sg.get("symbol")
+    file_number = file_sg.get("number")
+    file_txt = format_cif_space_group(file_sg) or "not given in the file"
+
+    # The cell shrank (super-cell, duplicated sites, or a primitive cell found
+    # inside the uploaded one), or the file itself declares a lower group than
+    # the coordinates actually have.
+    if (len(conv) < len(orig)
+            or conv.lattice.volume < orig.lattice.volume - 1e-3
+            or (file_number is not None and det_number is not None
+                and det_number > file_number)):
+        note = f"⬆️ **Higher symmetry detected** — {det_txt}"
+        if file_sg:
+            note += f", file states {file_txt}"
+        return "higher", note
+
+    # Same content, different description: the cell is the standard setting of
+    # the same group, so a, b, c can be permuted or re-chosen.
+    if file_symbol and not _sg_symbols_match(file_symbol, det_symbol):
+        return "setting", (f"🔁 **Non-standard setting detected** — file "
+                           f"setting {file_symbol} → standard setting "
+                           f"{det_txt}")
+    return "setting", (f"🔁 **Non-standard cell setting detected** — "
+                       f"converted to the standard setting of {det_txt}")
+
+
+def _uploaded_files_key(uploaded_files):
+    """Fingerprint of the current set of uploaded files."""
+    return tuple(sorted(_file_fingerprint(f) for f in uploaded_files or []))
+
+
+def _symmetry_change_report(uploaded_files):
+    """List the uploaded files whose cell the symmetry search modified.
+
+    The result is cached in the session for the current set of files, since
+    it requires loading every structure twice.
+    """
+    files = list(uploaded_files or [])
+    key = _uploaded_files_key(files)
+    if st.session_state.get("_sym_report_key") == key:
+        return st.session_state.get("_sym_report", [])
+
+    report = []
+    for file in files:
+        try:
+            orig = load_structure(file)
+            conv = _load_mg_structure(file, as_is=False)
+        except Exception:
+            continue
+        if _cells_differ(orig, conv):
+            try:
+                sga = SpacegroupAnalyzer(orig)
+                det_symbol = sga.get_space_group_symbol()
+                det_number = sga.get_space_group_number()
+            except Exception:
+                det_symbol, det_number = "unknown", None
+            file_sg = (orig.properties or {}).get("cif_space_group") or {}
+            kind, note = _classify_symmetry_change(
+                orig, conv, file_sg, det_symbol, det_number)
+            report.append({
+                "file": file.name,
+                "kind": kind,
+                "note": note,
+                "original": _cell_text(orig),
+                "standardized": _cell_text(conv),
+            })
+
+    st.session_state["_sym_report_key"] = key
+    st.session_state["_sym_report"] = report
+    return report
+
+
+def _remember_sym_dialog_disabled():
+    # Kept in a separate key: the widget state of the dialog checkbox is
+    # dropped once the dialog is no longer rendered.
+    st.session_state["_sym_dialog_disabled"] = bool(
+        st.session_state.get("_sym_dialog_disable_cb", False))
+
+
+@st.dialog("🔄 Symmetry detected — cell changed", width="medium")
+def _symmetry_change_dialog(report):
+    for item in report:
+        st.markdown(
+            f"**{item['file']}**  \n"
+            f"{item['note']}  \n"
+            f"{item['original']} → **{item['standardized']}**"
+        )
+    st.info(
+        "To keep the structures exactly as uploaded, select the option below "
+        "— the same as **🔒 No symmetry search** in ⚙️ Diffraction "
+        "Settings → General. It also applies to the structure shown in "
+        "🔬 Structure Modification."
+    )
+    st.checkbox("Do not show this message again in this session",
+                key="_sym_dialog_disable_cb",
+                on_change=_remember_sym_dialog_disabled)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔒 Use as uploaded", type="primary", width="stretch"):
+            st.session_state["_pending_as_is"] = True
+            st.rerun()
+    with col_b:
+        if st.button("Keep detected symmetry", width="stretch"):
+            st.rerun()
+
+
+def _maybe_show_symmetry_change_dialog(uploaded_files):
+    if not uploaded_files or _use_structures_as_is():
+        return
+    if st.session_state.get("_sym_dialog_disabled"):
+        return
+    report = _symmetry_change_report(uploaded_files)
+    if not report:
+        return
+    # Shown once per set of uploaded files: uploading (or removing) a file
+    # changes the key, so the message appears again for the new set unless
+    # the user asked not to see it again.
+    key = _uploaded_files_key(uploaded_files)
+    if st.session_state.get("_sym_dialog_shown_for") == key:
+        return
+    # Marked as shown before opening, so closing the dialog with the ✕ (which
+    # triggers a rerun) does not immediately reopen it.
+    st.session_state["_sym_dialog_shown_for"] = key
+    _symmetry_change_dialog(report)
 
 
 def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
@@ -1680,10 +1884,19 @@ def _diffraction_settings_ui(has_exp_data=False):
         input_mode="Preset",
         preset_choice="Cobalt (CoKa1)",
         energy_kev=8.048,
+        use_structures_as_is=False,
     )
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    # Fallback for the symmetry-change dialog when this section is the first
+    # to run: the value has to be set before the checkbox widget is created.
+    # (use_structures_as_is() resolves it earlier when another module reads
+    # the flag first.)
+    if st.session_state.pop("_pending_as_is", False):
+        st.session_state["use_structures_as_is"] = True
+        st.session_state["raw_patterns_cache_key"] = None
 
     with st.expander("Diffraction Settings", icon="⚙️",
                      expanded=st.session_state.get(
@@ -1711,12 +1924,25 @@ def _diffraction_settings_ui(has_exp_data=False):
 
         with set_tab1:
 
-            diffraction_choice = st.radio(
-                "Diffraction Calculator",
-                ["XRD (X-ray)", "ND (Neutron)"],
-                key="diffraction_choice",
-                horizontal=True,
-            )
+            col_calc, col_sym = st.columns([2, 1])
+            with col_calc:
+                diffraction_choice = st.radio(
+                    "Diffraction Calculator",
+                    ["XRD (X-ray)", "ND (Neutron)"],
+                    key="diffraction_choice",
+                    horizontal=True,
+                )
+            with col_sym:
+                use_structures_as_is = st.checkbox(
+                    "🔒 No symmetry search",
+                    key="use_structures_as_is",
+                    help="Skips the symmetry search (spglib) and the "
+                         "conversion to the standardized conventional cell — "
+                         "the uploaded lattice, cell setting and positions "
+                         "are used exactly as they are.\n\n"
+                         "Also removes the symmetry constraints on the "
+                         "lattice parameters in 🔬 Structure Modification.",
+                )
 
             col_c, col_d = st.columns(2)
             with col_c:
@@ -2596,18 +2822,31 @@ def _tab_lattice(uploaded_files):
         st.info("Upload structure files to see their lattice parameters.")
         return
 
+    as_is = _use_structures_as_is()
+    if as_is:
+        st.caption(
+            "🔒 'No symmetry search' is active — the cells below are the "
+            "uploaded ones, not standardized conventional cells."
+        )
+
     rows = []
     errors = []
     for file in uploaded_files:
         try:
             struct = load_structure(file)
-            conv = get_full_conventional_structure_diffra(struct)
-            sga = SpacegroupAnalyzer(conv)
+            conv = struct if as_is else get_full_conventional_structure_diffra(struct)
+            try:
+                sga = SpacegroupAnalyzer(conv)
+                sg_symbol = sga.get_space_group_symbol()
+                crystal_system = sga.get_crystal_system().capitalize()
+            except Exception:
+                sg_symbol = "Unknown"
+                crystal_system = "Unknown"
             lat = conv.lattice
             rows.append({
                 "File": file.name,
-                "Space group": sga.get_space_group_symbol(),
-                "Crystal system": sga.get_crystal_system().capitalize(),
+                "Space group": sg_symbol,
+                "Crystal system": crystal_system,
                 "a (Å)": round(lat.a, 5),
                 "b (Å)": round(lat.b, 5),
                 "c (Å)": round(lat.c, 5),
@@ -2666,6 +2905,8 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
          texture_r) = _diffraction_settings_ui(has_exp_data=bool(user_pattern_file))
         texture_hkl = (texture_h, texture_k, texture_l)
         _texture_active = bool(use_texture) and texture_hkl != (0, 0, 0)
+
+    _maybe_show_symmetry_change_dialog(uploaded_files)
 
     recip_rows, recip_any_exceeded, recip_limit = _compute_recip_estimates(
         uploaded_files or [], wavelength_A, preset_choice, is_local,
@@ -2748,6 +2989,7 @@ def run_diffraction_section(uploaded_files, user_pattern_file, is_local=False):
             preset_choice,
             two_theta_min=two_theta_min,
             two_theta_max=two_theta_max,
+            as_is=_use_structures_as_is(),
         )
         _stored_patterns = st.session_state.get("raw_patterns") or {}
         _expected_files = {f.name for f in uploaded_files}

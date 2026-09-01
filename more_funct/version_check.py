@@ -17,8 +17,8 @@ import requests
 import streamlit as st
 
 # Version of this copy of the app, shown in the header of app.py / prdf.py.
-APP_VERSION = "0.8.0"
-APP_UPDATED = "August 17, 2026"
+APP_VERSION = "0.8.1"
+APP_UPDATED = "September 1, 2026"
 
 _LATEST_RELEASE_API = (
     "https://api.github.com/repos/bracerino/xrdlicious/releases/latest"
