@@ -355,7 +355,7 @@ def _render_aflow(sort_by: str, cs_filter: str) -> None:
     _render_structure_card(
         structure, "AFLOW",
         title   = f"{entry.compound} · {entry.auid} · {served_cell} cell",
-        link_md = f"[Open on AFLOW ↗](https://aflowlib.duke.edu/search/ui/material/?id={entry.auid})",
+        link_md = f"[Open on AFLOW ↗](https://aflow.org/material/?id={entry.auid})",
     )
     st.info("ℹ️ If H is missing from the CIF it will also be absent from the formula.")
 
