@@ -10,7 +10,6 @@ plotly==6.1.2
 streamlit-plotly-events
 setuptools
 mp-api==0.46.1
-aflow==0.0.11
 pillow==11.2.1
 psutil==7.0.0
 requests==2.32.5

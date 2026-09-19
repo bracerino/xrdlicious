@@ -4,7 +4,6 @@ import io
 import re
 from collections import Counter
 
-import requests
 import streamlit as st
 from pymatgen.core import Structure
 from pymatgen.io.cif import CifWriter
@@ -12,7 +11,10 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from helpers import (
     SPACE_GROUP_SYMBOLS,
+    AflowEntry,
+    aflow_cell_of_file,
     check_structure_size_and_warn,
+    fetch_aflow_cif,
     get_full_conventional_structure,
     identify_structure_type,
 )
@@ -26,14 +28,14 @@ _DB_KEYS: dict[str, str] = {
 
 _DB_COLORS: dict[str, str] = {
     "Materials Project": "#1565C0",   # blue
-    "AFLOW":             "#E65100",   # orange
+    "AFLOW":             "#00838F",   # teal
     "COD":               "#2E7D32",   # green
     "MC3D":              "#6A1B9A",   # purple
 }
 
 _DB_ICONS: dict[str, str] = {
     "Materials Project": "🔵",
-    "AFLOW":             "🟠",
+    "AFLOW":             "💠",
     "COD":               "🟢",
     "MC3D":              "🟣",
 }
@@ -300,16 +302,17 @@ def _render_mp(sort_by: str, cs_filter: str) -> None:
         )
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _aflow_cif_cached(aurl: str, files: tuple[str, ...], cell: str) -> tuple[bytes, str]:
+    """Download (and remember) one AFLOW CIF, so reruns do not re-fetch it."""
+    return fetch_aflow_cif(AflowEntry({"aurl": aurl, "files": list(files)}), cell=cell)
+
+
 def _render_aflow(sort_by: str, cs_filter: str) -> None:
     raw     = st.session_state.get("aflow_options", [])
     options = sort_structure_options(raw, sort_by, cs_filter)
     entrys  = st.session_state.get("entrys", {})
 
-    st.warning(
-        "⚠️ AFLOW does not expose atomic occupancies and returns only the "
-        "primitive cell via API. Volume and atom count are therefore "
-        "omitted from the dropdown list."
-    )
     _count_badge(len(options), len(raw), "AFLOW", cs_filter)
     if not options:
         st.info("No structures match the selected crystal system filter.")
@@ -325,38 +328,46 @@ def _render_aflow(sort_by: str, cs_filter: str) -> None:
         st.warning("Entry not found in session – please search again.")
         return
 
-    cif_files = [f for f in entry.files
-                 if f.endswith("_sprim.cif") or f.endswith(".cif")]
-    if not cif_files:
-        st.warning("No CIF file available for this AFLOW entry.")
-        return
+    cell_choice = st.radio(
+        "Cell:", ["Conventional", "Primitive"],
+        horizontal=True, key="aflow_cell_disp",
+        help="The list above shows AFLOW's primitive-cell parameters. Pick the "
+             "cell to load here: AFLOW publishes both a standard conventional "
+             "(_sconv.cif) and a standard primitive (_sprim.cif) cell.",
+    )
+    requested_cell = "conventional" if cell_choice == "Conventional" else "primitive"
 
-    host_part, path_part = entry.aurl.split(":", 1)
-    file_url = f"http://{host_part}/{path_part}/{cif_files[0]}"
     try:
-        cif_content = requests.get(file_url, timeout=15).content
+        cif_content, cif_name = _aflow_cif_cached(
+            entry.aurl, tuple(entry.files), requested_cell)
     except Exception as exc:
         st.error(f"Could not fetch CIF from AFLOW: {exc}")
         return
 
-    structure_raw  = Structure.from_str(cif_content.decode("utf-8"), fmt="cif")
-    structure_conv = get_full_conventional_structure(structure_raw, symprec=0.1)
+    structure   = Structure.from_str(cif_content.decode("utf-8"), fmt="cif")
+    served_cell = aflow_cell_of_file(cif_name)
+    if requested_cell == "conventional" and served_cell != "conventional":
+        # Safety net: AFLOW normally ships _sconv.cif for every entry.
+        structure   = get_full_conventional_structure(structure, symprec=0.1)
+        cif_content = str(CifWriter(structure)).encode("utf-8")
+        served_cell = "conventional"
 
     _render_structure_card(
-        structure_conv, "AFLOW",
-        title   = f"{entry.compound} · {entry.auid}",
+        structure, "AFLOW",
+        title   = f"{entry.compound} · {entry.auid} · {served_cell} cell",
         link_md = f"[Open on AFLOW ↗](https://aflowlib.duke.edu/search/ui/material/?id={entry.auid})",
     )
     st.info("ℹ️ If H is missing from the CIF it will also be absent from the formula.")
 
-    fname = f"{entry.compound}_{entry.auid}.cif"
+    fname = re.sub(r'[\\/:"*?<>|]+', '_',
+                   f"{entry.compound}_{entry.auid}_{served_cell}.cif")
     col_add, col_dl, _ = st.columns([1, 1, 2])
     with col_add:
         if st.button("➕ Add to workspace", key="aflow_add", width="stretch"):
             _push_bytes_to_uploads(fname, cif_content)
-            st.session_state.full_structures[fname] = structure_raw
-            check_structure_size_and_warn(structure_raw, fname)
-            st.success("✅ Added from AFLOW!")
+            st.session_state.full_structures[fname] = structure
+            check_structure_size_and_warn(structure, fname)
+            st.success(f"✅ Added from AFLOW ({served_cell} cell)!")
     with col_dl:
         st.download_button(
             "💾 Download CIF", type="primary",
@@ -523,7 +534,7 @@ def show_database_results() -> None:
         all_options.extend(st.session_state.get(_DB_KEYS[db], []))
 
     st.markdown(
-        '<hr style="border:none;height:4px;background:linear-gradient(to right,#1565C0,#E65100,#2E7D32,#6A1B9A);border-radius:4px;margin:22px 0 16px 0;">',
+        '<hr style="border:none;height:4px;background:linear-gradient(to right,#1565C0,#00838F,#2E7D32,#6A1B9A);border-radius:4px;margin:22px 0 16px 0;">',
         unsafe_allow_html=True,
     )
 

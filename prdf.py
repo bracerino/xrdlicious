@@ -73,9 +73,6 @@ import io
 import re
 import spglib
 from pymatgen.core import Structure
-from aflow import search, K
-from aflow import search  # ensure your file is not named aflow.py!
-import aflow.keywords as AFLOW_K
 import requests
 from PIL import Image
 import os
@@ -86,7 +83,6 @@ import warnings
 # Suppersing pymatgen warning about rounding coordinates from CIF
 warnings.filterwarnings("ignore", message=".*fractional coordinates rounded.*")
 
-# import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
 MP_API_KEY = "UtfGa1BUI3RlWYVwfpMco2jVt8ApHOye"
@@ -816,28 +812,17 @@ if show_database_search:
                         aflow_limit = search_limits.get("AFLOW", 50)
                         with st.spinner(f"Searching **the AFLOW database** (limit: {aflow_limit}), please wait. 😊"):
                             try:
-                                results = []
+                                results, total_hits = [], 0
 
                                 if search_mode == "Elements":
                                     elements_list = [el.strip() for el in search_query.split() if el.strip()]
                                     if not elements_list:
                                         st.warning("Please enter elements for AFLOW search.")
                                         continue
-                                    ordered_elements = sorted(elements_list)
-                                    ordered_str = ",".join(ordered_elements)
-                                    aflow_nspecies = len(ordered_elements)
 
-                                    results = list(
-                                        search(catalog="icsd")
-                                        .filter((AFLOW_K.species % ordered_str) & (AFLOW_K.nspecies == aflow_nspecies))
-                                        .select(
-                                            AFLOW_K.auid,
-                                            AFLOW_K.compound,
-                                            AFLOW_K.geometry,
-                                            AFLOW_K.spacegroup_relax,
-                                            AFLOW_K.aurl,
-                                            AFLOW_K.files,
-                                        )
+                                    results, total_hits = aflux_query(
+                                        aflux_elements_filter(elements_list),
+                                        limit=aflow_limit,
                                     )
 
                                 elif search_mode == "Structure ID":
@@ -852,215 +837,80 @@ if show_database_search:
                                         st.warning("No valid AFLOW AUIDs found (should start with 'aflow:')")
                                         continue
 
-                                    results = []
                                     for auid in aflow_auids:
                                         try:
-                                            result = list(search(catalog="icsd")
-                                                          .filter(AFLOW_K.auid == f"aflow:{auid}")
-                                                          .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-                                                                  AFLOW_K.spacegroup_relax, AFLOW_K.aurl,
-                                                                  AFLOW_K.files))
-                                            results.extend(result)
+                                            found, _ = aflux_query(aflux_auid_filter(auid), limit=1)
+                                            results.extend(found)
                                         except Exception as e:
                                             st.warning(f"AFLOW search failed for AUID '{auid}': {e}")
                                             continue
+                                    total_hits = len(results)
 
                                 elif search_mode == "Space Group + Elements":
                                     if not selected_elements:
                                         st.warning("Please select elements for AFLOW space group search.")
                                         continue
-                                    ordered_elements = sorted(selected_elements)
-                                    ordered_str = ",".join(ordered_elements)
-                                    aflow_nspecies = len(ordered_elements)
 
                                     try:
-                                        results = list(search(catalog="icsd")
-                                                       .filter((AFLOW_K.species % ordered_str) &
-                                                               (AFLOW_K.nspecies == aflow_nspecies) &
-                                                               (AFLOW_K.spacegroup_relax == space_group_number))
-                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
+                                        results, total_hits = aflux_query(
+                                            aflux_elements_filter(selected_elements)
+                                            + aflux_spacegroup_filter(space_group_number),
+                                            limit=aflow_limit,
+                                        )
                                     except Exception as e:
                                         st.warning(f"AFLOW space group search failed: {e}")
-                                        results = []
-
+                                        results, total_hits = [], 0
 
                                 elif search_mode == "Formula":
-
                                     if not formula_input.strip():
                                         st.warning("Please enter a chemical formula for AFLOW search.")
-
                                         continue
 
+                                    aflow_formula = aflow_formula_to_aflux(formula_input)
+                                    aflow_formula_2x = aflow_formula_to_aflux(formula_input, multiplier=2)
 
-                                    def convert_to_aflow_formula(formula_input):
-
-                                        import re
-
-                                        formula_parts = formula_input.strip().split()
-
-                                        elements_dict = {}
-
-                                        for part in formula_parts:
-
-                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
-
-                                            if match:
-                                                element = match.group(1)
-
-                                                count = match.group(2) if match.group(
-                                                    2) else "1"  # Add "1" if no number
-
-                                                elements_dict[element] = count
-
-                                        aflow_parts = []
-
-                                        for element in sorted(elements_dict.keys()):
-                                            aflow_parts.append(f"{element}{elements_dict[element]}")
-
-                                        return "".join(aflow_parts)
-
-
-                                    # Generate 2x multiplied formula
-                                    def multiply_formula_by_2(formula_input):
-
-                                        import re
-
-                                        formula_parts = formula_input.strip().split()
-
-                                        elements_dict = {}
-
-                                        for part in formula_parts:
-
-                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
-
-                                            if match:
-                                                element = match.group(1)
-
-                                                count = int(match.group(2)) if match.group(2) else 1
-
-                                                elements_dict[element] = str(count * 2)  # Multiply by 2
-
-                                        aflow_parts = []
-
-                                        for element in sorted(elements_dict.keys()):
-                                            aflow_parts.append(f"{element}{elements_dict[element]}")
-
-                                        return "".join(aflow_parts)
-
-
-                                    aflow_formula = convert_to_aflow_formula(formula_input)
-
-                                    aflow_formula_2x = multiply_formula_by_2(formula_input)
-
+                                    formulas = [aflow_formula]
                                     if aflow_formula_2x != aflow_formula:
-
-                                        results = list(search(catalog="icsd")
-
-                                                       .filter((AFLOW_K.compound == aflow_formula) |
-
-                                                               (AFLOW_K.compound == aflow_formula_2x))
-
-                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-
-                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
-
+                                        formulas.append(aflow_formula_2x)
                                         st.info(
                                             f"Searching for both {aflow_formula} and {aflow_formula_2x} formulas simultaneously")
-
                                     else:
-                                        results = list(search(catalog="icsd")
-                                                       .filter(AFLOW_K.compound == aflow_formula)
-                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
-
                                         st.info(f"Searching for formula {aflow_formula}")
 
+                                    results, total_hits = aflux_query(
+                                        aflux_compound_filter(formulas),
+                                        limit=aflow_limit,
+                                    )
 
                                 elif search_mode == "Search Mineral":
                                     if not selected_mineral:
                                         st.warning("Please select a mineral structure for AFLOW search.")
                                         continue
 
+                                    aflow_formula = aflow_formula_to_aflux(formula_input)
+                                    aflow_formula_2x = aflow_formula_to_aflux(formula_input, multiplier=2)
 
-                                    def convert_to_aflow_formula_mineral(formula_input):
-                                        import re
-                                        formula_parts = formula_input.strip().split()
-                                        elements_dict = {}
-                                        for part in formula_parts:
-
-                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
-                                            if match:
-                                                element = match.group(1)
-
-                                                count = match.group(2) if match.group(
-                                                    2) else "1"  # Always add "1" for single atoms
-
-                                                elements_dict[element] = count
-
-                                        aflow_parts = []
-
-                                        for element in sorted(elements_dict.keys()):
-                                            aflow_parts.append(f"{element}{elements_dict[element]}")
-
-                                        return "".join(aflow_parts)
-
-
-                                    def multiply_mineral_formula_by_2(formula_input):
-
-                                        import re
-
-                                        formula_parts = formula_input.strip().split()
-
-                                        elements_dict = {}
-
-                                        for part in formula_parts:
-                                            match = re.match(r'([A-Z][a-z]?)(\d*)', part)
-                                            if match:
-                                                element = match.group(1)
-                                                count = int(match.group(2)) if match.group(2) else 1
-                                                elements_dict[element] = str(count * 2)  # Multiply by 2
-                                        aflow_parts = []
-                                        for element in sorted(elements_dict.keys()):
-                                            aflow_parts.append(f"{element}{elements_dict[element]}")
-                                        return "".join(aflow_parts)
-
-
-                                    aflow_formula = convert_to_aflow_formula_mineral(formula_input)
-
-                                    aflow_formula_2x = multiply_mineral_formula_by_2(formula_input)
-
-                                    # Search for both formulas with space group constraint in a single query
-
+                                    formulas = [aflow_formula]
                                     if aflow_formula_2x != aflow_formula:
-                                        results = list(search(catalog="icsd")
-                                                       .filter(((AFLOW_K.compound == aflow_formula) |
-                                                                (AFLOW_K.compound == aflow_formula_2x)) &
-                                                               (AFLOW_K.spacegroup_relax == space_group_number))
-                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
-
+                                        formulas.append(aflow_formula_2x)
                                         st.info(
                                             f"Searching {mineral_info['mineral_name']} for both {aflow_formula} and {aflow_formula_2x} with space group {space_group_number}")
-
                                     else:
-                                        results = list(search(catalog="icsd")
-                                                       .filter((AFLOW_K.compound == aflow_formula) &
-                                                               (AFLOW_K.spacegroup_relax == space_group_number))
-                                                       .select(AFLOW_K.auid, AFLOW_K.compound, AFLOW_K.geometry,
-                                                               AFLOW_K.spacegroup_relax, AFLOW_K.aurl, AFLOW_K.files))
-
                                         st.info(
                                             f"Searching {mineral_info['mineral_name']} for formula {aflow_formula} with space group {space_group_number}")
+
+                                    results, total_hits = aflux_query(
+                                        aflux_compound_filter(formulas)
+                                        + aflux_spacegroup_filter(space_group_number),
+                                        limit=aflow_limit,
+                                    )
 
                                 if results:
                                     status_placeholder = st.empty()
                                     st.session_state.aflow_options = []
                                     st.session_state.entrys = {}
 
-                                    limited_results = results[:aflow_limit]
-
-                                    for entry in limited_results:
+                                    for entry in results:
                                         st.session_state.entrys[entry.auid] = entry
                                         st.session_state.aflow_options.append(
                                             f"{entry.compound} ({entry.spacegroup_relax}) {entry.geometry}, {entry.auid}"
@@ -1068,15 +918,15 @@ if show_database_search:
                                         status_placeholder.markdown(
                                             f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
                                         )
-                                    if len(limited_results) < len(results):
+                                    if total_hits > len(results):
                                         st.info(
-                                            f"Showing first {aflow_limit} of {len(results)} total AFLOW results. Increase limit to see more.")
+                                            f"Showing first {aflow_limit} of {total_hits} total AFLOW results. Increase limit to see more.")
                                     st.success(f"Found {len(st.session_state.aflow_options)} structures in AFLOW.")
                                 else:
                                     st.session_state.aflow_options = []
                                     st.warning("No matching structures found in AFLOW.")
                             except Exception as e:
-                                st.warning(f"No matching structures found in AFLOW.")
+                                st.warning(f"AFLOW search failed: {e}")
                                 st.session_state.aflow_options = []
                     elif db_choice == "MC3D":
                         mc3d_limit = search_limits.get("MC3D", 300)

@@ -37,16 +37,209 @@ import io
 import re
 import spglib
 from pymatgen.core import Structure
-from aflow import search, K
-from aflow import search  # ensure your file is not named aflow.py!
-import aflow.keywords as AFLOW_K
 import requests
 from PIL import Image
 
-# import aflow.keywords as K
 from pymatgen.io.cif import CifWriter
 
 from pymatgen.ext.optimade import OptimadeRester
+
+# ---------------------------------------------------------------------------
+# AFLOW access through the AFLUX REST API.
+#
+# The `aflow` PyPI package still points at http://aflowlib.duke.edu/search/API/,
+# which now answers 404, so every query raised HTTPError. The same queries are
+# served by https://aflow.org/API/aflux/, which we call directly here - this
+# removes the dependency on the package altogether.
+# ---------------------------------------------------------------------------
+AFLUX_API_URL = "https://aflow.org/API/aflux/"
+AFLUX_PAGE_SIZE = 200
+AFLUX_KEYS = ("auid", "compound", "geometry", "spacegroup_relax", "aurl", "files")
+
+
+class AflowEntry:
+    """Attribute view over one AFLUX JSON record.
+
+    Mirrors the attribute access of `aflow.entries.Entry` (entry.auid,
+    entry.compound, entry.files, ...) so the display code stays unchanged.
+    """
+
+    def __init__(self, raw):
+        self._raw = dict(raw)
+
+    def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        try:
+            return self._raw[name]
+        except KeyError:
+            raise AttributeError(f"AFLOW entry has no keyword '{name}'")
+
+    def get(self, name, default=None):
+        return self._raw.get(name, default)
+
+    def keys(self):
+        return self._raw.keys()
+
+    def __repr__(self):
+        return f"AflowEntry({self._raw.get('auid', '?')})"
+
+
+def aflux_query(filters, catalog="icsd", limit=100, keys=AFLUX_KEYS, timeout=60):
+    """Run an AFLUX query and return (list of AflowEntry, total number of hits).
+
+    Args:
+        filters (list): AFLUX matchbook terms, e.g. ["species(O,Ti)", "nspecies(2)"].
+        catalog (str): AFLOW catalog ('icsd', 'lib1', 'lib2', 'lib3') or None.
+        limit (int): maximum number of entries to fetch (paged automatically).
+    """
+    matchbook = ",".join(list(keys) + [f for f in filters if f])
+    # AFLUX offsets pages in units of the page size, so it has to stay constant
+    # across requests - shrinking it on the last page re-reads earlier rows.
+    page_size = max(1, min(limit, AFLUX_PAGE_SIZE))
+    collected, seen, total, page = [], set(), 0, 1
+
+    while len(collected) < limit:
+        directives = [f"catalog({catalog})"] if catalog else []
+        directives.append(f"paging({page},{page_size})")
+        query = ",".join([matchbook] + directives)
+
+        response = requests.get(AFLUX_API_URL, params=query, timeout=timeout)
+        response.raise_for_status()
+        try:
+            payload = response.json()
+        except ValueError:
+            raise RuntimeError(f"AFLUX returned a non-JSON answer: {response.text[:200]}")
+
+        if isinstance(payload, dict):
+            # Legacy answer shape: {"1 of 256": {...}, "2 of 256": {...}}
+            items = list(payload.items())
+            if items:
+                try:
+                    total = int(items[0][0].split()[-1])
+                except (ValueError, IndexError):
+                    total = 0
+            records = [value for _, value in items]
+        else:
+            records = list(payload)
+            total = max(total, len(collected) + len(records))
+
+        if not records:
+            break
+
+        for record in records:
+            auid = record.get("auid")
+            if auid is not None:
+                if auid in seen:
+                    continue
+                seen.add(auid)
+            collected.append(AflowEntry(record))
+
+        if len(records) < page_size or (total and len(collected) >= total):
+            break
+        page += 1
+
+    return collected[:limit], (total or len(collected))
+
+
+def aflux_elements_filter(elements):
+    """Entries built from exactly the given elements."""
+    unique = sorted({el.strip() for el in elements if el.strip()})
+    return [f"species({','.join(unique)})", f"nspecies({len(unique)})"]
+
+
+def aflux_compound_filter(formulas):
+    """Entries whose compound matches any of the given AFLOW formulas."""
+    unique = list(dict.fromkeys(f for f in formulas if f))
+    if not unique:
+        return []
+    quoted = ":".join("'%s'" % formula for formula in unique)
+    return [f"compound({quoted})"]
+
+
+def aflux_spacegroup_filter(space_group_number):
+    return [f"spacegroup_relax({int(space_group_number)})"]
+
+
+def aflux_auid_filter(auid):
+    auid = auid.strip()
+    if not auid.startswith("aflow:"):
+        auid = f"aflow:{auid}"
+    return [f"auid('{auid}')"]
+
+
+def aflow_formula_to_aflux(formula_input, multiplier=1):
+    """Convert a user formula ('Ti O2', 'TiO2') to AFLOW's compound notation.
+
+    Elements are sorted alphabetically and every count is written out
+    explicitly ('Ti O2' -> 'O2Ti1'), optionally scaled by `multiplier`.
+    """
+    import re
+
+    elements_dict = {}
+    for part in formula_input.strip().split():
+        for element, count in re.findall(r'([A-Z][a-z]?)(\d*)', part):
+            if not element:
+                continue
+            elements_dict[element] = int(count) if count else 1
+
+    return "".join(f"{el}{elements_dict[el] * multiplier}" for el in sorted(elements_dict))
+
+
+def aflow_file_url(entry, filename):
+    """Build the download URL of one file belonging to an AFLOW entry."""
+    aurl = entry.aurl if hasattr(entry, "aurl") else entry["aurl"]
+    host_part, _, path_part = aurl.partition(":")
+    return f"http://{host_part}/{path_part}/{filename}"
+
+
+def aflow_cif_candidates(entry, cell="conventional"):
+    """CIF file names of an AFLOW entry, best match for `cell` first.
+
+    AFLOW attaches three equivalent CIFs to every entry: `<name>_sconv.cif`
+    (standard conventional cell), `<name>_sprim.cif` (standard primitive cell)
+    and `<name>.cif`, which is a copy of the primitive one.
+    """
+    files = [f for f in (getattr(entry, "files", []) or [])
+             if f.endswith(".cif") and "_corner" not in f]
+    sconv = [f for f in files if f[:-4].endswith("_sconv")]
+    sprim = [f for f in files if f[:-4].endswith("_sprim")]
+    plain = [f for f in files if f not in sconv and f not in sprim]
+
+    if cell == "primitive":
+        return sprim + plain + sconv
+    return sconv + plain + sprim
+
+
+def fetch_aflow_cif(entry, cell="conventional", timeout=30):
+    """Download a CIF of an AFLOW entry and return (contents, file name).
+
+    Args:
+        cell (str): 'conventional' for the standard conventional cell,
+          'primitive' for the standard primitive one. Falls back to whichever
+          CIF the entry does provide - check the returned file name to see
+          which cell was actually served.
+    """
+    candidates = aflow_cif_candidates(entry, cell)
+    if not candidates:
+        raise RuntimeError("No CIF file available for this AFLOW entry.")
+
+    last_error = None
+    for filename in candidates:
+        try:
+            response = requests.get(aflow_file_url(entry, filename), timeout=timeout)
+            response.raise_for_status()
+            if response.content.strip():
+                return response.content, filename
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(f"Could not download a CIF from AFLOW: {last_error}")
+
+
+def aflow_cell_of_file(filename):
+    """Which cell a given AFLOW CIF file holds ('conventional'/'primitive')."""
+    return "conventional" if filename[:-4].endswith("_sconv") else "primitive"
+
 
 def search_mc3d_optimade(query_params, limit=300):
     import requests

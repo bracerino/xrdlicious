@@ -140,7 +140,6 @@ Python 3.12.3, 3.13.2
 - streamlit-plotly-events  
 - setuptools  
 - mp-api==0.45.3  
-- aflow==0.0.11  
 - pillow==11.2.1  
 - psutil==7.0.0  
 
