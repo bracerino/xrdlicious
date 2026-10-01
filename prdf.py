@@ -5,6 +5,28 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# Search-engine description. st.html strips <head>/<meta> tags, so the tag is
+# written into document.head by script instead; the crawler's prerendered
+# snapshot then carries it. Streamlit's <noscript> text is removed so search
+# engines do not fall back to "You need to enable JavaScript to run this app."
+st.html(
+    """
+    <script>
+    (function () {
+        var content = "XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion";
+        var meta = document.head.querySelector('meta[name="description"]');
+        if (!meta) {
+            meta = document.createElement("meta");
+            meta.name = "description";
+            document.head.appendChild(meta);
+        }
+        meta.content = content;
+        document.querySelectorAll("noscript").forEach(function (el) { el.remove(); });
+    })();
+    </script>
+    """,
+    unsafe_allow_javascript=True,
+)
 # Remove top padding
 st.markdown("""
     <style>
@@ -1692,14 +1714,6 @@ if "📈 Interactive Data Plot" in calc_mode:
     render_interactive_data_plot(user_pattern_file)
 st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 import sys
-
-st.html(
-    """
-    <head>
-        <meta name="description" content="XRDlicious, Online Calculator for Powder XRD/ND Patterns (Diffractograms), Partial Radial Distribution Function (PRDF), and Total RDF from Crystal Structures (CIF, LMP, POSCAR, XSF, XYZ ...), or XRD data conversion">
-    </head>
-    """
-)
 
 
 def get_session_memory_usage():
