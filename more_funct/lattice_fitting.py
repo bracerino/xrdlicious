@@ -29,6 +29,9 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from helpers import load_structure, get_full_conventional_structure_diffra
 from more_funct.xrd_nd_section import (
+    _estimate_recip_points, LOCAL_MAX_RECIP_POINTS, ONLINE_MAX_RECIP_POINTS,
+)
+from more_funct.xrd_nd_section import (
     _load_exp_xy,
     PRESET_OPTIONS,
     PRESET_WAVELENGTHS,
@@ -192,6 +195,19 @@ def _predict_reflections(structure, wavelength_A, tt_min, tt_max):
         for r in refl:
             r["intensity"] = r["intensity"] / imax * 100.0
     return refl
+
+
+def _recip_points_exceeded(structure, wavelength_A, tt_min, tt_max, is_local):
+    """Estimated reciprocal-lattice points if above the safety limit, else None.
+
+    Large cells or short wavelengths make XRDCalculator enumerate millions of
+    points and run out of memory, so the calculation is refused beforehand.
+    """
+    limit = LOCAL_MAX_RECIP_POINTS if is_local else ONLINE_MAX_RECIP_POINTS
+    n = _estimate_recip_points(structure, wavelength_A,
+                               two_theta_max=min(179.9, tt_max),
+                               two_theta_min=max(0.01, tt_min))
+    return n if n > limit else None
 
 
 def _index_peaks(obs_two_theta, reflections, tol_deg):
@@ -529,6 +545,21 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
 
         # Theoretical reflections of the *initial* (unrefined) cell — used for
         # indexing the observed peaks and for the calculated pattern.
+        n_recip = _recip_points_exceeded(struct, wavelength_A, tt_min, tt_max,
+                                         is_local)
+        if n_recip is not None:
+            limit = LOCAL_MAX_RECIP_POINTS if is_local else ONLINE_MAX_RECIP_POINTS
+            st.error(
+                f"❌ Estimated number of reciprocal-lattice points "
+                f"(**{n_recip:,}**) exceeds the safety threshold "
+                f"(**{limit:,}**). Cell volume = **{struct.lattice.volume:.1f} Å³** "
+                f"at λ = **{wavelength_A:.4f} Å**. A calculation this large can run "
+                f"out of memory and crash the app.\n\nTry a longer wavelength, a "
+                f"narrower 2θ range, or a smaller cell"
+                + (", or raise `LOCAL_MAX_RECIP_POINTS` in `xrd_nd_section.py`."
+                   if is_local else ", or run the app locally.")
+            )
+            return
         reflections = _predict_reflections(struct, wavelength_A, tt_min, tt_max)
 
         # The initial chart is rendered here — directly below the wavelength
@@ -818,8 +849,12 @@ def run_lattice_fitting_section(uploaded_files, user_pattern_file,
                             [site.species for site in struct],
                             struct.frac_coords,
                             site_properties=struct.site_properties)
-                        refined_reflections = _predict_reflections(
-                            refined_struct, wavelength_A, tt_min, tt_max)
+                        if _recip_points_exceeded(refined_struct, wavelength_A,
+                                                  tt_min, tt_max, is_local):
+                            refined_reflections = []
+                        else:
+                            refined_reflections = _predict_reflections(
+                                refined_struct, wavelength_A, tt_min, tt_max)
                         st.session_state["latfit_result"] = {
                             "sig": sig, "result": result, "matched": matched,
                             "unmatched": unmatched, "base_cell": base_cell,

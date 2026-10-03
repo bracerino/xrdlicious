@@ -97,6 +97,25 @@ from matminer.featurizers.structure import PartialRadialDistributionFunction
 MAX_ATOMS = 750
 MAX_SUPERCELL_ATOMS = 750
 MAX_SPECIES = 6
+# Safety threshold on the estimated number of neighbor pairs within the cutoff.
+# matminer builds a Python object per pair (~1 kB each), so dense or shrunken
+# cells with a large cutoff can easily exhaust the memory of the free server.
+LOCAL_MAX_NEIGHBOR_PAIRS = 10_000_000
+ONLINE_MAX_NEIGHBOR_PAIRS = 400_000
+
+
+def is_running_locally() -> bool:
+    try:
+        host = st.context.headers.get("host", "")
+        return "localhost" in host or "127.0.0.1" in host
+    except Exception:
+        return False
+
+
+def estimate_neighbor_pairs(struct: Structure, cutoff: float) -> int:
+    """Expected number of (i, j) pairs closer than ``cutoff`` (uniform density)."""
+    n = len(struct)
+    return int(n * (n / struct.volume) * (4.0 / 3.0) * np.pi * cutoff ** 3)
 
 
 def rgb_to_hex(c) -> str:
@@ -687,6 +706,16 @@ if st.session_state.prdf_do_calc and structures:
         for s_idx, (fname, mg_struct) in enumerate(struct_items):
             progress_bar.progress(s_idx / len(struct_items), text=f"Processing {fname} …")
             try:
+                n_pairs = estimate_neighbor_pairs(mg_struct, cutoff)
+                pair_limit = (LOCAL_MAX_NEIGHBOR_PAIRS if is_running_locally()
+                              else ONLINE_MAX_NEIGHBOR_PAIRS)
+                if n_pairs > pair_limit:
+                    raise ValueError(
+                        f"estimated {n_pairs:,} neighbor pairs within {cutoff:.1f} Å exceeds "
+                        f"the safety limit of {pair_limit:,} (cell volume "
+                        f"{mg_struct.volume:.2f} Å³, {len(mg_struct)} atoms). Reduce the cutoff, "
+                        f"check that the lattice parameters are not too small, or run the app locally."
+                    )
                 featurizer = PartialRadialDistributionFunction(cutoff=cutoff, bin_size=bin_size)
                 featurizer.fit([mg_struct])
                 prdf_vals = featurizer.featurize(mg_struct)
@@ -725,7 +754,7 @@ if st.session_state.prdf_do_calc and structures:
     _calc_status_slot.empty()
     if calc_errors:
         for fname, msg in calc_errors:
-            st.toast(f"Error processing {fname}: {msg}", icon="❌")
+            st.error(f"❌ Error processing **{fname}**: {msg}")
     else:
         n = len(st.session_state.prdf_results)
         st.toast(f"Calculated PRDF for {n} structure(s).", icon="✅")

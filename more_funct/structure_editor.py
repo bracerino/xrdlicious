@@ -412,6 +412,12 @@ _COVALENT_RADII = {
     "Tl":1.45,"Pb":1.46,"Bi":1.48,"Po":1.40,"At":1.50,"Rn":1.50,
 }
 
+# Bond search is O(N² · 27) in pure Python, and a cell shrunk below the bond
+# lengths makes every atom pair "bonded". Beyond these limits the search or the
+# py3Dmol scene (two cylinders per bond) can exhaust memory, so bonds are skipped.
+MAX_BOND_ATOMS = 1500
+MAX_DRAWN_BONDS = 10_000
+
 def _compute_bonds_cartesian(cart_positions, elements, lattice_matrix, tolerance=1.15, include_pbc=True):
     n = len(cart_positions)
     if n == 0:
@@ -712,10 +718,19 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                             bond_els.append(atom["element"])
             bond_lm = np.array([sx*raw_lm[0], sy*raw_lm[1], sz*raw_lm[2]])
 
-        bonds_raw, image_atoms_raw = _compute_bonds_cartesian(
-            bond_carts_raw, bond_els, bond_lm,
-            tolerance=bond_tolerance, include_pbc=bonds_pbc,
-        )
+        if len(bond_carts_raw) > MAX_BOND_ATOMS:
+            st.warning(f"⚠️ Bonds not drawn: {len(bond_carts_raw):,} atoms exceed the limit of "
+                       f"{MAX_BOND_ATOMS:,} for the bond search. Reduce the supercell repeats.")
+            bonds_raw, image_atoms_raw = [], []
+        else:
+            bonds_raw, image_atoms_raw = _compute_bonds_cartesian(
+                bond_carts_raw, bond_els, bond_lm,
+                tolerance=bond_tolerance, include_pbc=bonds_pbc,
+            )
+        if len(bonds_raw) > MAX_DRAWN_BONDS:
+            st.warning(f"⚠️ Bonds not drawn: {len(bonds_raw):,} bonds found (limit {MAX_DRAWN_BONDS:,}). "
+                       f"Check that the lattice parameters are not too small, or lower the bond tolerance.")
+            bonds_raw, image_atoms_raw = [], []
 
         bonds_display = [(_dc(p1), _dc(p2), el1, el2) for p1, p2, el1, el2 in bonds_raw]
         _add_bonds_to_view(view, bonds_display, bond_radius=bond_radius)
