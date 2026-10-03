@@ -265,6 +265,29 @@ with intro_ctx:
             "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
             "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. 🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
         )
+        st.markdown(
+            """
+            <div style="border: 2px solid #0078d4; border-radius: 8px;
+                        background: linear-gradient(90deg, rgba(0,120,212,0.15), rgba(0,120,212,0.03));
+                        padding: 10px 14px; margin-top: 6px; font-size: 0.9em;">
+                <div style="font-size: 1.05em; font-weight: 700; margin-bottom: 4px;">
+                    🪟 Windows installer released!
+                    <span style="background: #0078d4; color: white; font-size: 0.7em; font-weight: 600;
+                                 padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px;">NEW</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    Run XRDlicious locally on your PC without any Python setup.
+                    Give it a try and let us know how it works for you!
+                </div>
+                <a href="https://github.com/bracerino/xrdlicious/releases/download/v0.8.3/XRDlicious-0.8.3-setup.1.exe" target="_blank"
+                   style="display: inline-block; background: #0078d4; color: white; font-weight: 600;
+                          padding: 5px 12px; border-radius: 6px; text-decoration: none;">
+                    ⬇️ Download for Windows
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     with col1:
         about_app_show = st.checkbox(f"📖 About the app")
         show_roadmap = st.checkbox(f"🧭 Roadmap", value=False)
