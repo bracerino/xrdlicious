@@ -541,12 +541,13 @@ def show_database_results() -> None:
     st.markdown(
         """
         <style>
-        .st-key-mp_sel_disp [data-baseweb="select"] > div,
-        .st-key-aflow_sel_disp [data-baseweb="select"] > div,
-        .st-key-cod_sel_disp [data-baseweb="select"] > div,
-        .st-key-mc3d_sel_disp [data-baseweb="select"] > div {
+        .st-key-mp_sel_disp [data-testid="stSelectbox"] [role="group"],
+        .st-key-aflow_sel_disp [data-testid="stSelectbox"] [role="group"],
+        .st-key-cod_sel_disp [data-testid="stSelectbox"] [role="group"],
+        .st-key-mc3d_sel_disp [data-testid="stSelectbox"] [role="group"] {
             border: 2px solid #1e3a8a;
             border-radius: 0 0 9px 9px;
+            height: auto;
             min-height: 46px;
             font-size: 1.0rem;
             font-weight: 600;

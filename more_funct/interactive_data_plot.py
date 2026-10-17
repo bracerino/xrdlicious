@@ -323,8 +323,10 @@ def render_interactive_data_plot(user_pattern_file):
                 - The correction is a pure geometry factor $\\propto 1/\\sin\\theta$ and
                   assumes an infinitely thick, homogeneous specimen.
                 - **Beam overspill is not treated**: at low angles the fixed-slit
-                  footprint $R\\varphi_{\\text{rad}}/\\sin\\theta$ can exceed the sample
-                  length, in which case the conversion overestimates the intensity.
+                  footprint $R\\varphi_{\\text{rad}}/\\sin\\theta$ can grow past the
+                  specimen, and the part of the beam that misses it is lost. The
+                  specimen length is not asked for here, so the app can only flag
+                  where the footprint exceeds $L_{\\text{irr}}$ as a hint.
                 - Other instrumental effects (axial divergence, Soller slits, knife
                   edge) are not included.
 
@@ -491,10 +493,14 @@ def render_interactive_data_plot(user_pattern_file):
 
         offset_cols = st.columns(len(files))
         y_offsets = []
+        # Defaults go through session state (not value=) because "Stack Plots"
+        # and "Reset Layout" set these keys in their callbacks.
+        for i in range(len(files)):
+            st.session_state.setdefault(f"y_offset_{i}", 0.0)
+            st.session_state.setdefault(f"y_scale_{i}", 1.0)
         for i, file in enumerate(files):
             offset_val = offset_cols[i].number_input(
                 f"Y offset for {file.name}",
-                value=0.0,
                 key=f"y_offset_{i}"
             )
             y_offsets.append(offset_val)
@@ -505,7 +511,6 @@ def render_interactive_data_plot(user_pattern_file):
                 f"Scale factor for {file.name}",
                 min_value=0.01,
                 max_value=100.0,
-                value=1.0,
                 step=0.1,
                 key=f"y_scale_{i}"
             )
@@ -801,21 +806,32 @@ def render_interactive_data_plot(user_pattern_file):
                             y_data = y_data * adjustment_factor
                             st.success(f"Applied Fixed slit → Auto slit conversion for {file.name}")
 
-                        # The fixed-slit footprint must fit on the specimen for the
-                        # correction to hold; beyond that the beam spills over the
-                        # sample edges and the 1/sinθ scaling breaks down.
-                        with np.errstate(divide="ignore", invalid="ignore"):
-                            footprint = np.zeros(len(theta_rad), dtype=float)
-                            footprint[valid_mask] = (
-                                slit_radius * fixed_slit_rad / np.sin(theta_rad[valid_mask])
+                        # The fixed-slit beam has to fit on the specimen. Its
+                        # footprint R·φ/sinθ grows past the length the automatic
+                        # slit illuminates once sinθ < R·φ/L_irr, and a specimen
+                        # no longer than L_irr then loses the overhang. The true
+                        # specimen length is not known here, so this is flagged
+                        # as a caveat rather than corrected for.
+                        overspill_range = None
+                        if np.any(valid_mask):
+                            if footprint_ratio >= 1.0:
+                                overspill_range = "At every angle"
+                            elif np.min(np.sin(theta_rad[valid_mask])) < footprint_ratio:
+                                overspill_range = (
+                                    f"Below 2θ ≈ "
+                                    f"{2 * np.degrees(np.arcsin(footprint_ratio)):.1f}°"
+                                )
+                        if overspill_range:
+                            bias = (
+                                "too high"
+                                if slit_conversion_type == "Auto slit to fixed slit"
+                                else "too low"
                             )
-                        overspill = valid_mask & (footprint > irradiated_length)
-                        if np.any(overspill):
                             st.warning(
-                                f"{file.name}: below 2θ ≈ {two_theta[overspill].max():.2f}°, the "
-                                f"fixed-slit footprint (R·φ/sinθ) exceeds the {irradiated_length:.1f} mm "
-                                f"sample length. Beam overspill is not corrected for, so those "
-                                f"intensities are only approximate."
+                                f"{file.name} — {overspill_range} the fixed slit illuminates "
+                                f"more than {irradiated_length:.1f} mm of the sample. If your "
+                                f"specimen is shorter, part of the beam misses it; that is not "
+                                f"corrected, so the converted intensity is {bias} there."
                             )
 
                         if not np.all(valid_mask):

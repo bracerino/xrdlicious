@@ -320,7 +320,7 @@ pattern_details = None
 st.markdown("""
     <style>
     /* Target tab labels */
-    .stTabs [data-baseweb="tab"] {
+    .stTabs [data-testid="stTab"] {
         font-size: 20px;
     }
     </style>
@@ -389,39 +389,44 @@ calc_mode = st.sidebar.multiselect(
 
 css = '''
 <style>
-.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+/* Tabs are React Aria elements since Streamlit 1.66: [role="tablist"] holds
+   div[data-testid="stTab"] items (selected one has aria-selected="true"). */
+.stTabs [data-testid="stTab"] [data-testid="stMarkdownContainer"] p {
     font-size: 1.15rem !important;
     color: #1e3a8a !important;
     font-weight: 600 !important;
     margin: 0 !important;
 }
 
-.stTabs [data-baseweb="tab-list"] {
+.stTabs [role="tablist"] {
     gap: 20px !important;
+    padding: 4px 2px 6px 2px !important;
 }
 
-.stTabs [data-baseweb="tab-list"] button {
+.stTabs [data-testid="stTab"] {
     background-color: #f0f4ff !important;
     border-radius: 12px !important;
     padding: 8px 16px !important;
+    height: auto !important;
     transition: all 0.3s ease !important;
     border: none !important;
     color: #1e3a8a !important;
 }
 
-.stTabs [data-baseweb="tab-list"] button:hover {
+.stTabs [data-testid="stTab"]:hover {
     background-color: #dbe5ff !important;
     cursor: pointer;
 }
 
-.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+.stTabs [data-testid="stTab"][aria-selected="true"] {
     background-color: #e0e7ff !important;
     color: #1e3a8a !important;
     font-weight: 700 !important;
     box-shadow: 0 2px 6px rgba(30, 58, 138, 0.3) !important;
 }
 
-.stTabs [data-baseweb="tab-list"] button:focus {
+.stTabs [data-testid="stTab"]:focus,
+.stTabs [data-testid="stTab"][data-focus-visible] {
     outline: none !important;
 }
 </style>
