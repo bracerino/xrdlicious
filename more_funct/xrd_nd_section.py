@@ -1078,118 +1078,118 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
             )
             return
 
-        from scipy.signal import savgol_filter as _savgol
+        col_set, col_plot = st.columns([1, 4])
+        with col_set:
+            from scipy.signal import savgol_filter as _savgol
 
-        if bg_method == "Polynomial Fit":
-            poly_degree = st.slider("Polynomial Degree", 1, 15, 6, 1,
-                                    help="Higher degree follows the baseline more closely.")
-            n_iters = st.slider("Iterations", 1, 200, 40, 1,
-                                help="More iterations suppress peaks more aggressively before fitting.")
-            sort_idx = np.argsort(x_exp)
-            xs, ys_sorted = x_exp[sort_idx], y_exp[sort_idx]
-            ywork = ys_sorted.copy().astype(float)
-            for _ in range(n_iters):
-                try:
-                    coeffs = np.polyfit(xs, ywork, poly_degree)
-                    fitted = np.polyval(coeffs, xs)
-                except Exception:
-                    fitted = ywork
-                ywork = np.minimum(ywork, fitted)
-            coeffs = np.polyfit(xs, ywork, poly_degree)
-            bg_sorted = np.polyval(coeffs, xs)
-            unsort = np.argsort(sort_idx)
-            background = bg_sorted[unsort]
+            if bg_method == "Polynomial Fit":
+                poly_degree = st.slider("Polynomial Degree", 1, 15, 6, 1,
+                                        help="Higher degree follows the baseline more closely.")
+                n_iters = st.slider("Iterations", 1, 200, 40, 1,
+                                    help="More iterations suppress peaks more aggressively before fitting.")
+                sort_idx = np.argsort(x_exp)
+                xs, ys_sorted = x_exp[sort_idx], y_exp[sort_idx]
+                ywork = ys_sorted.copy().astype(float)
+                for _ in range(n_iters):
+                    try:
+                        coeffs = np.polyfit(xs, ywork, poly_degree)
+                        fitted = np.polyval(coeffs, xs)
+                    except Exception:
+                        fitted = ywork
+                    ywork = np.minimum(ywork, fitted)
+                coeffs = np.polyfit(xs, ywork, poly_degree)
+                bg_sorted = np.polyval(coeffs, xs)
+                unsort = np.argsort(sort_idx)
+                background = bg_sorted[unsort]
 
-        elif bg_method == "SNIP Algorithm":
-            snip_iters = st.slider(
-                "SNIP Iterations (M)", 1, 100, 20, 1,
-                help="Controls the maximum half-width of spectral features "
-                     "that are removed. Larger M removes broader peaks / "
-                     "follows a more gradually varying baseline."
-            )
+            elif bg_method == "SNIP Algorithm":
+                snip_iters = st.slider(
+                    "SNIP Iterations (M)", 1, 100, 20, 1,
+                    help="Controls the maximum half-width of spectral features "
+                         "that are removed. Larger M removes broader peaks / "
+                         "follows a more gradually varying baseline."
+                )
 
-            v = np.log(np.log(np.sqrt(np.maximum(y_exp, 0.0) + 1.0) + 1.0) + 1.0)
+                v = np.log(np.log(np.sqrt(np.maximum(y_exp, 0.0) + 1.0) + 1.0) + 1.0)
 
-            for p in range(1, snip_iters + 1):
-                avg = (np.roll(v, p) + np.roll(v, -p)) / 2.0
-                v_new = np.minimum(v, avg)
-                v_new[:p] = v[:p]
-                v_new[-p:] = v[-p:]
-                v = v_new
+                for p in range(1, snip_iters + 1):
+                    avg = (np.roll(v, p) + np.roll(v, -p)) / 2.0
+                    v_new = np.minimum(v, avg)
+                    v_new[:p] = v[:p]
+                    v_new[-p:] = v[-p:]
+                    v = v_new
 
-            background = np.maximum(
-                (np.exp(np.exp(v) - 1.0) - 1.0) ** 2 - 1.0, 0.0
-            )
+                background = np.maximum(
+                    (np.exp(np.exp(v) - 1.0) - 1.0) ** 2 - 1.0, 0.0
+                )
 
-        elif bg_method == "Rolling Ball Algorithm":
-            ball_radius = st.slider("Ball Radius", 1, 100, 30, 1)
-            ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1)
-            ys = y_exp.copy()
-            if ball_smoothing > 0:
-                wlen = min(len(ys) // 10, 20)
-                if wlen % 2 == 0:
-                    wlen += 1
-                if wlen >= 3:
-                    for _ in range(ball_smoothing):
-                        ys = _savgol(ys, wlen, 2)
-            y_bg = np.array([
-                np.min(ys[max(0, i - ball_radius):
-                          min(len(ys), i + ball_radius + 1)])
-                for i in range(len(ys))
-            ])
-            background = y_bg
+            elif bg_method == "Rolling Ball Algorithm":
+                ball_radius = st.slider("Ball Radius", 1, 100, 30, 1)
+                ball_smoothing = st.slider("Smoothing Passes", 0, 10, 3, 1)
+                ys = y_exp.copy()
+                if ball_smoothing > 0:
+                    wlen = min(len(ys) // 10, 20)
+                    if wlen % 2 == 0:
+                        wlen += 1
+                    if wlen >= 3:
+                        for _ in range(ball_smoothing):
+                            ys = _savgol(ys, wlen, 2)
+                y_bg = np.array([
+                    np.min(ys[max(0, i - ball_radius):
+                              min(len(ys), i + ball_radius + 1)])
+                    for i in range(len(ys))
+                ])
+                background = y_bg
 
-        else:
-            from scipy.sparse import diags as _sp_diags, eye as _sp_eye
-            from scipy.sparse.linalg import spsolve as _spsolve
+            else:
+                from scipy.sparse import diags as _sp_diags, eye as _sp_eye
+                from scipy.sparse.linalg import spsolve as _spsolve
 
-            lam = st.select_slider(
-                "Smoothness (λ)",
-                options=[1e3, 1e4, 1e5, 5e5, 1e6, 5e6, 1e7, 1e8],
-                value=1e6,
-                format_func=lambda v: f"{v:.0e}",
-                help="Higher = smoother/flatter baseline. 1e5–1e7 suits most diffraction data.",
-            )
-            p = st.slider(
-                "Asymmetry (p)", 0.001, 0.05, 0.01, 0.001, format="%.3f",
-                help="Fraction of points considered background. "
-                     "Lower = baseline hugs the valley more tightly.",
-            )
-            n_iter = st.slider("Iterations", 5, 50, 15, 1)
+                lam = st.select_slider(
+                    "Smoothness (λ)",
+                    options=[1e3, 1e4, 1e5, 5e5, 1e6, 5e6, 1e7, 1e8],
+                    value=1e6,
+                    format_func=lambda v: f"{v:.0e}",
+                    help="Higher = smoother/flatter baseline. 1e5–1e7 suits most diffraction data.",
+                )
+                p = st.slider(
+                    "Asymmetry (p)", 0.001, 0.05, 0.01, 0.001, format="%.3f",
+                    help="Fraction of points considered background. "
+                         "Lower = baseline hugs the valley more tightly.",
+                )
+                n_iter = st.slider("Iterations", 5, 50, 15, 1)
 
-            y = y_exp.astype(float)
-            n = len(y)
-            D = _sp_diags([1, -2, 1], [0, 1, 2], shape=(n - 2, n))
-            H = lam * D.T.dot(D)
-            w = np.ones(n)
-            z = y.copy()
-            for _ in range(n_iter):
-                W = _sp_diags(w, 0, shape=(n, n))
-                z = _spsolve((W + H).tocsc(), w * y)
-                w = p * (y > z) + (1 - p) * (y <= z)
-            background = z
+                y = y_exp.astype(float)
+                n = len(y)
+                D = _sp_diags([1, -2, 1], [0, 1, 2], shape=(n - 2, n))
+                H = lam * D.T.dot(D)
+                w = np.ones(n)
+                z = y.copy()
+                for _ in range(n_iter):
+                    W = _sp_diags(w, 0, shape=(n, n))
+                    z = _spsolve((W + H).tocsc(), w * y)
+                    w = p * (y > z) + (1 - p) * (y <= z)
+                background = z
 
-        y_bg_sub = np.maximum(0, y_exp - background)
+            y_bg_sub = np.maximum(0, y_exp - background)
 
-        if st.button("Permanently Apply This Background Subtraction",
-                     type="primary"):
-            if "permanent_exp_data" not in st.session_state:
-                st.session_state.permanent_exp_data = {}
-            st.session_state.permanent_exp_data[selected_exp_name] = {
-                "x": x_exp.copy(), "y": y_bg_sub.copy(),
-                "background": background.copy(),
-            }
-            if "bg_subtracted_data" not in st.session_state:
-                st.session_state.bg_subtracted_data = {}
-            st.session_state.bg_subtracted_data[selected_exp_name] = {
-                "x": x_exp, "y": y_bg_sub, "background": background,
-            }
-            st.session_state.use_bg_subtracted = True
-            st.session_state.active_bg_subtracted_file = selected_exp_name
-            st.success(f"Background subtraction applied to {selected_exp_name}!")
+            if st.button("Permanently Apply This Background Subtraction",
+                         type="primary"):
+                if "permanent_exp_data" not in st.session_state:
+                    st.session_state.permanent_exp_data = {}
+                st.session_state.permanent_exp_data[selected_exp_name] = {
+                    "x": x_exp.copy(), "y": y_bg_sub.copy(),
+                    "background": background.copy(),
+                }
+                if "bg_subtracted_data" not in st.session_state:
+                    st.session_state.bg_subtracted_data = {}
+                st.session_state.bg_subtracted_data[selected_exp_name] = {
+                    "x": x_exp, "y": y_bg_sub, "background": background,
+                }
+                st.session_state.use_bg_subtracted = True
+                st.session_state.active_bg_subtracted_file = selected_exp_name
+                st.success(f"Background subtraction applied to {selected_exp_name}!")
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
                 dl_data = "\n".join(
                     f"{r[0]:.6f}  {r[1]:.6f}"
                     for r in np.column_stack((x_exp, y_bg_sub))
@@ -1200,7 +1200,6 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                     file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_bg_subtracted.xy",
                     mime="text/plain", type="primary",
                 )
-            with col2:
                 bg_data = "\n".join(
                     f"{r[0]:.6f}  {r[1]:.6f}"
                     for r in np.column_stack((x_exp, background))
@@ -1211,7 +1210,6 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                     file_name=f"{selected_exp_name.rsplit('.', 1)[0]}_background.xy",
                     mime="text/plain", type="primary",
                 )
-            with col3:
                 orig = st.session_state.get("original_exp_data", {}).get(selected_exp_name)
                 x_orig_dl = orig["x"] if orig is not None else x_exp
                 y_orig_dl = orig["y"] if orig is not None else x_exp
@@ -1227,28 +1225,33 @@ def _tab_background_subtraction(user_pattern_file, x_axis_metric):
                     type = 'primary',
                 )
 
-        fig_bg = go.Figure()
-        for trace_y, name, color in [
-            (y_exp, "Original Data", "black"),
-            (background, "Estimated Background", "red"),
-            (y_bg_sub, "After Subtraction", "blue"),
-        ]:
-            fig_bg.add_trace(go.Scatter(
-                x=x_exp, y=trace_y, mode="lines", name=name,
-                line=dict(color=color, width=3),
-            ))
-        fig_bg.update_layout(
-            title=dict(text="Background Subtraction", font=dict(size=32)),
-            xaxis=dict(title=dict(text=x_axis_metric, font=dict(size=28)),
-                       tickfont=dict(size=24)),
-            yaxis=dict(title=dict(text="Intensity (a.u.)", font=dict(size=28)),
-                       tickfont=dict(size=24)),
-            legend=dict(font=dict(size=24), orientation="h",
-                        yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            height=600, hovermode="x unified",
-            hoverlabel=dict(font=dict(size=20)),
-        )
-        st.plotly_chart(fig_bg, width="stretch")
+        with col_plot:
+            fig_bg = go.Figure()
+            # Original data is drawn semi-transparent so the estimated
+            # background (dashed, on top) stays visible where they overlap.
+            for trace_y, name, line in [
+                (y_exp, "Original Data",
+                 dict(color="rgba(40, 40, 40, 0.75)", width=2)),
+                (y_bg_sub, "After Subtraction",
+                 dict(color="rgba(31, 119, 180, 0.85)", width=2)),
+                (background, "Estimated Background",
+                 dict(color="rgb(230, 85, 13)", width=3, dash="dash")),
+            ]:
+                fig_bg.add_trace(go.Scatter(
+                    x=x_exp, y=trace_y, mode="lines", name=name, line=line,
+                ))
+            fig_bg.update_layout(
+                margin=dict(t=60),
+                xaxis=dict(title=dict(text=x_axis_metric, font=dict(size=28)),
+                           tickfont=dict(size=24)),
+                yaxis=dict(title=dict(text="Intensity (a.u.)", font=dict(size=28)),
+                           tickfont=dict(size=24)),
+                legend=dict(font=dict(size=24), orientation="h",
+                            yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                height=600, hovermode="x unified",
+                hoverlabel=dict(font=dict(size=20)),
+            )
+            st.plotly_chart(fig_bg, width="stretch")
 
     except Exception as exc:
         st.error(f"Error processing {selected_exp_name}: {exc}")
