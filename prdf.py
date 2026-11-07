@@ -517,20 +517,28 @@ if 'full_structures' not in st.session_state:
 
 allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg", "lmp"]
 
-st.sidebar.subheader("📤 Upload Structure Files")
+st.sidebar.subheader(
+    "📤 Upload Structure Files",
+    help="Supported formats: CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP"
+)
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
-    "(CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP):",
+    "Structure files",
     type=allowed_types,
     accept_multiple_files=True,
-    key="sidebar_uploader"
+    key="sidebar_uploader",
+    label_visibility="collapsed"
 )
 
-st.sidebar.subheader("📁 Upload Experimental Data ")
+st.sidebar.subheader(
+    "📁 Upload Experimental Data",
+    help="Supported formats: .xy, .xrdml, .ras, .rasx, .raw — or any two-column text file"
+)
 user_pattern_file = st.sidebar.file_uploader(
-    "(.xy, .xrdml, .ras, .rasx, .raw — or any two-column text file).",
+    "Experimental data files",
     type=["csv", "txt", "xy", "data", "dat", "xrdml", "xml", "ras", "rasx",
           "raw"],
-    key="user_xrd", accept_multiple_files=True
+    key="user_xrd", accept_multiple_files=True,
+    label_visibility="collapsed"
 )
 
 # The bundled example (loaded from the welcome note) is treated exactly like an
