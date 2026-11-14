@@ -1,4 +1,5 @@
 import io
+import itertools
 import os
 import re
 import tempfile
@@ -682,6 +683,14 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             mg.lattice.reciprocal_lattice_crystallographic.matrix,
             dtype=float,
         )
+        # Fractional coordinates and Σ Z·occupancy per site, used to weight
+        # the reflections of a peak in the March-Dollase correction.
+        sf_sites = (
+            np.array([site.frac_coords for site in mg], dtype=float),
+            np.array([sum(getattr(sp, "Z", 0) * occ
+                          for sp, occ in site.species.items())
+                      for site in mg], dtype=float),
+        )
 
         if 'pat' in dir(): del pat
         if 'calc' in dir(): del calc
@@ -703,6 +712,7 @@ def _calculate_raw_patterns(uploaded_files, wavelength_A, diffraction_choice,
             raw_hkls=all_hkls, peak_types=all_types,
             original_count=original_count,
             recip_matrix=recip_matrix,
+            sf_sites=sf_sites,
         )
 
     return raw_patterns
@@ -749,44 +759,80 @@ def _fwhm_at_twotheta(two_theta_deg, wavelength_A, crystallite_size_nm,
     return np.sqrt(beta_deg ** 2 + fwhm_instr ** 2)
 
 
-def _march_dollase(hkl_groups, recip_matrix, hkl_pref, r):
+def _peak_reflections(hkl_group, R):
+    """All reflections (h, k, l) that fall into one calculated peak.
+
+    The calculators list only one representative hkl per family, so the
+    members are rebuilt as the signed permutations of each listed hkl (for
+    hexagonal four-index labels also over h, k, i) that keep its d-spacing.
+    """
+    cands, g_norms = set(), []
+    for entry in hkl_group:
+        hkl = tuple(int(v) for v in entry["hkl"])
+        if len(hkl) == 4:
+            h, k, i, l = hkl
+            for p in set(itertools.permutations((h, k, i))):
+                for sgn in (1, -1):
+                    for sgn_l in (1, -1):
+                        cands.add((sgn * p[0], sgn * p[1], sgn_l * l))
+            hkl = (h, k, l)
+        elif len(hkl) != 3:
+            continue
+        for p in set(itertools.permutations(hkl)):
+            for signs in itertools.product((1, -1), repeat=3):
+                cands.add(tuple(sg * v for sg, v in zip(signs, p)))
+        g_norms.append(float(np.linalg.norm(np.dot(hkl, R))))
+    if not cands or not g_norms:
+        return np.zeros((0, 3), dtype=int)
+    cands = np.array(sorted(cands), dtype=int)
+    gn = np.linalg.norm(cands @ R, axis=1)
+    keep = np.zeros(len(cands), dtype=bool)
+    for g0 in g_norms:
+        keep |= np.abs(gn - g0) <= 1e-5 * max(g0, 1e-12)
+    keep &= gn > 1e-12
+    return cands[keep]
+
+
+def _march_dollase(hkl_groups, recip_matrix, hkl_pref, r, sf_sites=None):
+    """March-Dollase factor for each peak.
+
+    P(α) = (r²·cos²α + sin²α / r)^(-3/2) is averaged over all reflections
+    in the peak, weighted by |F|² (atomic numbers as scattering factors).
+    This gives symmetry-equivalent reflections equal weight and drops
+    systematically absent ones that share the d-spacing. Without site data
+    all reflections are weighted equally.
+    """
     if recip_matrix is None or r is None or abs(r - 1.0) < 1e-9:
         return None
     R = np.asarray(recip_matrix, dtype=float)
     if R.shape != (3, 3):
         return None
-    g_pref = (R[0] * float(hkl_pref[0]) + R[1] * float(hkl_pref[1])
-              + R[2] * float(hkl_pref[2]))
+    g_pref = np.dot(np.asarray(hkl_pref, dtype=float), R)
     g_pref_norm = float(np.linalg.norm(g_pref))
     if g_pref_norm < 1e-12:
         return None
     g_pref_unit = g_pref / g_pref_norm
 
+    coords = weights = None
+    if sf_sites is not None:
+        coords = np.asarray(sf_sites[0], dtype=float)
+        weights = np.asarray(sf_sites[1], dtype=float)
+
     out = np.ones(len(hkl_groups), dtype=float)
     for i, hg in enumerate(hkl_groups):
-        weight_sum = 0.0
-        p_sum = 0.0
-        for entry in hg:
-            hkl = entry["hkl"]
-            if len(hkl) == 4:
-                h, k, l = float(hkl[0]), float(hkl[1]), float(hkl[3])
-            elif len(hkl) >= 3:
-                h, k, l = float(hkl[0]), float(hkl[1]), float(hkl[2])
-            else:
-                continue
-            g = R[0] * h + R[1] * k + R[2] * l
-            g_norm = float(np.linalg.norm(g))
-            if g_norm < 1e-12:
-                continue
-            cos_a = float(np.dot(g, g_pref_unit) / g_norm)
-            cos_a = max(-1.0, min(1.0, cos_a))
-            sin2 = 1.0 - cos_a * cos_a
-            p = (r * r * cos_a * cos_a + sin2 / r) ** (-1.5)
-            mult = float(entry.get("multiplicity", 1))
-            p_sum += p * mult
-            weight_sum += mult
-        if weight_sum > 0:
-            out[i] = p_sum / weight_sum
+        refl = _peak_reflections(hg, R)
+        if len(refl) == 0:
+            continue
+        g = refl @ R
+        cos_a = np.clip((g @ g_pref_unit) / np.linalg.norm(g, axis=1), -1.0, 1.0)
+        p = (r * r * cos_a ** 2 + (1.0 - cos_a ** 2) / r) ** -1.5
+        w = np.ones(len(refl))
+        if coords is not None and len(coords):
+            F = np.exp(2j * np.pi * (refl @ coords.T)) @ weights
+            f2 = np.abs(F) ** 2
+            if f2.sum() > 1e-8 * max(float(np.sum(weights)) ** 2, 1e-12):
+                w = f2
+        out[i] = float(np.sum(w * p) / np.sum(w))
     return out
 
 
@@ -872,7 +918,8 @@ def _process_for_display(raw_patterns, two_theta_min, two_theta_max,
 
         if use_texture and len(raw_x) > 0 and abs(texture_r - 1.0) > 1e-9:
             corrections = _march_dollase(
-                raw_hkls, raw.get("recip_matrix"), texture_hkl, texture_r)
+                raw_hkls, raw.get("recip_matrix"), texture_hkl, texture_r,
+                sf_sites=raw.get("sf_sites"))
             if corrections is not None and len(corrections) == len(raw_y):
                 raw_y = raw_y * corrections
 
@@ -2410,10 +2457,12 @@ def _diffraction_settings_ui(has_exp_data=False):
                     "Standard correction for powders with non-random "
                     "crystallite orientation. Each peak is multiplied by\n\n"
                     "P(α) = (r²·cos²α + sin²α/r)^(−3/2)\n\n"
-                    "where α is the angle between the preferred direction "
-                    "(hkl_pref) and the reflection vector, and r is the "
-                    "March coefficient. r = 1 → no texture; r < 1 → needle-"
-                    "like crystallites along hkl_pref; r > 1 → plate-like."
+                    "where α is the angle between the normal of the "
+                    "preferred plane (hkl_pref) and the reflection vector, "
+                    "and r is the March coefficient. r = 1 → no texture; "
+                    "r < 1 → plate-like crystallites lying with (hkl_pref) "
+                    "parallel to the sample surface; r > 1 → needle-like "
+                    "crystallites along the (hkl_pref) normal."
                 ),
             )
             if use_texture:
@@ -2436,16 +2485,17 @@ def _diffraction_settings_ui(has_exp_data=False):
                         value=float(st.session_state.get("texture_r", 1.0)),
                         min_value=0.05, max_value=10.0,
                         step=0.05, format="%.3f", key="texture_r",
-                        help="r < 1 → enhances (hkl_pref) family (needle); "
-                             "r > 1 → suppresses (plate).")
+                        help="r < 1 → enhances the (hkl_pref) reflections "
+                             "(plates); r > 1 → suppresses them (needles).")
                 if texture_h == 0 and texture_k == 0 and texture_l == 0:
                     st.warning(
                         "⚠️ Preferred direction (h k l) cannot be (0 0 0). "
                         "Correction will be skipped.")
                 else:
                     _regime = ("no effect" if abs(texture_r - 1.0) < 1e-6 else
-                               "needle-like along hkl_pref" if texture_r < 1.0
-                               else "plate-like ⟂ hkl_pref")
+                               "plate-like, (hkl) reflections enhanced"
+                               if texture_r < 1.0 else
+                               "needle-like, (hkl) reflections suppressed")
                     st.caption(
                         f"Preferred orientation **({texture_h} {texture_k} "
                         f"{texture_l})**, r = **{texture_r:.3f}** → {_regime}."
