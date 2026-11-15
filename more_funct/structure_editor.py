@@ -197,56 +197,59 @@ def _orientation_controls_body(key_suffix, lattice_matrix):
 
     roll_key = f"orient_roll_deg_{key_suffix}"
 
-    if lattice_matrix is not None:
-        try:
-            dot_cond = hkl[0]*uvw[0] + hkl[1]*uvw[1] + hkl[2]*uvw[2]
-            if dot_cond != 0:
-                st.caption(
-                    f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward direction is not strictly "
-                    f"in the projection plane. It will be projected onto the screen plane, "
-                    f"as in VESTA."
-                )
-            view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
-            M = _compute_orientation_matrix(view_dir, up_dir)
-            st.markdown(
-                "<div style='font-weight:600;font-size:0.85rem;margin-top:8px;'>"
-                "Orientation matrix</div>",
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                f"<div style='font-family:monospace;font-size:0.80rem;background:#f4f4f4;"
-                f"padding:8px 10px;border-radius:6px;line-height:1.7;'>"
-                f"{M[0,0]:+.6f}  {M[0,1]:+.6f}  {M[0,2]:+.6f}<br>"
-                f"{M[1,0]:+.6f}  {M[1,1]:+.6f}  {M[1,2]:+.6f}<br>"
-                f"{M[2,0]:+.6f}  {M[2,1]:+.6f}  {M[2,2]:+.6f}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+    # Orientation matrix on the left, the Apply button right next to it.
+    mat_col, apply_col = st.columns([3, 2], vertical_alignment="center")
+    with mat_col:
+        if lattice_matrix is not None:
             try:
-                d = _d_spacing(lattice_matrix, hkl[0], hkl[1], hkl[2])
-                st.caption(f"d-spacing ({hkl[0]} {hkl[1]} {hkl[2]}): {d:.4f} Å")
-            except Exception:
-                pass
-            roll_val = float(st.session_state.get(roll_key, 0.0))
-            if abs(roll_val) > 1e-9:
-                st.caption(f"Roll around projection axis: {roll_val:.1f}°")
-        except Exception as e:
-            st.caption(f"⚠️ Could not calculate orientation: {e}")
+                dot_cond = hkl[0]*uvw[0] + hkl[1]*uvw[1] + hkl[2]*uvw[2]
+                if dot_cond != 0:
+                    st.caption(
+                        f"⚠️ hu+kv+lw = {dot_cond} ≠ 0: upward direction is not strictly "
+                        f"in the projection plane. It will be projected onto the screen plane, "
+                        f"as in VESTA."
+                    )
+                view_dir, up_dir = _compute_view_and_up_dirs(lattice_matrix, mode, uvw, hkl)
+                M = _compute_orientation_matrix(view_dir, up_dir)
+                st.markdown(
+                    "<div style='font-weight:600;font-size:0.85rem;margin-top:8px;'>"
+                    "Orientation matrix</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    f"<div style='font-family:monospace;font-size:0.80rem;background:#f4f4f4;"
+                    f"padding:8px 10px;border-radius:6px;line-height:1.7;'>"
+                    f"{M[0,0]:+.6f}  {M[0,1]:+.6f}  {M[0,2]:+.6f}<br>"
+                    f"{M[1,0]:+.6f}  {M[1,1]:+.6f}  {M[1,2]:+.6f}<br>"
+                    f"{M[2,0]:+.6f}  {M[2,1]:+.6f}  {M[2,2]:+.6f}"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                try:
+                    d = _d_spacing(lattice_matrix, hkl[0], hkl[1], hkl[2])
+                    st.caption(f"d-spacing ({hkl[0]} {hkl[1]} {hkl[2]}): {d:.4f} Å")
+                except Exception:
+                    pass
+                roll_val = float(st.session_state.get(roll_key, 0.0))
+                if abs(roll_val) > 1e-9:
+                    st.caption(f"Roll around projection axis: {roll_val:.1f}°")
+            except Exception as e:
+                st.caption(f"⚠️ Could not calculate orientation: {e}")
 
-    apply = st.button(
-        "Apply orientation",
-        key=f"orient_apply_{key_suffix}",
-        type="primary",
-        width="stretch",
-    )
+    with apply_col:
+        apply = st.button(
+            "Apply orientation",
+            key=f"orient_apply_{key_suffix}",
+            type="primary",
+            width="stretch",
+        )
     st.caption("Projection normal points out of the screen · [u v w] is the upward direction.")
 
-    cx, cy, cz = st.columns(3)
-    sx = int(cx.number_input("Repeat X", min_value=1, max_value=5, value=1, step=1, key=f"orient_sx_{key_suffix}"))
-    sy = int(cy.number_input("Repeat Y", min_value=1, max_value=5, value=1, step=1, key=f"orient_sy_{key_suffix}"))
-    sz = int(cz.number_input("Repeat Z", min_value=1, max_value=5, value=1, step=1, key=f"orient_sz_{key_suffix}"))
+    show_proj_arrow = st.checkbox("Show projection arrow", value=True,
+                                  key=f"orient_show_arrow_{key_suffix}")
 
-    return mode, uvw, hkl, (apply or _preset_fired), sx, sy, sz, float(st.session_state.get(roll_key, 0.0))
+    return (mode, uvw, hkl, (apply or _preset_fired),
+            float(st.session_state.get(roll_key, 0.0)), show_proj_arrow)
 
 def _make_supercell_xyz(atoms, structure, sx, sy, sz, norm_lat=None):
     lat = norm_lat if norm_lat is not None else structure.lattice
@@ -584,24 +587,19 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                     use_orthographic, show_atom_labels, orientation_result,
                     show_bonds=False, bonds_pbc=True, bond_tolerance=1.15,
                     bond_radius=0.08, show_bond_lengths=False, roll_key=None,
-                    show_partial_occ=False, fill_boundary=False):
+                    show_partial_occ=False, fill_boundary=False, repeat=(1, 1, 1)):
 
     active_orient = None
     show_success  = False
-    sx = sy = sz  = 1
+    sx, sy, sz = (int(n) for n in repeat)
 
     if orientation_result is not None:
-        if len(orientation_result) == 8:
-            mode, uvw, hkl, apply_btn, sx, sy, sz, roll_deg = orientation_result
-        else:
-            mode, uvw, hkl, apply_btn, sx, sy, sz = orientation_result
-            roll_deg = 0.0
+        mode, uvw, hkl, apply_btn, roll_deg, show_proj_arrow = orientation_result
 
         if apply_btn:
             active_orient = {
                 "active": True, "mode": "hkl",
                 "uvw": uvw, "hkl": hkl, "roll_deg": roll_deg,
-                "sx": sx, "sy": sy, "sz": sz,
             }
             st.session_state["se_stored_orient"] = active_orient
             show_success = True
@@ -609,16 +607,10 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
             stored = st.session_state.get("se_stored_orient", {})
             if stored.get("active"):
                 active_orient = stored
-                sx = int(stored.get("sx", 1))
-                sy = int(stored.get("sy", 1))
-                sz = int(stored.get("sz", 1))
     else:
         stored = st.session_state.get("se_stored_orient", {})
         if stored.get("active"):
             active_orient = stored
-            sx = int(stored.get("sx", 1))
-            sy = int(stored.get("sy", 1))
-            sz = int(stored.get("sz", 1))
 
     norm_lat = _vesta_lattice(structure.lattice)
     raw_lm   = norm_lat.matrix
@@ -641,6 +633,8 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
             orient_matrix = _compute_orientation_matrix(view_dir, up_dir)
             display_lm    = np.array([orient_matrix @ v for v in raw_lm])
             orientation_applied = True
+            proj_hkl = tuple(int(x) for x in hkl_a)
+            proj_dir_display = orient_matrix @ (view_dir / np.linalg.norm(view_dir))
 
             if show_success:
                 st.success("Orientation applied.")
@@ -789,6 +783,27 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                 "backgroundColor": col, "fontColor": "white", "fontSize": 12,
             })
 
+    # Projection axis (normal to (h k l)) while the orientation option is on.
+    # It points out of the screen, so it shows end-on until the view is rotated.
+    proj_label = None
+    if orientation_applied and orientation_result is not None and show_proj_arrow:
+        cell_center = 0.5 * (sx * display_lm[0] + sy * display_lm[1] + sz * display_lm[2])
+        half_len = 0.75 * max(np.linalg.norm(sx * display_lm[0]),
+                              np.linalg.norm(sy * display_lm[1]),
+                              np.linalg.norm(sz * display_lm[2]))
+        p_start = cell_center - half_len * proj_dir_display
+        p_end = cell_center + half_len * proj_dir_display
+        proj_label = "({} {} {}) normal".format(*proj_hkl)
+        view.addArrow({
+            "start": {"x": float(p_start[0]), "y": float(p_start[1]), "z": float(p_start[2])},
+            "end":   {"x": float(p_end[0]),   "y": float(p_end[1]),   "z": float(p_end[2])},
+            "color": "#c026d3", "radius": 0.12, "radiusRatio": 2.2, "mid": 0.85,
+        })
+        view.addLabel(proj_label, {
+            "position": {"x": float(p_end[0]), "y": float(p_end[1]), "z": float(p_end[2])},
+            "backgroundColor": "#c026d3", "fontColor": "white", "fontSize": 12,
+        })
+
     if show_atom_labels:
         if len(site_map) <= 200:
             for site_no, rec in enumerate(site_map.values()):
@@ -857,6 +872,10 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         "padding:10px 14px;max-width:230px;max-height:640px;overflow:hidden;"
         "font-family:sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.12);'>"
         + "".join(legend_items)
+        + ("<div style='margin-top:8px;font-size:13px;color:#1f2937;display:flex;align-items:center;gap:8px;'>"
+           "<span style='color:#c026d3;font-size:20px;font-weight:700;'>⊙</span>"
+           f"<span>Projection along <b>{proj_label}</b> (out of screen)</span></div>"
+           if proj_label else "")
         + "<div style='margin-top:10px;padding-top:8px;border-top:1px solid #e5e7eb;"
           "font-size:12px;line-height:1.5;color:#4b5563;'>"
           "🖱️ Left click + drag to rotate<br>Scroll to zoom<br>Middle click + drag to pan</div>"
@@ -1486,6 +1505,14 @@ def run_structure_editor(uploaded_files):
                       "equivalent corners, edges, and faces of the cell (VESTA-like)."),
             )
 
+            st.caption("Repeat unit cell")
+            _rx, _ry, _rz = st.columns(3)
+            repeat = tuple(
+                int(col.number_input(lbl, min_value=1, max_value=5, value=1, step=1,
+                                     key=f"se_repeat_{lbl.lower()}_{selected_file}"))
+                for col, lbl in zip((_rx, _ry, _rz), ("X", "Y", "Z"))
+            )
+
             st.markdown(
                 "<div style='height:1px;background:#e2e8f0;margin:8px 0;'></div>",
                 unsafe_allow_html=True,
@@ -1576,6 +1603,7 @@ def run_structure_editor(uploaded_files):
                 show_bond_lengths=show_bond_lengths,
                 roll_key=f"orient_roll_deg_se_{selected_file}",
                 show_partial_occ=True, fill_boundary=fill_corners,
+                repeat=repeat,
             )
 
     with tab_sym:
