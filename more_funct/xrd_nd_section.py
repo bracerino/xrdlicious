@@ -1963,7 +1963,11 @@ def _diffraction_settings_ui(has_exp_data=False):
                     key="use_rust_cb",
                     help="⚡ checked = Rust-accelerated calculator (fast)\n\n"
                          "Unchecked = original pymatgen implementation\n\n"
-                         "[📄 Details (paper)](https://doi.org/10.1107/S1600576726005273)",
+                         "📄 Lebeda, M., Drahokoupil, J., Veřtát, P. & Vlčák, P. (2026). "
+                         "*Rust-accelerated powder X-ray diffraction simulation for "
+                         "high-throughput and machine-learning-driven materials science.* "
+                         "J. Appl. Cryst. **59**, 1344–1350. "
+                         "[doi:10.1107/S1600576726005273](https://doi.org/10.1107/S1600576726005273)",
                 )
             else:
                 use_rust = False

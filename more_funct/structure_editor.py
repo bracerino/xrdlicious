@@ -112,9 +112,18 @@ def _orientation_controls(key_suffix, lattice_matrix=None):
         value=False,
         key=f"orient_enable_{key_suffix}",
     )
+    # The controls live in a placeholder that is explicitly emptied when the
+    # box is unticked; otherwise the browser could keep showing the old keyed
+    # widgets after they stop being rendered.
+    slot = st.empty()
     if not enable:
+        slot.empty()
         return None
+    with slot.container():
+        return _orientation_controls_body(key_suffix, lattice_matrix)
 
+
+def _orientation_controls_body(key_suffix, lattice_matrix):
     st.session_state.setdefault(f"orient_u_{key_suffix}", 0)
     st.session_state.setdefault(f"orient_v_{key_suffix}", 0)
     st.session_state.setdefault(f"orient_w_{key_suffix}", 1)
@@ -820,27 +829,44 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         view.rotate(10, "x")
 
     html_content = view._make_html()
-    st.iframe(
-        f"<div style='display:flex;justify-content:center;border:2px solid #333;"
-        f"border-radius:10px;overflow:hidden;background-color:#f8f9fa;'>{html_content}</div>",
-        height=720,
-    )
+
+    # Element legend drawn over the viewer's top-right corner (the structure is
+    # centred, so that corner is free). Each entry is a shaded sphere in the
+    # Jmol colour, matching how the atoms look in the 3D view. The panel ignores
+    # the mouse so rotating / zooming still works when the cursor is over it.
+    def _shade(hex_color, factor):
+        h = hex_color.lstrip("#")
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        return "#{:02x}{:02x}{:02x}".format(*(max(0, min(255, int(c * factor))) for c in (r, g, b)))
 
     elements_present = sorted(set(a["element"] for a in atoms))
-    legend_items = [
-        f"<div style='margin-right:15px;display:flex;align-items:center;'>"
-        f"<div style='width:16px;height:16px;background-color:{jmol_colors.get(e, '#CCCCCC')};"
-        f"margin-right:8px;border:2px solid black;border-radius:50%;'></div>"
-        f"<span style='font-weight:bold;font-size:14px;'>{e}</span></div>"
-        for e in elements_present
-    ]
-    st.markdown(
-        f"<div style='display:flex;flex-wrap:wrap;align-items:center;justify-content:center;"
-        f"margin-top:12px;padding:10px;background-color:#f0f2f6;border-radius:10px;'>"
-        f"{''.join(legend_items)}</div>",
-        unsafe_allow_html=True,
+    legend_items = []
+    for e in elements_present:
+        col = jmol_colors.get(e, "#CCCCCC")
+        legend_items.append(
+            "<div style='display:flex;align-items:center;gap:10px;margin:5px 0;'>"
+            "<div style='width:30px;height:30px;border-radius:50%;flex:none;"
+            f"background:radial-gradient(circle at 35% 30%, {_shade(col, 1.08)} 0%, {_shade(col, 0.88)} 35%, "
+            f"{_shade(col, 0.62)} 75%, {_shade(col, 0.40)} 100%);"
+            "box-shadow:1px 2px 4px rgba(0,0,0,0.35);'></div>"
+            f"<span style='font-weight:700;font-size:17px;color:#1f2937;'>{e}</span></div>"
+        )
+    legend_html = (
+        "<div style='position:absolute;top:12px;right:12px;pointer-events:none;"
+        "background:rgba(255,255,255,0.85);border:1px solid #d1d5db;border-radius:10px;"
+        "padding:10px 14px;max-width:230px;max-height:640px;overflow:hidden;"
+        "font-family:sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.12);'>"
+        + "".join(legend_items)
+        + "<div style='margin-top:10px;padding-top:8px;border-top:1px solid #e5e7eb;"
+          "font-size:12px;line-height:1.5;color:#4b5563;'>"
+          "🖱️ Left click + drag to rotate<br>Scroll to zoom<br>Middle click + drag to pan</div>"
+        "</div>"
     )
-    st.info("🖱️ Left click + drag to rotate · Scroll to zoom · Middle click + drag to pan")
+    st.iframe(
+        f"<div style='position:relative;display:flex;justify-content:center;border:2px solid #333;"
+        f"border-radius:10px;overflow:hidden;background-color:#f8f9fa;'>{html_content}{legend_html}</div>",
+        height=720,
+    )
 
     if roll_key is not None and orientation_result is not None:
         new_roll = st.slider(

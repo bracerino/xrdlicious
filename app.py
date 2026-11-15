@@ -40,6 +40,7 @@ from xrd_convert import *
 from equivalent_planes import *
 from more_funct.reorient import *
 from more_funct.citation_section import *
+from more_funct.branding import github_link_html, render_supporters
 from more_funct.db_results_display import show_database_results
 from more_funct.interactive_data_plot import render_interactive_data_plot
 from more_funct.version_check import APP_VERSION, APP_UPDATED, update_note_html
@@ -218,7 +219,7 @@ with intro_ctx:
         f"""
         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
             <h4 style="margin:0;">
-                <span style='color:#8b0000;'>
+                <span style='color:#9e2a3a;'>
                     <strong>XRDlicious</strong> – <em>powder diffraction and more</em>
                 </span>
             </h4>
@@ -232,9 +233,9 @@ with intro_ctx:
                 font-size: 0.95rem;
                 font-weight: 600;
             ">
-                <span style="color:#8b0000; font-weight:800;">Release:</span>
+                <span style="color:#9e2a3a; font-weight:800;">Release:</span>
                 v{APP_VERSION} &nbsp; | &nbsp;
-                <span style="color:#8b0000; font-weight:800;">Updated:</span>
+                <span style="color:#9e2a3a; font-weight:800;">Updated:</span>
                 {APP_UPDATED}
             </div>
             {_update_note}
@@ -244,7 +245,7 @@ with intro_ctx:
     )
     st.markdown(
         """
-        <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 20px 0;">
+        <hr style="border: none; height: 6px; background-color: #9e2a3a; border-radius: 8px; margin: 20px 0;">
         """,
         unsafe_allow_html=True
     )
@@ -261,9 +262,17 @@ with intro_ctx:
             """
         )
     with col2:
-        st.info(
-            "🌀 Developed by **[IMPLANT team](https://implant.fs.cvut.cz/)**. Spot a bug or have a feature idea? Let us know at: "
-            "**lebedmi2@cvut.cz**. To compile the app locally, visit our **[GitHub page](https://github.com/bracerino/xrdlicious)**. If you like the app, please cite **[article in IUCr](https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html)**. 🫶 **[Donations always appreciated!](https://buymeacoffee.com/bracerino)**"
+        # Same look as st.info, written in HTML so the GitHub icon can be inlined.
+        st.markdown(
+            '<div style="background-color:rgba(28,131,225,0.1);color:rgb(0,66,128);'
+            'border-radius:8px;padding:16px;line-height:1.6;">'
+            '🌀 Developed by <a href="https://implant.fs.cvut.cz/" target="_blank"><b>IMPLANT team</b></a>. '
+            'Spot a bug or have a feature idea? Let us know at: <b>lebedmi2@cvut.cz</b>. '
+            f'To compile the app locally, visit our {github_link_html()}. '
+            'If you like the app, please cite <a href="https://journals.iucr.org/j/issues/2025/05/00/hat5006/index.html" '
+            'target="_blank"><b>article in IUCr</b></a>. '
+            '🫶 <a href="https://buymeacoffee.com/bracerino" target="_blank"><b>Donations</b></a> always appreciated!</div>',
+            unsafe_allow_html=True,
         )
         st.markdown(
             """
@@ -271,19 +280,18 @@ with intro_ctx:
                         background: linear-gradient(90deg, rgba(0,120,212,0.15), rgba(0,120,212,0.03));
                         padding: 10px 14px; margin-top: 6px; font-size: 0.9em;">
                 <div style="font-size: 1.05em; font-weight: 700; margin-bottom: 4px;">
-                    🪟 Windows installer released!
+                    🪟 Windows installer v0.8.3 released!
                     <span style="background: #0078d4; color: white; font-size: 0.7em; font-weight: 600;
                                  padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px;">NEW</span>
                 </div>
-                <div style="margin-bottom: 8px;">
-                    Run XRDlicious locally on your PC without any Python setup.
-                    Give it a try and let us know how it works for you!
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span>Run XRDlicious locally on your PC without any Python setup.</span>
+                    <a href="https://github.com/bracerino/xrdlicious/releases/download/v0.8.3/XRDlicious-0.8.3-setup.1.exe" target="_blank"
+                       style="display: inline-block; white-space: nowrap; background: #0078d4; color: white; font-weight: 600;
+                              padding: 5px 12px; border-radius: 6px; text-decoration: none;">
+                        ⬇️ Download for Windows
+                    </a>
                 </div>
-                <a href="https://github.com/bracerino/xrdlicious/releases/download/v0.8.3/XRDlicious-0.8.3-setup.1.exe" target="_blank"
-                   style="display: inline-block; background: #0078d4; color: white; font-weight: 600;
-                          padding: 5px 12px; border-radius: 6px; text-decoration: none;">
-                    ⬇️ Download for Windows
-                </a>
             </div>
             """,
             unsafe_allow_html=True
@@ -367,7 +375,7 @@ st.sidebar.markdown("## XRDlicious")
 mode = "Advanced"
 st.markdown(
     """
-    <hr style="border: none; height: 6px; background-color: #8b0000; border-radius: 8px; margin: 0px 0;">
+    <hr style="border: none; height: 6px; background-color: #9e2a3a; border-radius: 8px; margin: 0px 0;">
     """,
     unsafe_allow_html=True
 )
@@ -1857,6 +1865,8 @@ else:
         "💾 Save settings", disabled=True,
         help="Saving settings is available only when the app runs locally.",
     )
+
+render_supporters(st.sidebar)
 
 st.markdown("""
 
