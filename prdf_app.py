@@ -93,6 +93,7 @@ from pymatgen.core import Structure
 from pymatgen.io.cif import CifParser, CifWriter
 from pymatgen.transformations.standard_transformations import OrderDisorderedStructureTransformation
 from matminer.featurizers.structure import PartialRadialDistributionFunction
+from more_funct.trajectory import expand_trajectories
 
 MAX_ATOMS = 750
 MAX_SUPERCELL_ATOMS = 750
@@ -155,6 +156,7 @@ def load_structure_from_file(uploaded_file) -> Structure:
         "data": "lammps-data",
         "xsf": "xsf",
         "xyz": "extxyz",
+        "extxyz": "extxyz",
         "cfg": "cfg",
         "pw": "espresso-in",
     }
@@ -408,11 +410,17 @@ st.sidebar.markdown(
 )
 st.sidebar.header("📁 Upload Structure Files")
 uploaded_files = st.sidebar.file_uploader(
-    "CIF, POSCAR, LMP, XSF, XYZ (with cell), CFG, PW …",
-    type=["cif", "xyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
+    "CIF, POSCAR, LMP, XSF, XYZ/extXYZ (with cell), CFG, PW …",
+    type=["cif", "xyz", "extxyz", "vasp", "poscar", "lmp", "data", "xsf", "pw", "cfg"],
     accept_multiple_files=True,
     key="prdf_uploader",
+    help="Multi-frame XYZ/extXYZ trajectories are supported: only a limited "
+         "number of frames is loaded from them.",
 )
+# Multi-frame XYZ/extXYZ trajectories are split into a limited number of
+# single-frame files (see more_funct/trajectory.py).
+uploaded_files = expand_trajectories(uploaded_files, st.sidebar,
+                                     is_local=is_running_locally())
 st.sidebar.markdown("---")
 st.sidebar.header("📂 Upload Experimental Data")
 st.sidebar.caption(

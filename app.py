@@ -41,6 +41,7 @@ from equivalent_planes import *
 from more_funct.reorient import *
 from more_funct.citation_section import *
 from more_funct.branding import github_link_html, render_supporters
+from more_funct.trajectory import expand_trajectories
 from more_funct.db_results_display import show_database_results
 from more_funct.interactive_data_plot import render_interactive_data_plot
 from more_funct.version_check import APP_VERSION, APP_UPDATED, update_note_html
@@ -523,11 +524,13 @@ if 'full_structures' not in st.session_state:
 
 
 
-allowed_types = ["cif", "xyz", "vasp", "poscar", "xsf", "pw", "cfg", "lmp"]
+allowed_types = ["cif", "xyz", "extxyz", "vasp", "poscar", "xsf", "pw", "cfg", "lmp"]
 
 st.sidebar.subheader(
     "📤 Upload Structure Files",
-    help="Supported formats: CIF, POSCAR, XSF, PW, CFG, XYZ (with cell), LMP"
+    help="Supported formats: CIF, POSCAR, XSF, PW, CFG, XYZ/extXYZ (with cell), LMP. "
+         "Multi-frame XYZ/extXYZ trajectories are supported: only a limited "
+         "number of frames is loaded from them."
 )
 uploaded_files_user_sidebar = st.sidebar.file_uploader(
     "Structure files",
@@ -536,6 +539,10 @@ uploaded_files_user_sidebar = st.sidebar.file_uploader(
     key="sidebar_uploader",
     label_visibility="collapsed"
 )
+# Multi-frame XYZ/extXYZ trajectories are split into a limited number of
+# single-frame files, which then go through the ordinary code paths.
+uploaded_files_user_sidebar = expand_trajectories(
+    uploaded_files_user_sidebar, st.sidebar, is_local=IS_LOCAL)
 
 st.sidebar.subheader(
     "📁 Upload Experimental Data",
@@ -614,7 +621,7 @@ if show_database_search:
             db_choices = st.multiselect(
                 "Select Database(s)",
                 options=["Materials Project", "AFLOW", "COD", "MC3D"],
-                default=["Materials Project", "COD", "MC3D"],
+                default=["Materials Project", "AFLOW", "COD", "MC3D"],
                 help="Choose which databases to search for structures. You can select multiple databases."
             )
 
@@ -759,6 +766,10 @@ if show_database_search:
             if not db_choices:
                 st.error("Please select at least one database to search.")
             else:
+                # One green summary for all searched databases instead of a
+                # separate box per database (filled after the loop).
+                found_summary_box = st.empty()
+                found_summary = []
                 for db_choice in db_choices:
                     if db_choice == "Materials Project":
                         mp_limit = search_limits.get("Materials Project", 50)
@@ -863,11 +874,9 @@ if show_database_search:
                                             status_placeholder.markdown(
                                                 f"- **Structure loaded:** `{full_structure.composition.reduced_formula}` ({doc.material_id})"
                                             )
-                                        if len(limited_docs) < len(docs):
-                                            st.info(
-                                                f"Showing first {mp_limit} of {len(docs)} total Materials Project results. Increase limit to see more.")
-                                        st.success(
-                                            f"Found {len(st.session_state.mp_options)} structures in Materials Project.")
+                                        found_summary.append((
+                                            "Materials Project", len(st.session_state.mp_options),
+                                            len(docs) if len(limited_docs) < len(docs) else None))
                                     else:
                                         st.session_state.mp_options = []
                                         st.warning("No matching structures found in Materials Project.")
@@ -984,10 +993,9 @@ if show_database_search:
                                         status_placeholder.markdown(
                                             f"- **Structure loaded:** `{entry.compound}` (aflow_{entry.auid})"
                                         )
-                                    if total_hits > len(results):
-                                        st.info(
-                                            f"Showing first {aflow_limit} of {total_hits} total AFLOW results. Increase limit to see more.")
-                                    st.success(f"Found {len(st.session_state.aflow_options)} structures in AFLOW.")
+                                    found_summary.append((
+                                        "AFLOW", len(st.session_state.aflow_options),
+                                        total_hits if total_hits > len(results) else None))
                                 else:
                                     st.session_state.aflow_options = []
                                     st.warning("No matching structures found in AFLOW.")
@@ -1111,8 +1119,8 @@ if show_database_search:
                                         )
                                         st.session_state.mc3d_options.append(option_str)
 
-                                    st.success(
-                                        f"✅ Found {len(st.session_state.mc3d_options)} structures in MC3D via OPTIMADE.")
+                                    found_summary.append((
+                                        "MC3D (via OPTIMADE)", len(st.session_state.mc3d_options), None))
                                 else:
                                     st.session_state.mc3d_options = []
                                     st.warning("No matching structures found in MC3D.")
@@ -1252,11 +1260,9 @@ if show_database_search:
                                                     f"A critical error occurred while processing a result: {e}")
                                     status_placeholder.empty()
                                     if st.session_state.cod_options:
-                                        if len(limited_entries) < len(cod_entries):
-                                            st.info(
-                                                f"Showing first {cod_limit} of {len(cod_entries)} total COD results. Increase limit to see more.")
-                                        st.success(
-                                            f"Found and processed {len(st.session_state.cod_options)} structures from COD.")
+                                        found_summary.append((
+                                            "COD", len(st.session_state.cod_options),
+                                            len(cod_entries) if len(limited_entries) < len(cod_entries) else None))
                                     else:
                                         st.warning("COD: No matching structures could be successfully processed.")
                                     if errors:
@@ -1270,6 +1276,17 @@ if show_database_search:
                             except Exception as e:
                                 st.warning(f"COD search error: {e}")
                                 st.session_state.cod_options = []
+
+                if found_summary:
+                    _lines = []
+                    for _db, _n, _total in found_summary:
+                        _line = f"- **{_db}:** {_n} structure{'s' if _n != 1 else ''}"
+                        if _total:
+                            _line += f" (first {_n} of {_total} results; increase the limit to see more)"
+                        _lines.append(_line)
+                    _n_all = sum(n for _, n, _ in found_summary)
+                    found_summary_box.success(
+                        f"✅ **Found {_n_all} structure{'s' if _n_all != 1 else ''}:**\n" + "\n".join(_lines))
 
         # with cols2:
         #     image = Image.open("images/Rabbit2.png")

@@ -1048,7 +1048,7 @@ def _atoms_section(atoms, structure, selected_file):
 
     use_unique = st.checkbox(
         "✨ Show & edit unique Wyckoff positions only (changes propagate to all equivalent atoms)",
-        value=False, key=f"se_unique_{selected_file}",
+        value=True, key=f"se_unique_{selected_file}",
     )
 
     show_add = st.checkbox("➕ Add new atomic site", value=False, key=f"se_show_add_{selected_file}")
@@ -1277,6 +1277,16 @@ def _merge_uploaded_files(original, session_key="uploaded_files"):
             existing_names.add(f.name)
     return merged
 
+_SELECT_KEY = "se_select_structure"
+
+
+def _step_structure(options, step):
+    """Select the previous/next structure (wraps around at both ends)."""
+    current = st.session_state.get(_SELECT_KEY)
+    idx = options.index(current) if current in options else 0
+    st.session_state[_SELECT_KEY] = options[(idx + step) % len(options)]
+
+
 def run_structure_editor(uploaded_files):
     if not uploaded_files:
         return _merge_uploaded_files(uploaded_files)
@@ -1288,11 +1298,25 @@ def run_structure_editor(uploaded_files):
         st.session_state["se_stored_orient"] = {"active": False}
 
     file_options = [f.name for f in uploaded_files]
-    selected_file = (
-        st.selectbox("Select structure", file_options)
-        if len(file_options) > 1
-        else file_options[0]
-    )
+    if len(file_options) > 1:
+        # A structure that was removed meanwhile must not stay selected.
+        if st.session_state.get(_SELECT_KEY) not in file_options:
+            st.session_state.pop(_SELECT_KEY, None)
+        sel_col, prev_col, next_col = st.columns(
+            [12, 1, 1], vertical_alignment="bottom")
+        with sel_col:
+            selected_file = st.selectbox(
+                "Select structure", file_options, key=_SELECT_KEY,
+                help="Use the ← / → arrow keys on the keyboard (or the "
+                     "◀ / ▶ buttons) to switch to the previous / next structure.")
+        prev_col.button("◀", key="se_prev_structure", shortcut="Left",
+                        on_click=_step_structure, args=(file_options, -1),
+                        help="Previous structure (← key)", width="stretch")
+        next_col.button("▶", key="se_next_structure", shortcut="Right",
+                        on_click=_step_structure, args=(file_options, 1),
+                        help="Next structure (→ key)", width="stretch")
+    else:
+        selected_file = file_options[0]
 
     # The same rule as in the diffraction module: unless "🔒 No symmetry
     # search" is on, the structure shown and edited here is the standardized
