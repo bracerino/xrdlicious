@@ -225,7 +225,7 @@ def show_citation_section():
         #### 🧪 **Using Calculated XRD Patterns**
         - **XRDlicious** – for the interface, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Journal of Applied Crystallography, 2025, 58.5.](https://doi.org/10.1107/S1600576725005370)
         - **pymatgen** – for structure loading and powder diffraction pattern calculation, [S. P. Ong et al., pymatgen: A robust, open-source python library for materials analysis, Comput. Mater. Sci. 68, 314 (2013)](https://www.sciencedirect.com/science/article/abs/pii/S0927025612006295).
-        - *(optional)* **XRD-Rust** – used for accelerating diffraction pattern calculation, [Lebeda, Miroslav, et al. Rust-accelerated powder X-ray diffraction simulation for high-throughput and machine-learning-driven materials science. Journal of Applied Crystallography, 2026, 59.4.](https://doi.org/10.1107/S1600576726005273)
+        - **XRD-Rust** – used for accelerating diffraction pattern calculation, [Lebeda, Miroslav, et al. Rust-accelerated powder X-ray diffraction simulation for high-throughput and machine-learning-driven materials science. Journal of Applied Crystallography, 2026, 59.4.](https://doi.org/10.1107/S1600576726005273)
 
         ---
 
@@ -248,7 +248,7 @@ def show_citation_section():
         ---
 
         #### 📄 **Using XRD Data and File Conversion**
-        - **XRDlicious**, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Journal of Applied Crystallography, 2025, 58.5.)
+        - **XRDlicious** – for the interface, [Lebeda, Miroslav, et al. XRDlicious: an interactive web-based platform for online calculation of diffraction patterns and radial distribution functions from crystal structures. Journal of Applied Crystallography, 2025, 58.5.](https://doi.org/10.1107/S1600576725005370)
 
         ---
 
