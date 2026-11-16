@@ -56,7 +56,7 @@ Common file formats (.ras, .xrdml ↔ .xy)
 🔗 For (P)RDF calculations from LAMMPS or XYZ trajectories, please compile separated module locally here: [(P)RDF from LAMMPS/XYZ](https://github.com/bracerino/PRDF-CP2K-LAMMPS)  
 🔗 For tutorials how to use the XRDlicious, please visit this site: [implant.fs.cvut.cz/xrdlicious](https://implant.fs.cvut.cz/xrdlicious/)
 
-![XRDlicious web-based application](Illu_images/xrdlicious.png)
+![XRDlicious web-based application](Illu_images/s1.png)
 
 For more computationally demanding calculations with more extensive data, please compile the code locally on your computer (follow the manual below).
 For planned features and modifications in the app, please see the Roadmap on the application website.
