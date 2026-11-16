@@ -1398,14 +1398,17 @@ def run_structure_editor(uploaded_files):
             PmgLattice.from_parameters(_la, _lb, _lc, _lal, _lbe, _lga),
         )
 
-    def _render_add_section(tab_suffix):
-        st.markdown(
-            "<hr style='border:none;height:2px;background:linear-gradient(to right,#8b0000,#e57373);"
-            "border-radius:4px;margin:20px 0 14px 0;'>",
-            unsafe_allow_html=True,
-        )
+    def _render_add_section(tab_suffix, compact=False):
+        # compact: drawn in a narrow side column (next to the lattice
+        # parameters), so everything is stacked instead of side by side.
+        if not compact:
+            st.markdown(
+                "<hr style='border:none;height:2px;background:linear-gradient(to right,#8b0000,#e57373);"
+                "border-radius:4px;margin:20px 0 14px 0;'>",
+                unsafe_allow_html=True,
+            )
         st.markdown("#### 📦 Add to Calculator")
-        col_name, col_fmt = st.columns([2, 1])
+        col_name, col_fmt = st.columns([3, 2] if compact else [2, 1], vertical_alignment="bottom")
         with col_name:
             custom_name = st.text_input(
                 "Name for the modified structure:",
@@ -1435,10 +1438,11 @@ def run_structure_editor(uploaded_files):
             )
         except Exception as e:
             st.error(f"Cannot build structure: {e}")
-        col_add, col_dl = st.columns([1, 1])
+        col_add, col_dl = (st.container(), st.container()) if compact else st.columns([1, 1])
         with col_add:
             if st.button("➕ Add to Calculator", type="primary",
-                         key=f"se_add_{selected_file}_{tab_suffix}", disabled=not build_ok):
+                         key=f"se_add_{selected_file}_{tab_suffix}", disabled=not build_ok,
+                         width="stretch" if compact else "content"):
                 try:
                     # symprec=None: the calculator receives exactly the
                     # previewed cell; the diffraction module decides on its
@@ -1462,14 +1466,24 @@ def run_structure_editor(uploaded_files):
         with col_dl:
             if build_ok and export_struct is not None:
                 try:
-                    fc, dn, mime = _build_download_content(
-                        export_struct, dl_fmt_add, f"{selected_file}_{tab_suffix}"
-                    )
+                    # In the compact panel the CIF symmetry precision sits
+                    # next to the download button; the options of the other
+                    # formats need the full width and stay above it.
+                    if compact and dl_fmt_add == "CIF":
+                        opt_col, btn_col = st.columns(2, vertical_alignment="bottom")
+                    else:
+                        opt_col = btn_col = st.container()
+                    with opt_col:
+                        fc, dn, mime = _build_download_content(
+                            export_struct, dl_fmt_add, f"{selected_file}_{tab_suffix}"
+                        )
                     if fc:
-                        st.download_button(
+                        btn_col.download_button(
                             label=f"\u2b07\ufe0f Download {dl_fmt_add}",
                             data=fc, file_name=dn, mime=mime,
                             key=f"se_dl_{selected_file}_{tab_suffix}_{dl_fmt_add}",
+                            type="primary" if compact else "secondary",
+                            width="stretch" if compact else "content",
                         )
                 except Exception as e:
                     st.error(f"Error preparing download: {e}")
@@ -1772,13 +1786,17 @@ def run_structure_editor(uploaded_files):
                         st.write(f"**{name}**: {msg}")
 
     with tab_lattice:
-        with st.container(border=True):
+        lat_col, add_col = st.columns([3, 2])
+        with lat_col, st.container(border=True):
             new_a, new_b, new_c, new_alpha, new_beta, new_gamma, lat_key = _lattice_section(structure, selected_file)
+        # Stored before the add panel is drawn, so its preview and the added
+        # structure use the values just entered.
         st.session_state[lat_key] = {
             "a": new_a, "b": new_b, "c": new_c,
             "alpha": new_alpha, "beta": new_beta, "gamma": new_gamma,
         }
-        _render_add_section("lat")
+        with add_col, st.container(border=True):
+            _render_add_section("lat", compact=True)
         st.markdown("<br><br>", unsafe_allow_html=True)
 
     with tab_atoms:
@@ -1798,10 +1816,14 @@ def run_structure_editor(uploaded_files):
             if atoms is None:
                 atoms = _load_atoms_from_structure(structure)
                 st.session_state["se_atoms"] = atoms
-            with st.container(border=True):
+            atoms_col, add_col = st.columns([3, 2])
+            with atoms_col, st.container(border=True):
                 updated_atoms = _atoms_section(atoms, structure, selected_file)
+            # Stored before the add panel is drawn, so its preview and the
+            # added structure include the edits just made.
             st.session_state["se_atoms"] = updated_atoms
-            _render_add_section("atoms")
+            with add_col, st.container(border=True):
+                _render_add_section("atoms", compact=True)
             st.markdown("<br><br>", unsafe_allow_html=True)
 
     with tab_export:
