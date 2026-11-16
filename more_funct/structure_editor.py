@@ -11,6 +11,10 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from io import StringIO
 from ase.io import write
 from ase.constraints import FixAtoms
+from more_funct.coordination import (
+    ANY_ELEMENT, DEFAULT_SHELL_WINDOW, NEIGHBOR_METHODS, analyze_coordination,
+    summary_rows,
+)
 
 from helpers import (
     load_structure, identify_structure_type, jmol_colors, add_box,
@@ -107,23 +111,28 @@ def _compute_orientation_matrix(view_dir_cart, up_dir_cart):
     return np.array([xd, ud, vd])
 
 def _orientation_controls(key_suffix, lattice_matrix=None):
-    enable = st.checkbox(
-        "🔄 Set crystallographic orientation",
+    en_col, arrow_col = st.columns(2)
+    enable = en_col.checkbox(
+        "🔄 Crystallographic orientation",
         value=False,
         key=f"orient_enable_{key_suffix}",
     )
-    # The controls live in a placeholder that is explicitly emptied when the
+    # The controls live in placeholders that are explicitly emptied when the
     # box is unticked; otherwise the browser could keep showing the old keyed
     # widgets after they stop being rendered.
+    arrow_slot = arrow_col.empty()
     slot = st.empty()
     if not enable:
+        arrow_slot.empty()
         slot.empty()
         return None
+    show_proj_arrow = arrow_slot.checkbox("Show projection arrow", value=True,
+                                          key=f"orient_show_arrow_{key_suffix}")
     with slot.container():
-        return _orientation_controls_body(key_suffix, lattice_matrix)
+        return _orientation_controls_body(key_suffix, lattice_matrix, show_proj_arrow)
 
 
-def _orientation_controls_body(key_suffix, lattice_matrix):
+def _orientation_controls_body(key_suffix, lattice_matrix, show_proj_arrow=True):
     st.session_state.setdefault(f"orient_u_{key_suffix}", 0)
     st.session_state.setdefault(f"orient_v_{key_suffix}", 0)
     st.session_state.setdefault(f"orient_w_{key_suffix}", 1)
@@ -244,9 +253,6 @@ def _orientation_controls_body(key_suffix, lattice_matrix):
             width="stretch",
         )
     st.caption("Projection normal points out of the screen · [u v w] is the upward direction.")
-
-    show_proj_arrow = st.checkbox("Show projection arrow", value=True,
-                                  key=f"orient_show_arrow_{key_suffix}")
 
     return (mode, uvw, hkl, (apply or _preset_fired),
             float(st.session_state.get(roll_key, 0.0)), show_proj_arrow)
@@ -467,6 +473,131 @@ def _compute_bonds_cartesian(cart_positions, elements, lattice_matrix, tolerance
                             image_atoms_dict[key] = (p2.copy(), elements[j])
     return bonds, list(image_atoms_dict.values())
 
+MAX_DRAWN_POLYHEDRA = 2000
+MAX_POLY_EDGE_CYLINDERS = 4000
+
+
+@st.cache_data(show_spinner=False, max_entries=20)
+def _cached_coordination(sites, lattice_rows, center, ligand, method, value):
+    return analyze_coordination(sites, lattice_rows, center, ligand, method, value)
+
+
+def _sites_for_coordination(atoms):
+    """One (element, fx, fy, fz) per site — the dominant element of a
+    disordered site — as a hashable tuple for the cached analysis."""
+    groups = {}
+    for a in atoms:
+        key = (round(a["x"], 5), round(a["y"], 5), round(a["z"], 5))
+        comp = groups.setdefault(key, {})
+        comp[a["element"]] = comp.get(a["element"], 0.0) + float(a.get("occ", 1.0))
+    return tuple((max(comp, key=comp.get), *key) for key, comp in groups.items())
+
+
+def _default_poly_elements(elements):
+    """Central atom and neighbours to start with: the most electronegative
+    element as the neighbours, the next one as the centre (Ti–O in SrTiO3)."""
+    from pymatgen.core import Element
+
+    def _x(e):
+        try:
+            x = Element(e).X
+            return x if np.isfinite(x) else 0.0
+        except Exception:
+            return 0.0
+    by_x = sorted(elements, key=_x, reverse=True)
+    ligand = by_x[0]
+    center = by_x[1] if len(by_x) > 1 else by_x[0]
+    return center, ligand
+
+
+def _add_polyhedra_to_view(view, placements, color, opacity):
+    """Draw the polyhedra as one mesh (cheap for many polyhedra) plus edges.
+
+    ``placements`` — list of (centre in display coords, mesh, orient matrix);
+    a mesh is ([(a, b, c, normal), ...], [(p, q), ...]) relative to the centre.
+    """
+    verts, norms, faces, edges = [], [], [], []
+    for centre, (tris, mesh_edges), rot in placements:
+        for a, b, c, n in tris:
+            n_d = rot @ n
+            base = len(verts)
+            for p in (a, b, c):
+                q = centre + rot @ p
+                verts.append({"x": float(q[0]), "y": float(q[1]), "z": float(q[2])})
+                norms.append({"x": float(n_d[0]), "y": float(n_d[1]), "z": float(n_d[2])})
+            faces.extend([base, base + 1, base + 2])
+        for p, q in mesh_edges:
+            edges.append((centre + rot @ p, centre + rot @ q))
+    if faces:
+        view.addCustom({"vertexArr": verts, "normalArr": norms, "faceArr": faces,
+                        "color": color, "opacity": float(opacity)})
+    edge_color = _shade_hex(color, 0.55)
+    use_cyl = len(edges) <= MAX_POLY_EDGE_CYLINDERS
+    for p, q in edges:
+        spec = {"start": {"x": float(p[0]), "y": float(p[1]), "z": float(p[2])},
+                "end": {"x": float(q[0]), "y": float(q[1]), "z": float(q[2])},
+                "color": edge_color}
+        if use_cyl:
+            spec.update({"radius": 0.025, "fromCap": 1, "toCap": 1})
+            view.addCylinder(spec)
+        else:
+            view.addLine(spec)
+
+
+def _shade_hex(hex_color, factor):
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return "#{:02x}{:02x}{:02x}".format(*(max(0, min(255, int(c * factor))) for c in (r, g, b)))
+
+
+def _poly_set_label(settings):
+    """'Ti–O · nearest shell 1.50 · 2 atoms' for a kept polyhedra set."""
+    center, ligand, method, value, _opacity, only = settings
+    lig = "X" if ligand == ANY_ELEMENT else ligand
+    if method == "Nearest shell":
+        how = f"nearest shell ×{value:.2f}"
+    elif method == "Fixed cutoff":
+        how = f"cutoff {value:.2f} Å"
+    else:
+        how = "CrystalNN"
+    which = "all atoms" if not only else f"{len(only)} atom{'s' if len(only) != 1 else ''}"
+    return f"{center}–{lig} · {how} · {which}"
+
+
+def _keep_poly_set(kept_key, settings):
+    kept = st.session_state.setdefault(kept_key, [])
+    if settings not in kept:
+        kept.append(settings)
+
+
+def _unkeep_poly_set(kept_key, index):
+    kept = st.session_state.get(kept_key, [])
+    if 0 <= index < len(kept):
+        kept.pop(index)
+
+
+def _render_coordination_table(poly_data):
+    """Summary of the environments, one row per set of equivalent centres."""
+    result, center, ligand = poly_data["result"], poly_data["center"], poly_data["ligand"]
+    lig = "any element" if ligand == ANY_ELEMENT else ligand
+    st.markdown(f"##### 🔷 Coordination of {center} by {lig}")
+    if not result["envs"]:
+        st.info(f"No {center} sites found.")
+        return
+    if result["skipped"]:
+        st.warning(f"⚠️ Only the first {len(result['envs']):,} {center} sites were analysed "
+                   f"({result['skipped']:,} more were skipped to keep the app responsive).")
+    rows = summary_rows(result["envs"], center)
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    st.caption(
+        "**Match** compares the environment with the ideal shape (1 = ideal; pymatgen "
+        "LocalStructOrderParams), **Next best** is the second closest shape. "
+        "**Count** = number of symmetry-equivalent sites with this environment. "
+        "**Δ** = bond-length distortion index (Baur), "
+        "**⟨λ⟩** = quadratic elongation and **σ²** = bond-angle variance "
+        "(Robinson et al.; octahedra and tetrahedra only, 1 and 0 for ideal ones).")
+
+
 def _add_bonds_to_view(view, bonds, bond_radius=0.08):
     for p1, p2, el1, el2 in bonds:
         mid = (p1 + p2) * 0.5
@@ -587,7 +718,8 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                     use_orthographic, show_atom_labels, orientation_result,
                     show_bonds=False, bonds_pbc=True, bond_tolerance=1.15,
                     bond_radius=0.08, show_bond_lengths=False, roll_key=None,
-                    show_partial_occ=False, fill_boundary=False, repeat=(1, 1, 1)):
+                    show_partial_occ=False, fill_boundary=False, repeat=(1, 1, 1),
+                    polyhedra=None, show_abc_arrows=True):
 
     active_orient = None
     show_success  = False
@@ -666,6 +798,7 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
     sphere_radius = base_atom_size / 30
     rows = []
     pie_jobs = []  # (cart_display, [(color, frac), ...])
+    drawn_keys = set()  # rounded display positions of the drawn atoms
 
     for rec in site_map.values():
         comp, order = rec["comp"], rec["order"]
@@ -680,6 +813,7 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                     for f in frac_images:
                         cart_raw = norm_lat.get_cartesian_coords(list(f)) + tr_raw
                         cart = _dc(cart_raw)
+                        drawn_keys.add(tuple(np.round(cart, 2)))
                         if is_partial:
                             color_fracs = [(jmol_colors.get(el, "#CCCCCC"), comp[el])
                                            for el in order]
@@ -687,6 +821,58 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
                         else:
                             for el in order:
                                 rows.append(f"{el} {cart[0]:.6f} {cart[1]:.6f} {cart[2]:.6f}")
+
+    # Coordination polyhedra around every drawn centre (all repeated cells,
+    # boundary images included when those are shown). Ligands lying outside
+    # the drawn cell are added as atoms, so every vertex carries its atom.
+    poly_draw, poly_labels = [], []   # (placements, colour, opacity) per set
+    n_poly_total = 0
+    for pset in (polyhedra or []):
+        poly_placements = []
+        only = pset.get("only")
+        if only is not None:
+            # only the chosen atoms, each in the first cell only
+            envs = [e for e in pset["result"]["envs"]
+                    if e["mesh"][0] and any(np.allclose(e["frac"], o, atol=1e-4) for o in only)]
+        else:
+            shown_sites = {k for k in site_map}
+            envs = [e for e in pset["result"]["envs"]
+                    if e["mesh"][0] and tuple(round(x, 4) for x in e["frac"]) in shown_sites]
+        for env in envs:
+            if only is not None:
+                frac_images, reps = [env["frac"]], (1, 1, 1)
+                c_cart = _dc(norm_lat.get_cartesian_coords(list(env["frac"])))
+                c_key = tuple(np.round(c_cart, 2))
+                if c_key not in drawn_keys:      # centre hidden, e.g. asymmetric unit view
+                    drawn_keys.add(c_key)
+                    rows.append(f"{pset['center']} " + " ".join(f"{v:.6f}" for v in c_cart))
+            else:
+                frac_images = _expand_boundary_frac(env["frac"]) if fill_boundary else [env["frac"]]
+                reps = (sx, sy, sz)
+            for ai in range(reps[0]):
+                for bi in range(reps[1]):
+                    for ci in range(reps[2]):
+                        tr_raw = ai*raw_lm[0] + bi*raw_lm[1] + ci*raw_lm[2]
+                        for f in frac_images:
+                            if n_poly_total >= MAX_DRAWN_POLYHEDRA:
+                                break
+                            n_poly_total += 1
+                            c_raw = norm_lat.get_cartesian_coords(list(f)) + tr_raw
+                            poly_placements.append((_dc(c_raw), env["mesh"], orient_matrix))
+                            for v, el in zip(env["vectors"], env["ligand_elements"]):
+                                p = _dc(c_raw + v)
+                                key = tuple(np.round(p, 2))
+                                if key not in drawn_keys:
+                                    drawn_keys.add(key)
+                                    rows.append(f"{el} {p[0]:.6f} {p[1]:.6f} {p[2]:.6f}")
+        colour = jmol_colors.get(pset["center"], "#9ca3af")
+        poly_draw.append((poly_placements, colour, pset.get("opacity", 0.5)))
+        lig = pset["ligand"]
+        poly_labels.append((f"{pset['center']}–{'X' if lig == ANY_ELEMENT else lig} polyhedra",
+                            colour))
+    if n_poly_total >= MAX_DRAWN_POLYHEDRA:
+        st.warning(f"⚠️ Only the first {MAX_DRAWN_POLYHEDRA:,} polyhedra are drawn. "
+                   "Reduce the supercell repeats or the number of polyhedra sets.")
 
     xyz_str = "\n".join([str(len(rows)), f"py3Dmol {sx}x{sy}x{sz}"] + rows)
 
@@ -696,6 +882,10 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
 
     for cart, color_fracs in pie_jobs:
         _add_pie_sphere(view, cart, sphere_radius, color_fracs)
+
+    for poly_placements, colour, opacity in poly_draw:
+        if poly_placements:
+            _add_polyhedra_to_view(view, poly_placements, colour, opacity)
 
     if show_bonds:
         bond_carts_raw = []
@@ -766,7 +956,7 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         else:
             _draw_supercell_boxes(view, display_lm, sx, sy, sz)
         for vec, raw_vec, col, lbl in zip(
-            [display_lm[0], display_lm[1], display_lm[2]],
+            [display_lm[0], display_lm[1], display_lm[2]] if show_abc_arrows else [],
             [raw_lm[0],     raw_lm[1],     raw_lm[2]],
             ["red", "green", "blue"],
             [f"a={np.linalg.norm(raw_lm[0]):.3f}Å",
@@ -872,6 +1062,13 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         "padding:10px 14px;max-width:230px;max-height:640px;overflow:hidden;"
         "font-family:sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.12);'>"
         + "".join(legend_items)
+        + "".join(
+            "<div style='display:flex;align-items:center;gap:10px;margin:5px 0;'>"
+            "<span style='display:inline-block;width:30px;height:30px;flex:none;"
+            f"background:linear-gradient(135deg, {_shade(colour, 1.05)} 0%, {_shade(colour, 0.70)} 100%);"
+            "opacity:0.8;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);'></span>"
+            f"<span style='font-weight:700;font-size:17px;color:#1f2937;'>{label}</span></div>"
+            for label, colour in poly_labels)
         + ("<div style='margin-top:8px;font-size:13px;color:#1f2937;display:flex;align-items:center;gap:8px;'>"
            "<span style='color:#c026d3;font-size:20px;font-weight:700;'>⊙</span>"
            f"<span>Projection along <b>{proj_label}</b> (out of screen)</span></div>"
@@ -1513,7 +1710,10 @@ def run_structure_editor(uploaded_files):
         viz_left, viz_right = st.columns([1, 3])
         with viz_left:
             base_atom_size = st.slider("Atom size", 1, 30, 10, key=f"se_atom_size_{selected_file}")
-            show_lv     = st.checkbox("Show lattice vectors & cell", value=True,  key=f"se_show_lv_{selected_file}")
+            _lv_col, _arr_col = st.columns(2)
+            show_lv     = _lv_col.checkbox("Show lattice vectors & cell", value=True,  key=f"se_show_lv_{selected_file}")
+            hide_abc    = _arr_col.checkbox("Hide a, b, c arrows", value=False, key=f"se_hide_abc_{selected_file}",
+                                            disabled=not show_lv)
             use_ortho   = st.checkbox("Orthographic projection",     value=False, key=f"se_ortho_{selected_file}")
             show_labels = st.checkbox("Show atom labels",            value=False, key=f"se_labels_{selected_file}")
             show_asym   = st.checkbox("Show asymmetric unit only",   value=False, key=f"se_asym_{selected_file}")
@@ -1555,7 +1755,99 @@ def run_structure_editor(uploaded_files):
                 "<div style='height:1px;background:#e2e8f0;margin:8px 0;'></div>",
                 unsafe_allow_html=True,
             )
-            show_bonds = st.checkbox("🔗 Show bonds", value=False, key=f"se_bonds_{selected_file}")
+            show_poly = st.checkbox(
+                "🔷 Coordination polyhedra", value=False, key=f"se_poly_{selected_file}")
+            poly_settings = None
+            if show_poly:
+                _poly_els = sorted({a["element"] for a in render_atoms})
+                _def_c, _def_l = _default_poly_elements(_poly_els)
+                _lig_opts = _poly_els + [ANY_ELEMENT]
+                _ck, _lk = f"se_poly_center_{selected_file}", f"se_poly_ligand_{selected_file}"
+                if st.session_state.get(_ck) not in _poly_els:
+                    st.session_state[_ck] = _def_c
+                if st.session_state.get(_lk) not in _lig_opts:
+                    st.session_state[_lk] = _def_l
+                _pc1, _pc2 = st.columns(2)
+                poly_center = _pc1.selectbox("Central atom", _poly_els, key=_ck)
+                poly_ligand = _pc2.selectbox("Neighbours", _lig_opts, key=_lk)
+                _pm_col, _pv_col, _po_col = st.columns([1.4, 1, 1], vertical_alignment="bottom")
+                poly_method = _pm_col.selectbox(
+                    "Neighbour search", NEIGHBOR_METHODS, key=f"se_poly_method_{selected_file}",
+                    help="**Nearest shell**: neighbours up to the chosen multiple of "
+                         "the shortest distance; the shell ends at the largest jump "
+                         "(≥ 12 %) in the sorted distances.  \n"
+                         "**Fixed cutoff**: all neighbours closer than the cutoff.  \n"
+                         "**Automatic (CrystalNN)**: pymatgen's CrystalNN (Voronoi-"
+                         "based weights), slower on large cells.")
+                if poly_method == "Nearest shell":
+                    poly_value = _pv_col.number_input(
+                        "Window (×)", min_value=1.05, max_value=3.0,
+                        value=DEFAULT_SHELL_WINDOW, step=0.05, format="%.2f",
+                        key=f"se_poly_window_{selected_file}",
+                        help="Search window as a multiple of the shortest distance "
+                             "to a neighbour.")
+                elif poly_method == "Fixed cutoff":
+                    poly_value = _pv_col.number_input(
+                        "Cutoff (Å)", min_value=0.5, max_value=8.0, value=3.0, step=0.1,
+                        format="%.2f", key=f"se_poly_cutoff_{selected_file}")
+                else:
+                    poly_value = 0.0
+                    _pv_col.caption("no parameter")
+                poly_opacity = _po_col.slider("Opacity", 0.1, 1.0, 0.5, 0.05,
+                                              key=f"se_poly_opacity_{selected_file}",
+                                              help="Opacity of the polyhedra.")
+
+                # Draw all polyhedra, or only those around the chosen atoms.
+                _center_sites = [s for s in _sites_for_coordination(render_atoms)
+                                 if s[0] == poly_center]
+                _show_opts = [
+                    f"{poly_center} #{k} ({x:.3f}, {y:.3f}, {z:.3f})"
+                    for k, (_, x, y, z) in enumerate(_center_sites, start=1)]
+                _sk = f"se_poly_show_multi_{selected_file}"
+                # drop atoms that no longer exist (other element / edited structure)
+                st.session_state[_sk] = [o for o in st.session_state.get(_sk, [])
+                                         if o in _show_opts]
+                _ms_col, _keep_col = st.columns([2, 1], vertical_alignment="bottom")
+                _show_choice = _ms_col.multiselect(
+                    "Show polyhedra only around", _show_opts, key=_sk,
+                    placeholder=f"All {poly_center} atoms",
+                    help="Leave empty to draw the polyhedra around all central "
+                         "atoms, or add one or more atoms (fractional "
+                         "coordinates in brackets) to draw only theirs.")
+                poly_only = (tuple(tuple(_center_sites[_show_opts.index(o)][1:])
+                                   for o in _show_choice)
+                             or None)
+                poly_settings = (poly_center, poly_ligand, poly_method, float(poly_value),
+                                 poly_opacity, poly_only)
+
+                # Kept sets stay in the view while another one is set up
+                # (e.g. Ti–O octahedra together with Sr–O cuboctahedra).
+                _kept_key = f"se_poly_kept_{selected_file}"
+                _kept = st.session_state.setdefault(_kept_key, [])
+                _already = poly_settings in _kept
+                _keep_col.button("📌 Keep these polyhedra", key=f"se_poly_keep_{selected_file}",
+                          on_click=_keep_poly_set, args=(_kept_key, poly_settings),
+                          disabled=_already, width="stretch", type="primary", wrap=True,
+                          help=("These polyhedra are already kept." if _already else
+                                "Keep the polyhedra shown now in the view, then choose "
+                                "another central atom (or other settings) to add "
+                                "more polyhedra next to them."))
+                if _kept:
+                    st.caption("Kept polyhedra:")
+                    for _i, _ks in enumerate(_kept):
+                        _kc1, _kc2 = st.columns([5, 1], vertical_alignment="center")
+                        _kc1.markdown(
+                            f"<span style='font-size:0.85rem;'>"
+                            f"<span style='color:{jmol_colors.get(_ks[0], '#9ca3af')};'>◆</span> "
+                            f"{_poly_set_label(_ks)}</span>", unsafe_allow_html=True)
+                        _kc2.button("✕", key=f"se_poly_unkeep_{selected_file}_{_i}",
+                                    on_click=_unkeep_poly_set, args=(_kept_key, _i),
+                                    help="Remove these polyhedra", type="primary")
+            st.markdown(
+                "<div style='height:1px;background:#e2e8f0;margin:8px 0;'></div>",
+                unsafe_allow_html=True,
+            )
+            show_bonds = st.checkbox("🔗 Bonds", value=False, key=f"se_bonds_{selected_file}")
             if show_bonds:
                 bonds_pbc = st.checkbox(
                     "Extend bonds across periodic boundaries",
@@ -1630,10 +1922,31 @@ def run_structure_editor(uploaded_files):
         else:
             viz_atoms = render_atoms
 
+        # Kept polyhedra sets first, then the one being set up now (unless it
+        # is identical to a kept one).
+        poly_data = None
+        if poly_settings is not None:
+            _all_sets = list(st.session_state.get(f"se_poly_kept_{selected_file}", []))
+            if poly_settings not in _all_sets:
+                _all_sets.append(poly_settings)
+            _sites_c = _sites_for_coordination(render_atoms)
+            _lat_c = tuple(map(tuple, _vesta_lattice(preview_struct.lattice).matrix.tolist()))
+            poly_data = []
+            for _pc, _pl_el, _pm, _pv, _po, _ponly in _all_sets:
+                try:
+                    with st.spinner("Analysing coordination environments…"):
+                        _poly_result = _cached_coordination(_sites_c, _lat_c, _pc, _pl_el, _pm, _pv)
+                    poly_data.append({"result": _poly_result, "center": _pc, "ligand": _pl_el,
+                                      "method": _pm, "value": _pv,
+                                      "opacity": _po, "only": _ponly})
+                except Exception as _poly_exc:
+                    viz_right.error(f"Coordination analysis of {_pc}–{_pl_el} failed: {_poly_exc}")
+
         with viz_right:
             _render_py3dmol(
                 atoms=viz_atoms, structure=preview_struct,
                 base_atom_size=base_atom_size, show_lattice_vectors=show_lv,
+                show_abc_arrows=not hide_abc,
                 use_orthographic=use_ortho, show_atom_labels=show_labels,
                 orientation_result=orientation_result,
                 show_bonds=show_bonds, bonds_pbc=bonds_pbc,
@@ -1641,8 +1954,17 @@ def run_structure_editor(uploaded_files):
                 show_bond_lengths=show_bond_lengths,
                 roll_key=f"orient_roll_deg_se_{selected_file}",
                 show_partial_occ=True, fill_boundary=fill_corners,
-                repeat=repeat,
+                repeat=repeat, polyhedra=poly_data,
             )
+            if poly_data:
+                # one table per distinct analysis (the atom selection does
+                # not change the table)
+                _seen_tables = set()
+                for _pd in poly_data:
+                    _tkey = (_pd["center"], _pd["ligand"], _pd["method"], _pd["value"])
+                    if _tkey not in _seen_tables:
+                        _seen_tables.add(_tkey)
+                        _render_coordination_table(_pd)
 
     with tab_sym:
         st.markdown(
