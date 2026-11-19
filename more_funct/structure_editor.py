@@ -831,21 +831,26 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         poly_placements = []
         only = pset.get("only")
         if only is not None:
-            # only the chosen atoms, each in the first cell only
+            # only the chosen atoms (any of their corner/edge/face copies),
+            # each in the first cell only
+            def _chosen_images(frac):
+                return [im for im in _expand_boundary_frac(frac)
+                        if any(np.allclose(im, o, atol=1e-4) for o in only)]
             envs = [e for e in pset["result"]["envs"]
-                    if e["mesh"][0] and any(np.allclose(e["frac"], o, atol=1e-4) for o in only)]
+                    if e["mesh"][0] and _chosen_images(e["frac"])]
         else:
             shown_sites = {k for k in site_map}
             envs = [e for e in pset["result"]["envs"]
                     if e["mesh"][0] and tuple(round(x, 4) for x in e["frac"]) in shown_sites]
         for env in envs:
             if only is not None:
-                frac_images, reps = [env["frac"]], (1, 1, 1)
-                c_cart = _dc(norm_lat.get_cartesian_coords(list(env["frac"])))
-                c_key = tuple(np.round(c_cart, 2))
-                if c_key not in drawn_keys:      # centre hidden, e.g. asymmetric unit view
-                    drawn_keys.add(c_key)
-                    rows.append(f"{pset['center']} " + " ".join(f"{v:.6f}" for v in c_cart))
+                frac_images, reps = _chosen_images(env["frac"]), (1, 1, 1)
+                for _im in frac_images:
+                    c_cart = _dc(norm_lat.get_cartesian_coords(list(_im)))
+                    c_key = tuple(np.round(c_cart, 2))
+                    if c_key not in drawn_keys:  # centre hidden, e.g. asymmetric unit view
+                        drawn_keys.add(c_key)
+                        rows.append(f"{pset['center']} " + " ".join(f"{v:.6f}" for v in c_cart))
             else:
                 frac_images = _expand_boundary_frac(env["frac"]) if fill_boundary else [env["frac"]]
                 reps = (sx, sy, sz)
@@ -1800,9 +1805,16 @@ def run_structure_editor(uploaded_files):
                 # Draw all polyhedra, or only those around the chosen atoms.
                 _center_sites = [s for s in _sites_for_coordination(render_atoms)
                                  if s[0] == poly_center]
-                _show_opts = [
-                    f"{poly_center} #{k} ({x:.3f}, {y:.3f}, {z:.3f})"
-                    for k, (_, x, y, z) in enumerate(_center_sites, start=1)]
+                # With the boundary atoms completed, every drawn copy of a
+                # corner/edge/face atom can be picked on its own.
+                _center_images = []          # (label, image frac)
+                for k, (_, x, y, z) in enumerate(_center_sites, start=1):
+                    _imgs = _expand_boundary_frac((x, y, z)) if fill_corners else [(x, y, z)]
+                    for _im in _imgs:
+                        _center_images.append(
+                            (f"{poly_center} #{k} ({_im[0]:.3f}, {_im[1]:.3f}, {_im[2]:.3f})",
+                             tuple(float(v) for v in _im)))
+                _show_opts = [lbl for lbl, _ in _center_images]
                 _sk = f"se_poly_show_multi_{selected_file}"
                 # drop atoms that no longer exist (other element / edited structure)
                 st.session_state[_sk] = [o for o in st.session_state.get(_sk, [])
@@ -1814,7 +1826,7 @@ def run_structure_editor(uploaded_files):
                     help="Leave empty to draw the polyhedra around all central "
                          "atoms, or add one or more atoms (fractional "
                          "coordinates in brackets) to draw only theirs.")
-                poly_only = (tuple(tuple(_center_sites[_show_opts.index(o)][1:])
+                poly_only = (tuple(_center_images[_show_opts.index(o)][1]
                                    for o in _show_choice)
                              or None)
                 poly_settings = (poly_center, poly_ligand, poly_method, float(poly_value),
