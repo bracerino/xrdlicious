@@ -1088,6 +1088,13 @@ def _render_py3dmol(atoms, structure, base_atom_size, show_lattice_vectors,
         f"border-radius:10px;overflow:hidden;background-color:#f8f9fa;'>{html_content}{legend_html}</div>",
         height=720,
     )
+    # st.iframe runs urllib's urlsplit on an HTML string to see whether it is a
+    # URL, and urlsplit caches its last 128 inputs. py3Dmol makes every page
+    # unique, so each rerun would pin another copy of the viewer in memory.
+    import urllib.parse
+    _clear = getattr(urllib.parse.urlsplit, "cache_clear", None)  # Python 3.11+
+    if _clear is not None:
+        _clear()
 
     if roll_key is not None and orientation_result is not None:
         new_roll = st.slider(
